@@ -41,9 +41,23 @@ public final class TrainingStats {
         return n;
     }
 
+    public static int secondsFor(List<SessionRecord> h, String id) {
+        int n = 0;
+        for (SessionRecord r : h) for (ExerciseLog e : r.exercises) if (id.equals(e.exerciseId)) n += e.totalSeconds();
+        return n;
+    }
+
     public static int bestSetFor(List<SessionRecord> h, String id) {
         int best = 0;
         for (SessionRecord r : h) best = Math.max(best, r.bestSetFor(id));
+        return best;
+    }
+
+    public static int bestTimedSetFor(List<SessionRecord> h, String id) {
+        int best = 0;
+        for (SessionRecord r : h) for (ExerciseLog e : r.exercises) if (id.equals(e.exerciseId)) {
+            for (WorkoutSetRecord s : e.sets) best = Math.max(best, s.seconds);
+        }
         return best;
     }
 
@@ -77,9 +91,21 @@ public final class TrainingStats {
         int[] out = new int[days];
         long today = dayKey(System.currentTimeMillis());
         for (SessionRecord r : h) {
-            long d = dayKey(r.timestamp);
-            int ago = (int)((today - d) / 86_400_000L);
+            int ago = (int)((today - dayKey(r.timestamp)) / 86_400_000L);
             if (ago >= 0 && ago < days) out[days - 1 - ago] += exerciseId == null ? r.totalReps() : r.repsFor(exerciseId);
+        }
+        return out;
+    }
+
+    public static int[] dailySeconds(List<SessionRecord> h, String exerciseId, int days) {
+        int[] out = new int[days];
+        long today = dayKey(System.currentTimeMillis());
+        for (SessionRecord r : h) {
+            int ago = (int)((today - dayKey(r.timestamp)) / 86_400_000L);
+            if (ago < 0 || ago >= days) continue;
+            int total = 0;
+            for (ExerciseLog e : r.exercises) if (exerciseId == null || exerciseId.equals(e.exerciseId)) total += e.totalSeconds();
+            out[days - 1 - ago] += total;
         }
         return out;
     }
