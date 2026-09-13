@@ -23,17 +23,30 @@ def bounds_center(bounds):
 def find_text(text, contains=True):
     root = dump()
     target = text.lower()
+    candidates = []
     for n in root.iter("node"):
         val = (n.attrib.get("text") or "").lower()
-        if (target in val if contains else target == val):
-            b = n.attrib.get("bounds", "")
-            if b:
-                return bounds_center(b), n.attrib.get("text", "")
-    return None, None
+        if not val:
+            continue
+        exact = val == target
+        matched = exact or (contains and target in val)
+        if not matched:
+            continue
+        b = n.attrib.get("bounds", "")
+        if not b:
+            continue
+        clickable = n.attrib.get("clickable") == "true"
+        # Prefer exact clickable labels, then exact labels, then clickable partial matches.
+        score = 0 if exact and clickable else 1 if exact else 2 if clickable else 3
+        candidates.append((score, bounds_center(b), n.attrib.get("text", "")))
+    if not candidates:
+        return None, None
+    candidates.sort(key=lambda x: x[0])
+    return candidates[0][1], candidates[0][2]
 
-def tap_text(text, scroll=False):
+def tap_text(text, scroll=False, exact=False):
     for _ in range(7 if scroll else 1):
-        pos, actual = find_text(text)
+        pos, actual = find_text(text, contains=not exact)
         if pos:
             adb("shell", "input", "tap", str(pos[0]), str(pos[1]))
             time.sleep(0.7)
@@ -73,22 +86,21 @@ def screenshot(name):
     adb("pull",path,f"{OUT}/{name}.png")
 
 def add_reps(value):
-    tap_text("Подход", scroll=True)
+    tap_text("+ Подход", scroll=True, exact=True)
     enter_edit(value,0)
-    tap_text("Записать")
+    tap_text("Записать", exact=True)
 
 def start_app():
     adb("shell","am","start","-n",f"{PKG}/.MainActivity")
     time.sleep(2)
 
-# Clean-install state is handled by workflow.
 start_app()
 assert_text("Начать тренировку")
 screenshot("01-home-empty")
 
-tap_text("Начать тренировку")
+tap_text("Начать тренировку", exact=True)
 assert_text("Что делаешь сегодня")
-tap_text("Старт", scroll=True)
+tap_text("Старт", scroll=True, exact=True)
 assert_text("ТРЕНИРОВКА ИДЁТ")
 
 for v in (10,8,7,6):
@@ -96,24 +108,22 @@ for v in (10,8,7,6):
 
 assert_text("31 повт", scroll=True)
 screenshot("02-active-31-reps")
-tap_text("Завершить и сохранить", scroll=True)
-tap_text("Сохранить")
+tap_text("Завершить и сохранить", scroll=True, exact=True)
+tap_text("Сохранить", exact=True)
 assert_text("История", scroll=True)
 assert_text("31 повторений", scroll=True)
 screenshot("03-stats-saved")
 
-# Persistence after process restart.
 adb("shell","am","force-stop",PKG)
 start_app()
 assert_text("Последняя тренировка", scroll=True)
 assert_text("31 повторений", scroll=True)
 screenshot("04-home-persisted")
 
-# Custom exercise creation.
-tap_text("Упражнения")
-tap_text("Своё упражнение", scroll=True)
+tap_text("Упражнения", exact=True)
+tap_text("+ Своё упражнение", scroll=True, exact=True)
 enter_edit("TestCustom",0)
-tap_text("Создать")
+tap_text("Создать", exact=True)
 assert_text("TestCustom", scroll=True)
 screenshot("05-custom-exercise")
 
