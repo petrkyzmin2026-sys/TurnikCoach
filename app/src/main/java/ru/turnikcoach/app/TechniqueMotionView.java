@@ -21,7 +21,7 @@ public class TechniqueMotionView extends View {
         bar.setColor(Color.rgb(125,131,145)); bar.setStrokeWidth(dp(5)); bar.setStrokeCap(Paint.Cap.ROUND);
         body.setColor(Color.rgb(244,246,249)); body.setStrokeWidth(dp(5)); body.setStyle(Paint.Style.STROKE); body.setStrokeCap(Paint.Cap.ROUND);
         accent.setColor(Color.rgb(255,216,77)); accent.setStrokeWidth(dp(5)); accent.setStyle(Paint.Style.STROKE); accent.setStrokeCap(Paint.Cap.ROUND);
-        setMinimumHeight(dp(210));
+        setMinimumHeight(Math.round(dp(210)));
         start();
     }
 
