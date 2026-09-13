@@ -27,7 +27,7 @@ public class SessionChartView extends View {
 
     @Override protected void onDraw(Canvas c) {
         super.onDraw(c);
-        float l=dp(12), r=getWidth()-dp(12), t=dp(20), b=getHeight()-dp(28);
+        float l=dp(12), r=getWidth()-dp(12), t=dp(24), b=getHeight()-dp(30);
         for(int i=0;i<=3;i++){ float y=t+(b-t)*i/3f; c.drawLine(l,y,r,y,grid); }
         if(values.length==0) return;
         int max=1; for(int v:values) max=Math.max(max,v);
@@ -39,8 +39,9 @@ public class SessionChartView extends View {
         }
         area.lineTo(r,b); area.close(); c.drawPath(area,fill); c.drawPath(p,line);
         c.drawText("−30 дн.",l,getHeight()-dp(8),label);
-        String mx="пик " + max; c.drawText(mx,r-label.measureText(mx),getHeight()-dp(8),label);
         c.drawText("сегодня",r-label.measureText("сегодня"),getHeight()-dp(8),label);
+        String mx="пик " + max;
+        c.drawText(mx,r-label.measureText(mx),dp(13),label);
     }
 
     private float dp(float v){return v*getResources().getDisplayMetrics().density;}
