@@ -36,7 +36,6 @@ def find_text(text, contains=True):
         if not b:
             continue
         clickable = n.attrib.get("clickable") == "true"
-        # Prefer exact clickable labels, then exact labels, then clickable partial matches.
         score = 0 if exact and clickable else 1 if exact else 2 if clickable else 3
         candidates.append((score, bounds_center(b), n.attrib.get("text", "")))
     if not candidates:
@@ -45,14 +44,14 @@ def find_text(text, contains=True):
     return candidates[0][1], candidates[0][2]
 
 def tap_text(text, scroll=False, exact=False):
-    for _ in range(7 if scroll else 1):
+    for _ in range(9 if scroll else 1):
         pos, actual = find_text(text, contains=not exact)
         if pos:
             adb("shell", "input", "tap", str(pos[0]), str(pos[1]))
             time.sleep(0.7)
             return actual
         if scroll:
-            adb("shell", "input", "swipe", "540", "1650", "540", "650", "350")
+            adb("shell", "input", "swipe", "540", "1700", "540", "650", "350")
             time.sleep(0.5)
     raise AssertionError(f"Text not found: {text}")
 
@@ -73,11 +72,11 @@ def enter_edit(text, index=0):
     adb("shell","input","text",str(text)); time.sleep(.2)
 
 def assert_text(text, scroll=False):
-    for _ in range(7 if scroll else 1):
+    for _ in range(9 if scroll else 1):
         pos,_=find_text(text)
         if pos: return
         if scroll:
-            adb("shell","input","swipe","540","1650","540","650","350"); time.sleep(.4)
+            adb("shell","input","swipe","540","1700","540","650","350"); time.sleep(.4)
     raise AssertionError(f"Expected text not found: {text}")
 
 def screenshot(name):
@@ -120,11 +119,15 @@ assert_text("Последняя тренировка", scroll=True)
 assert_text("31 повторений", scroll=True)
 screenshot("04-home-persisted")
 
+# Library and custom-exercise flow. First prove that navigation reached the library,
+# then find the creation button by stable text without depending on the leading + glyph.
 tap_text("Упражнения", exact=True)
-tap_text("+ Своё упражнение", scroll=True, exact=True)
+assert_text("БИБЛИОТЕКА")
+screenshot("05-library")
+tap_text("Своё упражнение", scroll=True, exact=False)
 enter_edit("TestCustom",0)
 tap_text("Создать", exact=True)
 assert_text("TestCustom", scroll=True)
-screenshot("05-custom-exercise")
+screenshot("06-custom-exercise")
 
 print("UI_SMOKE_OK")
