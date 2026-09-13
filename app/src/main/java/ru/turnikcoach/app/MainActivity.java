@@ -6,8 +6,6 @@ import android.graphics.Color;
 import android.graphics.Typeface;
 import android.os.Bundle;
 import android.text.InputType;
-import android.view.Gravity;
-import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
@@ -25,7 +23,6 @@ public class MainActivity extends Activity {
     private static final int MUTED = Color.rgb(173,178,189);
     private static final int ACCENT = Color.rgb(255,216,77);
     private AppPrefs prefs;
-    private boolean lightMode;
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
@@ -55,7 +52,6 @@ public class MainActivity extends Activity {
     }
 
     private void showHome() {
-        lightMode = false;
         LinearLayout box = base();
         Profile p = prefs.loadProfile();
         List<SessionRecord> history = prefs.history();
@@ -90,7 +86,6 @@ public class MainActivity extends Activity {
     }
 
     private void showLight() {
-        lightMode = true;
         LinearLayout box = base();
         Profile p = prefs.loadProfile();
         Workout w = WorkoutEngine.lightVersion(WorkoutEngine.workoutForIndex(p,prefs.history().size()));
@@ -153,12 +148,14 @@ public class MainActivity extends Activity {
         EditText target=input("Цель по повторениям",true); target.setText(String.valueOf(p.targetReps)); form.addView(target);
         String[] goals={WorkoutEngine.GOAL_FIRST,WorkoutEngine.GOAL_REPS,WorkoutEngine.GOAL_STRENGTH,WorkoutEngine.GOAL_MUSCLEUP,WorkoutEngine.GOAL_ONE_ARM};
         new AlertDialog.Builder(this).setTitle("Профиль").setView(form)
-                .setSingleChoiceItems(goals,indexOf(goals,p.goal),(dialog,which)-> dialog.setTitle(goals[which]))
+                .setSingleChoiceItems(goals,indexOf(goals,p.goal),(dialog,which)-> p.goal = goals[which])
                 .setPositiveButton("Сохранить",(d,w)->{
                     int m=Math.max(0,parseInt(max.getText().toString(),p.maxPullUps));
-                    p.maxPullUps=m; p.targetReps=Math.max(1,parseInt(target.getText().toString(),p.targetReps));
-                    CharSequence t=((AlertDialog)d).getListView()!=null?null:null;
-                    prefs.saveProfile(p); prefs.updateMax(m); showHome();
+                    p.maxPullUps=m;
+                    p.targetReps=Math.max(1,parseInt(target.getText().toString(),p.targetReps));
+                    prefs.saveProfile(p);
+                    prefs.updateMax(m);
+                    showHome();
                 }).setNegativeButton("Отмена",null).show();
     }
 
@@ -168,7 +165,7 @@ public class MainActivity extends Activity {
         LinearLayout root=new LinearLayout(this); root.setOrientation(LinearLayout.VERTICAL); root.setBackgroundColor(BG);
         ScrollView sc=new ScrollView(this); LinearLayout box=new LinearLayout(this); box.setOrientation(LinearLayout.VERTICAL); box.setPadding(dp(18),dp(22),dp(18),dp(30)); sc.addView(box); root.addView(sc,new LinearLayout.LayoutParams(-1,-1)); setContentView(root); return box;
     }
-    private LinearLayout card(String h,String b){ LinearLayout c=new LinearLayout(this); c.setOrientation(LinearLayout.VERTICAL); c.setPadding(dp(14),dp(12),dp(14),dp(12)); c.setBackgroundColor(CARD); c.addView(over(h.toUpperCase())); c.addView(strong(b)); LinearLayout wrap=new LinearLayout(this); return c; }
+    private LinearLayout card(String h,String b){ LinearLayout c=new LinearLayout(this); c.setOrientation(LinearLayout.VERTICAL); c.setPadding(dp(14),dp(12),dp(14),dp(12)); c.setBackgroundColor(CARD); c.addView(over(h.toUpperCase())); c.addView(strong(b)); return c; }
     private TextView title(String s){ TextView t=tv(s,28,TEXT); t.setTypeface(Typeface.DEFAULT,Typeface.BOLD); t.setPadding(0,dp(4),0,dp(8)); return t; }
     private TextView section(String s){ TextView t=tv(s,20,TEXT); t.setTypeface(Typeface.DEFAULT,Typeface.BOLD); t.setPadding(0,dp(22),0,dp(8)); return t; }
     private TextView strong(String s){ TextView t=tv(s,17,TEXT); t.setTypeface(Typeface.DEFAULT,Typeface.BOLD); return t; }
