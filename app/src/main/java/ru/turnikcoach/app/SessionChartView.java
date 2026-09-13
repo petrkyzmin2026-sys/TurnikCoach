@@ -20,7 +20,7 @@ public class SessionChartView extends View {
         line.setColor(Color.rgb(255,216,77)); line.setStrokeWidth(dp(3)); line.setStyle(Paint.Style.STROKE);
         fill.setColor(Color.argb(38,255,216,77)); fill.setStyle(Paint.Style.FILL);
         label.setColor(Color.rgb(150,156,170)); label.setTextSize(dp(10));
-        setMinimumHeight(dp(190));
+        setMinimumHeight(Math.round(dp(190)));
     }
 
     public void setValues(int[] v) { values = v == null ? new int[0] : v; invalidate(); }
