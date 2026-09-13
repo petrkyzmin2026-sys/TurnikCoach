@@ -30,17 +30,18 @@ public class SessionChartView extends View {
         float l=dp(12), r=getWidth()-dp(12), t=dp(24), b=getHeight()-dp(30);
         for(int i=0;i<=3;i++){ float y=t+(b-t)*i/3f; c.drawLine(l,y,r,y,grid); }
         if(values.length==0) return;
-        int max=1; for(int v:values) max=Math.max(max,v);
+        int dataMax=0; for(int v:values) dataMax=Math.max(dataMax,v);
+        int scaleMax=Math.max(1,dataMax);
         Path p=new Path(); Path area=new Path();
         for(int i=0;i<values.length;i++){
             float x=values.length==1?(l+r)/2f:l+(r-l)*i/(values.length-1f);
-            float y=b-(b-t)*values[i]/(float)max;
+            float y=b-(b-t)*values[i]/(float)scaleMax;
             if(i==0){p.moveTo(x,y); area.moveTo(x,b); area.lineTo(x,y);} else {p.lineTo(x,y); area.lineTo(x,y);} 
         }
         area.lineTo(r,b); area.close(); c.drawPath(area,fill); c.drawPath(p,line);
         c.drawText("−30 дн.",l,getHeight()-dp(8),label);
         c.drawText("сегодня",r-label.measureText("сегодня"),getHeight()-dp(8),label);
-        String mx="пик " + max;
+        String mx="пик " + dataMax;
         c.drawText(mx,r-label.measureText(mx),dp(13),label);
     }
 
