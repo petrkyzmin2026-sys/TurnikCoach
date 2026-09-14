@@ -30,16 +30,16 @@ jobs:
         working-directory: matchstats
         run: gradle :app:assembleDebug --no-daemon
       - name: Prepare DENZL APK
-        run: cp matchstats/app/build/outputs/apk/debug/app-debug.apk DENZL-v0.9-independent-model.apk
+        run: cp matchstats/app/build/outputs/apk/debug/app-debug.apk DENZL-v1.0-probability-only.apk
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: DENZL-v0.9-independent-model
-          path: DENZL-v0.9-independent-model.apk
+          name: DENZL-v1.0-probability-only
+          path: DENZL-v1.0-probability-only.apk
       - name: Publish GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release delete denzl-v0.9-independent-model --yes || true
-          git push origin :refs/tags/denzl-v0.9-independent-model || true
-          gh release create denzl-v0.9-independent-model DENZL-v0.9-independent-model.apk --target "$GITHUB_SHA" --title "DENZL v0.9" --notes "DENZL probabilities are calculated independently from bookmaker odds. Market/API-Football is optional and used only for control comparison. SofaScore provides fixtures, pregame form and live statistics. Manual LIVE refresh retained."
+          gh release delete denzl-v1.0-probability-only --yes || true
+          git push origin :refs/tags/denzl-v1.0-probability-only || true
+          gh release create denzl-v1.0-probability-only DENZL-v1.0-probability-only.apk --target "$GITHUB_SHA" --title "DENZL v1.0" --notes "Probability-only build. Removed API-Football, API keys, bookmaker odds and market comparison. Fixed SofaScore routing: LINE uses api.sofascore.com scheduled-events only; LIVE uses sofascore.com live board with api.sofascore.com fallback. Manual LIVE refresh retained."
