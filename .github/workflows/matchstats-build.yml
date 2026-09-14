@@ -1,8 +1,8 @@
-name: Build MatchStats APK
+name: Build DENZL APK
 
 on:
   push:
-    branches: [ matchstats-prototype ]
+    branches: [ denzl-live-goals-patch ]
     paths:
       - 'matchstats/**'
       - '.github/workflows/matchstats-build.yml'
@@ -26,20 +26,23 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
+      - name: Apply DENZL v1.3 source patch
+        working-directory: matchstats
+        run: python3 patch_v13.py
       - name: Build debug APK
         working-directory: matchstats
         run: gradle :app:assembleDebug --no-daemon
       - name: Prepare DENZL APK
-        run: cp matchstats/app/build/outputs/apk/debug/app-debug.apk DENZL-v1.2-betcity.apk
+        run: cp matchstats/app/build/outputs/apk/debug/app-debug.apk DENZL-v1.3-live.apk
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: DENZL-v1.2-betcity
-          path: DENZL-v1.2-betcity.apk
+          name: DENZL-v1.3-live
+          path: DENZL-v1.3-live.apk
       - name: Publish GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release delete denzl-v1.2-betcity --yes || true
-          git push origin :refs/tags/denzl-v1.2-betcity || true
-          gh release create denzl-v1.2-betcity DENZL-v1.2-betcity.apk --target "$GITHUB_SHA" --title "DENZL v1.2" --notes "BETCITY line/live source and BETCITY odds. Probability model uses recent BETCITY results plus live match state/statistics when available. Added BTTS Yes/No and first-half Asian total 1.0 with push probability. LIVE refreshes every 30 seconds."
+          gh release delete denzl-v1.3-live --yes || true
+          git push origin :refs/tags/denzl-v1.3-live || true
+          gh release create denzl-v1.3-live DENZL-v1.3-live.apk --target "$GITHUB_SHA" --title "DENZL v1.3" --notes "LIVE refresh: 2 minutes. DENZL probabilities recalculate from match minute, score and available live statistics. Odds source: BETCITY primary, Fonbet automatic fallback. The UI shows the bookmaker source actually in use; odds are not synthesized by DENZL."
