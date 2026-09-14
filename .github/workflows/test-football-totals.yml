@@ -1,0 +1,37 @@
+name: Test Football Totals Live
+
+on:
+  push:
+    branches: [ football-totals-app ]
+    paths:
+      - '.github/workflows/test-football-totals.yml'
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check live service and prediction
+        run: |
+          python - <<'PY'
+          import json, urllib.request, datetime, time
+          base='https://football-totals-ledt.onrender.com'
+          for i in range(12):
+              try:
+                  print(urllib.request.urlopen(base+'/health', timeout=30).read().decode())
+                  break
+              except Exception as e:
+                  print('waiting',e); time.sleep(10)
+          date=datetime.datetime.now(datetime.timezone.utc).date().isoformat()
+          data=json.load(urllib.request.urlopen(base+'/api/matches?date='+date, timeout=60))
+          print('matches',data['count'])
+          if not data['matches']:
+              raise SystemExit('No matches returned')
+          event=data['matches'][0]
+          print('event',event['home'],'-',event['away'],event['id'])
+          pred=json.load(urllib.request.urlopen(base+'/api/predict/'+str(event['id']), timeout=90))
+          print('first_half',pred['first_half'])
+          print('match',pred['match'])
+          print('best',pred['best'])
+          assert pred['first_half'] and pred['match'] and pred['best']
+          PY
