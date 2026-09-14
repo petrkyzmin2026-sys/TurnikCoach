@@ -10,7 +10,6 @@ import android.os.Looper;
 import android.view.Gravity;
 import android.view.View;
 import android.widget.Button;
-import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
@@ -26,8 +25,8 @@ import java.net.URL;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -40,356 +39,179 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class MainActivity extends Activity {
-    private static final String ESPN = "https://site.api.espn.com/apis/site/v2/sports/soccer/";
+    private static final String PREMATCH = "https://ad.betcity.ru/d/off/events?rev=2&id_sp=1&add=main,ext,name_sp,name_ch&ver=69&csn=ooca9s";
+    private static final String LIVE1 = "https://ad.betcity.ru/d/on_air/bets?rev=8&add=dep_event&template=1&ver=69&csn=ooca9s";
+    private static final String LIVE2 = "https://ad.betcity.ru/d/on_air/bets?rev=2&template=1&ver=69&csn=ooca9s";
+    private static final String SCORE = "https://ad.betcity.ru/d/score?rev=5&date=%s&ver=60&lng=1&csn=ooca9s";
     private static final int BG=Color.rgb(10,15,20), CARD=Color.rgb(20,28,36), CARD2=Color.rgb(26,36,46), TEXT=Color.rgb(240,244,247), MUTED=Color.rgb(145,157,169), GREEN=Color.rgb(38,166,91), ACCENT=Color.rgb(64,145,255), RED=Color.rgb(220,80,80), AMBER=Color.rgb(225,155,45);
 
-    private final ExecutorService io = Executors.newFixedThreadPool(6);
-    private final AtomicBoolean busy = new AtomicBoolean(false);
-    private final Handler handler = new Handler(Looper.getMainLooper());
-    private final List<Match> lineMatches = new ArrayList<>();
-    private final List<Match> liveMatches = new ArrayList<>();
-    private boolean liveMode = false;
-    private int navLevel = 0; // 0 countries, 1 leagues, 2 matches
-    private String selectedCountry = "";
-    private String selectedLeague = "";
-    private String status = "Загрузка событий…";
-    private String searchText = "";
+    private final ExecutorService io=Executors.newFixedThreadPool(4);
+    private final AtomicBoolean busy=new AtomicBoolean(false);
+    private final Handler handler=new Handler(Looper.getMainLooper());
+    private final List<Match> lineMatches=new ArrayList<>(), liveMatches=new ArrayList<>();
+    private final Map<String,TeamStats> history=new HashMap<>();
+    private boolean liveMode=false;
+    private int navLevel=0;
+    private String selectedCountry="",selectedLeague="",status="Загрузка BETCITY…";
+    private long historyLoadedAt=0;
 
-    private static final LeagueDef[] LEAGUES = new LeagueDef[]{
-            new LeagueDef("eng.1","Англия","Премьер-лига"),
-            new LeagueDef("eng.2","Англия","Чемпионшип"),
-            new LeagueDef("eng.fa","Англия","Кубок Англии"),
-            new LeagueDef("eng.league_cup","Англия","Кубок английской лиги"),
-            new LeagueDef("esp.1","Испания","Ла Лига"),
-            new LeagueDef("esp.2","Испания","Сегунда"),
-            new LeagueDef("ger.1","Германия","Бундеслига"),
-            new LeagueDef("ger.2","Германия","2-я Бундеслига"),
-            new LeagueDef("ita.1","Италия","Серия A"),
-            new LeagueDef("ita.2","Италия","Серия B"),
-            new LeagueDef("fra.1","Франция","Лига 1"),
-            new LeagueDef("fra.2","Франция","Лига 2"),
-            new LeagueDef("ned.1","Нидерланды","Эредивизи"),
-            new LeagueDef("por.1","Португалия","Примейра-лига"),
-            new LeagueDef("tur.1","Турция","Суперлига"),
-            new LeagueDef("bel.1","Бельгия","Про-лига"),
-            new LeagueDef("sco.1","Шотландия","Премьершип"),
-            new LeagueDef("uefa.champions","Европа","Лига чемпионов УЕФА"),
-            new LeagueDef("uefa.europa","Европа","Лига Европы УЕФА"),
-            new LeagueDef("uefa.europa.conf","Европа","Лига конференций УЕФА"),
-            new LeagueDef("usa.1","США","MLS"),
-            new LeagueDef("mex.1","Мексика","Лига MX"),
-            new LeagueDef("bra.1","Бразилия","Серия A"),
-            new LeagueDef("arg.1","Аргентина","Примера"),
-            new LeagueDef("jpn.1","Япония","J1 Лига"),
-            new LeagueDef("aus.1","Австралия","A-Лига"),
-            new LeagueDef("ksa.1","Саудовская Аравия","Про-лига")
-    };
+    @Override public void onCreate(Bundle b){super.onCreate(b);render();load(false);}
+    @Override public void onDestroy(){handler.removeCallbacksAndMessages(null);io.shutdownNow();super.onDestroy();}
 
-    @Override public void onCreate(Bundle b){
-        super.onCreate(b);
-        render();
-        load(false);
-    }
+    private final Runnable liveRefresh=new Runnable(){@Override public void run(){if(liveMode){load(true);handler.postDelayed(this,30000);}}};
+    private void startLiveTimer(){handler.removeCallbacks(liveRefresh);handler.postDelayed(liveRefresh,30000);}
+    private void stopLiveTimer(){handler.removeCallbacks(liveRefresh);}
 
-    @Override public void onDestroy(){
-        handler.removeCallbacksAndMessages(null);
-        io.shutdownNow();
-        super.onDestroy();
-    }
-
-    private final Runnable liveRefresh = new Runnable(){
-        @Override public void run(){
-            if(liveMode){ load(true); handler.postDelayed(this,30000); }
-        }
-    };
-
-    private void startLiveTimer(){
-        handler.removeCallbacks(liveRefresh);
-        handler.postDelayed(liveRefresh,30000);
-    }
-
-    private void stopLiveTimer(){ handler.removeCallbacks(liveRefresh); }
-
-    private void load(boolean isLive){
-        if(!busy.compareAndSet(false,true)) return;
-        status = isLive ? "Обновление LIVE…" : "Загрузка линии…";
-        render();
-        io.execute(() -> {
-            List<Match> out = new ArrayList<>();
-            String error = "";
-            try { out = loadFromEspn(isLive); }
-            catch(Exception e){ error = message(e); }
-            final List<Match> result = out;
-            final String err = error;
-            runOnUiThread(() -> {
-                List<Match> dst = isLive ? liveMatches : lineMatches;
-                dst.clear(); dst.addAll(result);
-                if(result.isEmpty()) status = !err.isEmpty() ? err : (isLive ? "Сейчас нет матчей LIVE" : "Будущие матчи не получены");
-                else status = (isLive ? "LIVE: " : "ЛИНИЯ: ") + result.size() + " матчей · ESPN";
-                busy.set(false);
-                render();
+    private void load(boolean live){
+        if(!busy.compareAndSet(false,true))return;
+        status=live?"Обновление LIVE BETCITY…":"Загрузка линии BETCITY…";render();
+        io.execute(()->{
+            List<Match> out=new ArrayList<>();String err="";
+            try{
+                ensureHistory();
+                JSONObject root;
+                if(live){try{root=getJson(LIVE1,live);}catch(Exception e){root=getJson(LIVE2,live);}}
+                else root=getJson(PREMATCH,false);
+                out=parseFeed(root,live);
+            }catch(Exception e){err=message(e);}
+            final List<Match> result=out;final String error=err;
+            runOnUiThread(()->{
+                List<Match> dst=live?liveMatches:lineMatches;dst.clear();dst.addAll(result);
+                status=result.isEmpty()?(!error.isEmpty()?error:(live?"В BETCITY сейчас нет LIVE футбола":"Линия BETCITY не получена")):(live?"LIVE BETCITY: ":"ЛИНИЯ BETCITY: ")+result.size()+" матчей";
+                busy.set(false);render();
             });
         });
     }
 
-    private List<Match> loadFromEspn(boolean wantLive) throws Exception{
-        List<Match> out = Collections.synchronizedList(new ArrayList<>());
-        List<Runnable> jobs = new ArrayList<>();
-        String date = espnDate();
-        for(LeagueDef def: LEAGUES){
-            jobs.add(() -> {
-                try{
-                    JSONObject root = getJson(ESPN + def.slug + "/scoreboard?dates=" + date);
-                    parseLeague(root,def,wantLive,out);
-                }catch(Exception ignored){}
-            });
-        }
-        ExecutorService pool = Executors.newFixedThreadPool(6);
-        List<java.util.concurrent.Future<?>> futures = new ArrayList<>();
-        for(Runnable r:jobs) futures.add(pool.submit(r));
-        for(java.util.concurrent.Future<?> f:futures) try{f.get();}catch(Exception ignored){}
-        pool.shutdownNow();
-        List<Match> copy = new ArrayList<>(out);
-        copy.sort((a,b)->Long.compare(a.ts,b.ts));
-        return copy;
-    }
-
-    private void parseLeague(JSONObject root, LeagueDef def, boolean wantLive, List<Match> out){
-        JSONArray events = root.optJSONArray("events");
-        if(events==null) return;
-        long now = System.currentTimeMillis();
-        for(int i=0;i<events.length();i++){
-            JSONObject e = events.optJSONObject(i); if(e==null) continue;
-            JSONArray comps = e.optJSONArray("competitions"); if(comps==null||comps.length()==0) continue;
-            JSONObject c = comps.optJSONObject(0); if(c==null) continue;
-            JSONObject st = c.optJSONObject("status");
-            JSONObject type = st==null?null:st.optJSONObject("type");
-            String state = type==null?"":type.optString("state","");
-            boolean live = "in".equals(state);
-            boolean pre = "pre".equals(state);
-            if(wantLive && !live) continue;
-            if(!wantLive && !pre) continue;
-            Match m = parseEspnMatch(e,c,def,live);
-            if(m==null) continue;
-            if(!wantLive && m.ts>0 && m.ts*1000L < now-60000L) continue;
-            calculateModel(m,live);
-            out.add(m);
-        }
-    }
-
-    private Match parseEspnMatch(JSONObject e, JSONObject c, LeagueDef def, boolean live){
-        JSONArray teams = c.optJSONArray("competitors"); if(teams==null||teams.length()<2) return null;
-        JSONObject home=null,away=null;
-        for(int i=0;i<teams.length();i++){
-            JSONObject x=teams.optJSONObject(i); if(x==null) continue;
-            if("home".equals(x.optString("homeAway"))) home=x;
-            else if("away".equals(x.optString("homeAway"))) away=x;
-        }
-        if(home==null||away==null) return null;
-        Match m=new Match();
-        m.id=e.optString("id",""); m.country=def.country; m.league=def.name; m.leagueSlug=def.slug;
-        JSONObject ht=home.optJSONObject("team"), at=away.optJSONObject("team");
-        String hn=ht==null?"—":ht.optString("displayName","—"), an=at==null?"—":at.optString("displayName","—");
-        m.home=ruTeam(hn); m.away=ruTeam(an);
-        m.homeRaw=hn; m.awayRaw=an;
-        m.hg=parseInt(home.optString("score","-1"),-1); m.ag=parseInt(away.optString("score","-1"),-1);
-        m.homeForm=formScore(home.optString("form","")); m.awayForm=formScore(away.optString("form",""));
-        m.ts=parseIso(e.optString("date",""));
-        JSONObject status=c.optJSONObject("status");
-        if(live && status!=null){
-            double clock=status.optDouble("clock",0); m.min=(int)Math.floor(clock/60.0);
-            if(m.min<=0){ String dc=status.optString("displayClock",""); m.min=parseMinute(dc); }
-        }
-        parseStats(m,home,true); parseStats(m,away,false);
-        parseFirstHalfScore(m,c);
-        return m;
-    }
-
-    private void parseStats(Match m,JSONObject team,boolean home){
-        JSONArray a=team.optJSONArray("statistics"); if(a==null) return;
-        for(int i=0;i<a.length();i++){
-            JSONObject s=a.optJSONObject(i); if(s==null) continue;
-            String n=s.optString("name",""); double v=num(s.optString("displayValue","0"));
-            if("possessionPct".equals(n)){ if(home)m.posH=v;else m.posA=v; }
-            if("shotsOnTarget".equals(n)){ if(home)m.sotH=v;else m.sotA=v; }
-            if("totalShots".equals(n)){ if(home)m.shotsH=v;else m.shotsA=v; }
-            if("expectedGoals".equalsIgnoreCase(n)||"expectedGoalsFor".equalsIgnoreCase(n)){ if(home)m.xgH=v;else m.xgA=v; }
-        }
-        m.possession=fmtStat(m.posH,m.posA,"%"); m.shotsOn=fmtStat(m.sotH,m.sotA,""); m.shots=fmtStat(m.shotsH,m.shotsA,"");
-        if(m.xgH>0||m.xgA>0) m.xg=String.format(Locale.US,"%.2f — %.2f",m.xgH,m.xgA);
-    }
-
-    private void parseFirstHalfScore(Match m,JSONObject c){
-        JSONArray d=c.optJSONArray("details"); if(d==null) return; int h=0,a=0; boolean any=false;
-        for(int i=0;i<d.length();i++){
-            JSONObject x=d.optJSONObject(i); if(x==null||!x.optBoolean("scoringPlay",false)) continue;
-            JSONObject clock=x.optJSONObject("clock"); double sec=clock==null?0:clock.optDouble("value",0);
-            if(sec>45*60+600) continue;
-            String tid=""; JSONObject tm=x.optJSONObject("team"); if(tm!=null) tid=tm.optString("id","");
-            JSONArray comps=c.optJSONArray("competitors"); if(comps==null) continue;
-            for(int j=0;j<comps.length();j++){
-                JSONObject comp=comps.optJSONObject(j); JSONObject team=comp==null?null:comp.optJSONObject("team");
-                if(team!=null&&tid.equals(team.optString("id",""))){ if("home".equals(comp.optString("homeAway")))h++; else a++; any=true; }
+    private List<Match> parseFeed(JSONObject root,boolean wantLive){
+        List<Match> out=new ArrayList<>();JSONObject reply=root.optJSONObject("reply");if(reply==null)reply=root;
+        JSONObject sports=reply.optJSONObject("sports");if(sports==null)return out;
+        JSONObject football=sports.optJSONObject("1");
+        if(football==null){for(String k:keys(sports)){JSONObject s=sports.optJSONObject(k);if(s!=null&&s.optString("name_sp","").toLowerCase(Locale.ROOT).contains("футбол")){football=s;break;}}}
+        if(football==null)return out;JSONObject chmps=football.optJSONObject("chmps");if(chmps==null)return out;
+        for(String ck:keys(chmps)){
+            JSONObject ch=chmps.optJSONObject(ck);if(ch==null)continue;String league=ch.optString("name_ch","Футбол");
+            if(isCyber(league))continue;JSONObject evts=ch.optJSONObject("evts");if(evts==null)continue;
+            for(String ek:keys(evts)){
+                JSONObject e=evts.optJSONObject(ek);if(e==null)continue;boolean isLive=truthy(e.opt("is_live"))||wantLive;
+                if(wantLive&&!isLive)continue;if(!wantLive&&truthy(e.opt("is_live")))continue;
+                Match m=parseEvent(e,league,wantLive);if(m==null)continue;parseMarkets(e,m);calculate(m,wantLive);out.add(m);
             }
         }
-        if(any){m.h1g=h;m.a1g=a;}
+        Collections.sort(out,(a,b)->Long.compare(a.ts,b.ts));return out;
     }
 
-    private void calculateModel(Match m,boolean live){
-        double hs=m.homeForm, as=m.awayForm;
-        double diff=hs-as;
-        double lh=clamp(1.45+1.00*diff,.45,2.75), la=clamp(1.12-.85*diff,.35,2.45);
+    private Match parseEvent(JSONObject e,String league,boolean live){
+        String h=e.optString("name_ht","").trim(),a=e.optString("name_at","").trim();if(h.length()<2||a.length()<2)return null;
+        Match m=new Match();m.id=String.valueOf(e.optLong("id_ev",0));m.home=h;m.away=a;m.league=cleanLeague(league);m.country=countryOf(m.league);m.ts=parseDate(e.opt("date_ev"));
+        int[] sc=parseScore(e.optString("sc_ev",""));m.hg=sc[0];m.ag=sc[1];int[] h1=parseHalfScore(e.optString("sc_ext_ev",""));m.h1g=h1[0];m.a1g=h1[1];
+        if(live)m.min=parseMinute(e);
+        parseLiveExt(e,m);return m;
+    }
+
+    private void ensureHistory(){
+        if(!history.isEmpty()&&System.currentTimeMillis()-historyLoadedAt<10*60*1000)return;
+        history.clear();
+        for(int d=1;d<=7;d++){
+            try{Date day=new Date(System.currentTimeMillis()-d*86400000L);JSONObject r=getJson(String.format(Locale.US,SCORE,day(day)),false);accumulateResults(r,d);}catch(Exception ignored){}
+        }
+        historyLoadedAt=System.currentTimeMillis();
+    }
+
+    private void accumulateResults(JSONObject root,int age){
+        JSONObject reply=root.optJSONObject("reply");if(reply==null)reply=root;JSONObject sports=reply.optJSONObject("sports");if(sports==null)return;JSONObject f=sports.optJSONObject("1");if(f==null)return;JSONObject chmps=f.optJSONObject("chmps");if(chmps==null)return;
+        double w=Math.max(.45,1.0-(age-1)*.08);
+        for(String ck:keys(chmps)){JSONObject ch=chmps.optJSONObject(ck);if(ch==null||isCyber(ch.optString("name_ch","")))continue;JSONObject evts=ch.optJSONObject("evts");if(evts==null)continue;for(String ek:keys(evts)){JSONObject e=evts.optJSONObject(ek);if(e==null)continue;String h=e.optString("name_ht",""),a=e.optString("name_at","");int[] s=parseScore(e.optString("sc_ev",""));if(h.isEmpty()||a.isEmpty()||s[0]<0||s[1]<0)continue;stat(h).add(s[0],s[1],true,w);stat(a).add(s[1],s[0],false,w);}}
+    }
+    private TeamStats stat(String n){String k=norm(n);TeamStats s=history.get(k);if(s==null){s=new TeamStats();history.put(k,s);}return s;}
+
+    private void calculate(Match m,boolean live){
+        TeamStats h=history.get(norm(m.home)),a=history.get(norm(m.away));
+        double hGF=h==null?1.45:h.gfPer(),hGA=h==null?1.20:h.gaPer(),aGF=a==null?1.15:a.gfPer(),aGA=a==null?1.40:a.gaPer();
+        double formH=h==null?.50:h.form(),formA=a==null?.50:a.form();
+        double lh=clamp(1.42*Math.sqrt(clamp(hGF/1.35,.45,2.0)*clamp(aGA/1.35,.45,2.0))*(.86+.28*formH),.35,3.2);
+        double la=clamp(1.12*Math.sqrt(clamp(aGF/1.25,.45,2.0)*clamp(hGA/1.25,.45,2.0))*(.86+.28*formA),.25,2.8);
+        m.confidence=(int)Math.round(clamp(((h==null?0:h.games)+(a==null?0:a.games))/14.0,0,1)*70+20);
         if(live){
-            double rem=clamp((90.0-m.min)/90.0,0,1), pressure=0;
-            if(m.xgH+m.xgA>0)pressure+=.32*(m.xgH-m.xgA);
-            if(m.sotH+m.sotA>0)pressure+=.05*(m.sotH-m.sotA);
-            if(m.shotsH+m.shotsA>0)pressure+=.015*(m.shotsH-m.shotsA);
-            if(m.posH+m.posA>0)pressure+=.0035*(m.posH-m.posA);
-            pressure=clamp(pressure,-.70,.70);
-            double rh=clamp(lh*rem*(1+pressure),.02,2.7), ra=clamp(la*rem*(1-pressure),.02,2.7);
-            int hg=Math.max(0,m.hg),ag=Math.max(0,m.ag);
-            outcome(m,hg,ag,rh,ra,false); totals(m,hg+ag,rh+ra);
-            if(m.min<=45){
-                double hr=clamp((45.0-m.min)/45.0,0,1);
-                double hh=clamp(lh*.46*hr*(1+pressure),.01,1.7), ha=clamp(la*.46*hr*(1-pressure),.01,1.7);
-                outcome(m,hg,ag,hh,ha,true); halfTotals(m,hg+ag,hh+ha);
-            }else if(m.h1g>=0&&m.a1g>=0) doneHalf(m);
+            double rem=clamp((90.0-m.min)/90.0,0,1),pressure=0;
+            if(m.sotH+m.sotA>0)pressure+=.065*(m.sotH-m.sotA);
+            if(m.shotsH+m.shotsA>0)pressure+=.020*(m.shotsH-m.shotsA);
+            if(m.cornersH+m.cornersA>0)pressure+=.025*(m.cornersH-m.cornersA);
+            if(m.posH+m.posA>0)pressure+=.003*(m.posH-m.posA);
+            pressure+=-.14*(m.redH-m.redA);pressure=clamp(pressure,-.70,.70);
+            double rh=clamp(lh*rem*(1+pressure),.01,2.9),ra=clamp(la*rem*(1-pressure),.01,2.9);
+            int hg=Math.max(0,m.hg),ag=Math.max(0,m.ag);outcome(m,hg,ag,rh,ra,false);totals(m,hg+ag,rh+ra);btts(m,hg,ag,rh,ra);
+            if(m.min<=45){double hr=clamp((45.0-m.min)/45.0,0,1);double hh=clamp(lh*.46*hr*(1+pressure),.005,1.8),ha=clamp(la*.46*hr*(1-pressure),.005,1.8);outcome(m,hg,ag,hh,ha,true);halfTotals(m,hg+ag,hh+ha);}else if(m.h1g>=0&&m.a1g>=0)doneHalf(m);
+            if(m.sotH+m.sotA>0)m.confidence=Math.min(98,m.confidence+8);if(m.shotsH+m.shotsA>0)m.confidence=Math.min(98,m.confidence+5);
         }else{
-            outcome(m,0,0,lh,la,false); totals(m,0,lh+la);
-            outcome(m,0,0,lh*.46,la*.46,true); halfTotals(m,0,(lh+la)*.46);
+            outcome(m,0,0,lh,la,false);totals(m,0,lh+la);btts(m,0,0,lh,la);outcome(m,0,0,lh*.46,la*.46,true);halfTotals(m,0,(lh+la)*.46);
         }
     }
 
-    private void outcome(Match m,int bh,int ba,double lh,double la,boolean half){
-        double p1=0,px=0,p2=0;
-        for(int h=0;h<10;h++)for(int a=0;a<10;a++){
-            double p=pois(h,lh)*pois(a,la); int fh=bh+h,fa=ba+a;
-            if(fh>fa)p1+=p; else if(fh==fa)px+=p; else p2+=p;
-        }
-        double s=p1+px+p2;if(s<=0)return;
-        int a=(int)Math.round(p1/s*100),b=(int)Math.round(px/s*100),c=100-a-b;
-        if(half){m.h1p1=a;m.h1px=b;m.h1p2=c;}else{m.p1=a;m.px=b;m.p2=c;}
-    }
+    private void outcome(Match m,int bh,int ba,double lh,double la,boolean half){double p1=0,px=0,p2=0;for(int h=0;h<11;h++)for(int a=0;a<11;a++){double p=pois(h,lh)*pois(a,la);if(bh+h>ba+a)p1+=p;else if(bh+h==ba+a)px+=p;else p2+=p;}double s=p1+px+p2;if(s<=0)return;int x=(int)Math.round(p1/s*100),y=(int)Math.round(px/s*100),z=100-x-y;if(half){m.h1p1=x;m.h1px=y;m.h1p2=z;}else{m.p1=x;m.px=y;m.p2=z;}}
     private void totals(Match m,int g,double l){m.o15=over(g,l,1);m.u15=100-m.o15;m.o25=over(g,l,2);m.u25=100-m.o25;}
-    private void halfTotals(Match m,int g,double l){m.ho05=over(g,l,0);m.hu05=100-m.ho05;m.ho15=over(g,l,1);m.hu15=100-m.ho15;}
-    private void doneHalf(Match m){int h=m.h1g,a=m.a1g;m.h1p1=h>a?100:0;m.h1px=h==a?100:0;m.h1p2=h<a?100:0;int g=h+a;m.ho05=g>0?100:0;m.hu05=100-m.ho05;m.ho15=g>1?100:0;m.hu15=100-m.ho15;}
-    private int over(int current,double l,int t){if(current>t)return 100;double p=0;for(int i=0;i<12;i++)if(current+i>t)p+=pois(i,l);return(int)Math.round(clamp(p,0,1)*100);}
+    private void halfTotals(Match m,int g,double l){m.ho05=over(g,l,0);m.hu05=100-m.ho05;m.ho15=over(g,l,1);m.hu15=100-m.ho15;double p0=g==0?pois(0,l):0,p1=g<=1?pois(Math.max(0,1-g),l):0;if(g>=2){m.ho10=100;m.hu10=0;m.hp10=0;}else{m.ho10=(int)Math.round((1-p0-p1)*100);m.hu10=(int)Math.round(p0*100);m.hp10=Math.max(0,100-m.ho10-m.hu10);}}
+    private void doneHalf(Match m){int h=m.h1g,a=m.a1g,g=h+a;m.h1p1=h>a?100:0;m.h1px=h==a?100:0;m.h1p2=h<a?100:0;m.ho05=g>0?100:0;m.hu05=100-m.ho05;m.ho15=g>1?100:0;m.hu15=100-m.ho15;if(g>1){m.ho10=100;m.hu10=0;m.hp10=0;}else if(g==1){m.ho10=0;m.hu10=0;m.hp10=100;}else{m.ho10=0;m.hu10=100;m.hp10=0;}}
+    private void btts(Match m,int hg,int ag,double lh,double la){double ph=hg>0?1:(1-Math.exp(-lh)),pa=ag>0?1:(1-Math.exp(-la));m.bttsYes=(int)Math.round(clamp(ph*pa,0,1)*100);m.bttsNo=100-m.bttsYes;}
+    private int over(int current,double l,int t){if(current>t)return 100;double p=0;for(int i=0;i<13;i++)if(current+i>t)p+=pois(i,l);return(int)Math.round(clamp(p,0,1)*100);}
     private double pois(int k,double l){double f=1;for(int i=2;i<=k;i++)f*=i;return Math.exp(-l)*Math.pow(l,k)/f;}
 
-    private double formScore(String form){
-        if(form==null||form.isEmpty())return .5; double pts=0,w=0,weight=1.0;
-        for(int i=form.length()-1;i>=0;i--){char c=Character.toUpperCase(form.charAt(i));if(c!='W'&&c!='D'&&c!='L')continue;pts+=(c=='W'?3:c=='D'?1:0)*weight;w+=3*weight;weight*=.82;}
-        return w>0?clamp(pts/w,0.08,.92):.5;
+    private void parseMarkets(JSONObject e,Match m){for(String sec:new String[]{"main","ext","dep_event"}){Object o=e.opt(sec);if(o instanceof JSONObject)walkMarket(o,"",m);}}
+    private void walkMarket(Object node,String inherited,Match m){
+        if(node instanceof JSONObject){JSONObject o=(JSONObject)node;String name=o.optString("name",inherited);JSONObject blocks=o.optJSONObject("blocks");if(blocks!=null)parseBlocks(blocks,name,m);for(String k:keys(o)){if("blocks".equals(k))continue;Object child=o.opt(k);if(child instanceof JSONObject||child instanceof JSONArray)walkMarket(child,name,m);}}
+        else if(node instanceof JSONArray){JSONArray a=(JSONArray)node;for(int i=0;i<a.length();i++){Object x=a.opt(i);if(x instanceof JSONObject||x instanceof JSONArray)walkMarket(x,inherited,m);}}
     }
+    private void parseBlocks(JSONObject blocks,String marketName,Match m){for(String bk:keys(blocks)){JSONObject b=blocks.optJSONObject(bk);if(b==null)continue;String low=marketName.toLowerCase(Locale.ROOT);boolean h1=low.contains("1 тайм")||low.contains("1-й тайм")||low.contains("первый тайм")||low.contains("1st half")||low.contains("first half");if(b.has("P1")||b.has("X")||b.has("P2")){double p1=odd(b.optJSONObject("P1")),x=odd(b.optJSONObject("X")),p2=odd(b.optJSONObject("P2"));if(h1){if(p1>1)m.h1o1=p1;if(x>1)m.h1ox=x;if(p2>1)m.h1o2=p2;}else{if(p1>1)m.o1=p1;if(x>1)m.ox=x;if(p2>1)m.o2=p2;}}
+            if(b.has("Tb")||b.has("Tm")){JSONObject tb=b.optJSONObject("Tb"),tm=b.optJSONObject("Tm");double line=lineValue(tb);if(line<=0)line=lineValue(tm);if(line<=0)line=b.optDouble("Tot",0);double ob=odd(tb),om=odd(tm);storeTotalOdds(m,h1,line,ob,om);}
+            if((low.contains("обе забьют")||low.contains("обе команды забьют"))&&b.has("Y")&&b.has("N")){double y=odd(b.optJSONObject("Y")),n=odd(b.optJSONObject("N"));if(y>1)m.bttsOYes=y;if(n>1)m.bttsONo=n;}
+        }}
+    private void storeTotalOdds(Match m,boolean h1,double line,double over,double under){if(h1){if(close(line,.5)){m.ho05o=over;m.hu05o=under;}else if(close(line,1.0)){m.ho10o=over;m.hu10o=under;}else if(close(line,1.5)){m.ho15o=over;m.hu15o=under;}}else{if(close(line,1.5)){m.o15o=over;m.u15o=under;}else if(close(line,2.5)){m.o25o=over;m.u25o=under;}}}
+    private boolean close(double a,double b){return Math.abs(a-b)<.06;}private double odd(JSONObject o){return o==null?0:o.optDouble("kf",0);}private double lineValue(JSONObject o){if(o==null)return 0;for(String k:new String[]{"lv","lvt","lvl"}){double v=o.optDouble(k,0);if(v!=0)return Math.abs(v);}return 0;}
+
+    private void parseLiveExt(JSONObject e,Match m){Object ext=e.opt("ext");if(ext instanceof JSONArray){JSONArray a=(JSONArray)ext;for(int i=0;i<a.length();i++){JSONObject x=a.optJSONObject(i);if(x==null)continue;applyStat(m,x.optString("name_ext","").toLowerCase(Locale.ROOT),x.optString("value_ext",""));}}}
+    private void applyStat(Match m,String name,String value){double[] v=pair(value);if(name.contains("удар")&&name.contains("створ")){m.sotH=v[0];m.sotA=v[1];}else if(name.contains("удар")){m.shotsH=v[0];m.shotsA=v[1];}else if(name.contains("владен")){m.posH=v[0];m.posA=v[1];}else if(name.contains("углов")){m.cornersH=v[0];m.cornersA=v[1];}else if(name.contains("красн")){m.redH=v[0];m.redA=v[1];}}
 
     private void render(){
-        LinearLayout root=v();root.setBackgroundColor(BG);root.setPadding(dp(14),dp(10),dp(14),dp(10));
-        LinearLayout head=new LinearLayout(this);head.setGravity(Gravity.CENTER_VERTICAL);
-        if(navLevel>0){Button back=new Button(this);back.setText("←");back.setTextSize(20);back.setTextColor(Color.WHITE);back.setBackground(box(CARD2,12));head.addView(back,new LinearLayout.LayoutParams(dp(54),dp(46)));back.setOnClickListener(x->{navLevel--;if(navLevel==0){selectedCountry="";selectedLeague="";}else selectedLeague="";render();});}
-        TextView title=txt(navLevel==0?"DENZL":navLevel==1?selectedCountry:selectedLeague,navLevel==0?26:21,TEXT,true);title.setGravity(Gravity.CENTER);head.addView(title,new LinearLayout.LayoutParams(0,dp(50),1));root.addView(head);
-        TextView sub=txt("Вероятность DENZL · без коэффициентов",12,MUTED,false);sub.setGravity(Gravity.CENTER);root.addView(sub);
-        LinearLayout tabs=new LinearLayout(this);tabs.setWeightSum(2);Button lb=tab("ЛИНИЯ",!liveMode),lv=tab("LIVE",liveMode);tabs.addView(lb,new LinearLayout.LayoutParams(0,dp(50),1));tabs.addView(lv,new LinearLayout.LayoutParams(0,dp(50),1));LinearLayout.LayoutParams tp=new LinearLayout.LayoutParams(-1,-2);tp.setMargins(0,dp(8),0,0);root.addView(tabs,tp);
-        lb.setOnClickListener(x->{liveMode=false;stopLiveTimer();navLevel=0;selectedCountry="";selectedLeague="";load(false);});
-        lv.setOnClickListener(x->{liveMode=true;navLevel=0;selectedCountry="";selectedLeague="";load(true);startLiveTimer();});
-        if(liveMode){TextView auto=txt("LIVE обновляется автоматически каждые 30 секунд",11,GREEN,true);auto.setGravity(Gravity.CENTER);auto.setPadding(0,dp(7),0,0);root.addView(auto);}
-        EditText search=new EditText(this);search.setHint("Поиск страны, лиги или команды");search.setText(searchText);search.setTextColor(TEXT);search.setHintTextColor(MUTED);search.setSingleLine(true);search.setBackground(box(CARD2,12));search.setPadding(dp(12),0,dp(12),0);LinearLayout.LayoutParams sp=new LinearLayout.LayoutParams(-1,dp(46));sp.setMargins(0,dp(8),0,0);root.addView(search,sp);search.setOnEditorActionListener((v,action,event)->{searchText=v.getText().toString().trim();render();return true;});
-        boolean err=status.contains("HTTP")||status.toLowerCase(Locale.ROOT).contains("ошиб");TextView st=txt(status,12,busy.get()?ACCENT:(err?RED:GREEN),true);st.setGravity(Gravity.CENTER);st.setPadding(0,dp(8),0,dp(4));root.addView(st);
-        ScrollView sc=new ScrollView(this);LinearLayout list=v();
-        if(navLevel==0)renderCountries(list); else if(navLevel==1)renderLeagues(list); else renderMatches(list);
-        sc.addView(list);root.addView(sc,new LinearLayout.LayoutParams(-1,0,1));
-        root.addView(txt("Источник событий: ESPN. Вероятности рассчитываются локально на телефоне.",10,MUTED,false));
-        setContentView(root);
+        LinearLayout root=v();root.setBackgroundColor(BG);root.setPadding(dp(14),dp(12),dp(14),dp(12));root.addView(txt("DENZL",26,TEXT,true));root.addView(txt("BETCITY · вероятность DENZL · коэффициенты в скобках",11,MUTED,false));
+        LinearLayout tabs=new LinearLayout(this);tabs.setWeightSum(2);Button line=tab("ЛИНИЯ",!liveMode),live=tab("LIVE",liveMode);tabs.addView(line,new LinearLayout.LayoutParams(0,dp(48),1));tabs.addView(live,new LinearLayout.LayoutParams(0,dp(48),1));root.addView(tabs);
+        line.setOnClickListener(x->{liveMode=false;stopLiveTimer();navLevel=0;selectedCountry="";selectedLeague="";load(false);});live.setOnClickListener(x->{liveMode=true;navLevel=0;selectedCountry="";selectedLeague="";load(true);startLiveTimer();});
+        TextView st=txt(status,12,busy.get()?ACCENT:(status.contains("HTTP")?RED:GREEN),true);st.setGravity(Gravity.CENTER);st.setPadding(0,dp(8),0,dp(4));root.addView(st);
+        if(liveMode)root.addView(txt("Автообновление LIVE: каждые 30 сек",10,MUTED,false));
+        if(navLevel>0){Button back=tab("← НАЗАД",false);root.addView(back,new LinearLayout.LayoutParams(-1,dp(42)));back.setOnClickListener(x->{navLevel--;if(navLevel==0){selectedCountry="";selectedLeague="";}else selectedLeague="";render();});}
+        ScrollView sc=new ScrollView(this);LinearLayout list=v();List<Match> src=liveMode?liveMatches:lineMatches;
+        if(navLevel==0)renderCountries(list,src);else if(navLevel==1)renderLeagues(list,src);else renderMatches(list,src);sc.addView(list);root.addView(sc,new LinearLayout.LayoutParams(-1,0,1));setContentView(root);
     }
+    private void renderCountries(LinearLayout list,List<Match> src){Map<String,Integer> c=new LinkedHashMap<>();for(Match m:src)c.put(m.country,c.getOrDefault(m.country,0)+1);for(Map.Entry<String,Integer> e:c.entrySet()){Button b=row(e.getKey(),e.getValue());list.addView(b);b.setOnClickListener(x->{selectedCountry=e.getKey();navLevel=1;render();});}}
+    private void renderLeagues(LinearLayout list,List<Match> src){Map<String,Integer> c=new LinkedHashMap<>();for(Match m:src)if(m.country.equals(selectedCountry))c.put(m.league,c.getOrDefault(m.league,0)+1);for(Map.Entry<String,Integer> e:c.entrySet()){Button b=row(e.getKey(),e.getValue());list.addView(b);b.setOnClickListener(x->{selectedLeague=e.getKey();navLevel=2;render();});}}
+    private void renderMatches(LinearLayout list,List<Match> src){for(Match m:src)if(m.country.equals(selectedCountry)&&m.league.equals(selectedLeague))list.addView(card(m));}
+    private Button row(String name,int count){Button b=new Button(this);b.setText(name+"   "+count+"  ›");b.setTextColor(TEXT);b.setTextSize(15);b.setGravity(Gravity.LEFT|Gravity.CENTER_VERTICAL);b.setBackground(box(CARD,12));LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(-1,dp(52));p.setMargins(0,dp(5),0,0);b.setLayoutParams(p);return b;}
 
-    private List<Match> active(){return liveMode?liveMatches:lineMatches;}
-    private boolean matchesSearch(String...vals){if(searchText==null||searchText.trim().isEmpty())return true;String q=searchText.toLowerCase(Locale.ROOT);for(String s:vals)if(s!=null&&s.toLowerCase(Locale.ROOT).contains(q))return true;return false;}
+    private View card(Match m){LinearLayout c=v();c.setPadding(dp(12),dp(10),dp(12),dp(10));c.setBackground(box(CARD,14));LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(-1,-2);p.setMargins(0,dp(7),0,0);c.setLayoutParams(p);LinearLayout top=new LinearLayout(this);top.addView(txt(m.league,11,MUTED,false),new LinearLayout.LayoutParams(0,-2,1));top.addView(txt(m.min>0?m.min+"'":time(m.ts),11,m.min>0?GREEN:MUTED,true));c.addView(top);c.addView(txt(m.home+" — "+m.away+(m.hg>=0?"   "+m.hg+":"+m.ag:""),17,TEXT,true));c.addView(txt("Данные модели: "+m.confidence+"%",10,MUTED,false));
+        LinearLayout tabs=new LinearLayout(this);tabs.setWeightSum(2);Button full=small("МАТЧ",true),h1=small("1-Й ТАЙМ",false);tabs.addView(full,new LinearLayout.LayoutParams(0,dp(40),1));tabs.addView(h1,new LinearLayout.LayoutParams(0,dp(40),1));c.addView(tabs);LinearLayout host=v();host.addView(fullView(m));c.addView(host);full.setOnClickListener(x->{host.removeAllViews();host.addView(fullView(m));full.setBackground(box(ACCENT,10));h1.setBackground(box(CARD2,10));});h1.setOnClickListener(x->{host.removeAllViews();host.addView(halfView(m));h1.setBackground(box(ACCENT,10));full.setBackground(box(CARD2,10));});return c;}
+    private View fullView(Match m){LinearLayout b=v();b.addView(outcomeView(m.p1,m.o1,m.px,m.ox,m.p2,m.o2));totalRow(b,"ТОТАЛ 2.5","ТБ 2.5",m.o25,m.o25o,"ТМ 2.5",m.u25,m.u25o,0);totalRow(b,"ТОТАЛ 1.5","ТБ 1.5",m.o15,m.o15o,"ТМ 1.5",m.u15,m.u15o,0);totalRow(b,"ОБЕ ЗАБЬЮТ","ДА",m.bttsYes,m.bttsOYes,"НЕТ",m.bttsNo,m.bttsONo,0);return b;}
+    private View halfView(Match m){LinearLayout b=v();b.addView(outcomeView(m.h1p1,m.h1o1,m.h1px,m.h1ox,m.h1p2,m.h1o2));totalRow(b,"1-Й ТАЙМ · ТОТАЛ 0.5","ТБ 0.5",m.ho05,m.ho05o,"ТМ 0.5",m.hu05,m.hu05o,0);totalRow(b,"1-Й ТАЙМ · ТОТАЛ 1.0","ТБ 1.0",m.ho10,m.ho10o,"ТМ 1.0",m.hu10,m.hu10o,m.hp10);totalRow(b,"1-Й ТАЙМ · ТОТАЛ 1.5","ТБ 1.5",m.ho15,m.ho15o,"ТМ 1.5",m.hu15,m.hu15o,0);return b;}
+    private View outcomeView(int p1,double o1,int px,double ox,int p2,double o2){LinearLayout r=new LinearLayout(this);r.setWeightSum(3);r.addView(prob("П1",p1,o1,false),new LinearLayout.LayoutParams(0,dp(68),1));r.addView(prob("X",px,ox,false),new LinearLayout.LayoutParams(0,dp(68),1));r.addView(prob("П2",p2,o2,false),new LinearLayout.LayoutParams(0,dp(68),1));return r;}
+    private void totalRow(LinearLayout p,String title,String l,int lp,double lo,String rr,int rp,double ro,int push){TextView t=txt(title,11,MUTED,true);t.setPadding(0,dp(9),0,dp(3));p.addView(t);LinearLayout r=new LinearLayout(this);r.setWeightSum(2);r.addView(prob(l,lp,lo,lp>rp&&lp>=55),new LinearLayout.LayoutParams(0,dp(68),1));r.addView(prob(rr,rp,ro,rp>lp&&rp>=55),new LinearLayout.LayoutParams(0,dp(68),1));p.addView(r);if(push>0){TextView q=txt("Возврат: "+push+"%",11,AMBER,true);q.setGravity(Gravity.CENTER);p.addView(q);}}
+    private View prob(String label,int p,double odd,boolean hi){LinearLayout b=v();b.setGravity(Gravity.CENTER);b.setBackground(box(hi?GREEN:CARD2,10));b.addView(txt(label,11,hi?Color.WHITE:MUTED,true));String s=(p<0?"—":p+"%")+(odd>1?"  ("+String.format(Locale.US,"%.2f",odd)+")":"");b.addView(txt(s,16,Color.WHITE,true));return b;}
 
-    private void renderCountries(LinearLayout list){
-        Map<String,Integer> counts=new LinkedHashMap<>();
-        for(Match m:active())if(matchesSearch(m.country,m.league,m.home,m.away))counts.put(m.country,counts.getOrDefault(m.country,0)+1);
-        for(Map.Entry<String,Integer> e:counts.entrySet()){
-            LinearLayout row=navRow(e.getKey(),e.getValue());row.setOnClickListener(v->{selectedCountry=e.getKey();navLevel=1;searchText="";render();});list.addView(row);
-        }
-    }
-
-    private void renderLeagues(LinearLayout list){
-        Map<String,Integer> counts=new LinkedHashMap<>();
-        for(Match m:active())if(selectedCountry.equals(m.country)&&matchesSearch(m.league,m.home,m.away))counts.put(m.league,counts.getOrDefault(m.league,0)+1);
-        for(Map.Entry<String,Integer> e:counts.entrySet()){
-            LinearLayout row=navRow(e.getKey(),e.getValue());row.setOnClickListener(v->{selectedLeague=e.getKey();navLevel=2;searchText="";render();});list.addView(row);
-        }
-    }
-
-    private LinearLayout navRow(String name,int count){
-        LinearLayout r=new LinearLayout(this);r.setGravity(Gravity.CENTER_VERTICAL);r.setPadding(dp(14),dp(8),dp(14),dp(8));r.setBackground(box(CARD,14));LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(-1,dp(62));p.setMargins(0,dp(7),0,0);r.setLayoutParams(p);r.addView(txt(name,16,TEXT,true),new LinearLayout.LayoutParams(0,-2,1));r.addView(txt(String.valueOf(count),15,ACCENT,true));TextView arrow=txt("  ›",20,MUTED,true);r.addView(arrow);return r;
-    }
-
-    private void renderMatches(LinearLayout list){for(Match m:active())if(selectedCountry.equals(m.country)&&selectedLeague.equals(m.league)&&matchesSearch(m.home,m.away,m.league))list.addView(card(m));}
-
-    private View card(Match m){
-        LinearLayout c=v();c.setPadding(dp(12),dp(10),dp(12),dp(10));c.setBackground(box(CARD,16));LinearLayout.LayoutParams cp=new LinearLayout.LayoutParams(-1,-2);cp.setMargins(0,dp(9),0,0);c.setLayoutParams(cp);
-        LinearLayout top=new LinearLayout(this);top.addView(txt(m.league,11,MUTED,false),new LinearLayout.LayoutParams(0,-2,1));String tm=m.min>0?m.min+"'":time(m.ts);top.addView(txt(tm+(m.min>=80?" · ПОЗДНИЙ LIVE":""),11,m.min>=80?AMBER:(m.min>0?GREEN:MUTED),true));c.addView(top);
-        String score=m.hg>=0&&m.ag>=0?"   "+m.hg+":"+m.ag:"";TextView teams=txt(m.home+" — "+m.away+score,17,TEXT,true);teams.setPadding(0,dp(7),0,dp(8));c.addView(teams);
-        LinearLayout tabs=new LinearLayout(this);tabs.setWeightSum(2);Button full=small("МАТЧ",true),first=small("1-Й ТАЙМ",false);tabs.addView(full,new LinearLayout.LayoutParams(0,dp(40),1));tabs.addView(first,new LinearLayout.LayoutParams(0,dp(40),1));c.addView(tabs);
-        LinearLayout host=v();host.addView(fullMarket(m));c.addView(host);full.setOnClickListener(x->{host.removeAllViews();host.addView(fullMarket(m));full.setBackground(box(ACCENT,10));first.setBackground(box(CARD2,10));});first.setOnClickListener(x->{host.removeAllViews();host.addView(firstMarket(m));first.setBackground(box(ACCENT,10));full.setBackground(box(CARD2,10));});
-        if(liveMode){TextView det=txt("Статистика",13,ACCENT,true);det.setGravity(Gravity.CENTER);det.setPadding(0,dp(10),0,dp(3));c.addView(det);det.setOnClickListener(x->toggleStats(c,det,m));}
-        return c;
-    }
-
-    private View fullMarket(Match m){LinearLayout b=v();b.setPadding(0,dp(8),0,0);b.addView(outcomes(m.p1,m.px,m.p2));addTotal(b,"ТОТАЛ 2.5","ТБ 2.5",m.o25,"ТМ 2.5",m.u25);addTotal(b,"ТОТАЛ 1.5","ТБ 1.5",m.o15,"ТМ 1.5",m.u15);return b;}
-    private View firstMarket(Match m){LinearLayout b=v();b.setPadding(0,dp(8),0,0);b.addView(outcomes(m.h1p1,m.h1px,m.h1p2));addTotal(b,"1-Й ТАЙМ · ТОТАЛ 0.5","ТБ 0.5",m.ho05,"ТМ 0.5",m.hu05);addTotal(b,"1-Й ТАЙМ · ТОТАЛ 1.5","ТБ 1.5",m.ho15,"ТМ 1.5",m.hu15);return b;}
-    private View outcomes(int a,int b,int c){LinearLayout r=new LinearLayout(this);r.setWeightSum(3);r.addView(prob("П1",a,false),new LinearLayout.LayoutParams(0,dp(66),1));r.addView(prob("X",b,false),new LinearLayout.LayoutParams(0,dp(66),1));r.addView(prob("П2",c,false),new LinearLayout.LayoutParams(0,dp(66),1));return r;}
-    private void addTotal(LinearLayout p,String title,String l,int lp,String rr,int rp){TextView t=txt(title,11,MUTED,true);t.setPadding(0,dp(10),0,dp(4));p.addView(t);LinearLayout r=new LinearLayout(this);r.setWeightSum(2);r.addView(prob(l,lp,lp>=58&&lp>rp),new LinearLayout.LayoutParams(0,dp(66),1));r.addView(prob(rr,rp,rp>=58&&rp>lp),new LinearLayout.LayoutParams(0,dp(66),1));p.addView(r);}
-    private View prob(String l,int p,boolean hi){LinearLayout b=v();b.setGravity(Gravity.CENTER);b.setBackground(box(hi?GREEN:CARD2,11));b.addView(txt(l,12,hi?Color.WHITE:MUTED,true));b.addView(txt(p<0?"—":p+"%",17,Color.WHITE,true));return b;}
-    private void toggleStats(LinearLayout c,TextView ctl,Match m){Object tag=ctl.getTag();if(tag instanceof View){c.removeView((View)tag);ctl.setTag(null);return;}LinearLayout b=v();b.setPadding(dp(10),dp(8),dp(10),dp(8));b.setBackground(box(CARD2,10));b.addView(stat("Удары",m.shots));b.addView(stat("В створ",m.shotsOn));b.addView(stat("Владение",m.possession));b.addView(stat("xG",m.xg));c.addView(b);ctl.setTag(b);}
-    private View stat(String a,String b){LinearLayout r=new LinearLayout(this);r.addView(txt(a,12,MUTED,false),new LinearLayout.LayoutParams(0,-2,1));r.addView(txt(b==null?"—":b,12,TEXT,true));return r;}
-
-    private JSONObject getJson(String url)throws Exception{HttpURLConnection c=(HttpURLConnection)new URL(url).openConnection();c.setConnectTimeout(9000);c.setReadTimeout(11000);c.setRequestProperty("Accept","application/json");c.setRequestProperty("User-Agent","DENZL/1.1 Android");int code=c.getResponseCode();InputStream is=code>=200&&code<300?c.getInputStream():c.getErrorStream();String body=read(is);c.disconnect();if(code<200||code>=300)throw new Exception("ESPN: HTTP "+code);if(body.trim().isEmpty())throw new Exception("ESPN: пустой ответ");return new JSONObject(body);}
+    private JSONObject getJson(String url,boolean live)throws Exception{HttpURLConnection c=(HttpURLConnection)new URL(url).openConnection();c.setConnectTimeout(10000);c.setReadTimeout(15000);c.setRequestProperty("Accept","application/json, text/plain, */*");c.setRequestProperty("Accept-Language","ru-RU,ru;q=0.9");c.setRequestProperty("User-Agent","Mozilla/5.0 (Linux; Android 16) AppleWebKit/537.36 Chrome/140 Mobile Safari/537.36 DENZL/1.2");c.setRequestProperty("Referer",live?"https://betcity.ru/ru/live/football":"https://betcity.ru/ru/line/football");int code=c.getResponseCode();InputStream is=code>=200&&code<300?c.getInputStream():c.getErrorStream();String body=read(is);c.disconnect();if(code<200||code>=300)throw new Exception("BETCITY HTTP "+code);if(body.trim().isEmpty())throw new Exception("BETCITY: пустой ответ");return new JSONObject(body);}
     private String read(InputStream is)throws Exception{if(is==null)return"";BufferedReader r=new BufferedReader(new InputStreamReader(is));StringBuilder b=new StringBuilder();String s;while((s=r.readLine())!=null)b.append(s);r.close();return b.toString();}
 
-    private String ruTeam(String s){
-        String k=s.toLowerCase(Locale.ROOT);
-        Map<String,String> m=TEAM_RU;
-        if(m.containsKey(k))return m.get(k);
-        return translit(s);
-    }
+    private static Set<String> keys(JSONObject o){Set<String>s=new LinkedHashSet<>();java.util.Iterator<String>i=o.keys();while(i.hasNext())s.add(i.next());return s;}
+    private static boolean truthy(Object o){if(o==null)return false;String s=String.valueOf(o);return "1".equals(s)||"true".equalsIgnoreCase(s);}
+    private static boolean isCyber(String s){String x=s.toLowerCase(Locale.ROOT);return x.contains("cyber")||x.contains("кибер")||x.contains("statistics")||x.contains("статистик");}
+    private static String cleanLeague(String s){String x=s.replaceFirst("(?i)^Soccer\\.\\s*","").replaceFirst("(?i)^Футбол\\.\\s*","").trim();return x.isEmpty()?"Футбол":x;}
+    private static String countryOf(String l){int p=l.indexOf('.');if(p>1)return l.substring(0,p).trim();int c=l.indexOf(':');if(c>1)return l.substring(0,c).trim();return "Международные";}
+    private static int[] parseScore(String s){int[]r={-1,-1};if(s==null)return r;java.util.regex.Matcher m=java.util.regex.Pattern.compile("(\\d+)\\s*[:\\-]\\s*(\\d+)").matcher(s);if(m.find()){r[0]=Integer.parseInt(m.group(1));r[1]=Integer.parseInt(m.group(2));}return r;}
+    private static int[] parseHalfScore(String s){if(s==null||s.isEmpty())return new int[]{-1,-1};String first=s.split(",")[0];return parseScore(first);}
+    private static long parseDate(Object o){if(o instanceof Number)return ((Number)o).longValue();String s=String.valueOf(o);try{return Long.parseLong(s);}catch(Exception ignored){}for(String f:new String[]{"yyyy-MM-dd HH:mm:ss","yyyy-MM-dd'T'HH:mm:ss"})try{SimpleDateFormat d=new SimpleDateFormat(f,Locale.US);d.setTimeZone(TimeZone.getTimeZone("UTC"));return d.parse(s).getTime()/1000;}catch(Exception ignored){}return 0;}
+    private int parseMinute(JSONObject e){for(String k:new String[]{"minute","min","timer","time_ev","tm_ev"}){String s=e.optString(k,"");java.util.regex.Matcher m=java.util.regex.Pattern.compile("(\\d{1,3})").matcher(s);if(m.find())return Math.min(120,Integer.parseInt(m.group(1)));}long ts=parseDate(e.opt("date_ev"));if(ts>0)return(int)Math.min(90,Math.max(1,(System.currentTimeMillis()/1000-ts)/60));return 0;}
+    private static double[] pair(String s){double[]r={0,0};if(s==null)return r;java.util.regex.Matcher m=java.util.regex.Pattern.compile("(-?\\d+(?:[.,]\\d+)?)").matcher(s);if(m.find())r[0]=Double.parseDouble(m.group(1).replace(',','.'));if(m.find())r[1]=Double.parseDouble(m.group(1).replace(',','.'));return r;}
+    private static String norm(String s){return s==null?"":s.toLowerCase(Locale.ROOT).replaceAll("[^a-zа-яё0-9]","");}
+    private static double clamp(double v,double lo,double hi){return Math.max(lo,Math.min(hi,v));}
+    private String day(Date d){SimpleDateFormat f=new SimpleDateFormat("yyyy-MM-dd",Locale.US);f.setTimeZone(TimeZone.getDefault());return f.format(d);}private String time(long ts){if(ts<=0)return"—";return new SimpleDateFormat("HH:mm",Locale.getDefault()).format(new Date(ts*1000));}private String message(Exception e){return e.getMessage()==null?e.getClass().getSimpleName():e.getMessage();}
+    private LinearLayout v(){LinearLayout l=new LinearLayout(this);l.setOrientation(LinearLayout.VERTICAL);return l;}private Button tab(String s,boolean on){Button b=new Button(this);b.setText(s);b.setTextColor(Color.WHITE);b.setTypeface(Typeface.DEFAULT,Typeface.BOLD);b.setBackground(box(on?ACCENT:CARD,10));return b;}private Button small(String s,boolean on){Button b=tab(s,on);b.setTextSize(12);return b;}private TextView txt(String s,float z,int c,boolean bold){TextView t=new TextView(this);t.setText(s);t.setTextSize(z);t.setTextColor(c);if(bold)t.setTypeface(Typeface.DEFAULT,Typeface.BOLD);return t;}private GradientDrawable box(int c,int r){GradientDrawable d=new GradientDrawable();d.setColor(c);d.setCornerRadius(dp(r));return d;}private int dp(int v){return Math.round(v*getResources().getDisplayMetrics().density);}
 
-    private static final Map<String,String> TEAM_RU=new LinkedHashMap<>();
-    static{
-        TEAM_RU.put("manchester city","Манчестер Сити");TEAM_RU.put("manchester united","Манчестер Юнайтед");TEAM_RU.put("liverpool","Ливерпуль");TEAM_RU.put("arsenal","Арсенал");TEAM_RU.put("chelsea","Челси");TEAM_RU.put("tottenham hotspur","Тоттенхэм");TEAM_RU.put("newcastle united","Ньюкасл Юнайтед");
-        TEAM_RU.put("real madrid","Реал Мадрид");TEAM_RU.put("barcelona","Барселона");TEAM_RU.put("atlético madrid","Атлетико Мадрид");TEAM_RU.put("atletico madrid","Атлетико Мадрид");TEAM_RU.put("sevilla","Севилья");TEAM_RU.put("valencia","Валенсия");
-        TEAM_RU.put("bayern munich","Бавария");TEAM_RU.put("borussia dortmund","Боруссия Дортмунд");TEAM_RU.put("bayer leverkusen","Байер Леверкузен");TEAM_RU.put("rb leipzig","РБ Лейпциг");
-        TEAM_RU.put("juventus","Ювентус");TEAM_RU.put("inter milan","Интер");TEAM_RU.put("ac milan","Милан");TEAM_RU.put("napoli","Наполи");TEAM_RU.put("roma","Рома");TEAM_RU.put("lazio","Лацио");
-        TEAM_RU.put("paris saint-germain","Пари Сен-Жермен");TEAM_RU.put("marseille","Марсель");TEAM_RU.put("monaco","Монако");TEAM_RU.put("lyon","Лион");
-        TEAM_RU.put("ajax amsterdam","Аякс");TEAM_RU.put("psv eindhoven","ПСВ");TEAM_RU.put("feyenoord rotterdam","Фейеноорд");TEAM_RU.put("benfica","Бенфика");TEAM_RU.put("fc porto","Порту");TEAM_RU.put("sporting cp","Спортинг");
-    }
-
-    private String translit(String s){
-        String x=s;
-        String[][] dig={{"sch","ш"},{"sh","ш"},{"ch","ч"},{"zh","ж"},{"kh","х"},{"ts","ц"},{"ya","я"},{"yu","ю"},{"yo","ё"},{"ye","е"},{"ck","к"},{"ph","ф"},{"th","т"}};
-        String lower=x.toLowerCase(Locale.ROOT);for(String[]d:dig)lower=lower.replace(d[0],d[1]);
-        String latin="abcdefghijklmnopqrstuvwxyz";String[] rus={"а","б","к","д","е","ф","г","х","и","дж","к","л","м","н","о","п","к","р","с","т","у","в","в","кс","й","з"};
-        StringBuilder b=new StringBuilder();for(int i=0;i<lower.length();i++){char c=lower.charAt(i);int p=latin.indexOf(c);if(p>=0)b.append(rus[p]);else b.append(c);}if(b.length()>0)b.setCharAt(0,Character.toUpperCase(b.charAt(0)));return b.toString();
-    }
-
-    private int parseMinute(String s){try{String n=s.replaceAll("[^0-9]"," ").trim().split(" ")[0];return Integer.parseInt(n);}catch(Exception e){return 0;}}
-    private int parseInt(String s,int d){try{return Integer.parseInt(s);}catch(Exception e){return d;}}
-    private double num(String s){try{return Double.parseDouble(s.replace("%","").replace(',','.'));}catch(Exception e){return 0;}}
-    private long parseIso(String s){try{SimpleDateFormat f=new SimpleDateFormat("yyyy-MM-dd'T'HH:mmX",Locale.US);f.setTimeZone(TimeZone.getTimeZone("UTC"));return f.parse(s).getTime()/1000;}catch(Exception e){try{SimpleDateFormat f=new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssX",Locale.US);f.setTimeZone(TimeZone.getTimeZone("UTC"));return f.parse(s).getTime()/1000;}catch(Exception ex){return 0;}}}
-    private String espnDate(){SimpleDateFormat f=new SimpleDateFormat("yyyyMMdd",Locale.US);f.setTimeZone(TimeZone.getDefault());return f.format(new Date());}
-    private String fmtStat(double h,double a,String suffix){if(h<=0&&a<=0)return"—";String hs=(Math.rint(h)==h?String.valueOf((int)h):String.format(Locale.US,"%.1f",h))+suffix;String as=(Math.rint(a)==a?String.valueOf((int)a):String.format(Locale.US,"%.1f",a))+suffix;return hs+" — "+as;}
-    private String message(Exception e){return e.getMessage()==null?e.getClass().getSimpleName():e.getMessage();}
-    private double clamp(double v,double lo,double hi){return Math.max(lo,Math.min(hi,v));}
-    private String time(long ts){if(ts<=0)return"—";return new SimpleDateFormat("HH:mm",Locale.getDefault()).format(new Date(ts*1000));}
-    private LinearLayout v(){LinearLayout l=new LinearLayout(this);l.setOrientation(LinearLayout.VERTICAL);return l;}
-    private Button tab(String s,boolean on){Button b=new Button(this);b.setText(s);b.setTextColor(Color.WHITE);b.setTypeface(Typeface.DEFAULT,Typeface.BOLD);b.setBackground(box(on?ACCENT:CARD,12));return b;}
-    private Button small(String s,boolean on){Button b=tab(s,on);b.setTextSize(12);return b;}
-    private TextView txt(String s,float z,int c,boolean bold){TextView t=new TextView(this);t.setText(s);t.setTextSize(z);t.setTextColor(c);if(bold)t.setTypeface(Typeface.DEFAULT,Typeface.BOLD);return t;}
-    private GradientDrawable box(int c,int r){GradientDrawable d=new GradientDrawable();d.setColor(c);d.setCornerRadius(dp(r));return d;}
-    private int dp(int v){return Math.round(v*getResources().getDisplayMetrics().density);}
-
-    static class LeagueDef{String slug,country,name;LeagueDef(String s,String c,String n){slug=s;country=c;name=n;}}
-    static class Match{
-        String id="",country="",league="",leagueSlug="",home="—",away="—",homeRaw="",awayRaw="",shots="—",shotsOn="—",possession="—",xg="—";long ts;int min=0,hg=-1,ag=-1,h1g=-1,a1g=-1;double homeForm=.5,awayForm=.5,shotsH,shotsA,sotH,sotA,posH,posA,xgH,xgA;int p1=-1,px=-1,p2=-1,o25=-1,u25=-1,o15=-1,u15=-1,h1p1=-1,h1px=-1,h1p2=-1,ho05=-1,hu05=-1,ho15=-1,hu15=-1;
-    }
+    static class TeamStats{double w,gf,ga,pts,homeW,homeGf,homeGa,awayW,awayGf,awayGa;int games;void add(int f,int a,boolean home,double weight){w+=weight;games++;gf+=f*weight;ga+=a*weight;pts+=(f>a?3:f==a?1:0)*weight;if(home){homeW+=weight;homeGf+=f*weight;homeGa+=a*weight;}else{awayW+=weight;awayGf+=f*weight;awayGa+=a*weight;}}double gfPer(){return w>0?gf/w:1.3;}double gaPer(){return w>0?ga/w:1.3;}double form(){return w>0?pts/(3*w):.5;}}
+    static class Match{String id="",country="Международные",league="Футбол",home="—",away="—";long ts;int min,hg=-1,ag=-1,h1g=-1,a1g=-1,confidence=20;double shotsH,shotsA,sotH,sotA,posH,posA,cornersH,cornersA,redH,redA;int p1=-1,px=-1,p2=-1,o15=-1,u15=-1,o25=-1,u25=-1,bttsYes=-1,bttsNo=-1,h1p1=-1,h1px=-1,h1p2=-1,ho05=-1,hu05=-1,ho10=-1,hu10=-1,hp10=-1,ho15=-1,hu15=-1;double o1,ox,o2,o15o,u15o,o25o,u25o,bttsOYes,bttsONo,h1o1,h1ox,h1o2,ho05o,hu05o,ho10o,hu10o,ho15o,hu15o;}
 }
