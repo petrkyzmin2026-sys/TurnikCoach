@@ -44,14 +44,6 @@ public class MainActivity extends Activity {
     private boolean liveMode = false;
     private String statusText = "Загрузка реальных событий…";
 
-    private final Runnable liveUpdater = new Runnable() {
-        @Override public void run() {
-            if (!liveMode) return;
-            loadMatches(true);
-            handler.postDelayed(this, 5000);
-        }
-    };
-
     @Override protected void onCreate(Bundle b) {
         super.onCreate(b);
         render();
@@ -59,7 +51,6 @@ public class MainActivity extends Activity {
     }
 
     @Override protected void onDestroy() {
-        handler.removeCallbacks(liveUpdater);
         io.shutdownNow();
         super.onDestroy();
     }
@@ -117,7 +108,7 @@ public class MainActivity extends Activity {
     private JSONObject getJson(String url) throws Exception {
         HttpURLConnection c = (HttpURLConnection) new URL(url).openConnection();
         c.setConnectTimeout(7000); c.setReadTimeout(9000); c.setRequestMethod("GET");
-        c.setRequestProperty("User-Agent", "Mozilla/5.0 (Android) DENZL/0.4");
+        c.setRequestProperty("User-Agent", "Mozilla/5.0 (Android) DENZL/0.5");
         c.setRequestProperty("Accept", "application/json");
         int code = c.getResponseCode();
         if (code < 200 || code >= 300) throw new Exception("HTTP " + code);
@@ -211,16 +202,25 @@ public class MainActivity extends Activity {
     }
 
     private void render() {
-        handler.removeCallbacks(liveUpdater);
         LinearLayout root=new LinearLayout(this); root.setOrientation(LinearLayout.VERTICAL); root.setBackgroundColor(BG); root.setPadding(dp(14),dp(12),dp(14),dp(12));
         root.addView(text("DENZL",26,TEXT,true));
         TextView sub=text("Реальные футбольные события · вероятность % + коэффициент",12,MUTED,false); sub.setPadding(0,0,0,dp(10)); root.addView(sub);
         LinearLayout tabs=new LinearLayout(this); tabs.setWeightSum(2); Button line=tabButton("ЛИНИЯ",!liveMode), live=tabButton("LIVE",liveMode); tabs.addView(line,new LinearLayout.LayoutParams(0,dp(48),1)); tabs.addView(live,new LinearLayout.LayoutParams(0,dp(48),1)); root.addView(tabs);
         line.setOnClickListener(v->{liveMode=false;loadMatches(false);}); live.setOnClickListener(v->{liveMode=true;loadMatches(true);});
+        if (liveMode) {
+            Button refresh = new Button(this);
+            refresh.setText(loading.get() ? "ОБНОВЛЕНИЕ…" : "ОБНОВИТЬ LIVE");
+            refresh.setEnabled(!loading.get());
+            refresh.setTextColor(Color.WHITE);
+            refresh.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+            refresh.setBackground(roundRect(ACCENT,12));
+            LinearLayout.LayoutParams rp=new LinearLayout.LayoutParams(-1,dp(46)); rp.setMargins(0,dp(8),0,0); root.addView(refresh,rp);
+            refresh.setOnClickListener(v->loadMatches(true));
+        }
         TextView state=text(statusText,12,loading.get()?ACCENT:GREEN,true); state.setGravity(Gravity.CENTER); state.setPadding(0,dp(8),0,dp(2)); root.addView(state);
         ScrollView scroll=new ScrollView(this); LinearLayout list=new LinearLayout(this); list.setOrientation(LinearLayout.VERTICAL); for(Match m:(liveMode?liveMatches:lineMatches))list.addView(matchCard(m)); scroll.addView(list); root.addView(scroll,new LinearLayout.LayoutParams(-1,0,1));
-        TextView note=text("Источник событий: SofaScore. Если конкретный рынок коэффициентов не получен, DENZL показывает «—», без подстановки вымышленных значений.",10,MUTED,false); note.setPadding(0,dp(6),0,0); root.addView(note);
-        setContentView(root); if(liveMode)handler.postDelayed(liveUpdater,5000);
+        TextView note=text("LIVE обновляется только по кнопке. Источник событий: SofaScore. Если конкретный рынок коэффициентов не получен, DENZL показывает «—», без подстановки вымышленных значений.",10,MUTED,false); note.setPadding(0,dp(6),0,0); root.addView(note);
+        setContentView(root);
     }
 
     private View matchCard(Match m){ LinearLayout c=new LinearLayout(this); c.setOrientation(LinearLayout.VERTICAL); c.setPadding(dp(12),dp(10),dp(12),dp(10)); c.setBackground(roundRect(CARD,16)); LinearLayout.LayoutParams cp=new LinearLayout.LayoutParams(-1,-2); cp.setMargins(0,dp(9),0,0); c.setLayoutParams(cp);
