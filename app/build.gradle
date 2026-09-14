@@ -12,10 +12,10 @@ android {
     }
 
     defaultConfig {
-        applicationId 'ru.turnikcoach.app'
+        applicationId 'ru.turnikcoach.trial'
         minSdk 26
         targetSdk 35
-        versionCode 4
-        versionName '4.0.0-trial'
+        versionCode 5
+        versionName '5.1.0-trial'
     }
 }
