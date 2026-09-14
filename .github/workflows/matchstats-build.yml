@@ -30,16 +30,16 @@ jobs:
         working-directory: matchstats
         run: gradle :app:assembleDebug --no-daemon
       - name: Prepare DENZL APK
-        run: cp matchstats/app/build/outputs/apk/debug/app-debug.apk DENZL-v0.8-live-odds-fix.apk
+        run: cp matchstats/app/build/outputs/apk/debug/app-debug.apk DENZL-v0.9-independent-model.apk
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: DENZL-v0.8-live-odds-fix
-          path: DENZL-v0.8-live-odds-fix.apk
+          name: DENZL-v0.9-independent-model
+          path: DENZL-v0.9-independent-model.apk
       - name: Publish GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release delete denzl-v0.8-live-odds-fix --yes || true
-          git push origin :refs/tags/denzl-v0.8-live-odds-fix || true
-          gh release create denzl-v0.8-live-odds-fix DENZL-v0.8-live-odds-fix.apk --target "$GITHUB_SHA" --title "DENZL v0.8" --notes "Strict LINE/LIVE separation, correct API-Football live odds parsing, all live matches retained, manual LIVE refresh."
+          gh release delete denzl-v0.9-independent-model --yes || true
+          git push origin :refs/tags/denzl-v0.9-independent-model || true
+          gh release create denzl-v0.9-independent-model DENZL-v0.9-independent-model.apk --target "$GITHUB_SHA" --title "DENZL v0.9" --notes "DENZL probabilities are calculated independently from bookmaker odds. Market/API-Football is optional and used only for control comparison. SofaScore provides fixtures, pregame form and live statistics. Manual LIVE refresh retained."
