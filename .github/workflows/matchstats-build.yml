@@ -26,6 +26,9 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
+      - name: Fix source typo
+        run: |
+          sed -i 's/return100;/return 100;/g; s/return80;/return 80;/g' matchstats/app/src/main/java/ru/matchstats/app/MainActivity.java
       - name: Build debug APK
         working-directory: matchstats
         run: gradle :app:assembleDebug --no-daemon
@@ -42,4 +45,4 @@ jobs:
         run: |
           gh release delete denzl-v1.2-betcity --yes || true
           git push origin :refs/tags/denzl-v1.2-betcity || true
-          gh release create denzl-v1.2-betcity DENZL-v1.2-betcity.apk --target "$GITHUB_SHA" --title "DENZL v1.2" --notes "BETCITY line/live source and BETCITY odds. Probability model uses recent BETCITY results plus live match state/statistics when available. Added BTTS Yes/No and first-half Asian total 1.0 with push probability. LIVE refreshes every 30 seconds."
+          gh release create denzl-v1.2-betcity DENZL-v1.2-betcity.apk --target "$GITHUB_SHA" --title "DENZL v1.2" --notes "BETCITY line/live and odds. Search-only football 11x11. SofaScore primary and FotMob fallback for historical statistics. DENZL calculates probabilities independently and LIVE refreshes every 30 seconds."
