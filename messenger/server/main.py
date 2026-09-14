@@ -8,10 +8,10 @@ from typing import DefaultDict
 from fastapi import FastAPI, Header, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 DB_PATH=Path(os.getenv('MESSENGER_DB','/tmp/messenger.db'))
-app=FastAPI(title='Petr Messenger',version='1.1.0')
+app=FastAPI(title='Petr Messenger',version='1.1.1')
 app.add_middleware(CORSMiddleware,allow_origins=['*'],allow_methods=['*'],allow_headers=['*'])
 
 @contextmanager
@@ -50,8 +50,15 @@ def auth(h):
     return u
 
 class Cred(BaseModel):
-    username:str=Field(min_length=3,max_length=32,pattern=r'^[A-Za-zА-Яа-яЁё0-9_.-]+$')
-    password:str=Field(min_length=6,max_length=128)
+    username:str=Field(min_length=1,max_length=64)
+    password:str=Field(min_length=4,max_length=128)
+    @field_validator('username')
+    @classmethod
+    def validate_username(cls,v):
+        v=v.strip()
+        if not v: raise ValueError('Логин не может быть пустым')
+        if any(ord(ch)<32 for ch in v): raise ValueError('Недопустимые символы в логине')
+        return v
 class Send(BaseModel):
     recipient_id:int
     text:str=Field(min_length=1,max_length=4000)
@@ -71,18 +78,18 @@ class Manager:
 M=Manager()
 
 @app.get('/health')
-def health(): return {'ok':True,'version':'1.1.0'}
+def health(): return {'ok':True,'version':'1.1.1'}
 @app.post('/auth/register')
 def register(x:Cred):
     with db() as c:
-        try: cur=c.execute('INSERT INTO users(username,password_hash,created_at) VALUES(?,?,?)',(x.username.strip(),hp(x.password),now()))
+        try: cur=c.execute('INSERT INTO users(username,password_hash,created_at) VALUES(?,?,?)',(x.username,hp(x.password),now()))
         except sqlite3.IntegrityError: raise HTTPException(409,'Такой пользователь уже существует')
         token=secrets.token_urlsafe(32); c.execute('INSERT INTO tokens VALUES(?,?,?)',(token,cur.lastrowid,now()))
-        return {'token':token,'user':{'id':cur.lastrowid,'username':x.username.strip()}}
+        return {'token':token,'user':{'id':cur.lastrowid,'username':x.username}}
 @app.post('/auth/login')
 def login(x:Cred):
     with db() as c:
-        r=c.execute('SELECT * FROM users WHERE username=? COLLATE NOCASE',(x.username.strip(),)).fetchone()
+        r=c.execute('SELECT * FROM users WHERE username=? COLLATE NOCASE',(x.username,)).fetchone()
         if not r or not vp(x.password,r['password_hash']): raise HTTPException(401,'Неверный логин или пароль')
         token=secrets.token_urlsafe(32); c.execute('INSERT INTO tokens VALUES(?,?,?)',(token,r['id'],now()))
         return {'token':token,'user':{'id':r['id'],'username':r['username']}}
@@ -140,16 +147,17 @@ async def ws(w:WebSocket,token:str):
     finally: await M.disconnect(uid,w)
 
 HTML=r'''<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Messenger</title><style>
-*{box-sizing:border-box}body{margin:0;font-family:system-ui;background:#111827;color:#f9fafb}button,input{font:inherit}.wrap{height:100vh;display:flex;flex-direction:column}.top{padding:14px 16px;background:#1f2937;font-weight:700}.auth{max-width:420px;margin:auto;width:100%;padding:22px}.auth input{width:100%;padding:13px;margin:7px 0;border:1px solid #374151;border-radius:12px;background:#111827;color:white}.row{display:flex;gap:8px}.btn{padding:12px 14px;border:0;border-radius:12px;background:#2563eb;color:white}.ghost{background:#374151}.main{display:none;flex:1;min-height:0}.people{width:38%;max-width:330px;border-right:1px solid #374151;overflow:auto}.person{padding:14px;border-bottom:1px solid #1f2937}.person.on{background:#1f2937}.chat{flex:1;display:flex;flex-direction:column}.head{padding:13px;border-bottom:1px solid #374151}.msgs{flex:1;overflow:auto;padding:12px}.m{max-width:78%;padding:9px 12px;border-radius:15px;margin:6px 0;background:#374151}.mine{margin-left:auto;background:#2563eb}.send{display:flex;gap:8px;padding:10px;border-top:1px solid #374151}.send input{flex:1;padding:12px;border-radius:12px;border:1px solid #374151;background:#111827;color:white}.small{font-size:12px;color:#9ca3af}@media(max-width:650px){.people{width:42%}.person{padding:11px}.m{max-width:88%}}</style></head><body><div class="wrap"><div class="top">Petr Messenger</div><div id="auth" class="auth"><h2>Вход</h2><input id="user" placeholder="Логин"><input id="pass" type="password" placeholder="Пароль, не менее 6 символов"><div class="row"><button class="btn" onclick="login(false)">Войти</button><button class="btn ghost" onclick="login(true)">Регистрация</button></div><p id="err"></p></div><div id="main" class="main"><div class="people" id="people"></div><div class="chat"><div class="head" id="head">Выберите пользователя</div><div class="msgs" id="msgs"></div><div class="send"><input id="text" placeholder="Сообщение" onkeydown="if(event.key==='Enter')send()"><button class="btn" onclick="send()">➤</button></div></div></div></div><script>
+*{box-sizing:border-box}body{margin:0;font-family:system-ui;background:#111827;color:#f9fafb}button,input{font:inherit}.wrap{height:100vh;display:flex;flex-direction:column}.top{padding:14px 16px;background:#1f2937;font-weight:700}.auth{max-width:420px;margin:auto;width:100%;padding:22px}.auth input{width:100%;padding:13px;margin:7px 0;border:1px solid #374151;border-radius:12px;background:#111827;color:white}.row{display:flex;gap:8px}.btn{padding:12px 14px;border:0;border-radius:12px;background:#2563eb;color:white}.ghost{background:#374151}.main{display:none;flex:1;min-height:0}.people{width:38%;max-width:330px;border-right:1px solid #374151;overflow:auto}.person{padding:14px;border-bottom:1px solid #1f2937}.person.on{background:#1f2937}.chat{flex:1;display:flex;flex-direction:column}.head{padding:13px;border-bottom:1px solid #374151}.msgs{flex:1;overflow:auto;padding:12px}.m{max-width:78%;padding:9px 12px;border-radius:15px;margin:6px 0;background:#374151}.mine{margin-left:auto;background:#2563eb}.send{display:flex;gap:8px;padding:10px;border-top:1px solid #374151}.send input{flex:1;padding:12px;border-radius:12px;border:1px solid #374151;background:#111827;color:white}.small{font-size:12px;color:#9ca3af}.err{color:#fca5a5;min-height:22px}@media(max-width:650px){.people{width:42%}.person{padding:11px}.m{max-width:88%}}</style></head><body><div class="wrap"><div class="top">Petr Messenger</div><div id="auth" class="auth"><h2>Вход</h2><input id="user" placeholder="Логин"><input id="pass" type="password" placeholder="Пароль, не менее 4 символов"><div class="row"><button class="btn" onclick="login(false)">Войти</button><button class="btn ghost" onclick="login(true)">Регистрация</button></div><p id="err" class="err"></p></div><div id="main" class="main"><div class="people" id="people"></div><div class="chat"><div class="head" id="head">Выберите пользователя</div><div class="msgs" id="msgs"></div><div class="send"><input id="text" placeholder="Сообщение" onkeydown="if(event.key==='Enter')send()"><button class="btn" onclick="send()">➤</button></div></div></div></div><script>
 let token=localStorage.token||'',me=JSON.parse(localStorage.me||'null'),peer=null,ws=null;
 const $=id=>document.getElementById(id); const H=()=>({'Authorization':'Bearer '+token,'Content-Type':'application/json'});
-async function api(p,opt={}){let r=await fetch(p,{...opt,headers:{...H(),...(opt.headers||{})}});let j=await r.json().catch(()=>({}));if(!r.ok)throw Error(j.detail||'Ошибка');return j}
-async function login(reg){try{let j=await api(reg?'/auth/register':'/auth/login',{method:'POST',body:JSON.stringify({username:$('user').value,password:$('pass').value})});token=j.token;me=j.user;localStorage.token=token;localStorage.me=JSON.stringify(me);start()}catch(e){$('err').textContent=e.message}}
-function start(){$('auth').style.display='none';$('main').style.display='flex';loadUsers();connect()}
-async function loadUsers(){let a=await api('/users');$('people').innerHTML=a.map(u=>`<div class="person" id="u${u.id}" onclick='openPeer(${JSON.stringify(u)})'><b>${u.username}</b><div class="small">${u.online?'в сети':'не в сети'}</div></div>`).join('')||'<div class="person">Других пользователей пока нет</div>'}
+function errText(j,status){if(typeof j.detail==='string')return j.detail;if(Array.isArray(j.detail)&&j.detail.length){let d=j.detail[0];return d.msg?d.msg.replace(/^Value error, /,''):JSON.stringify(d)}return 'Ошибка '+status}
+async function api(p,opt={}){let r=await fetch(p,{...opt,headers:{...H(),...(opt.headers||{})}});let j=await r.json().catch(()=>({}));if(!r.ok)throw Error(errText(j,r.status));return j}
+async function login(reg){try{$('err').textContent='';let username=$('user').value.trim(),password=$('pass').value;if(!username)throw Error('Введите логин');if(password.length<4)throw Error('Пароль должен содержать не менее 4 символов');let j=await api(reg?'/auth/register':'/auth/login',{method:'POST',body:JSON.stringify({username,password})});token=j.token;me=j.user;localStorage.token=token;localStorage.me=JSON.stringify(me);start()}catch(e){$('err').textContent=e.message}}
+function start(){$('auth').style.display='none';$('main').style.display='flex';loadUsers().catch(e=>alert(e.message));connect()}
+async function loadUsers(){let a=await api('/users');$('people').innerHTML=a.map(u=>`<div class="person" id="u${u.id}" onclick='openPeer(${JSON.stringify(u)})'><b>${esc(u.username)}</b><div class="small">${u.online?'в сети':'не в сети'}</div></div>`).join('')||'<div class="person">Других пользователей пока нет</div>'}
 async function openPeer(u){peer=u;document.querySelectorAll('.person').forEach(x=>x.classList.remove('on'));$('u'+u.id)?.classList.add('on');$('head').textContent=u.username;let a=await api('/messages/'+u.id);render(a)}
 function render(a){$('msgs').innerHTML=a.map(m=>`<div class="m ${m.sender_id===me.id?'mine':''}">${esc(m.text)}<div class="small">${new Date(m.created_at).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}</div></div>`).join('');$('msgs').scrollTop=$('msgs').scrollHeight}
-function esc(s){return (s||'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]))}
+function esc(s){return (s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]))}
 function connect(){if(ws)ws.close();let proto=location.protocol==='https:'?'wss':'ws';ws=new WebSocket(`${proto}://${location.host}/ws?token=${encodeURIComponent(token)}`);ws.onmessage=e=>{let d=JSON.parse(e.data);if(d.type==='message'&&peer&&((d.message.sender_id===peer.id)||(d.message.recipient_id===peer.id)))openPeer(peer);if(d.type==='message')loadUsers()};ws.onclose=()=>setTimeout(connect,2500)}
 function send(){let t=$('text').value.trim();if(!t||!peer)return;$('text').value='';if(ws&&ws.readyState===1)ws.send(JSON.stringify({type:'message',recipient_id:peer.id,text:t}));else api('/messages',{method:'POST',body:JSON.stringify({recipient_id:peer.id,text:t})}).then(()=>openPeer(peer))}
 if(token&&me)start();
