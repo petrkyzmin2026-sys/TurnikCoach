@@ -1,0 +1,13 @@
+plugins { id 'com.android.application' }
+
+android {
+    namespace 'ru.petr.footballtotals'
+    compileSdk 35
+    defaultConfig {
+        applicationId 'ru.petr.footballtotals'
+        minSdk 26
+        targetSdk 35
+        versionCode 1
+        versionName '0.1.0'
+    }
+}
