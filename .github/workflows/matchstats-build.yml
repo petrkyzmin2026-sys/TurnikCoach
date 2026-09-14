@@ -8,6 +8,9 @@ on:
       - '.github/workflows/matchstats-build.yml'
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -26,8 +29,17 @@ jobs:
       - name: Build debug APK
         working-directory: matchstats
         run: gradle :app:assembleDebug --no-daemon
-      - name: Upload APK
+      - name: Prepare DENZL APK
+        run: cp matchstats/app/build/outputs/apk/debug/app-debug.apk DENZL-v0.4-real.apk
+      - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: MatchStats-debug-apk
-          path: matchstats/app/build/outputs/apk/debug/app-debug.apk
+          name: DENZL-v0.4-real
+          path: DENZL-v0.4-real.apk
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete denzl-v0.4-real --yes || true
+          git push origin :refs/tags/denzl-v0.4-real || true
+          gh release create denzl-v0.4-real DENZL-v0.4-real.apk --target "$GITHUB_SHA" --title "DENZL v0.4 real" --notes "Android APK with real football events, LIVE updates, odds and match statistics."
