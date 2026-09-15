@@ -10,7 +10,7 @@ name: Build MatchStats APK
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   build:
@@ -26,6 +26,20 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
+      - name: Integrate projected lineups for development build
+        shell: python
+        run: |
+          from pathlib import Path
+          p=Path('matchstats/app/src/main/java/ru/matchstats/app/MainActivity.java')
+          s=p.read_text()
+          s=s.replace('m.ph=getProfile(m.rawHome);m.pa=getProfile(m.rawAway);if(m.live)loadLiveStats(m);', 'm.ph=getProfile(m.rawHome);m.pa=getProfile(m.rawAway);loadLineups(m);if(m.live)loadLiveStats(m);')
+          marker='    private void loadLiveStats(Match m)'
+          method='''    private void loadLineups(Match m){m.homeLineupAttack=1.0;m.homeLineupDefence=1.0;m.awayLineupAttack=1.0;m.awayLineupDefence=1.0;m.homeLineupConfirmed=false;m.awayLineupConfirmed=false;try{JSONObject r=getJson(SOFA+"/event/"+m.id+"/lineups","https://www.sofascore.com/");m.homeLineupConfirmed=r.optBoolean("confirmed",false);m.awayLineupConfirmed=m.homeLineupConfirmed;JSONArray h=r.optJSONArray("home"),a=r.optJSONArray("away");if(h!=null){double[] q=lineupQuality(h);m.homeLineupAttack=q[0];m.homeLineupDefence=q[1];}if(a!=null){double[] q=lineupQuality(a);m.awayLineupAttack=q[0];m.awayLineupDefence=q[1];}}catch(Exception ignored){}}\n    private double[] lineupQuality(JSONArray a){double atk=0,def=0;int na=0,nd=0;for(int i=0;i<a.length();i++){JSONObject x=a.optJSONObject(i);if(x==null||x.optBoolean("substitute",false))continue;JSONObject p=x.optJSONObject("player");String pos=p==null?"":p.optString("position","").toUpperCase(Locale.ROOT);double rating=num(x.opt("statistics") instanceof JSONObject?((JSONObject)x.opt("statistics")).opt("rating"):x.opt("rating"));double f=rating>0?clamp(1+(rating-6.7)*.045,.90,1.10):1.0;if(pos.contains("F")||pos.contains("M")){atk+=f;na++;}if(pos.contains("D")||pos.contains("G")||pos.contains("M")){def+=f;nd++;}}return new double[]{na>0?clamp(atk/na,.90,1.10):1.0,nd>0?clamp(def/nd,.90,1.10):1.0};}\n\n'''
+          s=s.replace(marker,method+marker)
+          s=s.replace('x.homeForm=h.form();x.awayForm=a.form();', 'x.homeForm=h.form();x.awayForm=a.form();x.homeLineupAttack=m.homeLineupAttack;x.homeLineupDefence=m.homeLineupDefence;x.awayLineupAttack=m.awayLineupAttack;x.awayLineupDefence=m.awayLineupDefence;x.homeLineupConfirmed=m.homeLineupConfirmed;x.awayLineupConfirmed=m.awayLineupConfirmed;')
+          s=s.replace('boolean live=false,loading=false,ready=false;', 'boolean live=false,loading=false,ready=false,homeLineupConfirmed=false,awayLineupConfirmed=false;')
+          s=s.replace('liveShotsH,liveShotsA,lambdaH,lambdaA;', 'liveShotsH,liveShotsA,lambdaH,lambdaA,homeLineupAttack=1.0,homeLineupDefence=1.0,awayLineupAttack=1.0,awayLineupDefence=1.0;')
+          p.write_text(s)
       - name: Verify lineup integration
         run: |
           grep -q 'loadLineups(m);if(m.live)loadLiveStats(m)' matchstats/app/src/main/java/ru/matchstats/app/MainActivity.java
