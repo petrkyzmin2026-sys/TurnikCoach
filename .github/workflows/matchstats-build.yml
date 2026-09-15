@@ -26,41 +26,63 @@ jobs:
         with:
           gradle-version: '8.9'
 
-      - name: Remove legacy probability calculation
+      - name: Integrate lineup lookup
         run: |
           python3 - <<'PY'
           p='matchstats/app/src/main/java/ru/matchstats/app/MainActivity.java'
           s=open(p,encoding='utf-8').read()
-          a=s.index('    private void calculate(Match m){')
-          b=s.index('    private double crit(',a)
-          new=('    private void calculate(Match m){Profile h=m.ph,a=m.pa;m.criteria.clear();ProbabilityEngine.Input x=new ProbabilityEngine.Input();\n'
-          'x.homeGF=h.gf();x.homeGA=h.ga();x.awayGF=a.gf();x.awayGA=a.ga();x.homeVenueGF=h.homeGF();x.homeVenueGA=h.homeGA();x.awayVenueGF=a.awayGF();x.awayVenueGA=a.awayGA();x.homeXGF=h.xgF();x.homeXGA=h.xgA();x.awayXGF=a.xgF();x.awayXGA=a.xgA();x.homeSotF=h.sotF();x.homeSotA=h.sotA();x.awaySotF=a.sotF();x.awaySotA=a.sotA();x.homeForm=h.form();x.awayForm=a.form();x.homeN=h.n;x.awayN=a.n;x.homeVenueN=h.homeN;x.awayVenueN=a.awayN;x.homeXgN=h.xgN;x.awayXgN=a.xgN;x.homeSotN=h.sotN;x.awaySotN=a.sotN;x.live=m.live;x.minute=m.min;x.scoreH=m.hg;x.scoreA=m.ag;x.liveXgH=m.liveXgH;x.liveXgA=m.liveXgA;x.liveSotH=m.liveSotH;x.liveSotA=m.liveSotA;x.liveShotsH=m.liveShotsH;x.liveShotsA=m.liveShotsA;\n'
-          'ProbabilityEngine.Result r=ProbabilityEngine.calculate(x);m.lambdaH=r.lambdaH;m.lambdaA=r.lambdaA;m.reliability=r.reliability;m.p1=r.p1;m.px=r.px;m.p2=r.p2;m.o15=r.o15;m.o25=r.o25;m.o35=r.o35;m.u15=100-r.o15;m.u25=100-r.o25;m.u35=100-r.o35;m.bttsYes=r.btts;m.bttsNo=100-r.btts;m.bttsO25=r.bttsO25;\n'
-          'double h1h=h.h1N>=4?clamp((h.h1gf()+a.h1ga())/2,.08,1.8):m.lambdaH*.46,h1a=a.h1N>=4?clamp((a.h1gf()+h.h1ga())/2,.08,1.7):m.lambdaA*.46,ht=h1h+h1a;m.hO05=atLeast(ht,1);m.hO10=asianOverOne(ht);m.hPush10=(int)Math.round(pois(1,ht)*100);m.hO15=atLeast(ht,2);int[] z=outcome(0,0,h1h,h1a);m.hP1=z[0];m.hX=z[1];m.hP2=z[2];\n'
-          'm.criteria.add(new Criterion("Расчётное ядро",true,3,m.lambdaH,m.lambdaA,String.format(Locale.US,"lambda %.2f / %.2f",m.lambdaH,m.lambdaA)));if(m.live)m.criteria.add(new Criterion("LIVE: минута, счёт, xG, удары",true,3,r.remainingH,r.remainingA,m.min+" мин / "+m.hg+":"+m.ag));m.ready=m.reliability>=50;}\n')
-          s=s[:a]+new+s[b:]
-          # Remove obsolete helpers that belonged only to the former parallel probability model.
-          c=s.find('    private double crit(',a+len(new))
-          if c>=0:
-              d=s.find('    private int[] outcome(',c)
-              if d>=0:s=s[:c]+s[d:]
+
+          old='m.ph=getProfile(m.rawHome);m.pa=getProfile(m.rawAway);if(m.live)loadLiveStats(m);loadOdds(m);calculate(m);'
+          new='m.ph=getProfile(m.rawHome);m.pa=getProfile(m.rawAway);loadLineups(m);if(m.live)loadLiveStats(m);loadOdds(m);calculate(m);'
+          if old in s:s=s.replace(old,new)
+
+          old_live='try{loadLiveStats(m);loadOdds(m);calculate(m);selectedLive.put(m.id,m);}'
+          new_live='try{loadLineups(m);loadLiveStats(m);loadOdds(m);calculate(m);selectedLive.put(m.id,m);}'
+          if old_live in s:s=s.replace(old_live,new_live)
+
+          marker='    private void loadLiveStats(Match m)'
+          if 'private void loadLineups(Match m)' not in s:
+              lineup='''    private void loadLineups(Match m){
+              m.lineupFound=false;m.lineupConfirmed=false;m.homeLineupAttack=1.0;m.homeLineupDefence=1.0;m.awayLineupAttack=1.0;m.awayLineupDefence=1.0;
+              if(m.id==null||m.id.isEmpty()||"0".equals(m.id))return;
+              try{JSONObject r=getJson(SOFA+"/event/"+m.id+"/lineups","https://www.sofascore.com/");JSONObject h=r.optJSONObject("home"),a=r.optJSONObject("away");if(h==null||a==null)return;JSONArray hp=h.optJSONArray("players"),ap=a.optJSONArray("players");if(hp==null||ap==null)return;int hs=countStarters(hp),as=countStarters(ap);if(hs<8||as<8)return;m.lineupFound=true;m.lineupConfirmed=r.optBoolean("confirmed",false);double[] hv=lineupFactors(hp),av=lineupFactors(ap);m.homeLineupAttack=hv[0];m.homeLineupDefence=hv[1];m.awayLineupAttack=av[0];m.awayLineupDefence=av[1];}catch(Exception ignored){}
+              }
+              private int countStarters(JSONArray a){int n=0;for(int i=0;i<a.length();i++){JSONObject e=a.optJSONObject(i);if(e!=null&&!e.optBoolean("substitute",false))n++;}return n;}
+              private double[] lineupFactors(JSONArray a){double att=0,def=0;int an=0,dn=0;for(int i=0;i<a.length();i++){JSONObject e=a.optJSONObject(i);if(e==null||e.optBoolean("substitute",false))continue;JSONObject p=e.optJSONObject("player");String pos=p==null?"":p.optString("position","");double rating=num(e.opt("avgRating"));if(rating<=0)rating=num(e.opt("rating"));if(rating<=0)continue;double f=clamp(1.0+(rating-6.8)*0.055,.92,1.08);if("F".equals(pos)||"M".equals(pos)){att+=f;an++;}if("G".equals(pos)||"D".equals(pos)||"M".equals(pos)){def+=f;dn++;}}return new double[]{an>0?att/an:1.0,dn>0?def/dn:1.0};}
+
+'''
+              s=s.replace(marker,lineup+marker)
+
+          old_fields='double p1Odd,xOdd,p2Odd,o15Odd,u15Odd,o25Odd,u25Odd,o35Odd,u35Odd,bttsYesOdd,bttsNoOdd,bttsO25Odd,hP1Odd,hXOdd,hP2Odd,hO05Odd,hU05Odd,hO10Odd,hU10Odd,hO15Odd,hU15Odd,liveXgH,liveXgA,liveSotH,liveSotA,liveShotsH,liveShotsA,lambdaH,lambdaA;'
+          new_fields='double p1Odd,xOdd,p2Odd,o15Odd,u15Odd,o25Odd,u25Odd,o35Odd,u35Odd,bttsYesOdd,bttsNoOdd,bttsO25Odd,hP1Odd,hXOdd,hP2Odd,hO05Odd,hU05Odd,hO10Odd,hU10Odd,hO15Odd,hU15Odd,liveXgH,liveXgA,liveSotH,liveSotA,liveShotsH,liveShotsA,lambdaH,lambdaA,homeLineupAttack=1.0,homeLineupDefence=1.0,awayLineupAttack=1.0,awayLineupDefence=1.0;boolean lineupFound=false,lineupConfirmed=false;'
+          if old_fields in s:s=s.replace(old_fields,new_fields)
+
+          needle='x.homeForm=h.form();x.awayForm=a.form();'
+          repl=needle+'x.homeLineupAttack=m.homeLineupAttack;x.homeLineupDefence=m.homeLineupDefence;x.awayLineupAttack=m.awayLineupAttack;x.awayLineupDefence=m.awayLineupDefence;x.homeLineupConfirmed=m.lineupConfirmed;x.awayLineupConfirmed=m.lineupConfirmed;'
+          if needle in s and 'x.homeLineupAttack=m.homeLineupAttack' not in s:s=s.replace(needle,repl)
+
+          crit='m.criteria.add(new Criterion("Расчётное ядро",true,3,m.lambdaH,m.lambdaA,String.format(Locale.US,"lambda %.2f / %.2f",m.lambdaH,m.lambdaA)));'
+          add=crit+'if(m.lineupFound)m.criteria.add(new Criterion(m.lineupConfirmed?"Состав подтверждён":"Предполагаемый состав",true,m.lineupConfirmed?2:1,m.homeLineupAttack,m.awayLineupAttack,m.lineupConfirmed?"официальный":"предполагаемый"));'
+          if crit in s and '"Предполагаемый состав"' not in s:s=s.replace(crit,add)
+
           open(p,'w',encoding='utf-8').write(s)
           PY
 
-      - name: Verify single probability engine
+      - name: Verify lineup integration
         run: |
+          grep -q 'loadLineups(m);if(m.live)loadLiveStats(m)' matchstats/app/src/main/java/ru/matchstats/app/MainActivity.java
+          grep -q 'event/.*lineups' matchstats/app/src/main/java/ru/matchstats/app/MainActivity.java
+          grep -q 'x.homeLineupAttack=m.homeLineupAttack' matchstats/app/src/main/java/ru/matchstats/app/MainActivity.java
           grep -q 'ProbabilityEngine.calculate(x)' matchstats/app/src/main/java/ru/matchstats/app/MainActivity.java
           ! grep -q 'tw+=crit' matchstats/app/src/main/java/ru/matchstats/app/MainActivity.java
-          ! grep -q 'private double crit' matchstats/app/src/main/java/ru/matchstats/app/MainActivity.java
-          ! grep -q 'private double diff' matchstats/app/src/main/java/ru/matchstats/app/MainActivity.java
 
-      - name: Persist source refactor
+      - name: Persist source integration
         run: |
           if ! git diff --quiet -- matchstats/app/src/main/java/ru/matchstats/app/MainActivity.java; then
             git config user.name github-actions
             git config user.email github-actions@github.com
             git add matchstats/app/src/main/java/ru/matchstats/app/MainActivity.java
-            git commit -m 'DENZL v1.5: persist single probability engine integration'
+            git commit -m 'DENZL v1.5: integrate predicted and confirmed lineups'
             git push origin HEAD:matchstats-prototype
           fi
 
