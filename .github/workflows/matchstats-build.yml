@@ -26,23 +26,38 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
-      - name: Fix source typo
+      - name: Apply approved DENZL UI and parser fixes
         run: |
-          sed -i 's/return100;/return 100;/g; s/return80;/return 80;/g' matchstats/app/src/main/java/ru/matchstats/app/MainActivity.java
+          python3 - <<'PY'
+          p='matchstats/app/src/main/java/ru/matchstats/app/MainActivity.java'
+          s=open(p,encoding='utf-8').read()
+          s=s.replace('return100;','return 100;').replace('return80;','return 80;')
+          s=s.replace('return new JSONObject(body);}', 'String z=body.trim();if(z.startsWith("[")){JSONObject wrap=new JSONObject();wrap.put("data",new JSONArray(z));return wrap;}return new JSONObject(z);}')
+          s=s.replace('if(m.live)loadLiveStats(m);loadOdds(m);calculate(m);', 'if(m.live)loadLiveStats(m);try{loadOdds(m);}catch(Exception ignored){m.oddSource="";}calculate(m);')
+          s=s.replace('try{loadLiveStats(m);loadOdds(m);calculate(m);selectedLive.put(m.id,m);}', 'try{loadLiveStats(m);try{loadOdds(m);}catch(Exception ignored){m.oddSource="";}calculate(m);selectedLive.put(m.id,m);}')
+          s=s.replace('private String msg(Exception e){return e.getMessage()==null?e.getClass().getSimpleName():e.getMessage();}', 'private String msg(Exception e){String x=e.getMessage()==null?"":e.getMessage();if(x.contains("org.json")||x.contains("JSONArray")||x.contains("JSONObject"))return "Источник данных временно недоступен";return x.isEmpty()?"Источник данных временно недоступен":x;}')
+          old='b.addView(txt(label,10,MUTED,true));b.addView(txt(p<0?"—":p+"%",14,p>=60?GREEN:(p>=45?AMBER:TEXT),true));b.addView(txt(odd>=MIN_ODD?"КФ "+String.format(Locale.US,"%.2f",odd):"КФ —",10,TEXT,true));if(p>=0&&odd>=MIN_ODD){double ev=p/100.0*odd-1;TextView e=txt("EV "+String.format(Locale.US,"%+.1f%%",ev*100),9,ev>0?GREEN:RED,true);b.addView(e);}'
+          new='b.addView(txt(label,11,TEXT,true));b.addView(txt(p<0?"Вероятность —":"Вероятность "+p+"%",13,p>=60?GREEN:(p>=45?AMBER:TEXT),true));b.addView(txt(odd>=MIN_ODD?"КФ "+String.format(Locale.US,"%.2f",odd):"КФ —",11,odd>=MIN_ODD?TEXT:MUTED,true));if(p>=0&&odd>=MIN_ODD){double ev=p/100.0*odd-1;b.addView(txt("EV "+String.format(Locale.US,"%+.1f%%",ev*100),9,ev>0?GREEN:RED,true));}'
+          s=s.replace(old,new)
+          old2='String score=m.live&&m.hg>=0?"   "+m.hg+":"+m.ag:"";TextView t=txt(m.home+" — "+m.away+score,17,TEXT,true);t.setPadding(0,dp(6),0,dp(7));c.addView(t);'
+          new2='String score=m.live&&m.hg>=0?"   "+m.hg+":"+m.ag:"";TextView t=txt(m.home+" — "+m.away+score,17,TEXT,true);t.setPadding(0,dp(6),0,dp(3));c.addView(t);if(m.live){TextView ls=txt("LIVE · "+(m.min>0?m.min+" мин":"идёт матч")+(m.hg>=0?" · "+m.hg+":"+m.ag:""),11,GREEN,true);ls.setPadding(0,0,0,dp(7));c.addView(ls);}'
+          s=s.replace(old2,new2)
+          open(p,'w',encoding='utf-8').write(s)
+          PY
       - name: Build debug APK
         working-directory: matchstats
         run: gradle :app:assembleDebug --no-daemon
       - name: Prepare DENZL APK
-        run: cp matchstats/app/build/outputs/apk/debug/app-debug.apk DENZL-v1.2-betcity.apk
+        run: cp matchstats/app/build/outputs/apk/debug/app-debug.apk DENZL-v1.3.apk
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: DENZL-v1.2-betcity
-          path: DENZL-v1.2-betcity.apk
+          name: DENZL-v1.3
+          path: DENZL-v1.3.apk
       - name: Publish GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release delete denzl-v1.2-betcity --yes || true
-          git push origin :refs/tags/denzl-v1.2-betcity || true
-          gh release create denzl-v1.2-betcity DENZL-v1.2-betcity.apk --target "$GITHUB_SHA" --title "DENZL v1.2" --notes "BETCITY line/live and odds. Search-only football 11x11. SofaScore primary and FotMob fallback for historical statistics. DENZL calculates probabilities independently and LIVE refreshes every 30 seconds."
+          gh release delete denzl-v1.3 --yes || true
+          git push origin :refs/tags/denzl-v1.3 || true
+          gh release create denzl-v1.3 DENZL-v1.3.apk --target "$GITHUB_SHA" --title "DENZL v1.3" --notes "Утвержденная карточка: рынок, вероятность DENZL, коэффициент. LIVE счет и минута. Устойчивый JSON-парсер; ошибка коэффициентов не блокирует расчет. Только футбол 11x11. Обновление LIVE каждые 2 минуты."
