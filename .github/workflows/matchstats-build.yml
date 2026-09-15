@@ -16,6 +16,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: matchstats-prototype
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -23,44 +25,54 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
-      - name: Integrate v1.4 engine
+
+      - name: Remove legacy probability calculation
         run: |
           python3 - <<'PY'
           p='matchstats/app/src/main/java/ru/matchstats/app/MainActivity.java'
           s=open(p,encoding='utf-8').read()
-          s=s.replace('return new JSONObject(body);}', 'String z=body.trim();if(z.startsWith("[")){JSONObject wrap=new JSONObject();wrap.put("data",new JSONArray(z));return wrap;}return new JSONObject(z);}')
-          s=s.replace('if(m.live)loadLiveStats(m);loadOdds(m);calculate(m);', 'if(m.live)loadLiveStats(m);try{loadOdds(m);}catch(Exception ignored){m.oddSource="";}calculate(m);')
-          s=s.replace('try{loadLiveStats(m);loadOdds(m);calculate(m);selectedLive.put(m.id,m);}', 'try{loadLiveStats(m);try{loadOdds(m);}catch(Exception ignored){m.oddSource="";}calculate(m);selectedLive.put(m.id,m);}')
           a=s.index('    private void calculate(Match m){')
           b=s.index('    private double crit(',a)
           new=('    private void calculate(Match m){Profile h=m.ph,a=m.pa;m.criteria.clear();ProbabilityEngine.Input x=new ProbabilityEngine.Input();\n'
           'x.homeGF=h.gf();x.homeGA=h.ga();x.awayGF=a.gf();x.awayGA=a.ga();x.homeVenueGF=h.homeGF();x.homeVenueGA=h.homeGA();x.awayVenueGF=a.awayGF();x.awayVenueGA=a.awayGA();x.homeXGF=h.xgF();x.homeXGA=h.xgA();x.awayXGF=a.xgF();x.awayXGA=a.xgA();x.homeSotF=h.sotF();x.homeSotA=h.sotA();x.awaySotF=a.sotF();x.awaySotA=a.sotA();x.homeForm=h.form();x.awayForm=a.form();x.homeN=h.n;x.awayN=a.n;x.homeVenueN=h.homeN;x.awayVenueN=a.awayN;x.homeXgN=h.xgN;x.awayXgN=a.xgN;x.homeSotN=h.sotN;x.awaySotN=a.sotN;x.live=m.live;x.minute=m.min;x.scoreH=m.hg;x.scoreA=m.ag;x.liveXgH=m.liveXgH;x.liveXgA=m.liveXgA;x.liveSotH=m.liveSotH;x.liveSotA=m.liveSotA;x.liveShotsH=m.liveShotsH;x.liveShotsA=m.liveShotsA;\n'
           'ProbabilityEngine.Result r=ProbabilityEngine.calculate(x);m.lambdaH=r.lambdaH;m.lambdaA=r.lambdaA;m.reliability=r.reliability;m.p1=r.p1;m.px=r.px;m.p2=r.p2;m.o15=r.o15;m.o25=r.o25;m.o35=r.o35;m.u15=100-r.o15;m.u25=100-r.o25;m.u35=100-r.o35;m.bttsYes=r.btts;m.bttsNo=100-r.btts;m.bttsO25=r.bttsO25;\n'
           'double h1h=h.h1N>=4?clamp((h.h1gf()+a.h1ga())/2,.08,1.8):m.lambdaH*.46,h1a=a.h1N>=4?clamp((a.h1gf()+h.h1ga())/2,.08,1.7):m.lambdaA*.46,ht=h1h+h1a;m.hO05=atLeast(ht,1);m.hO10=asianOverOne(ht);m.hPush10=(int)Math.round(pois(1,ht)*100);m.hO15=atLeast(ht,2);int[] z=outcome(0,0,h1h,h1a);m.hP1=z[0];m.hX=z[1];m.hP2=z[2];\n'
-          'm.criteria.add(new Criterion("Сила атаки / обороны",true,3,m.lambdaH,m.lambdaA,String.format(Locale.US,"lambda %.2f / %.2f",m.lambdaH,m.lambdaA)));m.criteria.add(new Criterion("Дом / выезд",h.homeN>=3&&a.awayN>=3,2,m.lambdaH,m.lambdaA,h.homeN+" дом / "+a.awayN+" выезд"));m.criteria.add(new Criterion("xG / xGA",h.xgN>=3&&a.xgN>=3,3,m.lambdaH,m.lambdaA,h.xgN+" / "+a.xgN+" матчей"));m.criteria.add(new Criterion("Удары в створ",h.sotN>=3&&a.sotN>=3,1,m.lambdaH,m.lambdaA,"средние "+f1(h.sotF())+" / "+f1(a.sotF())));m.criteria.add(new Criterion("Стартовые составы",false,2,m.lambdaH,m.lambdaA,"состав не подтвержден источником"));if(m.live)m.criteria.add(new Criterion("LIVE: минута, счет, xG, удары",true,3,r.remainingH,r.remainingA,m.min+" мин / "+m.hg+":"+m.ag));m.ready=m.reliability>=50;}\n')
+          'm.criteria.add(new Criterion("Расчётное ядро",true,3,m.lambdaH,m.lambdaA,String.format(Locale.US,"lambda %.2f / %.2f",m.lambdaH,m.lambdaA)));if(m.live)m.criteria.add(new Criterion("LIVE: минута, счёт, xG, удары",true,3,r.remainingH,r.remainingA,m.min+" мин / "+m.hg+":"+m.ag));m.ready=m.reliability>=50;}\n')
           s=s[:a]+new+s[b:]
-          s=s.replace('if(oa>0&&oa<MIN_ODD)return;','')
-          s=s.replace('(oa>0&&oa<MIN_ODD)?blank():marketBox(a,pa,oa)','marketBox(a,pa,oa)').replace('(ob>0&&ob<MIN_ODD)?blank():marketBox(b,pb,ob)','marketBox(b,pb,ob)').replace('(oc>0&&oc<MIN_ODD)?blank():marketBox(c,pc,oc)','marketBox(c,pc,oc)')
-          s=s.replace('if(!(oa>0&&oa<MIN_ODD))r.addView(marketBox(a,pa,oa),new LinearLayout.LayoutParams(0,dp(72),1));else r.addView(blank(),new LinearLayout.LayoutParams(0,dp(72),1));','r.addView(marketBox(a,pa,oa),new LinearLayout.LayoutParams(0,dp(72),1));')
-          s=s.replace('if(!(ob>0&&ob<MIN_ODD))r.addView(marketBox(b,pb,ob),new LinearLayout.LayoutParams(0,dp(72),1));else r.addView(blank(),new LinearLayout.LayoutParams(0,dp(72),1));','r.addView(marketBox(b,pb,ob),new LinearLayout.LayoutParams(0,dp(72),1));')
-          s=s.replace('odd>=MIN_ODD?"КФ "+String.format(Locale.US,"%.2f",odd):"КФ —"','odd>0?"КФ "+String.format(Locale.US,"%.2f",odd):"КФ —"')
-          s=s.replace('if(p>=0&&odd>=MIN_ODD)','if(p>=0&&odd>0)')
+          # Remove obsolete helpers that belonged only to the former parallel probability model.
+          c=s.find('    private double crit(',a+len(new))
+          if c>=0:
+              d=s.find('    private int[] outcome(',c)
+              if d>=0:s=s[:c]+s[d:]
           open(p,'w',encoding='utf-8').write(s)
           PY
+
+      - name: Verify single probability engine
+        run: |
+          grep -q 'ProbabilityEngine.calculate(x)' matchstats/app/src/main/java/ru/matchstats/app/MainActivity.java
+          ! grep -q 'tw+=crit' matchstats/app/src/main/java/ru/matchstats/app/MainActivity.java
+          ! grep -q 'private double crit' matchstats/app/src/main/java/ru/matchstats/app/MainActivity.java
+          ! grep -q 'private double diff' matchstats/app/src/main/java/ru/matchstats/app/MainActivity.java
+
+      - name: Persist source refactor
+        run: |
+          if ! git diff --quiet -- matchstats/app/src/main/java/ru/matchstats/app/MainActivity.java; then
+            git config user.name github-actions
+            git config user.email github-actions@github.com
+            git add matchstats/app/src/main/java/ru/matchstats/app/MainActivity.java
+            git commit -m 'DENZL v1.5: persist single probability engine integration'
+            git push origin HEAD:matchstats-prototype
+          fi
+
       - name: Build debug APK
         working-directory: matchstats
         run: gradle :app:assembleDebug --no-daemon
-      - name: Prepare APK
-        run: cp matchstats/app/build/outputs/apk/debug/app-debug.apk DENZL-v1.4.apk
-      - name: Upload APK
+
+      - name: Prepare development APK
+        run: cp matchstats/app/build/outputs/apk/debug/app-debug.apk DENZL-v1.5-dev.apk
+
+      - name: Upload development APK
         uses: actions/upload-artifact@v4
         with:
-          name: DENZL-v1.4
-          path: DENZL-v1.4.apk
-      - name: Publish release
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gh release delete denzl-v1.4 --yes || true
-          git push origin :refs/tags/denzl-v1.4 || true
-          gh release create denzl-v1.4 DENZL-v1.4.apk --target "$GITHUB_SHA" --title "DENZL v1.4" --notes "Единое вероятностное ядро для всех футбольных матчей. Коэффициенты отделены от вероятности. LIVE пересчитывается по минуте, счету, xG и ударам."
+          name: DENZL-v1.5-dev
+          path: DENZL-v1.5-dev.apk
