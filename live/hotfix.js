@@ -1,7 +1,7 @@
-/* TURNIKCOACH_HOTFIX 5.14.0-adaptive-rest */
+/* TURNIKCOACH_HOTFIX 5.14.1-sound-background-timer */
 (function(){
   'use strict';
-  const VERSION='5.14.0-adaptive-rest';
+  const VERSION='5.14.1-sound-background-timer';
   if(window.__TC_HOTFIX_VERSION===VERSION)return;
   window.__TC_HOTFIX_VERSION=VERSION;
 
@@ -20,6 +20,59 @@
     return el;
   }
 
+  // ---------- Reliable audio ----------
+  let tcAudioCtx=window.__tcAudioCtx||null;
+  function tcAudio(){
+    try{
+      const Ctx=window.AudioContext||window.webkitAudioContext;
+      if(!Ctx)return null;
+      if(!tcAudioCtx){tcAudioCtx=new Ctx();window.__tcAudioCtx=tcAudioCtx}
+      return tcAudioCtx;
+    }catch(e){return null}
+  }
+  function tcPrimeAudio(){
+    const c=tcAudio();
+    if(!c)return;
+    try{
+      const p=c.resume&&c.resume();
+      if(p&&p.catch)p.catch(()=>{});
+    }catch(e){}
+  }
+  function tcTone(freq,duration,volume,delay){
+    const c=tcAudio();
+    if(!c)return;
+    const play=()=>{
+      try{
+        const t=c.currentTime+(delay||0);
+        const o=c.createOscillator();
+        const g=c.createGain();
+        o.type='square';
+        o.frequency.setValueAtTime(freq,t);
+        g.gain.setValueAtTime(Math.max(.001,volume||.32),t);
+        g.gain.exponentialRampToValueAtTime(.001,t+duration);
+        o.connect(g);g.connect(c.destination);o.start(t);o.stop(t+duration+.02);
+      }catch(e){}
+    };
+    try{
+      if(c.state==='suspended'&&c.resume){
+        const p=c.resume();
+        if(p&&p.then)p.then(play).catch(()=>{});else play();
+      }else play();
+    }catch(e){}
+  }
+  function tcBeep(freq=1050,duration=.14,volume=.38){
+    tcTone(freq,duration,volume,0);
+    try{if(navigator.vibrate)navigator.vibrate(Math.max(40,Math.round(duration*450)))}catch(e){}
+  }
+  function tcFinishSignal(){
+    tcTone(620,.18,.42,0);
+    tcTone(880,.26,.46,.20);
+    try{if(navigator.vibrate)navigator.vibrate([120,70,180])}catch(e){}
+  }
+  window.beep=tcBeep;
+  ['pointerdown','touchstart','click'].forEach(ev=>document.addEventListener(ev,tcPrimeAudio,{passive:true}));
+
+  // ---------- Adaptive rest ----------
   window.adaptiveRest=function(e,sessionIndex,target,actual,skipped){
     const base=restSeconds(e,sessionIndex);
     const max=Math.max(1,+e.max||1);
@@ -58,22 +111,81 @@
     };
   };
 
-  const originalStartRest=window.startRest;
-  window.startRest=function(sec,note){
-    const el=restReasonEl();
-    if(el)el.textContent=note||'Отдых рассчитан по нагрузке и факту предыдущего подхода';
-    return originalStartRest(sec);
+  // ---------- Background-safe rest countdown ----------
+  let tcRestEnd=0;
+  let tcRestActive=false;
+  let tcSignalSeconds=new Set();
+
+  function tcRenderRest(){
+    if(!tcRestActive||!tcRestEnd)return;
+    const left=Math.max(0,Math.ceil((tcRestEnd-Date.now())/1000));
+    R=left;
+    const el=document.getElementById('restNum');
+    if(el)el.textContent=left;
+
+    if(left>0&&left<=3&&!tcSignalSeconds.has(left)){
+      tcSignalSeconds.add(left);
+      tcBeep(1120,.16,.42);
+    }
+    if(left<=0){
+      tcRestActive=false;
+      tcRestEnd=0;
+      if(rt){clearInterval(rt);rt=null}
+      tcFinishSignal();
+      window.finishRest();
+    }
+  }
+
+  const originalFinishRest=window.finishRest;
+  window.finishRest=function(){
+    tcRestActive=false;
+    tcRestEnd=0;
+    tcSignalSeconds.clear();
+    if(rt){clearInterval(rt);rt=null}
+    return originalFinishRest();
   };
 
-  const originalAddRest=window.addRest;
+  window.startRest=function(sec,note){
+    sec=Math.max(0,Math.round(+sec||0));
+    const el=restReasonEl();
+    if(el)el.textContent=note||'Отдых рассчитан по нагрузке и факту предыдущего подхода';
+    tcPrimeAudio();
+    tcRestActive=true;
+    tcRestEnd=Date.now()+sec*1000;
+    tcSignalSeconds.clear();
+    R=sec;
+    const ring=document.getElementById('restNum');
+    if(ring)ring.textContent=R;
+    go('rest');
+    if(rt)clearInterval(rt);
+    rt=setInterval(tcRenderRest,250);
+    tcRenderRest();
+  };
+
   window.addRest=function(){
-    originalAddRest();
+    if(tcRestActive&&tcRestEnd){
+      tcRestEnd+=30000;
+      tcSignalSeconds.clear();
+      tcRenderRest();
+    }else{
+      R=(+R||0)+30;
+      const ring=document.getElementById('restNum');
+      if(ring)ring.textContent=R;
+    }
     const el=restReasonEl();
     if(el&&!/добавлено вручную/.test(el.textContent))el.textContent+=' · добавлено вручную +30 с';
   };
 
+  function tcResumeClock(){
+    if(tcRestActive)tcRenderRest();
+  }
+  document.addEventListener('visibilitychange',tcResumeClock);
+  window.addEventListener('focus',tcResumeClock);
+  window.addEventListener('pageshow',tcResumeClock);
+
   window.setDone=function(skip){
     if(!W)return;
+    tcPrimeAudio();
     const x=W.items[W.exerciseIndex];
     const target=x.plan[W.setIndex];
     const actual=skip?null:W.actual;
@@ -87,7 +199,7 @@
       return;
     }
 
-    beep(480,.42,.16);
+    tcBeep(620,.24,.42);
     if(W.exerciseIndex<W.items.length-1){
       const next=W.items[W.exerciseIndex+1];
       const rest=window.transitionRest(x.e,next.e,W.sessionIndex,target,actual,!!skip);
@@ -97,6 +209,7 @@
       window.startRest(rest.seconds,rest.note);
       return;
     }
+    tcFinishSignal();
     askFeedback(false);
   };
 
