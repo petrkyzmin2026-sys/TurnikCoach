@@ -26,13 +26,18 @@ jobs:
         with:
           gradle-version: '8.9'
 
-      - name: Restore v5.13 web application
+      - name: Restore known-good v5.13 web application
         run: |
-          cat .github/v5.13-index.part01.b64 .github/v5.13-index.part02.b64 .github/v5.13-index.part03.b64 .github/v5.13-index.part04.b64 .github/v5.13-index.part05.b64 \
-            | base64 --decode \
-            | gzip -dc > app/src/main/assets/index.html
+          BASE_COMMIT="2d156b1c192e68f102a63d79cd3fa179fc412f5f"
+          : > /tmp/v513.b64
+          for n in 01 02 03 04 05; do
+            curl -fsSL "https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/${BASE_COMMIT}/.github/v5.13-index.part${n}.b64" >> /tmp/v513.b64
+          done
+          base64 --decode /tmp/v513.b64 | gzip -dc > app/src/main/assets/index.html
           test -s app/src/main/assets/index.html
           grep -q 'v5.13 — modern Android package' app/src/main/assets/index.html
+          test -s app/src/main/assets/hotfix.js
+          grep -q 'TURNIKCOACH_HOTFIX' app/src/main/assets/hotfix.js
 
       - name: Build unsigned release APK
         run: gradle --no-daemon :app:assembleRelease
@@ -40,16 +45,16 @@ jobs:
       - name: Zipalign APK and collect signer
         run: |
           BUILD_TOOLS="$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)"
-          "$BUILD_TOOLS/zipalign" -p -f 4 app/build/outputs/apk/release/app-release-unsigned.apk TurnikCoach-v5.13-unsigned-aligned.apk
-          "$BUILD_TOOLS/zipalign" -c -p 4 TurnikCoach-v5.13-unsigned-aligned.apk
+          "$BUILD_TOOLS/zipalign" -p -f 4 app/build/outputs/apk/release/app-release-unsigned.apk TurnikCoach-v5.14-unsigned-aligned.apk
+          "$BUILD_TOOLS/zipalign" -c -p 4 TurnikCoach-v5.14-unsigned-aligned.apk
           cp "$BUILD_TOOLS/lib/apksigner.jar" apksigner.jar
           java -jar apksigner.jar --version
 
       - name: Upload unsigned aligned APK and apksigner
         uses: actions/upload-artifact@v4
         with:
-          name: TurnikCoach-v5.13-modern-build
+          name: TurnikCoach-v5.14-hotupdate-build
           path: |
-            TurnikCoach-v5.13-unsigned-aligned.apk
+            TurnikCoach-v5.14-unsigned-aligned.apk
             apksigner.jar
           if-no-files-found: error
