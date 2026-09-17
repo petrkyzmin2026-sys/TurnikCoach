@@ -26,20 +26,23 @@ jobs:
         with:
           gradle-version: '8.9'
 
-      - name: Restore stable debug signing key
+      - name: Restore v5.13 web application
         run: |
-          mkdir -p "$HOME/.android"
-          base64 --decode .github/stable-debug.keystore.b64 > "$HOME/.android/debug.keystore"
+          base64 --decode .github/v5.13-index.html.gz.b64 | gzip -dc > app/src/main/assets/index.html
+          test -s app/src/main/assets/index.html
 
-      - name: Build debug APK
-        run: gradle --no-daemon :app:assembleDebug
+      - name: Build unsigned release APK
+        run: gradle --no-daemon :app:assembleRelease
 
-      - name: Prepare APK
-        run: cp app/build/outputs/apk/debug/app-debug.apk TurnikCoach.apk
+      - name: Zipalign APK
+        run: |
+          BUILD_TOOLS="$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)"
+          "$BUILD_TOOLS/zipalign" -p -f 4 app/build/outputs/apk/release/app-release-unsigned.apk TurnikCoach-unsigned-aligned.apk
+          "$BUILD_TOOLS/zipalign" -c -p 4 TurnikCoach-unsigned-aligned.apk
 
-      - name: Upload APK
+      - name: Upload unsigned aligned APK
         uses: actions/upload-artifact@v4
         with:
-          name: TurnikCoach-APK
-          path: TurnikCoach.apk
+          name: TurnikCoach-Unsigned-APK
+          path: TurnikCoach-unsigned-aligned.apk
           if-no-files-found: error
