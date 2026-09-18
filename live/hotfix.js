@@ -1,10 +1,49 @@
-/* TURNIKCOACH_HOTFIX 5.14.1-sound-background-timer */
+/* TURNIKCOACH_HOTFIX 5.14.2-consent-update */
 (function(){
   'use strict';
-  const VERSION='5.14.1-sound-background-timer';
+  const VERSION='5.14.2-consent-update';
+  const LABEL='5.14.2';
+  const APPROVED_KEY='tc_hotfix_approved_version';
   if(window.__TC_HOTFIX_VERSION===VERSION)return;
-  window.__TC_HOTFIX_VERSION=VERSION;
 
+  function removeUpdatePrompt(){
+    const p=document.getElementById('tcUpdatePrompt');
+    if(p&&p.parentNode)p.parentNode.removeChild(p);
+  }
+
+  function showUpdatePrompt(activate){
+    if(document.getElementById('tcUpdatePrompt'))return;
+    const overlay=document.createElement('div');
+    overlay.id='tcUpdatePrompt';
+    overlay.style.cssText='position:fixed;inset:0;z-index:2147483647;background:rgba(0,0,0,.78);display:flex;align-items:center;justify-content:center;padding:22px;box-sizing:border-box;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif';
+    const card=document.createElement('div');
+    card.style.cssText='width:min(420px,100%);background:#10161d;color:#fff;border:1px solid rgba(255,255,255,.14);border-radius:20px;padding:22px;box-shadow:0 18px 60px rgba(0,0,0,.5)';
+    const title=document.createElement('div');
+    title.style.cssText='font-size:22px;font-weight:800;margin-bottom:10px';
+    title.textContent='Доступно обновление TurnikCoach '+LABEL;
+    const text=document.createElement('div');
+    text.style.cssText='font-size:15px;line-height:1.45;color:#cfd8e3;margin-bottom:18px';
+    text.innerHTML='Обновление содержит исправление звукового сигнала и корректный отсчёт отдыха после сворачивания приложения.<br><br>Установить обновление сейчас?';
+    const row=document.createElement('div');
+    row.style.cssText='display:flex;gap:10px';
+    const later=document.createElement('button');
+    later.type='button';
+    later.textContent='Позже';
+    later.style.cssText='flex:1;border:0;border-radius:12px;padding:14px 12px;background:#27313c;color:#fff;font-size:16px;font-weight:700';
+    const yes=document.createElement('button');
+    yes.type='button';
+    yes.textContent='Обновить';
+    yes.style.cssText='flex:1;border:0;border-radius:12px;padding:14px 12px;background:#ffc400;color:#111;font-size:16px;font-weight:800';
+    later.onclick=()=>{window.__TC_UPDATE_DISMISSED_VERSION=VERSION;removeUpdatePrompt()};
+    yes.onclick=()=>{try{localStorage.setItem(APPROVED_KEY,VERSION)}catch(e){};removeUpdatePrompt();activate()};
+    row.appendChild(later);row.appendChild(yes);
+    card.appendChild(title);card.appendChild(text);card.appendChild(row);overlay.appendChild(card);
+    document.body.appendChild(overlay);
+  }
+
+  function installUpdate(){
+    if(window.__TC_HOTFIX_VERSION===VERSION)return;
+    window.__TC_HOTFIX_VERSION=VERSION;
   function tcClamp(v,min,max){return Math.max(min,Math.min(max,v))}
   function restReasonEl(){
     let el=document.getElementById('restWhy');
@@ -212,7 +251,17 @@
     tcFinishSignal();
     askFeedback(false);
   };
+    restReasonEl();
+    console.log('TurnikCoach hotfix active:',VERSION);
+  }
 
-  restReasonEl();
-  console.log('TurnikCoach hotfix active:',VERSION);
+  let approved=false;
+  try{approved=localStorage.getItem(APPROVED_KEY)===VERSION}catch(e){}
+  if(approved){
+    installUpdate();
+  }else{
+    const ask=()=>{if(window.__TC_UPDATE_DISMISSED_VERSION!==VERSION)showUpdatePrompt(installUpdate)};
+    if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',ask,{once:true});
+    else ask();
+  }
 })();
