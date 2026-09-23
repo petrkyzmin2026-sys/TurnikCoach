@@ -520,11 +520,26 @@
       const match=TC_course.history.find(h=>h.courseMode==='auxCourse'&&h.courseLevel===TC_course.level);
       return match?match.date:'';
     }
+    function tcLastPullLoadDate(){
+      let last=TC_course.lastCourseDate||'';
+      for(const h of TC_course.history){
+        if(['course','auxCourse','supplement'].includes(h.courseMode)&&h.date>last)last=h.date;
+      }
+      return last;
+    }
+    function tcSupplementBreak(){
+      const all=TC_course.history.filter(h=>h.courseMode==='supplement'&&h.date).map(h=>h.date).sort();
+      if(!all.length)return false;
+      const elapsed=tcDayDiff(all[0],dateKey());
+      // App convention: 30-day work interval followed by a 5-day pause, repeated.
+      const phase=elapsed%35;
+      return elapsed>=30&&phase>=30&&phase<=34;
+    }
     function tcAuxDue(){
       const level=TC_course.level,today=dateKey();
       if(!TC_course.enabled||![3,6].includes(level)||!TC_course.auxEnabled[level])return false;
       if(!TC_course.lastCourseDate||tcScheduledOn(today)||tcCourseDue()||tcTestDue()||tcMasteryDue())return false;
-      if(tcDayDiff(TC_course.lastCourseDate,today)<2)return false;
+      if(tcDayDiff(tcLastPullLoadDate(),today)<2)return false;
       const lastAux=tcLastAuxDate();
       if(lastAux&&tcDayDiff(lastAux,today)<tcAuxInterval())return false;
       if(TC_course.history.some(h=>h.date===today&&['supplement','auxCourse'].includes(h.courseMode)))return false;
@@ -564,7 +579,7 @@
 
     function tcExtraRowsHtml(items){return items.map(x=>'<div class="planrow"><div><div class="strong" style="font-size:15px">'+x.e.name+'</div><div class="meta">Дополнительное упражнение · '+metricTitle(x.e)+'</div></div><div class="r sets">'+x.plan.join(' · ')+'</div></div>').join('')}
     function tcSupplementHtml(){
-      if(!TC_course.authorSupplement||!tcCourseLevel().supplement||tcAuxDue()||tcCourseDue()||tcTestDue()||tcMasteryDue())return'';
+      if(!TC_course.authorSupplement||!tcCourseLevel().supplement||tcAuxDue()||tcCourseDue()||tcTestDue()||tcMasteryDue()||tcSupplementBreak())return'';
       if(TC_course.history.some(h=>h.courseMode==='supplement'&&h.date===dateKey()))return'';
       const reps=Math.max(1,Math.floor(TC_course.pullMax*.8));
       const seq=Array(10).fill(String(reps)).join('  ');
@@ -833,8 +848,8 @@
     };
     function tcRecoveredForTest(){
       const lastLoad=(TC_course.history||[]).find(h=>
-        ['course','supplement'].includes(h.courseMode));
-      const lastDate=lastLoad&&lastLoad.date||TC_course.lastCourseDate;
+        ['course','supplement','auxCourse'].includes(h.courseMode));
+      const lastDate=lastLoad&&lastLoad.date>TC_course.lastCourseDate?lastLoad.date:TC_course.lastCourseDate;
       return !!lastDate&&tcDayDiff(lastDate,dateKey())>=2;
     }
     function tcCourseTestCard(){
@@ -1005,7 +1020,7 @@
       const items=tcBuildExtraItems();if(!items.length)return;unlockAudio();const idx=TC_course.extraSeq%3;W={mode:'extra',sessionIndex:idx,exerciseIndex:0,setIndex:0,items,actual:items[0].plan[0],early:false};go('workout');
     };
     window.tcStartSupplementWorkout=function(){
-      if(W||tcCourseDue()||tcAuxDue()||tcTestDue()||tcMasteryDue()||TC_course.history.some(h=>h.courseMode==='supplement'&&h.date===dateKey()))return;
+      if(W||!TC_course.authorSupplement||!tcCourseLevel().supplement||tcCourseDue()||tcAuxDue()||tcTestDue()||tcMasteryDue()||tcSupplementBreak()||TC_course.history.some(h=>h.courseMode==='supplement'&&h.date===dateKey()))return;
       const reps=Math.max(1,Math.floor(TC_course.pullMax*.8)),def={id:'c_daily80',name:'Классические подтягивания · авторское дополнение',metric:'reps',sets:10,scheme:{type:'fixed',value:reps,label:String(reps)},rest:{type:'manual',label:'отдых в PDF не задан'}};
       const e={id:def.id,name:def.name,metric:'reps',max:TC_course.pullMax,load:0,courseDef:def,media:'',muscles:[]};const item={e,def,plan:Array(10).fill(reps),planLabels:Array(10).fill(String(reps)),actual:[]};W={mode:'supplement',sessionIndex:0,exerciseIndex:0,setIndex:0,items:[item],actual:reps,early:false};go('workout');
     };
