@@ -727,7 +727,7 @@
     function tcAuthorExerciseNote(def){
       const info=tcSourceExerciseInfo(def);
       if(info)return info.note+' (PDF, стр. '+info.page+'.)';
-      return 'В текстовой части предоставленного PDF для этого упражнения нет отдельной пошаговой техники. Автор указывает его объём в комплексе; некоторые пояснения вынесены в видео, которое не входит в текст PDF.';
+      return 'В предоставленном PDF приведено задание для этого упражнения, но пошаговая техника в тексте не описана. Для подробной техники необходимы соответствующие видеоматериалы автора.';
     }
 
     function tcCurrentCalculationHtml(){
@@ -782,15 +782,21 @@
     function tcProgramExerciseHtml(def){
       const tip=tcAuthorExerciseNote(def);
       const noTip=!tcSourceExerciseInfo(def);
-      const note=noTip?'<details class="tcProgramNote"><summary>Техника упражнения</summary><p>В текстовой части PDF пошаговая техника отсутствует; дополнительные пояснения автор предлагает смотреть в видео.</p></details>':'<details class="tcProgramNote"><summary>Пояснение автора</summary><p>'+tcProgramEscape(tip)+'</p></details>';
+      const note=noTip?'<details class="tcProgramNote"><summary>Техника упражнения</summary><p>В текстовой части PDF пошаговая техника этого упражнения не описана. Для подробностей необходимы соответствующие видеоматериалы автора.</p></details>':'<details class="tcProgramNote"><summary>Пояснение автора</summary><p>'+tcProgramEscape(tip)+'</p></details>';
       return '<div class="tcProgramExercise"><div class="tcProgramExerciseName">'+tcProgramEscape(def.name)+'</div>'+
         '<div class="tcProgramPrescription">'+tcProgramEscape(tcProgramPrescription(def))+'</div>'+
         '<div class="tcProgramRest">Отдых: '+tcProgramEscape(tcCourseRestText(def.rest))+'</div>'+note+'</div>';
     }
+    const TC_PDF_COMPLEX_PAGE={
+      1:{1:24,2:25},2:{1:29},3:{1:33,2:35},
+      4:{1:40,2:41,3:42},5:{1:50,2:51},6:{1:56,2:57},7:{1:62,2:64}
+    };
     function tcProgramComplexHtml(levelNo,no,complex){
       const active=levelNo===TC_course.level&&no===tcCourseComplexNo();
+      const sourcePage=TC_PDF_COMPLEX_PAGE[levelNo][no];
       return '<details class="tcProgramComplex"'+(active?' open':'')+'><summary><span class="tcProgramChevron">▶</span><span class="tcProgramGrow">'+tcProgramEscape(complex.name)+'</span>'+(active?'<span class="tcProgramCurrent">Следующий</span>':'')+'</summary>'+
         '<div class="tcProgramComplexBody">'+
+        '<p class="tcProgramPurpose">Источник: PDF, стр. '+sourcePage+'. Число подходов и интервалы отдыха воспроизведены из таблицы комплекса.</p>'+
         (complex.purpose?'<p class="tcProgramPurpose">'+tcProgramEscape(complex.purpose)+'</p>':'')+
         complex.items.map(tcProgramExerciseHtml).join('')+'</div></details>';
     }
