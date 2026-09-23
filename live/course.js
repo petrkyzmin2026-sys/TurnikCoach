@@ -504,6 +504,71 @@
       q('sheet').classList.add('open');
     };
 
+
+    // Control trial is a single MAX set, separate from the author's workout complex.
+    window.tcStartCourseTest=function(){
+      if(window.W){return}
+      if(!tcCourseDue()){window.tcOpenCourseInfo();return}
+      const src=state.ex.find(e=>e.id==='pull')||{};
+      const e={...src,id:'c_test_pull',name:'Контрольный максимум · классические подтягивания',
+        max:TC_course.pullMax,media:src.media||'',muscles:Array.isArray(src.muscles)?src.muscles:[]};
+      const def={id:e.id,name:e.name,metric:'reps',sets:1,scheme:{type:'max'},
+        rest:{type:'manual',label:'После испытания'}};
+      const item={e,def,plan:[TC_course.pullMax],planLabels:['MAX'],actual:[]};
+      unlockAudio();
+      W={mode:'courseTest',sessionIndex:0,exerciseIndex:0,setIndex:0,items:[item],
+        actual:0,early:false,courseLevel:TC_course.level,courseGoal:TC_course.goal};
+      go('workout');
+    };
+    window.tcConfirmCourseTest=function(){
+      if(!window.W||W.mode!=='courseTest')return;
+      const value=+(W.items[0].actual[0]);
+      if(!Number.isInteger(value)||value<1)return;
+      const previous=TC_course.pullMax,achieved=value>=TC_course.targetMax;
+      const rec={date:dateKey(),ts:Date.now(),value,previous,goal:TC_course.targetMax,level:TC_course.level};
+      TC_course.tests.unshift(rec);
+      TC_course.lastTestDate=rec.date;
+      TC_course.testAnchorDate=rec.date;
+      TC_course.testDeferredUntil='';
+      TC_course.pullMax=value;
+      const pull=state.ex.find(e=>e.id==='pull');if(pull)pull.max=value;
+      tcSaveCourse();save();
+      q('sheet').classList.remove('open');
+      W=null;go('today');
+      const box=q('sheetbox');
+      box.innerHTML='<div class="sheettitle">Контроль завершён</div>'+
+        '<div class="tcInfoBlock"><h3>Результат: '+value+'</h3><p>Предыдущий контроль: '+previous+
+        '. Изменение: '+(value-previous>0?'+':'')+(value-previous)+
+        '. Следующая нагрузка рассчитывается от '+value+' повторений.</p></div>'+
+        (achieved?'<div class="tcInfoBlock"><h3>Цель достигнута</h3><p>Достигнут установленный ориентир '+TC_course.targetMax+
+        '. Продолжить увеличение количества либо открыть настройки курса и выбрать дальнейшую цель. Уровень сам не изменяется.</p></div>':'')+
+        '<button class="btn yellow full" onclick="closeSheet()">Продолжить</button>'+
+        (achieved?'<button class="btn ghost full" style="margin-top:8px" onclick="closeSheet();tcOpenCourseSettings()">Настроить следующую цель</button>':'');
+      q('sheet').classList.add('open');
+    };
+    window.tcDeferCourseTest=function(){
+      if(!tcTestDue())return;
+      const until=new Date(dateKey()+'T12:00:00');until.setDate(until.getDate()+7);
+      TC_course.testDeferredUntil=dateKey(until);
+      tcSaveCourse();render();
+    };
+    function tcCourseTestCard(){
+      const next=tcNextTestDate(),due=tcTestDue(),ready=tcCourseDue();
+      if(TC_course.level!==4||TC_course.goal!=='quantity')return '';
+      if(!next)return '<div class="meta" style="margin-top:8px">Первый контроль будет назначен после начала тренировочного цикла.</div>';
+      const last=tcLatestTest();
+      if(!due)return '<div class="meta" style="margin-top:8px">Контроль максимума: '+fmtKeyDate(next,false)+
+        ' · цель '+TC_course.targetMax+(last?' · последний результат '+last.value:'')+'</div>';
+      return '<div class="todayCard" style="margin-top:12px;border-color:#ffd84d">'+
+        '<div class="dateBig">Контрольный максимум</div>'+
+        '<div class="meta">Отдельное испытание после восстановления · цель '+TC_course.targetMax+
+        ' · последний подтверждённый максимум '+TC_course.pullMax+'</div>'+
+        (ready?'<button class="btn yellow full" style="margin-top:12px" onclick="tcStartCourseTest()">Начать контроль</button>':
+          '<div class="meta" style="margin-top:8px">После предыдущей тренировки сегодня ещё требуется восстановление. Контроль будет доступен в следующий день без ограничения.</div>')+
+        '<button class="btn ghost full" style="margin-top:8px" onclick="tcDeferCourseTest()">Перенести на 7 дней</button>'+
+        '</div>';
+    }
+
     window.tcStartCourseWorkout=function(){
       const items=tcBuildCourseItems();if(!items.length)return;unlockAudio();
       const c=tcCourseComplex();W={mode:'course',sessionIndex:0,exerciseIndex:0,setIndex:0,items,actual:tcSchemeTarget(items[0].def),early:false,courseLevel:TC_course.level,courseComplex:c.no,courseGoal:TC_course.goal};go('workout');
@@ -546,13 +611,21 @@
     const tcBeforeCourseRenderWork=window.renderWork;
     window.renderWork=function(){
       const r=tcBeforeCourseRenderWork();
-      if(!W||W.mode!=='course'&&W.mode!=='supplement'){const wp=q('wplan');if(wp)wp.classList.remove('tcCoursePlan');return r;}
+      if(!W||!['course','supplement','courseTest'].includes(W.mode)){const wp=q('wplan');if(wp)wp.classList.remove('tcCoursePlan');return r;}
       const x=W.items[W.exerciseIndex],def=x.def||x.e.courseDef;if(!def)return r;
-      q('wname').textContent=x.e.name;q('wmeta').textContent='Курс Морозова · упражнение '+(W.exerciseIndex+1)+' из '+W.items.length+' · подход '+(W.setIndex+1)+' из '+x.plan.length+(x.e.load?' · +'+x.e.load+' кг':'');q('wplan').classList.add('tcCoursePlan');q('wplan').innerHTML=tcSequenceCoursePlan(def,x);q('factUnit').textContent=tcUnitForMetric(def.metric)+(x.e.load?' · +'+x.e.load+' кг':'');const fb=q('mediaFallback'),img=q('visualImg');if(img){img.removeAttribute('src');img.style.display='none'}if(fb)fb.style.display='none';return r;
+      q('wname').textContent=x.e.name;q('wmeta').textContent='Курс Морозова · упражнение '+(W.exerciseIndex+1)+' из '+W.items.length+' · подход '+(W.setIndex+1)+' из '+x.plan.length+(x.e.load?' · +'+x.e.load+' кг':'');q('wplan').classList.add('tcCoursePlan');q('wplan').innerHTML=tcSequenceCoursePlan(def,x);if(W.mode==='courseTest'){q('wplan').innerHTML='<span class="tcPlanMain">MAX</span>';q('target').textContent='MAX';q('chips').innerHTML='<div class="chip">MAX</div>';}q('factUnit').textContent=tcUnitForMetric(def.metric)+(x.e.load?' · +'+x.e.load+' кг':'');const fb=q('mediaFallback'),img=q('visualImg');if(img){img.removeAttribute('src');img.style.display='none'}if(fb)fb.style.display='none';return r;
     };
 
     const tcBeforeCourseSetDone=window.setDone;
     window.setDone=function(skip){
+      if(W&&W.mode==='courseTest'){
+        if(skip){q('sheetbox').innerHTML='<div class="sheettitle">Контроль не выполнен</div><button class="btn ghost full" onclick="closeSheet()">Вернуться к попытке</button>';q('sheet').classList.add('open');return}
+        const n=Number(W.actual);
+        if(!Number.isInteger(n)||n<1){q('sheetbox').innerHTML='<div class="sheettitle">Введите результат</div><div class="sub">Укажите фактически выполненное количество повторений, затем завершите контроль.</div><button class="btn yellow full" onclick="closeSheet()">Вернуться</button>';q('sheet').classList.add('open');return}
+        W.items[0].actual[0]=n;
+        q('sheetbox').innerHTML='<div class="sheettitle">Подтвердить максимум</div><div class="dateBig" style="margin:12px 0">'+n+' повторений</div><button class="btn yellow full" onclick="tcConfirmCourseTest()">Сохранить результат</button><button class="btn ghost full" style="margin-top:8px" onclick="closeSheet()">Изменить значение</button>';
+        q('sheet').classList.add('open');return;
+      }
       if(!W||!['course','supplement'].includes(W.mode))return tcBeforeCourseSetDone(skip);
       tcPrimeAudio();const x=W.items[W.exerciseIndex],def=x.def||x.e.courseDef,target=x.plan[W.setIndex],actual=skip?null:W.actual;x.actual[W.setIndex]=actual;
       const advance=()=>{if(W.setIndex<x.plan.length-1){W.setIndex++;W.actual=x.plan[W.setIndex]||tcLastActualFor(def.id)||1;renderWork();return true}if(W.exerciseIndex<W.items.length-1){W.exerciseIndex++;W.setIndex=0;const nx=W.items[W.exerciseIndex];W.actual=nx.plan[0]||tcLastActualFor(nx.def.id)||1;renderWork();return true}return false};
