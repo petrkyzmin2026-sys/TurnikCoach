@@ -582,7 +582,9 @@
 
     function tcExtraRowsHtml(items){return items.map(x=>'<div class="planrow"><div><div class="strong" style="font-size:15px">'+x.e.name+'</div><div class="meta">Дополнительное упражнение · '+metricTitle(x.e)+'</div></div><div class="r sets">'+x.plan.join(' · ')+'</div></div>').join('')}
     function tcSupplementHtml(){
-      if(!TC_course.authorSupplement||!tcCourseLevel().supplement||tcAuxDue()||tcCourseDue()||tcTestDue()||tcMasteryDue()||tcSupplementBreak())return'';
+      if(!TC_course.authorSupplement||!tcCourseLevel().supplement)return'';
+      if(tcSupplementBreak())return '<div class="meta" style="margin-top:10px">Дополнительные подтягивания: пятидневная разгрузка.</div>';
+      if(tcAuxDue()||tcCourseDue()||tcTestDue()||tcMasteryDue())return'';
       if(TC_course.history.some(h=>h.courseMode==='supplement'&&h.date===dateKey()))return'';
       const reps=Math.max(1,Math.floor(TC_course.pullMax*.8));
       const seq=Array(10).fill(String(reps)).join('  ');
@@ -779,7 +781,7 @@
       return '<div class="tcInfoBlock"><h3>Отдых в текущем комплексе</h3><p>'+lines.map(tcProgramEscape).join('<br>')+'</p></div>';
     }
     function tcAuthorSourceBoundaries(){
-      return '<div class="tcInfoBlock"><h3>Питание и восстановление</h3><p>В предоставленном PDF не установлены суточная калорийность, нормы белка, режим питания и продолжительность сна. Приписывать автору конкретные цифры нельзя. Из курса здесь приведены только указанные им дни отдыха, интервалы между подходами и перерыв в дополнительной ежедневной работе.</p></div>';
+      return '<div class="tcInfoBlock"><h3>Питание и восстановление</h3><p>В предоставленном PDF не установлены суточная калорийность, нормы белка, режим питания и продолжительность сна. Приписывать автору конкретные цифры нельзя. Из курса здесь приведены указанные им дни отдыха, интервалы между подходами и перерыв в дополнительной ежедневной работе. Автор предусматривает от ежедневных подтягиваний не менее пяти дней отдыха раз в месяц; TurnikCoach для расчёта назначает пятидневную паузу после каждых 30 дней использования дополнения (автоматизация приложения, не конкретные даты автора).</p></div>';
     }
 
     window.tcOpenCourseInfo=function(){
@@ -1021,6 +1023,7 @@
       const c=tcCourseComplex();W={mode:'course',sessionIndex:0,exerciseIndex:0,setIndex:0,items,actual:tcSchemeTarget(items[0].def),early:false,courseLevel:TC_course.level,courseComplex:c.no,courseGoal:TC_course.goal};go('workout');
     };
     window.tcStartExtraWorkout=function(){
+      if(W)return;
       const items=tcBuildExtraItems();if(!items.length)return;unlockAudio();const idx=TC_course.extraSeq%3;W={mode:'extra',sessionIndex:idx,exerciseIndex:0,setIndex:0,items,actual:items[0].plan[0],early:false};go('workout');
     };
     window.tcStartSupplementWorkout=function(){
@@ -1066,6 +1069,8 @@
 
     const tcBeforeCourseSetDone=window.setDone;
     window.setDone=function(skip){
+      if(!W)return;
+      if(q('sheet').classList.contains('open'))return;
       if(W&&W.mode==='courseTest'){
         if(skip){q('sheetbox').innerHTML='<div class="sheettitle">Контроль не выполнен</div><button class="btn ghost full" onclick="closeSheet()">Вернуться к попытке</button>';q('sheet').classList.add('open');return}
         const n=Number(W.actual);
@@ -1088,7 +1093,8 @@
 
     const tcBeforeCourseFinishWorkout=window.finishWorkout;
     window.finishWorkout=function(feel){
-      if(!W||!['course','extra','supplement','auxCourse'].includes(W.mode))return tcBeforeCourseFinishWorkout(feel);
+      if(!W)return;
+      if(!['course','extra','supplement','auxCourse'].includes(W.mode))return tcBeforeCourseFinishWorkout(feel);
       let total=0,details=[];W.items.forEach(x=>{const actual=x.plan.map((_,i)=>x.actual[i]===undefined?null:x.actual[i]);const sum=actual.reduce((s,v)=>s+(Number.isFinite(+v)?+v:0),0);total+=sum;details.push({id:x.e.id,name:x.e.name,metric:x.e.metric,load:x.e.load||0,plan:x.plan.slice(),planLabels:(x.planLabels||x.plan.map(String)).slice(),actual,sum})});
       const rec={type:'workout',date:dateKey(),ts:Date.now(),feedback:feel,total,details,early:!!W.early,courseMode:W.mode,session:W.mode==='extra'?'доп.':'курс'};
       if(W.mode==='course'){rec.courseLevel=W.courseLevel;rec.courseComplex=W.courseComplex;rec.courseGoal=W.courseGoal;TC_course.history.unshift(rec);TC_course.courseSeq++;TC_course.lastCourseDate=rec.date;TC_course.lastCourseTs=rec.ts;if(!TC_course.testAnchorDate)TC_course.testAnchorDate=rec.date;tcSaveCourse()}
