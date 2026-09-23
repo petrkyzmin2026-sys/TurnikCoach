@@ -170,6 +170,12 @@
       return !!due&&now>=due&&(!TC_course.testDeferredUntil||now>=TC_course.testDeferredUntil);
     }
     function tcLatestTest(){return TC_course.tests.length?TC_course.tests[0]:null}
+    function tcMasteryDue(){
+      if(!TC_course.enabled||!TC_course.lastCourseDate||!tcMasteryDefinition())return false;
+      const next=tcNextTestDate(),now=dateKey();
+      return !!next&&now>=next&&(!TC_course.testDeferredUntil||now>=TC_course.testDeferredUntil)&&tcRecoveredForTest();
+    }
+
     function tcCourseLevel(){return TC_COURSE[TC_course.level]||TC_COURSE[1]}
     function tcCourseGoalName(g){return g==='muscleup'?'Выход силой':g==='onearm'?'Подтягивание на одной руке':'Количество подтягиваний'}
     function tcGoalOptions(level){if(level<=3)return[['quantity','Количество подтягиваний']];if(level===4)return[['quantity','Количество подтягиваний'],['muscleup','Выход силой'],['onearm','Подтягивание на одной руке']];return[['muscleup','Выход силой'],['onearm','Подтягивание на одной руке']]}
@@ -206,7 +212,7 @@
     function tcCourseDue(){
       if(!tcWeeklyMode())return false;
       const today=dateKey();
-      if(TC_course.lastCourseDate===today||tcTestDue())return false;
+      if(TC_course.lastCourseDate===today||tcTestDue()||tcMasteryDue())return false;
       if(!TC_course.lastCourseDate)return true; // First course session may start on setup day.
       return tcScheduledOn(today);
     }
@@ -229,7 +235,7 @@
         const day=new Date(mon);day.setDate(mon.getDate()+i);
         const key=dateKey(day),planned=tcScheduledOn(key),completed=TC_course.history.some(h=>h.courseMode==='course'&&h.date===key);
         const testDone=TC_course.tests.some(t=>t.date===key);
-        const dueTest=key===dateKey()&&tcTestDue();
+        const dueTest=key===dateKey()&&(tcTestDue()||tcMasteryDue());
         const missed=key<dateKey()&&planned&&!completed&&!testDone;
         const type=testDone?'ТЕСТ':completed?'ГОТОВО':dueTest?'ТЕСТ':missed?'ПРОП.':planned?'КУРС':tcExtraExercises().length?'ДОП.':'ОТД.';
         const status=key===dateKey()?' tcWeekToday':'';
@@ -386,9 +392,14 @@
         q('todayList').innerHTML=tcWeeklyCalendarHtml()+tcCourseTestCard();
         return;
       }
+      if(tcMasteryDue()){
+        q('todaySub').textContent='Контроль освоения уровня · курс Морозова';
+        q('todayList').innerHTML=tcWeeklyCalendarHtml()+tcMasteryCardHtml();
+        return;
+      }
       if(due){
         q('todaySub').textContent=tcTestDue()?'Контроль прогресса · курс Морозова':'Курс Морозова · '+l.title+' · '+tcCourseGoalName(TC_course.goal);
-        q('todayList').innerHTML=tcWeeklyCalendarHtml()+tcCourseTestCard()+'<div class="todayCard"><div class="row between"><div><div class="dateBig">'+(c.def?c.def.name:'Основной комплекс')+'</div><div class="sessionNo">'+l.frequency+'</div></div><span class="tag">КУРС</span></div>'+tcCourseRowsHtml(items)+'<div class="meta" style="margin-top:10px">Текущий уровень: '+l.title+' · контроль: '+l.mastery+'</div><button class="btn yellow full" style="margin-top:12px" onclick="tcStartCourseWorkout()">Начать основной комплекс</button><button class="btn ghost full" style="margin-top:8px" onclick="tcOpenCourseInfo()">ⓘ Советы автора</button></div>';
+        q('todayList').innerHTML=tcWeeklyCalendarHtml()+tcCourseTestCard()+'<div class="todayCard"><div class="row between"><div><div class="dateBig">'+(c.def?c.def.name:'Основной комплекс')+'</div><div class="sessionNo">'+l.frequency+'</div></div><span class="tag">КУРС</span></div>'+tcCourseRowsHtml(items)+'<div class="meta" style="margin-top:10px">Текущий уровень: '+l.title+' · контроль: '+l.mastery+'</div><button class="btn yellow full" style="margin-top:12px" onclick="tcStartCourseWorkout()">Начать основной комплекс</button><button class="btn ghost full" style="margin-top:8px" onclick="tcOpenCourseInfo()">ⓘ Советы автора</button></div>'+tcMasteryCardHtml();
       }else{
         const nextKey=tcWeeklyMode()?tcNextCourseDay():'';
         const next=new Date(TC_course.lastCourseDate+'T12:00:00');next.setDate(next.getDate()+2);
@@ -397,7 +408,7 @@
         if(extras.length){html+='<div class="info" style="margin-top:10px">Подтягивания сегодня не повторяем. Можно выполнить выбранные дополнительные упражнения, которые не относятся к тяговому блоку курса.</div>'+tcExtraRowsHtml(extras)+'<button class="btn yellow full" style="margin-top:12px" onclick="tcStartExtraWorkout()">Начать дополнительную тренировку</button>'}
         else html+='<div class="empty" style="margin-top:12px">Дополнительные упражнения не выбраны. Сегодня можно оставить полный отдых.</div><button class="btn ghost full" style="margin-top:10px" onclick="go(\'exercise\')">Выбрать пресс, ноги или отжимания</button>';
         const conflicts=tcConflictExercises();if(conflicts.length)html+='<div class="info" style="margin-top:10px"><b>Не поставлены автоматически в восстановительный день:</b> '+conflicts.map(e=>e.name).join(', ')+'. Они продолжают нагружать тяговую систему или относятся к сложным элементам.</div>';
-        html+='<button class="btn ghost full" style="margin-top:8px" onclick="tcOpenCourseInfo()">ⓘ Советы автора</button></div>'+tcCourseTestCard()+tcSupplementHtml();q('todayList').innerHTML=tcWeeklyCalendarHtml()+html;
+        html+='<button class="btn ghost full" style="margin-top:8px" onclick="tcOpenCourseInfo()">ⓘ Советы автора</button></div>'+tcCourseTestCard()+tcMasteryCardHtml()+tcSupplementHtml();q('todayList').innerHTML=tcWeeklyCalendarHtml()+html;
       }
       tcQueueDecorate();
     }
