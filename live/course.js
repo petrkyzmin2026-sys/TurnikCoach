@@ -345,9 +345,9 @@
       tcSaveCourse();closeSheet();render();
     };
 
-    function tcCalibrationDefs(mode){
+    function tcCalibrationDefs(mode,all=false){
       const raw=mode==='aux'&&[3,6].includes(TC_course.level)?TC_COURSE[TC_course.level].complexes[2].items:tcResolvedCourseDefs(tcCourseComplex());
-      return tcUncalibrated(raw);
+      return all?raw.filter(def=>tcVariantKey(def)):tcUncalibrated(raw);
     }
     function tcCalibrationCard(mode){
       if(!tcCalibrationDefs(mode).length)return '';
@@ -358,8 +358,9 @@
     }
     window.tcOpenCourseCalibration=function(mode){
       if(W)return;
-      if(mode!=='aux')mode='main';
-      const defs=tcCalibrationDefs(mode);
+      const all=mode==='main:all'||mode==='aux:all';
+      const kind=mode.startsWith('aux')?'aux':'main';
+      const defs=tcCalibrationDefs(kind,all);
       if(!defs.length)return;
       const fields=defs.map(def=>{
         const sides=def.id==='c_asym80';
@@ -369,7 +370,7 @@
         ]:[{key:def.id,title:'Максимум повторений'}];
         return '<div class="tcInfoBlock"><h3>'+tcProgramEscape(def.name)+'</h3>'+
           names.map(field=>'<label style="display:block;font-size:13px;margin:8px 0">'+field.title+
-          '<input type="number" id="tcCal_'+field.key+'" min="1" step="1" inputmode="numeric" style="display:block;width:100%;box-sizing:border-box;padding:10px;background:#0c1218;color:#fff;border:1px solid #44515b;border-radius:9px;margin-top:5px"></label>').join('')+
+          '<input type="number" id="tcCal_'+field.key+'" value="'+(TC_course.exerciseMax[field.key]||'')+'" min="1" step="1" inputmode="numeric" style="display:block;width:100%;box-sizing:border-box;padding:10px;background:#0c1218;color:#fff;border:1px solid #44515b;border-radius:9px;margin-top:5px"></label>').join('')+
           (sides?'<div class="meta">Для общего числа повторений на каждую сторону используется меньший из двух результатов. Это правило расчёта TurnikCoach, а не отдельное указание автора.</div>':'')+'</div>';
       }).join('');
       q('sheetbox').innerHTML='<div class="sheettitle">Контрольные максимумы</div>'+
@@ -380,8 +381,9 @@
       q('sheet').classList.add('open');
     };
     window.tcSaveCourseCalibration=function(mode){
-      if(mode!=='aux')mode='main';
-      const defs=tcCalibrationDefs(mode),pending={};
+      const all=mode==='main:all'||mode==='aux:all';
+      const kind=mode.startsWith('aux')?'aux':'main';
+      const defs=tcCalibrationDefs(kind,all),pending={};
       for(const def of defs){
         const keys=def.id==='c_asym80'?[def.id+'_left',def.id+'_right']:[def.id];
         for(const key of keys){
@@ -446,7 +448,8 @@
       ([3,6].includes(TC_course.level)?'<div class="tcInfoBlock"><h3>Вспомогательный комплекс №2</h3><p><label style="display:flex;gap:9px;align-items:flex-start"><input id="tcAuxEnabled" type="checkbox" '+(TC_course.auxEnabled[TC_course.level]?'checked':'')+'><span>Предлагать отдельную дополнительную тренировку по комплексу №2</span></label></p>'+
         (TC_course.level===3?'<p>Периодичность: <select id="tcAuxInterval3" style="background:#0c1218;color:#fff;border:1px solid #3a4653;border-radius:8px;padding:7px"><option value="7" '+(TC_course.auxInterval3===7?'selected':'')+'>Раз в 7 дней</option><option value="10" '+(TC_course.auxInterval3===10?'selected':'')+'>Раз в 10 дней</option></select></p>':'<p>Не чаще одного раза в 10 дней.</p>')+
         '<p class="meta">Это дополнительная тяговая работа из PDF; она не заменяет основной комплекс и не назначается на день основной тренировки или испытания. Включается по вашему выбору.</p></div>':'')+
-      '<div class="tcInfoBlock"><h3>Дополнительный вес</h3><p>Используется в комплексах, где курс назначает тяжёлые подтягивания с весом.<input id="tcCourseLoad" type="number" min="0" step="0.5" value="'+TC_course.weightedLoad+'" style="width:100%;box-sizing:border-box;margin-top:7px;background:#0c1218;color:#fff;border:1px solid #3a4653;border-radius:10px;padding:10px"></p></div>'+
+      (tcCalibrationDefs('main',true).length?'<button class="btn ghost full" style="margin-top:8px" onclick="tcOpenCourseCalibration(\'main:all\')">Изменить максимумы отдельных вариантов</button>':'')+
+            '<div class="tcInfoBlock"><h3>Дополнительный вес</h3><p>Используется в комплексах, где курс назначает тяжёлые подтягивания с весом.<input id="tcCourseLoad" type="number" min="0" step="0.5" value="'+TC_course.weightedLoad+'" style="width:100%;box-sizing:border-box;margin-top:7px;background:#0c1218;color:#fff;border:1px solid #3a4653;border-radius:10px;padding:10px"></p></div>'+
       (l.supplement?'<div class="tcInfoBlock"><h3>Дополнительные подтягивания по курсу</h3><p><label style="display:flex;gap:9px;align-items:flex-start"><input id="tcCourseSupplement" type="checkbox" '+(TC_course.authorSupplement?'checked':'')+'><span>'+l.supplement+'</span></label></p></div>':'')+
       tcAuthorFrequencyAdvice()+tcAuthorRestAdvice()+tcAuthorSourceBoundaries()+
       (TC_course.level===4&&TC_course.goal==='quantity'?'<div class="tcInfoBlock"><h3>Контроль максимума · TurnikCoach</h3><p>Цель: <input id="tcTargetMax" type="number" min="1" step="1" value="'+TC_course.targetMax+'" style="width:65px;background:#0c1218;color:#fff;border:1px solid #3a4653;border-radius:8px;padding:7px"> повторений.<br><br>Проверять каждые <select id="tcTestWeeks" style="background:#0c1218;color:#fff;border:1px solid #3a4653;border-radius:8px;padding:7px">'+[2,3,4].map(n=>'<option value="'+n+'" '+(TC_course.testPeriodWeeks===n?'selected':'')+'>'+n+' недели</option>').join('')+'</select><br><br>Контроль назначается после восстановления; результат сохраняется отдельно от основной тренировки.</p></div>':'')+
@@ -662,14 +665,15 @@
     }
 
     function tcCurrentCalculationHtml(){
-      if(!window.W||!['course','supplement'].includes(W.mode)||!W.items||!W.items.length)return '';
+      if(!W||!['course','supplement','auxCourse'].includes(W.mode)||!W.items||!W.items.length)return '';
       const x=W.items[W.exerciseIndex],def=x&&(x.def||x.e.courseDef);
       if(!def)return '';
       const sch=def.scheme||{};
       let body='<b>'+x.e.name+'</b><br>';
-      if(sch.type==='percent'&&sch.ref==='pull'){
-        const raw=TC_course.pullMax*(+sch.pct||0),target=tcSchemeTarget(def);
-        body+=def.sets+' подхода × '+target+' повторений.<br>Расчёт: '+TC_course.pullMax+' × '+Math.round((+sch.pct||0)*100)+'% = '+String(Math.round(raw*10)/10).replace('.',',')+' → '+target+'.';
+      if(sch.type==='percent'){
+        const base=sch.ref==='pull'?TC_course.pullMax:tcVariantMax(def),raw=base*(+sch.pct||0),target=tcSchemeTarget(def);
+        body+=def.sets+' подхода × '+target+' повторений.<br>Расчёт: '+base+' × '+Math.round((+sch.pct||0)*100)+'% = '+String(Math.round(raw*10)/10).replace('.',',')+' → '+target+'.';
+        if(def.id==='c_asym80')body+='<br>Общий план на обе стороны определяется по меньшему из двух зарегистрированных максимумов (правило TurnikCoach).';
       }else if(sch.type==='fixed'){
         body+=def.sets+' подхода × '+sch.value+'.';
       }else if(sch.type==='max'){
