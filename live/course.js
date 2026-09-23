@@ -1157,9 +1157,37 @@
     const tcBeforeCourseRenderWork=window.renderWork;
     window.renderWork=function(){
       const r=tcBeforeCourseRenderWork();
-      if(!W||!['course','supplement','auxCourse','courseTest'].includes(W.mode)){const wp=q('wplan');if(wp)wp.classList.remove('tcCoursePlan');return r;}
-      const x=W.items[W.exerciseIndex],def=x.def||x.e.courseDef;if(!def)return r;
-      q('wname').textContent=x.e.name;q('wmeta').textContent='Курс Морозова · упражнение '+(W.exerciseIndex+1)+' из '+W.items.length+' · подход '+(W.setIndex+1)+' из '+x.plan.length+(x.e.load?' · +'+x.e.load+' кг':'');q('wplan').classList.add('tcCoursePlan');q('wplan').innerHTML=tcSequenceCoursePlan(def,x);if(W.mode==='courseTest'){q('wplan').innerHTML='<span class="tcPlanMain">MAX</span>';q('target').textContent='MAX';q('chips').innerHTML='<div class="chip">MAX</div>';}q('factUnit').textContent=tcUnitForMetric(def.metric)+(x.e.load?' · +'+x.e.load+' кг':'');const fb=q('mediaFallback'),img=q('visualImg');if(img){img.removeAttribute('src');img.style.display='none'}if(fb)fb.style.display='none';return r;
+      const planEl=q('wplan');
+      if(!W||!['course','supplement','auxCourse','courseTest'].includes(W.mode)){
+        if(planEl)planEl.classList.remove('tcCoursePlan');
+        return r;
+      }
+      const x=W.items[W.exerciseIndex],def=x.def||x.e.courseDef;
+      if(!def)return r;
+      const token=tcPlanToken(def,x);
+      q('wname').textContent=x.e.name;
+      q('wmeta').textContent='Курс Морозова · упражнение '+(W.exerciseIndex+1)+
+        ' из '+W.items.length+' · подход '+(W.setIndex+1)+' из '+x.plan.length+
+        (x.e.load?' · +'+x.e.load+' кг':'');
+      planEl.classList.add('tcCoursePlan');
+      planEl.innerHTML=W.mode==='courseTest'?
+        '<span class="tcPlanMain">MAX</span>':tcSequenceCoursePlan(def,x);
+      const current=q('target');
+      if(current)current.textContent=token;
+      const unit=q('unitWord'); // Existing template uses unitWord, not factUnit.
+      if(unit)unit.textContent=(def.metric==='time'||def.metric==='time_side'?'СЕКУНД':'ПОВТОРЕНИЙ')+
+        (def.metric==='reps_side'||def.metric==='time_side'?' НА СТОРОНУ':'');
+      const chips=q('chips');
+      if(chips)chips.innerHTML=x.plan.map((_,i)=>{
+        const actual=x.actual[i],done=actual!==undefined;
+        const value=done?(actual===null?'—':String(actual)):token;
+        return '<div class="chip '+(done?(actual===null?'skip':'ok'):'')+'">'+value+'</div>';
+      }).join('');
+      const image=q('visualImg'),fallback=q('mediaFallback');
+      if(image){image.removeAttribute('src');image.style.display='none'}
+      if(fallback)fallback.style.display='none';
+      const legend=q('legend');if(legend)legend.textContent='';
+      return r;
     };
 
     const tcBeforeCourseSetDone=window.setDone;
