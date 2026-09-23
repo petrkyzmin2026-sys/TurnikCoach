@@ -371,6 +371,7 @@
       (l.supplement?'<div class="tcInfoBlock"><h3>Дополнительные подтягивания по курсу</h3><p><label style="display:flex;gap:9px;align-items:flex-start"><input id="tcCourseSupplement" type="checkbox" '+(TC_course.authorSupplement?'checked':'')+'><span>'+l.supplement+'</span></label></p></div>':'')+
       tcAuthorFrequencyAdvice()+tcAuthorRestAdvice()+tcAuthorSourceBoundaries()+
       (TC_course.level===4&&TC_course.goal==='quantity'?'<div class="tcInfoBlock"><h3>Контроль максимума · TurnikCoach</h3><p>Цель: <input id="tcTargetMax" type="number" min="1" step="1" value="'+TC_course.targetMax+'" style="width:65px;background:#0c1218;color:#fff;border:1px solid #3a4653;border-radius:8px;padding:7px"> повторений.<br><br>Проверять каждые <select id="tcTestWeeks" style="background:#0c1218;color:#fff;border:1px solid #3a4653;border-radius:8px;padding:7px">'+[2,3,4].map(n=>'<option value="'+n+'" '+(TC_course.testPeriodWeeks===n?'selected':'')+'>'+n+' недели</option>').join('')+'</select><br><br>Контроль назначается после восстановления; результат сохраняется отдельно от основной тренировки.</p></div>':'')+
+      (TC_course.level===7?'<button class="btn ghost full" style="margin-top:8px" onclick="tcOpenAdvancedChoiceSheet()">Выбрать два упражнения 7-го уровня</button>':'')+
       '<div class="tcInfoBlock"><h3>Критерий освоения уровня</h3><p>'+l.mastery+'</p></div>'+
       '<button class="btn yellow full" style="margin-top:14px" onclick="tcSaveCourseSettings()">Сохранить</button><button class="btn ghost full" style="margin-top:8px" onclick="closeSheet()">Отмена</button>';
       q('sheet').classList.add('open');
@@ -461,6 +462,15 @@
       if(tcMasteryDue()){
         q('todaySub').textContent='Контроль освоения уровня · курс Морозова';
         q('todayList').innerHTML=tcWeeklyCalendarHtml()+tcPendingLevelHtml()+tcMasteryCardHtml();
+        return;
+      }
+
+      if(due&&TC_course.level===7&&!tcAdvancedSelected()){
+        q('todaySub').textContent='Седьмой уровень · подготовка комплекса';
+        q('todayList').innerHTML=tcWeeklyCalendarHtml()+
+          '<div class="todayCard"><div class="dateBig">Выберите два вспомогательных упражнения</div>'+
+          '<div class="meta">Седьмой уровень требует двух упражнений из предыдущего уровня. До выбора фиктивные подходы не назначаются.</div>'+
+          '<button class="btn yellow full" style="margin-top:12px" onclick="tcOpenAdvancedChoiceSheet()">Выбрать упражнения</button></div>';
         return;
       }
       if(due){
@@ -857,6 +867,7 @@
 
     window.tcStartCourseWorkout=function(){
       if(!tcCourseDue())return;
+      if(TC_course.level===7&&!tcAdvancedSelected()){tcOpenAdvancedChoiceSheet();return;}
       const items=tcBuildCourseItems();if(!items.length)return;unlockAudio();
       const c=tcCourseComplex();W={mode:'course',sessionIndex:0,exerciseIndex:0,setIndex:0,items,actual:tcSchemeTarget(items[0].def),early:false,courseLevel:TC_course.level,courseComplex:c.no,courseGoal:TC_course.goal};go('workout');
     };
