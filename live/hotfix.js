@@ -1,8 +1,8 @@
-/* TURNIKCOACH_HOTFIX 5.16.2-author-guidance */
+/* TURNIKCOACH_HOTFIX 5.16.3-navigation-basics */
 (function(){
   'use strict';
-  const VERSION='5.16.2-author-guidance';
-  const LABEL='5.16.2';
+  const VERSION='5.16.3-navigation-basics';
+  const LABEL='5.16.3';
   const APPROVED_KEY='tc_hotfix_approved_version';
   if(window.__TC_HOTFIX_VERSION===VERSION)return;
 
@@ -23,7 +23,7 @@
     title.textContent='Доступно обновление TurnikCoach '+LABEL;
     const text=document.createElement('div');
     text.style.cssText='font-size:15px;line-height:1.45;color:#cfd8e3;margin-bottom:18px';
-    text.innerHTML='Исправлена логика окна ⓘ курса: вместо описания работы приложения теперь показываются советы и пояснения самого Морозова по текущему уровню, цели и упражнениям. Также переименован переключатель курса в «Включить курс Морозова».<br><br>Установить обновление сейчас?';
+    text.innerHTML='Добавлена нормальная навигация назад: системная кнопка Android, стрелки назад на тренировке и отдыхе, закрытие всплывающих окон назад/крестиком и возврат между экранами без перезагрузки. Незавершённая тренировка защищена подтверждением выхода.<br><br>Установить обновление сейчас?';
     const row=document.createElement('div');
     row.style.cssText='display:flex;gap:10px';
     const later=document.createElement('button');
@@ -46,6 +46,202 @@
   function tcValidCourseModule(js){return typeof js==='string'&&js.length>1000&&js.length<256000&&js.includes('TURNIKCOACH_COURSE')}
   function tcEvalCourseModule(js){if(!tcValidCourseModule(js))return false;try{(0,eval)(js);return true}catch(e){console.error('TurnikCoach course module',e);return false}}
   function tcLoadCourseModule(){tcEvalCourseModule(COURSE_MODULE_BUNDLED)}
+
+
+  function tcInstallNavigationFoundation(){
+    if(window.__TC_NAV_FOUNDATION)return;
+    window.__TC_NAV_FOUNDATION=true;
+
+    const style=document.createElement('style');
+    style.id='tcNavFoundationStyle';
+    style.textContent=
+      '.tcBackBtn{width:38px;height:38px;min-width:38px;border-radius:50%;border:1px solid rgba(255,255,255,.22);background:rgba(13,20,27,.88);color:#fff;font-size:23px;font-weight:900;display:grid;place-items:center;padding:0;z-index:30}'+
+      '.tcBackBtn:active{transform:scale(.96)}'+
+      '.tcRestBack{position:absolute;left:14px;top:14px}'+
+      '.tcSheetClose{position:sticky;float:right;top:0;margin:-4px -3px 6px 10px;width:36px;height:36px;border-radius:50%;border:1px solid #3a4653;background:#202a32;color:#fff;font-size:22px;font-weight:900;z-index:5}'+
+      '#workout .stageHeader .row.between{gap:8px}';
+    document.head.appendChild(style);
+
+    let internal=false;
+    let sheetWasOpen=false;
+    const scrollByScreen={};
+
+    function currentScreen(){
+      const el=document.querySelector('.screen.on');
+      return el&&el.id?el.id:'today';
+    }
+    function currentScroll(screen){
+      const root=document.getElementById(screen);
+      const sc=root&&root.querySelector('.scroll');
+      return sc?sc.scrollTop:0;
+    }
+    function restoreScroll(screen){
+      const root=document.getElementById(screen);
+      const sc=root&&root.querySelector('.scroll');
+      if(sc&&Number.isFinite(scrollByScreen[screen]))sc.scrollTop=scrollByScreen[screen];
+    }
+    function routeUrl(screen,sheet){
+      return '#tc='+encodeURIComponent(screen)+(sheet?'&sheet=1':'');
+    }
+    function replaceRoute(screen,sheet){
+      try{history.replaceState({tcNav:true,tcScreen:screen,tcSheet:!!sheet},'',routeUrl(screen,sheet))}catch(e){}
+    }
+    function pushRoute(screen,sheet){
+      try{history.pushState({tcNav:true,tcScreen:screen,tcSheet:!!sheet},'',routeUrl(screen,sheet))}catch(e){}
+    }
+
+    const baseGo=window.go;
+    window.go=function(id){
+      const from=currentScreen();
+      scrollByScreen[from]=currentScroll(from);
+      const r=baseGo(id);
+      if(internal){restoreScroll(id);return r}
+
+      const trainingFlow=window.W&&(id==='workout'||id==='rest')&&(from==='workout'||from==='rest');
+      const finishedTraining=!window.W&&(from==='workout'||from==='rest')&&['today','exercise','historyScreen'].includes(id);
+
+      if(trainingFlow||finishedTraining){
+        replaceRoute(id,false);
+      }else if(id!==from){
+        pushRoute(id,false);
+      }else{
+        replaceRoute(id,false);
+      }
+      restoreScroll(id);
+      setTimeout(tcDecorateBackControls,0);
+      return r;
+    };
+
+    const sheet=document.getElementById('sheet');
+    function closeSheetNow(){
+      try{
+        if(typeof window.closeSheet==='function')window.closeSheet();
+        else if(sheet)sheet.classList.remove('open');
+      }catch(e){if(sheet)sheet.classList.remove('open')}
+    }
+    function abandonWorkoutAndGo(target){
+      if(window.rt){try{clearInterval(window.rt)}catch(e){}}
+      try{window.W=null}catch(e){}
+      internal=true;
+      try{baseGo(target||'today')}finally{internal=false}
+      replaceRoute(target||'today',false);
+      setTimeout(tcDecorateBackControls,0);
+    }
+
+    window.tcNavigateBack=function(){
+      const scr=currentScreen();
+      if(sheet&&sheet.classList.contains('open')){
+        if(history.state&&history.state.tcSheet){history.back();return}
+        closeSheetNow();return;
+      }
+      if(scr==='rest'&&window.W){
+        history.back();return;
+      }
+      if(scr==='workout'&&window.W){
+        const ok=window.confirm('Выйти из текущей тренировки? Незавершённые подходы не будут сохранены.');
+        if(!ok)return;
+        if(history.length>1){try{window.W=null}catch(e){};history.back();return}
+        abandonWorkoutAndGo('today');return;
+      }
+      if(history.length>1){history.back();return}
+      if(scr!=='today'){
+        internal=true;try{baseGo('today')}finally{internal=false}
+        replaceRoute('today',false);
+      }
+    };
+
+    window.addEventListener('popstate',function(ev){
+      const scr=currentScreen();
+
+      if(sheet&&sheet.classList.contains('open')){
+        internal=true;
+        try{closeSheetNow()}finally{internal=false}
+        sheetWasOpen=false;
+        return;
+      }
+
+      if(scr==='rest'&&window.W){
+        internal=true;
+        try{
+          if(typeof window.finishRest==='function')window.finishRest();
+          else baseGo('workout');
+        }finally{internal=false}
+        pushRoute('workout',false);
+        setTimeout(tcDecorateBackControls,0);
+        return;
+      }
+
+      const target=ev.state&&ev.state.tcScreen?ev.state.tcScreen:'today';
+      if(scr==='workout'&&window.W&&target!=='workout'){
+        const ok=window.confirm('Выйти из текущей тренировки? Незавершённые подходы не будут сохранены.');
+        if(!ok){pushRoute('workout',false);return}
+        try{window.W=null}catch(e){}
+      }
+
+      internal=true;
+      try{baseGo(target)}finally{internal=false}
+      restoreScroll(target);
+      setTimeout(tcDecorateBackControls,0);
+    });
+
+    function tcDecorateBackControls(){
+      const wh=document.querySelector('#workout.screen.on .stageHeader .row.between');
+      if(wh&&!wh.querySelector('.tcBackBtn')){
+        const b=document.createElement('button');
+        b.type='button';b.className='tcBackBtn';b.textContent='‹';b.title='Назад';
+        b.onclick=window.tcNavigateBack;
+        wh.insertBefore(b,wh.firstChild);
+      }
+
+      const rest=document.querySelector('#rest.screen.on .rest');
+      if(rest&&!rest.querySelector('.tcRestBack')){
+        const b=document.createElement('button');
+        b.type='button';b.className='tcBackBtn tcRestBack';b.textContent='‹';b.title='Назад к упражнению';
+        b.onclick=window.tcNavigateBack;
+        rest.appendChild(b);
+      }
+
+      if(sheet&&sheet.classList.contains('open')){
+        const box=document.getElementById('sheetbox');
+        if(box&&!box.querySelector('.tcSheetClose')){
+          const b=document.createElement('button');
+          b.type='button';b.className='tcSheetClose';b.textContent='×';b.title='Закрыть';
+          b.onclick=window.tcNavigateBack;
+          box.insertBefore(b,box.firstChild);
+        }
+      }
+    }
+
+    if(sheet){
+      const mo=new MutationObserver(function(){
+        const open=sheet.classList.contains('open');
+        if(open&&!sheetWasOpen){
+          sheetWasOpen=true;
+          if(!internal&&!(history.state&&history.state.tcSheet))pushRoute(currentScreen(),true);
+        }else if(!open&&sheetWasOpen){
+          sheetWasOpen=false;
+          if(!internal&&history.state&&history.state.tcSheet)history.back();
+        }
+        tcDecorateBackControls();
+      });
+      mo.observe(sheet,{attributes:true,attributeFilter:['class'],childList:true,subtree:true});
+      window.__tcSheetNavObserver=mo;
+    }
+
+    document.addEventListener('keydown',function(e){
+      if(e.key==='Escape'){e.preventDefault();window.tcNavigateBack()}
+    });
+
+    const start=currentScreen();
+    replaceRoute(start,false);
+    tcDecorateBackControls();
+    const app=document.getElementById('app');
+    if(app){
+      const mo=new MutationObserver(tcDecorateBackControls);
+      mo.observe(app,{childList:true,subtree:true,attributes:true,attributeFilter:['class']});
+      window.__tcBackControlObserver=mo;
+    }
+  }
 
   function installUpdate(){
     if(window.__TC_HOTFIX_VERSION===VERSION)return;
@@ -426,6 +622,7 @@
 
     restReasonEl();
     tcLoadCourseModule();
+    tcInstallNavigationFoundation();
     console.log('TurnikCoach hotfix active:',VERSION);
   }
 
