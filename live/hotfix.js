@@ -1,8 +1,8 @@
-/* TURNIKCOACH_HOTFIX 5.15.0-clean-ui-info */
+/* TURNIKCOACH_HOTFIX 5.16.0-morozov-course */
 (function(){
   'use strict';
-  const VERSION='5.15.0-clean-ui-info';
-  const LABEL='5.15.0';
+  const VERSION='5.16.0-morozov-course';
+  const LABEL='5.16.0';
   const APPROVED_KEY='tc_hotfix_approved_version';
   if(window.__TC_HOTFIX_VERSION===VERSION)return;
 
@@ -23,7 +23,7 @@
     title.textContent='Доступно обновление TurnikCoach '+LABEL;
     const text=document.createElement('div');
     text.style.cssText='font-size:15px;line-height:1.45;color:#cfd8e3;margin-bottom:18px';
-    text.innerHTML='Обновление очищает тренировочные экраны от технических подписей, добавляет подробную кнопку ⓘ «О тренировке» и убирает неподходящие фоновые иллюстрации.<br><br>Установить обновление сейчас?';
+    text.innerHTML='Добавлен отдельный курс Артёма Морозова «Подтягивания с нуля до киборга»: 7 уровней, авторские комплексы, проценты/MAX, интервалы отдыха и критерии перехода. В дни без основного комплекса TurnikCoach предлагает выбранные дополнительные упражнения — например пресс, ноги или отжимания.<br><br>Установить обновление сейчас?';
     const row=document.createElement('div');
     row.style.cssText='display:flex;gap:10px';
     const later=document.createElement('button');
@@ -39,6 +39,27 @@
     row.appendChild(later);row.appendChild(yes);
     card.appendChild(title);card.appendChild(text);card.appendChild(row);overlay.appendChild(card);
     document.body.appendChild(overlay);
+  }
+
+
+  const COURSE_MODULE_URL='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/course.js';
+  const COURSE_MODULE_CACHE='tc_course_module_cache_v1';
+  function tcValidCourseModule(js){return typeof js==='string'&&js.length>1000&&js.length<256000&&js.includes('TURNIKCOACH_COURSE')}
+  function tcEvalCourseModule(js){
+    if(!tcValidCourseModule(js))return false;
+    try{(0,eval)(js);return true}catch(e){console.error('TurnikCoach course module',e);return false}
+  }
+  function tcLoadCourseModule(){
+    let cached='';
+    try{cached=localStorage.getItem(COURSE_MODULE_CACHE)||''}catch(e){}
+    if(tcValidCourseModule(cached))tcEvalCourseModule(cached);
+    try{
+      fetch(COURSE_MODULE_URL,{cache:'no-store'}).then(r=>r.ok?r.text():Promise.reject(new Error('HTTP '+r.status))).then(js=>{
+        if(!tcValidCourseModule(js))return;
+        try{localStorage.setItem(COURSE_MODULE_CACHE,js)}catch(e){}
+        if(window.__TC_COURSE_MODULE_VERSION!=='1.0.0-morozov')tcEvalCourseModule(js);
+      }).catch(()=>{});
+    }catch(e){}
   }
 
   function installUpdate(){
@@ -419,6 +440,7 @@
     tcQueueDecorate();
 
     restReasonEl();
+    tcLoadCourseModule();
     console.log('TurnikCoach hotfix active:',VERSION);
   }
 
