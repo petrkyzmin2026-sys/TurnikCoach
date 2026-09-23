@@ -152,7 +152,7 @@
     function tcLoadCourse(){
       let c=tcCourseDefault();
       try{const raw=JSON.parse(localStorage.getItem(TC_COURSE_KEY)||'null');if(raw&&typeof raw==='object')c={...c,...raw}}catch(e){}
-      c.level=tcClamp(Math.floor(+c.level||1),1,7);c.pullMax=Math.max(1,Math.floor(+c.pullMax||1));c.weightedLoad=Math.max(0,+c.weightedLoad||0);c.courseSeq=Math.max(0,Math.floor(+c.courseSeq||0));c.extraSeq=Math.max(0,Math.floor(+c.extraSeq||0));c.history=Array.isArray(c.history)?c.history:[];c.tests=Array.isArray(c.tests)?c.tests:[];c.masteryTests=Array.isArray(c.masteryTests)?c.masteryTests:[];c.pendingTransition=c.pendingTransition&&typeof c.pendingTransition==='object'?c.pendingTransition:null;c.testPeriodWeeks=[2,3,4].includes(+c.testPeriodWeeks)?+c.testPeriodWeeks:3;c.weeklySessions=[3,4].includes(+c.weeklySessions)?+c.weeklySessions:3;c.targetMax=Math.max(1,Math.floor(+c.targetMax||30));c.testAnchorDate=/^\d{4}-\d{2}-\d{2}$/.test(c.testAnchorDate||'')?c.testAnchorDate:'';c.lastTestDate=/^\d{4}-\d{2}-\d{2}$/.test(c.lastTestDate||'')?c.lastTestDate:'';c.testDeferredUntil=/^\d{4}-\d{2}-\d{2}$/.test(c.testDeferredUntil||'')?c.testDeferredUntil:'';
+      c.level=tcClamp(Math.floor(+c.level||1),1,7);c.pullMax=Math.max(1,Math.floor(+c.pullMax||1));c.weightedLoad=Math.max(0,+c.weightedLoad||0);c.courseSeq=Math.max(0,Math.floor(+c.courseSeq||0));c.extraSeq=Math.max(0,Math.floor(+c.extraSeq||0));c.history=Array.isArray(c.history)?c.history:[];c.tests=Array.isArray(c.tests)?c.tests:[];c.masteryTests=Array.isArray(c.masteryTests)?c.masteryTests:[];c.pendingTransition=c.pendingTransition&&typeof c.pendingTransition==='object'?c.pendingTransition:null;c.testPeriodWeeks=[2,3,4].includes(+c.testPeriodWeeks)?+c.testPeriodWeeks:3;c.weeklySessions=[2,3,4].includes(+c.weeklySessions)?+c.weeklySessions:3;c.targetMax=Math.max(1,Math.floor(+c.targetMax||30));c.testAnchorDate=/^\d{4}-\d{2}-\d{2}$/.test(c.testAnchorDate||'')?c.testAnchorDate:'';c.lastTestDate=/^\d{4}-\d{2}-\d{2}$/.test(c.lastTestDate||'')?c.lastTestDate:'';c.testDeferredUntil=/^\d{4}-\d{2}-\d{2}$/.test(c.testDeferredUntil||'')?c.testDeferredUntil:'';
       return c;
     }
     let TC_course=tcLoadCourse();
@@ -197,7 +197,7 @@
     function tcCourseWeekdays(){
       const l=TC_course.level,g=TC_course.goal;
       if(l===1)return [1,3,5,0]; // Page 26: alternating complexes 1 and 2.
-      if(l===2)return TC_course.weeklySessions===4?[1,3,6,0]:[1,3,6]; // 2–4/week.
+      if(l===2)return TC_course.weeklySessions===2?[1,4]:TC_course.weeklySessions===4?[1,3,6,0]:[1,3,6]; // 2–4/week.
       if(l===3)return [1,3,6]; // Main complex 1 three times/week; auxiliary is separate.
       if(l===4){
         if(g==='quantity')return TC_course.weeklySessions===4?[1,3,5,0]:[1,3,6];
@@ -313,7 +313,7 @@
       '<div class="tcInfoBlock"><h3>Уровень</h3><p><select id="tcCourseLevel" style="width:100%;margin-top:4px;background:#0c1218;color:#fff;border:1px solid #3a4653;border-radius:10px;padding:10px">'+Object.keys(TC_COURSE).map(n=>'<option value="'+n+'" '+(+n===TC_course.level?'selected':'')+'>'+n+' · '+TC_COURSE[n].title+'</option>').join('')+'</select></p></div>'+
       '<div class="tcInfoBlock"><h3>Текущий максимум</h3><p><input id="tcCourseMax" type="number" min="1" value="'+TC_course.pullMax+'" style="width:100%;box-sizing:border-box;margin-top:4px;background:#0c1218;color:#fff;border:1px solid #3a4653;border-radius:10px;padding:10px"></p></div>'+
       '<div class="tcInfoBlock"><h3>Цель</h3><p><select id="tcCourseGoal" style="width:100%;margin-top:4px;background:#0c1218;color:#fff;border:1px solid #3a4653;border-radius:10px;padding:10px">'+goals.map(g=>'<option value="'+g[0]+'" '+(g[0]===TC_course.goal?'selected':'')+'>'+g[1]+'</option>').join('')+'</select></p></div>'+
-      (TC_course.level===4&&TC_course.goal==='quantity'?'<div class="tcInfoBlock"><h3>Основной комплекс · недельный план</h3><p>Число тренировок: <select id="tcWeeklySessions" style="background:#0c1218;color:#fff;border:1px solid #3a4653;border-radius:8px;padding:7px"><option value="3" '+(TC_course.weeklySessions===3?'selected':'')+'>3 раза · ПН, СР, СБ</option><option value="4" '+(TC_course.weeklySessions===4?'selected':'')+'>4 раза · ПН, СР, ПТ, ВС</option></select><br><br>Три дня — расписание TurnikCoach в пределах частоты, указанной автором. Четыре дня — пример из PDF; в нём занятия в воскресенье и следующий понедельник идут подряд.</p></div>':'')+
+      ((TC_course.level===4&&TC_course.goal==='quantity')||TC_course.level===2?'<div class="tcInfoBlock"><h3>Основной комплекс · недельный план</h3><p>Число тренировок: <select id="tcWeeklySessions" style="background:#0c1218;color:#fff;border:1px solid #3a4653;border-radius:8px;padding:7px">'+(TC_course.level===2?'<option value="2" '+(TC_course.weeklySessions===2?'selected':'')+'>2 раза · ПН, ЧТ</option>':'')+'<option value="3" '+(TC_course.weeklySessions===3?'selected':'')+'>3 раза · ПН, СР, СБ</option><option value="4" '+(TC_course.weeklySessions===4?'selected':'')+'>4 раза · ПН, СР, ПТ, ВС</option></select><br><br>Три дня — расписание TurnikCoach в пределах частоты, указанной автором. Четыре дня — пример из PDF; в нём занятия в воскресенье и следующий понедельник идут подряд.</p></div>':'')+
       '<div class="tcInfoBlock"><h3>Дополнительный вес</h3><p>Используется в комплексах, где курс назначает тяжёлые подтягивания с весом.<input id="tcCourseLoad" type="number" min="0" step="0.5" value="'+TC_course.weightedLoad+'" style="width:100%;box-sizing:border-box;margin-top:7px;background:#0c1218;color:#fff;border:1px solid #3a4653;border-radius:10px;padding:10px"></p></div>'+
       (l.supplement?'<div class="tcInfoBlock"><h3>Дополнительные подтягивания по курсу</h3><p><label style="display:flex;gap:9px;align-items:flex-start"><input id="tcCourseSupplement" type="checkbox" '+(TC_course.authorSupplement?'checked':'')+'><span>'+l.supplement+'</span></label></p></div>':'')+
       tcAuthorFrequencyAdvice()+tcAuthorRestAdvice()+tcAuthorSourceBoundaries()+
@@ -332,11 +332,12 @@
     window.tcSaveCourseSettings=function(){
       const oldLevel=TC_course.level,oldGoal=TC_course.goal;
       const enabled=document.getElementById('tcCourseEnabled'),level=document.getElementById('tcCourseLevel'),mx=document.getElementById('tcCourseMax'),goal=document.getElementById('tcCourseGoal'),load=document.getElementById('tcCourseLoad'),sup=document.getElementById('tcCourseSupplement');
-      const weeklyEl=document.getElementById('tcWeeklySessions');if(weeklyEl)TC_course.weeklySessions=[3,4].includes(+weeklyEl.value)?+weeklyEl.value:3;
+      const weeklyEl=document.getElementById('tcWeeklySessions');if(weeklyEl)TC_course.weeklySessions=[2,3,4].includes(+weeklyEl.value)?+weeklyEl.value:3;
       const targetEl=document.getElementById('tcTargetMax'),weeksEl=document.getElementById('tcTestWeeks');if(targetEl)TC_course.targetMax=Math.max(1,Math.floor(+targetEl.value||TC_course.targetMax));if(weeksEl)TC_course.testPeriodWeeks=[2,3,4].includes(+weeksEl.value)?+weeksEl.value:3;
       TC_course.enabled=!!(enabled&&enabled.checked);TC_course.level=tcClamp(+(level&&level.value)||TC_course.level,1,7);TC_course.pullMax=Math.max(1,Math.floor(+(mx&&mx.value)||TC_course.pullMax));TC_course.goal=(goal&&goal.value)||TC_course.goal;TC_course.weightedLoad=Math.max(0,+(load&&load.value)||0);if(sup)TC_course.authorSupplement=!!sup.checked;tcNormalizeGoal();
       if(TC_course.level!==oldLevel||TC_course.goal!==oldGoal){
         TC_course.courseSeq=0;TC_course.pendingTransition=null;
+        if(!weeklyEl)TC_course.weeklySessions=3;
         TC_course.testAnchorDate='';TC_course.lastTestDate='';TC_course.testDeferredUntil='';
       }
       if(TC_course.enabled){state.ex.forEach(e=>{if(TC_PULL_CONFLICT_IDS.has(e.id)){e.sel=false;e.main=false}})}
@@ -410,7 +411,7 @@
       }
       if(due){
         q('todaySub').textContent=tcTestDue()?'Контроль прогресса · курс Морозова':'Курс Морозова · '+l.title+' · '+tcCourseGoalName(TC_course.goal);
-        q('todayList').innerHTML=tcWeeklyCalendarHtml()+tcPendingLevelHtml()+tcCourseTestCard()+'<div class="todayCard"><div class="row between"><div><div class="dateBig">'+(c.def?c.def.name:'Основной комплекс')+'</div><div class="sessionNo">'+l.frequency+'</div></div><span class="tag">КУРС</span></div>'+tcCourseRowsHtml(items)+'<div class="meta" style="margin-top:10px">Текущий уровень: '+l.title+' · контроль: '+l.mastery+'</div><button class="btn yellow full" style="margin-top:12px" onclick="tcStartCourseWorkout()">Начать основной комплекс</button><button class="btn ghost full" style="margin-top:8px" onclick="tcOpenCourseInfo()">ⓘ Советы автора</button></div>'+tcMasteryCardHtml();
+        q('todayList').innerHTML=tcWeeklyCalendarHtml()+tcPendingLevelHtml()+tcCourseTestCard()+'<div class="todayCard"><div class="row between"><div><div class="dateBig">'+(c.def?c.def.name:'Основной комплекс')+'</div><div class="sessionNo">'+l.frequency+'</div></div><span class="tag">КУРС</span></div>'+tcCourseRowsHtml(items)+'<button class="btn yellow full" style="margin-top:12px" onclick="tcStartCourseWorkout()">Начать основной комплекс</button><button class="btn ghost full" style="margin-top:8px" onclick="tcOpenCourseInfo()">ⓘ Советы автора</button></div>'+tcMasteryCardHtml();
       }else{
         const nextKey=tcWeeklyMode()?tcNextCourseDay():'';
         const next=new Date(TC_course.lastCourseDate+'T12:00:00');next.setDate(next.getDate()+2);
@@ -789,7 +790,7 @@
       if(!p||p.from!==TC_course.level||p.to!==p.from+1||p.to>6)return;
       const current=TC_course.masteryTests.find(t=>t.ts===p.testTs&&t.level===p.from);
       if(!current||!current.passed)return;
-      TC_course.level=p.to;TC_course.courseSeq=0;
+      TC_course.level=p.to;TC_course.courseSeq=0;TC_course.weeklySessions=3;
       TC_course.pendingTransition=null;
       TC_course.lastTestDate='';TC_course.testAnchorDate='';
       TC_course.testDeferredUntil='';
