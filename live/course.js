@@ -405,12 +405,12 @@
       }
       if(tcMasteryDue()){
         q('todaySub').textContent='Контроль освоения уровня · курс Морозова';
-        q('todayList').innerHTML=tcWeeklyCalendarHtml()+tcMasteryCardHtml();
+        q('todayList').innerHTML=tcWeeklyCalendarHtml()+tcPendingLevelHtml()+tcMasteryCardHtml();
         return;
       }
       if(due){
         q('todaySub').textContent=tcTestDue()?'Контроль прогресса · курс Морозова':'Курс Морозова · '+l.title+' · '+tcCourseGoalName(TC_course.goal);
-        q('todayList').innerHTML=tcWeeklyCalendarHtml()+tcCourseTestCard()+'<div class="todayCard"><div class="row between"><div><div class="dateBig">'+(c.def?c.def.name:'Основной комплекс')+'</div><div class="sessionNo">'+l.frequency+'</div></div><span class="tag">КУРС</span></div>'+tcCourseRowsHtml(items)+'<div class="meta" style="margin-top:10px">Текущий уровень: '+l.title+' · контроль: '+l.mastery+'</div><button class="btn yellow full" style="margin-top:12px" onclick="tcStartCourseWorkout()">Начать основной комплекс</button><button class="btn ghost full" style="margin-top:8px" onclick="tcOpenCourseInfo()">ⓘ Советы автора</button></div>'+tcMasteryCardHtml();
+        q('todayList').innerHTML=tcWeeklyCalendarHtml()+tcPendingLevelHtml()+tcCourseTestCard()+'<div class="todayCard"><div class="row between"><div><div class="dateBig">'+(c.def?c.def.name:'Основной комплекс')+'</div><div class="sessionNo">'+l.frequency+'</div></div><span class="tag">КУРС</span></div>'+tcCourseRowsHtml(items)+'<div class="meta" style="margin-top:10px">Текущий уровень: '+l.title+' · контроль: '+l.mastery+'</div><button class="btn yellow full" style="margin-top:12px" onclick="tcStartCourseWorkout()">Начать основной комплекс</button><button class="btn ghost full" style="margin-top:8px" onclick="tcOpenCourseInfo()">ⓘ Советы автора</button></div>'+tcMasteryCardHtml();
       }else{
         const nextKey=tcWeeklyMode()?tcNextCourseDay():'';
         const next=new Date(TC_course.lastCourseDate+'T12:00:00');next.setDate(next.getDate()+2);
@@ -419,7 +419,7 @@
         if(extras.length){html+='<div class="info" style="margin-top:10px">Подтягивания сегодня не повторяем. Можно выполнить выбранные дополнительные упражнения, которые не относятся к тяговому блоку курса.</div>'+tcExtraRowsHtml(extras)+'<button class="btn yellow full" style="margin-top:12px" onclick="tcStartExtraWorkout()">Начать дополнительную тренировку</button>'}
         else html+='<div class="empty" style="margin-top:12px">Дополнительные упражнения не выбраны. Сегодня можно оставить полный отдых.</div><button class="btn ghost full" style="margin-top:10px" onclick="go(\'exercise\')">Выбрать пресс, ноги или отжимания</button>';
         const conflicts=tcConflictExercises();if(conflicts.length)html+='<div class="info" style="margin-top:10px"><b>Не поставлены автоматически в восстановительный день:</b> '+conflicts.map(e=>e.name).join(', ')+'. Они продолжают нагружать тяговую систему или относятся к сложным элементам.</div>';
-        html+='<button class="btn ghost full" style="margin-top:8px" onclick="tcOpenCourseInfo()">ⓘ Советы автора</button></div>'+tcCourseTestCard()+tcMasteryCardHtml()+tcSupplementHtml();q('todayList').innerHTML=tcWeeklyCalendarHtml()+html;
+        html+='<button class="btn ghost full" style="margin-top:8px" onclick="tcOpenCourseInfo()">ⓘ Советы автора</button></div>'+tcCourseTestCard()+tcMasteryCardHtml()+tcSupplementHtml();q('todayList').innerHTML=tcWeeklyCalendarHtml()+tcPendingLevelHtml()+html;
       }
       tcQueueDecorate();
     }
@@ -696,6 +696,15 @@
       if(level===5)return values.body>0&&values.added>=0.6*values.body;
       return false;
     }
+    function tcPendingLevelHtml(){
+      const p=TC_course.pendingTransition;
+      if(!p||p.from!==TC_course.level||p.to!==p.from+1)return '';
+      return '<div class="todayCard" style="margin-top:12px;border-color:#5eae78">'+
+        '<div class="dateBig">Норматив уровня '+p.from+' выполнен</div>'+
+        '<div class="meta">Результат контрольного испытания сохранён. Текущий уровень не изменён.</div>'+
+        '<button class="btn yellow full" style="margin-top:10px" onclick="tcAdvanceCourseLevel()">Перейти на уровень '+p.to+'</button>'+
+        '</div>';
+    }
     function tcMasteryCardHtml(){
       const def=tcMasteryDefinition();
       if(!def||!TC_course.lastCourseDate)return '';
@@ -877,14 +886,25 @@
 
 
     function tcCourseTestsHtml(){
-      if(!TC_course.tests.length)return '';
-      const records=TC_course.tests.slice(0,10).map(t=>
-        '<div class="historyitem"><div class="row between"><b>'+fmtKeyDate(t.date,false)+'</b>'+
-        '<span class="badge">'+t.value+' повт.</span></div>'+
-        '<div class="meta">Предыдущий максимум: '+t.previous+' · изменение: '+
-        (t.value-t.previous>0?'+':'')+(t.value-t.previous)+'</div></div>').join('');
-      return '<div class="tcInfoBlock"><h3>Контроль максимума</h3><p>Текущий результат: '+
-        TC_course.pullMax+' · цель: '+TC_course.targetMax+'</p></div>'+records;
+      const maxTests=TC_course.tests.map(t=>({
+        date:t.date,ts:t.ts,
+        label:'Контрольный максимум',
+        summary:t.value+' повт. · предыдущий '+t.previous+
+          ' · изменение '+(t.value-t.previous>0?'+':'')+(t.value-t.previous)
+      }));
+      const norms=TC_course.masteryTests.map(t=>({
+        date:t.date,ts:t.ts,
+        label:'Норматив уровня '+t.level,
+        summary:(t.passed?'Выполнен':'Не выполнен')+
+          (t.values&&t.values.regular!=null?' · обычные '+t.values.regular:'')
+      }));
+      const all=maxTests.concat(norms).sort((a,b)=>(b.ts||0)-(a.ts||0)).slice(0,12);
+      if(!all.length)return '';
+      const rows=all.map(t=>'<div class="historyitem"><div class="row between"><b>'+
+        fmtKeyDate(t.date,false)+'</b><span class="badge">'+t.label+'</span></div>'+
+        '<div class="meta">'+t.summary+'</div></div>').join('');
+      return '<div class="tcInfoBlock"><h3>Контрольные испытания</h3><p>Текущий максимум: '+
+        TC_course.pullMax+' · цель: '+TC_course.targetMax+'</p></div>'+rows;
     }
     function tcCourseHistoryHtml(){if(!TC_course.enabled&&!TC_course.history.length)return'';const rows=TC_course.history.slice(0,8).map(h=>'<div class="historyitem"><div class="row between"><div><div class="strong" style="font-size:14px">'+(h.courseMode==='supplement'?'Дополнительные подтягивания по курсу':'Курс Морозова · уровень '+h.courseLevel+' · комплекс '+h.courseComplex)+'</div><div class="meta">'+fmtRecordDate(h)+' · '+(h.feedback||'—')+'</div></div><span class="badge">КУРС</span></div>'+(h.details||[]).map(d=>'<div class="meta" style="margin-top:6px">'+d.name+': '+d.actual.map(v=>v===null?'—':v).join(' · ')+'</div>').join('')+'</div>').join('');return '<div class="exerciseProgressCard"><div class="progressHead"><div><div class="progressName">Курс Морозова</div><div class="meta">Отдельная история основной тяговой программы</div></div><span class="badge">ур. '+TC_course.level+'</span></div><div class="tcInfoBlock"><h3>Критерий текущего уровня</h3><p>'+tcCourseLevel().mastery+'</p></div>'+tcCourseTestsHtml()+rows+'</div>'}
     const tcBeforeCourseRenderHistory=window.renderHistory;
