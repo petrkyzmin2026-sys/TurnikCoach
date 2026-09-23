@@ -343,6 +343,63 @@
       TC_course.advancedChoices[TC_course.goal]=ids;
       tcSaveCourse();closeSheet();render();
     };
+
+    function tcCalibrationDefs(mode){
+      const raw=mode==='aux'?TC_COURSE[TC_course.level].complexes[2].items:tcResolvedCourseDefs(tcCourseComplex());
+      return tcUncalibrated(raw);
+    }
+    function tcCalibrationCard(mode){
+      if(!tcCalibrationDefs(mode).length)return '';
+      return '<div class="todayCard" style="border-color:#d5a84e;margin-top:10px">'+
+        '<div class="dateBig">Укажите контрольные максимумы</div>'+
+        '<div class="meta">Для расчёта повторений в отдельных вариантах подтягиваний. Максимум обычных подтягиваний не подменяет результат другого упражнения.</div>'+
+        '<button class="btn yellow full" style="margin-top:10px" data-mode="'+mode+'" onclick="tcOpenCourseCalibration(this.dataset.mode)">Ввести результаты</button></div>';
+    }
+    window.tcOpenCourseCalibration=function(mode){
+      if(W)return;
+      if(mode!=='aux')mode='main';
+      const defs=tcCalibrationDefs(mode);
+      if(!defs.length)return;
+      const fields=defs.map(def=>{
+        const sides=def.id==='c_asym80';
+        const names=sides?[
+          {key:def.id+'_left',title:'Максимум на левую руку'},
+          {key:def.id+'_right',title:'Максимум на правую руку'}
+        ]:[{key:def.id,title:'Максимум повторений'}];
+        return '<div class="tcInfoBlock"><h3>'+tcProgramEscape(def.name)+'</h3>'+
+          names.map(field=>'<label style="display:block;font-size:13px;margin:8px 0">'+field.title+
+          '<input type="number" id="tcCal_'+field.key+'" min="1" step="1" inputmode="numeric" style="display:block;width:100%;box-sizing:border-box;padding:10px;background:#0c1218;color:#fff;border:1px solid #44515b;border-radius:9px;margin-top:5px"></label>').join('')+
+          (sides?'<div class="meta">Для общего числа повторений на каждую сторону используется меньший из двух результатов. Это правило расчёта TurnikCoach, а не отдельное указание автора.</div>':'')+'</div>';
+      }).join('');
+      q('sheetbox').innerHTML='<div class="sheettitle">Контрольные максимумы</div>'+
+        '<div class="sub">Введите реальные результаты каждого варианта подтягиваний. Без них назначать процент от MAX нельзя.</div>'+
+        fields+'<div id="tcCalError" class="meta" style="margin-top:8px"></div>'+
+        '<button class="btn yellow full" data-mode="'+mode+'" onclick="tcSaveCourseCalibration(this.dataset.mode)">Сохранить</button>'+
+        '<button class="btn ghost full" style="margin-top:8px" onclick="closeSheet()">Отмена</button>';
+      q('sheet').classList.add('open');
+    };
+    window.tcSaveCourseCalibration=function(mode){
+      if(mode!=='aux')mode='main';
+      const defs=tcCalibrationDefs(mode),pending={};
+      for(const def of defs){
+        const keys=def.id==='c_asym80'?[def.id+'_left',def.id+'_right']:[def.id];
+        for(const key of keys){
+          const el=document.getElementById('tcCal_'+key);
+          if(!el)return;
+          const raw=el.value.trim(),n=Number(raw);
+          if(!raw||!Number.isSafeInteger(n)||n<1){
+            el.style.borderColor='#ff7777';
+            const warn=document.getElementById('tcCalError');
+            if(warn)warn.textContent='Для каждого упражнения укажите целый положительный максимум.';
+            return;
+          }
+          pending[key]=n;
+        }
+      }
+      Object.assign(TC_course.exerciseMax,pending);
+      tcSaveCourse();closeSheet();render();
+    };
+
     function tcBuildCourseItems(){
       const c=tcCourseComplex();if(!c.def)return[];
       return tcResolvedCourseDefs(c).map(def=>{
@@ -488,6 +545,11 @@
           '<div class="todayCard"><div class="dateBig">Выберите два вспомогательных упражнения</div>'+
           '<div class="meta">Седьмой уровень требует двух упражнений из предыдущего уровня. До выбора фиктивные подходы не назначаются.</div>'+
           '<button class="btn yellow full" style="margin-top:12px" onclick="tcOpenAdvancedChoiceSheet()">Выбрать упражнения</button></div>';
+        return;
+      }
+      if(due&&tcCalibrationDefs('main').length){
+        q('todaySub').textContent='Курс Морозова · настройка нагрузки';
+        q('todayList').innerHTML=tcWeeklyCalendarHtml()+tcCalibrationCard('main');
         return;
       }
       if(due){
@@ -883,7 +945,8 @@
     };
 
     window.tcStartCourseWorkout=function(){
-      if(!tcCourseDue())return;
+      if(!tcCourseDue()||W)return;
+      if(tcCalibrationDefs('main').length){tcOpenCourseCalibration('main');return;}
       if(TC_course.level===7&&!tcAdvancedSelected()){tcOpenAdvancedChoiceSheet();return;}
       const items=tcBuildCourseItems();if(!items.length)return;unlockAudio();
       const c=tcCourseComplex();W={mode:'course',sessionIndex:0,exerciseIndex:0,setIndex:0,items,actual:tcSchemeTarget(items[0].def),early:false,courseLevel:TC_course.level,courseComplex:c.no,courseGoal:TC_course.goal};go('workout');
