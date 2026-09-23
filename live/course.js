@@ -345,7 +345,7 @@
     };
 
     function tcCalibrationDefs(mode){
-      const raw=mode==='aux'?TC_COURSE[TC_course.level].complexes[2].items:tcResolvedCourseDefs(tcCourseComplex());
+      const raw=mode==='aux'&&[3,6].includes(TC_course.level)?TC_COURSE[TC_course.level].complexes[2].items:tcResolvedCourseDefs(tcCourseComplex());
       return tcUncalibrated(raw);
     }
     function tcCalibrationCard(mode){
@@ -400,14 +400,15 @@
       tcSaveCourse();closeSheet();render();
     };
 
-    function tcBuildCourseItems(){
-      const c=tcCourseComplex();if(!c.def)return[];
-      return tcResolvedCourseDefs(c).map(def=>{
+    function tcBuildItemsFor(defs){
+      return defs.map(def=>{
         const target=tcSchemeTarget(def),labels=Array.from({length:def.sets},()=>tcDisplayScheme(def));
         const e={id:def.id,name:def.name,metric:def.metric||'reps',max:TC_course.pullMax,load:tcItemLoad(def),courseDef:def,media:'',muscles:[]};
         return{e,def,plan:Array.from({length:def.sets},()=>target),planLabels:labels,actual:[]};
       });
     }
+    function tcBuildCourseItems(){const c=tcCourseComplex();return c.def?tcBuildItemsFor(tcResolvedCourseDefs(c)):[]}
+    function tcBuildAuxItems(){return [3,6].includes(TC_course.level)?tcBuildItemsFor(TC_COURSE[TC_course.level].complexes[2].items):[]}
     function tcBuildExtraItems(){const idx=TC_course.extraSeq%3;return tcExtraExercises().map(e=>({e,plan:pres(e,idx),actual:[]}))}
     function tcCourseRestText(r){if(!r)return'—';if(r.type==='fixed')return Math.round(r.sec/60)+' мин';if(r.type==='range')return Math.round(r.min/60)+'–'+Math.round(r.max/60)+' мин';return r.label||'по усмотрению'}
     function tcAdaptiveCourseRest(def,target,actual,skipped){
@@ -508,6 +509,46 @@
       }
     }
 
+
+    function tcAuxInterval(){return TC_course.level===3?TC_course.auxInterval3:10}
+    function tcLastAuxDate(){
+      const match=TC_course.history.find(h=>h.courseMode==='auxCourse'&&h.courseLevel===TC_course.level);
+      return match?match.date:'';
+    }
+    function tcAuxDue(){
+      const level=TC_course.level,today=dateKey();
+      if(!TC_course.enabled||![3,6].includes(level)||!TC_course.auxEnabled[level])return false;
+      if(!TC_course.lastCourseDate||tcScheduledOn(today)||tcCourseDue()||tcTestDue()||tcMasteryDue())return false;
+      if(tcDayDiff(TC_course.lastCourseDate,today)<2)return false;
+      const lastAux=tcLastAuxDate();
+      if(lastAux&&tcDayDiff(lastAux,today)<tcAuxInterval())return false;
+      if(TC_course.history.some(h=>h.date===today&&['supplement','auxCourse'].includes(h.courseMode)))return false;
+      return true;
+    }
+    function tcAuxCardHtml(){
+      if(!tcAuxDue())return '';
+      const title='Комплекс №2 · вспомогательная работа';
+      if(tcCalibrationDefs('aux').length){
+        return '<div class="todayCard" style="margin-top:12px;border-color:#6a5520"><div class="dateBig">'+title+
+          '</div><div class="meta">Перед дополнительной работой укажите максимумы отдельных вариантов подтягиваний.</div>'+
+          tcCalibrationCard('aux')+'</div>';
+      }
+      const items=tcBuildAuxItems();
+      return '<div class="todayCard" style="margin-top:12px;border-color:#6a5520"><div class="dateBig">'+title+
+        '</div><div class="meta">Это отдельная тяговая нагрузка по курсу, а не обычные упражнения в день восстановления.</div>'+
+        tcCourseRowsHtml(items)+
+        '<button class="btn ghost full" style="margin-top:10px" onclick="tcStartAuxWorkout()">Начать комплекс №2</button></div>';
+    }
+    window.tcStartAuxWorkout=function(){
+      if(W||!tcAuxDue())return;
+      if(tcCalibrationDefs('aux').length){tcOpenCourseCalibration('aux');return;}
+      const items=tcBuildAuxItems();if(!items.length)return;
+      unlockAudio();
+      W={mode:'auxCourse',sessionIndex:0,exerciseIndex:0,setIndex:0,items,
+        actual:tcSchemeTarget(items[0].def),early:false,courseLevel:TC_course.level,
+        courseComplex:2,courseGoal:TC_course.goal};
+      go('workout');
+    };
     function tcCourseRowsHtml(items){
       return items.map(x=>{
         const seq=Array.from({length:x.plan.length},()=>tcPlanToken(x.def,x)).join('  ');
