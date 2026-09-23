@@ -1,7 +1,7 @@
-/* TURNIKCOACH_COURSE 1.0.8-progress-control */
+/* TURNIKCOACH_COURSE 1.0.9-weekly-schedule */
 (function(){
   'use strict';
-  const COURSE_MODULE_VERSION='1.0.8-progress-control';
+  const COURSE_MODULE_VERSION='1.0.9-weekly-schedule';
   if(window.__TC_COURSE_MODULE_VERSION===COURSE_MODULE_VERSION)return;
   window.__TC_COURSE_MODULE_VERSION=COURSE_MODULE_VERSION;
   function tcClamp(v,a,b){return Math.max(a,Math.min(b,v))}
@@ -147,12 +147,12 @@
       const pull=state.ex.find(e=>e.id==='pull');
       const weighted=state.ex.find(e=>e.id==='weightedPull');
       const m=Math.max(1,+((pull&&pull.max)||1));
-      return{enabled:false,level:m<=1?1:m<=3?2:m<=14?3:4,goal:'quantity',pullMax:m,weightedLoad:+((weighted&&weighted.load)||0),courseSeq:0,extraSeq:0,lastCourseDate:'',lastCourseTs:0,authorSupplement:false,history:[],tests:[],testPeriodWeeks:3,targetMax:30,testAnchorDate:'',lastTestDate:'',testDeferredUntil:''};
+      return{enabled:false,level:m<=1?1:m<=3?2:m<=14?3:4,goal:'quantity',pullMax:m,weightedLoad:+((weighted&&weighted.load)||0),courseSeq:0,extraSeq:0,lastCourseDate:'',lastCourseTs:0,authorSupplement:false,history:[],tests:[],testPeriodWeeks:3,targetMax:30,testAnchorDate:'',lastTestDate:'',testDeferredUntil:'',weeklySessions:3};
     }
     function tcLoadCourse(){
       let c=tcCourseDefault();
       try{const raw=JSON.parse(localStorage.getItem(TC_COURSE_KEY)||'null');if(raw&&typeof raw==='object')c={...c,...raw}}catch(e){}
-      c.level=tcClamp(Math.floor(+c.level||1),1,7);c.pullMax=Math.max(1,Math.floor(+c.pullMax||1));c.weightedLoad=Math.max(0,+c.weightedLoad||0);c.courseSeq=Math.max(0,Math.floor(+c.courseSeq||0));c.extraSeq=Math.max(0,Math.floor(+c.extraSeq||0));c.history=Array.isArray(c.history)?c.history:[];c.tests=Array.isArray(c.tests)?c.tests:[];c.testPeriodWeeks=[2,3,4].includes(+c.testPeriodWeeks)?+c.testPeriodWeeks:3;c.targetMax=Math.max(1,Math.floor(+c.targetMax||30));c.testAnchorDate=/^\d{4}-\d{2}-\d{2}$/.test(c.testAnchorDate||'')?c.testAnchorDate:'';c.lastTestDate=/^\d{4}-\d{2}-\d{2}$/.test(c.lastTestDate||'')?c.lastTestDate:'';c.testDeferredUntil=/^\d{4}-\d{2}-\d{2}$/.test(c.testDeferredUntil||'')?c.testDeferredUntil:'';
+      c.level=tcClamp(Math.floor(+c.level||1),1,7);c.pullMax=Math.max(1,Math.floor(+c.pullMax||1));c.weightedLoad=Math.max(0,+c.weightedLoad||0);c.courseSeq=Math.max(0,Math.floor(+c.courseSeq||0));c.extraSeq=Math.max(0,Math.floor(+c.extraSeq||0));c.history=Array.isArray(c.history)?c.history:[];c.tests=Array.isArray(c.tests)?c.tests:[];c.testPeriodWeeks=[2,3,4].includes(+c.testPeriodWeeks)?+c.testPeriodWeeks:3;c.weeklySessions=[3,4].includes(+c.weeklySessions)?+c.weeklySessions:3;c.targetMax=Math.max(1,Math.floor(+c.targetMax||30));c.testAnchorDate=/^\d{4}-\d{2}-\d{2}$/.test(c.testAnchorDate||'')?c.testAnchorDate:'';c.lastTestDate=/^\d{4}-\d{2}-\d{2}$/.test(c.lastTestDate||'')?c.lastTestDate:'';c.testDeferredUntil=/^\d{4}-\d{2}-\d{2}$/.test(c.testDeferredUntil||'')?c.testDeferredUntil:'';
       return c;
     }
     let TC_course=tcLoadCourse();
@@ -184,7 +184,47 @@
     }
     function tcCourseComplex(){const no=tcCourseComplexNo();return{no,def:tcCourseLevel().complexes[no]}}
     function tcDayDiff(a,b){if(!a||!b)return 999;const x=new Date(a+'T12:00:00'),y=new Date(b+'T12:00:00');return Math.round((y-x)/86400000)}
-    function tcCourseDue(){if(!TC_course.lastCourseDate)return true;return tcDayDiff(TC_course.lastCourseDate,dateKey())>=2}
+    // Level 4 quantity: an actual weekly calendar, not rolling "48 hours since last workout".
+    // Default three sessions (within the author's 3–5 range) preserve days between workouts.
+    function tcWeeklyMode(){return TC_course.level===4&&TC_course.goal==='quantity'}
+    function tcCourseWeekdays(){return TC_course.weeklySessions===4?[1,3,5,0]:[1,3,6]}
+    function tcDateFromKey(k){return new Date(k+'T12:00:00')}
+    function tcScheduledOn(k){return tcCourseWeekdays().includes(tcDateFromKey(k).getDay())}
+    function tcCourseDue(){
+      if(!tcWeeklyMode()){
+        if(!TC_course.lastCourseDate)return true;
+        return tcDayDiff(TC_course.lastCourseDate,dateKey())>=2;
+      }
+      if(!TC_course.lastCourseDate)return true; // Allow an initial session on the setup day.
+      const today=dateKey();
+      return today!==TC_course.lastCourseDate&&tcScheduledOn(today)&&!tcTestDue();
+    }
+    function tcNextCourseDay(){
+      const today=tcDateFromKey(dateKey());
+      for(let i=0;i<10;i++){
+        const day=new Date(today);day.setDate(today.getDate()+i);
+        const key=dateKey(day);
+        if(tcScheduledOn(key)&&key!==TC_course.lastCourseDate&&
+           (i>0||tcCourseDue()))return key;
+      }
+      return '';
+    }
+    function tcWeeklyCalendarHtml(){
+      if(!tcWeeklyMode())return '';
+      const names=['ПН','ВТ','СР','ЧТ','ПТ','СБ','ВС'];
+      const today=tcDateFromKey(dateKey()),offset=(today.getDay()+6)%7;
+      const mon=new Date(today);mon.setDate(today.getDate()-offset);
+      const days=Array.from({length:7},(_,i)=>{
+        const day=new Date(mon);day.setDate(mon.getDate()+i);
+        const key=dateKey(day),planned=tcScheduledOn(key),completed=TC_course.history.some(h=>h.courseMode==='course'&&h.date===key);
+        const testDone=TC_course.tests.some(t=>t.date===key);
+        const type=testDone?'КОНТР.':completed?'ГОТОВО':planned?'КУРС':'ДОП.';
+        const status=key===dateKey()?' tcWeekToday':'';
+        return '<div class="tcWeekDay'+status+'"><b>'+names[i]+'</b><span>'+day.getDate()+'</span><small>'+type+'</small></div>';
+      });
+      return '<div class="tcWeekCalendar" aria-label="Расписание недели">'+days.join('')+'</div>';
+    }
+
     function tcExtraExercises(){return selected().filter(e=>!TC_PULL_HEAVY_IDS.has(e.id)&&e.g!=='Турник'&&e.g!=='Элементы')}
     function tcConflictExercises(){return selected().filter(e=>TC_PULL_HEAVY_IDS.has(e.id)||e.g==='Турник'||e.g==='Элементы')}
     function tcUnitForMetric(m){return m==='time'||m==='time_side'?'сек.':m==='reps_side'?'повт./стор.':m==='weighted'?'повт.':'повт.'}
