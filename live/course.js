@@ -1,7 +1,7 @@
-/* TURNIKCOACH_COURSE 1.0.10-all-levels */
+/* TURNIKCOACH_COURSE 1.0.11-auxiliary-calibration */
 (function(){
   'use strict';
-  const COURSE_MODULE_VERSION='1.0.10-all-levels';
+  const COURSE_MODULE_VERSION='1.0.11-auxiliary-calibration';
   if(window.__TC_COURSE_MODULE_VERSION===COURSE_MODULE_VERSION)return;
   window.__TC_COURSE_MODULE_VERSION=COURSE_MODULE_VERSION;
   function tcClamp(v,a,b){return Math.max(a,Math.min(b,v))}
@@ -147,12 +147,12 @@
       const pull=state.ex.find(e=>e.id==='pull');
       const weighted=state.ex.find(e=>e.id==='weightedPull');
       const m=Math.max(1,+((pull&&pull.max)||1));
-      return{enabled:false,level:m<=1?1:m<=3?2:m<=14?3:4,goal:'quantity',pullMax:m,weightedLoad:+((weighted&&weighted.load)||0),courseSeq:0,extraSeq:0,lastCourseDate:'',lastCourseTs:0,authorSupplement:false,history:[],tests:[],testPeriodWeeks:3,targetMax:30,testAnchorDate:'',lastTestDate:'',testDeferredUntil:'',weeklySessions:3,masteryTests:[],pendingTransition:null,advancedChoices:{onearm:[],muscleup:[]}};
+      return{enabled:false,level:m<=1?1:m<=3?2:m<=14?3:4,goal:'quantity',pullMax:m,weightedLoad:+((weighted&&weighted.load)||0),courseSeq:0,extraSeq:0,lastCourseDate:'',lastCourseTs:0,authorSupplement:false,history:[],tests:[],testPeriodWeeks:3,targetMax:30,testAnchorDate:'',lastTestDate:'',testDeferredUntil:'',weeklySessions:3,masteryTests:[],pendingTransition:null,advancedChoices:{onearm:[],muscleup:[]},auxEnabled:{3:false,6:false},auxInterval3:10,exerciseMax:{}};
     }
     function tcLoadCourse(){
       let c=tcCourseDefault();
       try{const raw=JSON.parse(localStorage.getItem(TC_COURSE_KEY)||'null');if(raw&&typeof raw==='object')c={...c,...raw}}catch(e){}
-      c.level=tcClamp(Math.floor(+c.level||1),1,7);c.pullMax=Math.max(1,Math.floor(+c.pullMax||1));c.weightedLoad=Math.max(0,+c.weightedLoad||0);c.courseSeq=Math.max(0,Math.floor(+c.courseSeq||0));c.extraSeq=Math.max(0,Math.floor(+c.extraSeq||0));c.history=Array.isArray(c.history)?c.history:[];c.tests=Array.isArray(c.tests)?c.tests:[];c.masteryTests=Array.isArray(c.masteryTests)?c.masteryTests:[];c.pendingTransition=c.pendingTransition&&typeof c.pendingTransition==='object'?c.pendingTransition:null;c.advancedChoices=c.advancedChoices&&typeof c.advancedChoices==='object'?c.advancedChoices:{onearm:[],muscleup:[]};c.advancedChoices.onearm=Array.isArray(c.advancedChoices.onearm)?c.advancedChoices.onearm:[];c.advancedChoices.muscleup=Array.isArray(c.advancedChoices.muscleup)?c.advancedChoices.muscleup:[];c.testPeriodWeeks=[2,3,4].includes(+c.testPeriodWeeks)?+c.testPeriodWeeks:3;c.weeklySessions=[2,3,4].includes(+c.weeklySessions)?+c.weeklySessions:3;c.targetMax=Math.max(1,Math.floor(+c.targetMax||30));c.testAnchorDate=/^\d{4}-\d{2}-\d{2}$/.test(c.testAnchorDate||'')?c.testAnchorDate:'';c.lastTestDate=/^\d{4}-\d{2}-\d{2}$/.test(c.lastTestDate||'')?c.lastTestDate:'';c.testDeferredUntil=/^\d{4}-\d{2}-\d{2}$/.test(c.testDeferredUntil||'')?c.testDeferredUntil:'';
+      c.level=tcClamp(Math.floor(+c.level||1),1,7);c.pullMax=Math.max(1,Math.floor(+c.pullMax||1));c.weightedLoad=Math.max(0,+c.weightedLoad||0);c.courseSeq=Math.max(0,Math.floor(+c.courseSeq||0));c.extraSeq=Math.max(0,Math.floor(+c.extraSeq||0));c.history=Array.isArray(c.history)?c.history:[];c.tests=Array.isArray(c.tests)?c.tests:[];c.masteryTests=Array.isArray(c.masteryTests)?c.masteryTests:[];c.pendingTransition=c.pendingTransition&&typeof c.pendingTransition==='object'?c.pendingTransition:null;c.advancedChoices=c.advancedChoices&&typeof c.advancedChoices==='object'?c.advancedChoices:{onearm:[],muscleup:[]};c.advancedChoices.onearm=Array.isArray(c.advancedChoices.onearm)?c.advancedChoices.onearm:[];c.advancedChoices.muscleup=Array.isArray(c.advancedChoices.muscleup)?c.advancedChoices.muscleup:[];c.auxEnabled=c.auxEnabled&&typeof c.auxEnabled==='object'?c.auxEnabled:{3:false,6:false};c.auxEnabled[3]=c.auxEnabled[3]===true;c.auxEnabled[6]=c.auxEnabled[6]===true;c.auxInterval3=[7,10].includes(+c.auxInterval3)?+c.auxInterval3:10;c.exerciseMax=c.exerciseMax&&typeof c.exerciseMax==='object'&&!Array.isArray(c.exerciseMax)?c.exerciseMax:{};c.testPeriodWeeks=[2,3,4].includes(+c.testPeriodWeeks)?+c.testPeriodWeeks:3;c.weeklySessions=[2,3,4].includes(+c.weeklySessions)?+c.weeklySessions:3;c.targetMax=Math.max(1,Math.floor(+c.targetMax||30));c.testAnchorDate=/^\d{4}-\d{2}-\d{2}$/.test(c.testAnchorDate||'')?c.testAnchorDate:'';c.lastTestDate=/^\d{4}-\d{2}-\d{2}$/.test(c.lastTestDate||'')?c.lastTestDate:'';c.testDeferredUntil=/^\d{4}-\d{2}-\d{2}$/.test(c.testDeferredUntil||'')?c.testDeferredUntil:'';
       return c;
     }
     let TC_course=tcLoadCourse();
@@ -260,17 +260,34 @@
       if(s.type==='choice')return 'НА ВЫБОР';
       return '—';
     }
+
+    function tcVariantKey(def){return def&&def.scheme&&def.scheme.type==='percent'&&!def.scheme.ref?def.id:null}
+    function tcVariantMax(def){
+      const key=tcVariantKey(def);if(!key)return null;
+      if(key==='c_asym80'){
+        const left=+TC_course.exerciseMax.c_asym80_left,right=+TC_course.exerciseMax.c_asym80_right;
+        return Number.isInteger(left)&&left>0&&Number.isInteger(right)&&right>0?Math.min(left,right):null;
+      }
+      const n=+TC_course.exerciseMax[key];
+      return Number.isInteger(n)&&n>0?n:null;
+    }
+    function tcUncalibrated(defs){
+      return defs.filter(def=>tcVariantKey(def)&&tcVariantMax(def)==null);
+    }
     function tcSchemeTarget(def){
       const s=def.scheme||{};
       if(s.type==='fixed'||s.type==='timed')return Math.max(0,+s.value||0);
-      if(s.type==='percent'&&s.ref==='pull')return Math.max(1,Math.floor(TC_course.pullMax*(+s.pct||0)));
+      if(s.type==='percent'){
+        const base=s.ref==='pull'?TC_course.pullMax:tcVariantMax(def);
+        return base!=null&&base>0?Math.max(1,Math.floor(base*(+s.pct||0))):null;
+      }
       if(s.type==='range_reps')return Math.max(1,+s.min||1);
       if(s.type==='max'&&s.ref==='pull')return TC_course.pullMax;
       return tcLastActualFor(def.id)||1;
     }
     function tcDisplayScheme(def){
       const s=def.scheme||{};
-      if(s.type==='percent'&&s.ref==='pull')return tcSchemeTarget(def)+' · '+Math.round(s.pct*100)+'% от '+TC_course.pullMax;
+      if(s.type==='percent')return tcSchemeTarget(def)==null?'MAX НЕ УКАЗАН':tcSchemeTarget(def)+' · '+Math.round(s.pct*100)+'% от '+(s.ref==='pull'?TC_course.pullMax:tcVariantMax(def));
       return tcSchemeLabel(def);
     }
 
@@ -330,7 +347,7 @@
       const c=tcCourseComplex();if(!c.def)return[];
       return tcResolvedCourseDefs(c).map(def=>{
         const target=tcSchemeTarget(def),labels=Array.from({length:def.sets},()=>tcDisplayScheme(def));
-        const e={id:def.id,name:def.name,metric:def.metric||'reps',max:TC_course.pullMax,load:tcItemLoad(def),courseDef:def};
+        const e={id:def.id,name:def.name,metric:def.metric||'reps',max:TC_course.pullMax,load:tcItemLoad(def),courseDef:def,media:'',muscles:[]};
         return{e,def,plan:Array.from({length:def.sets},()=>target),planLabels:labels,actual:[]};
       });
     }
@@ -887,7 +904,7 @@
 
     function tcPlanToken(def,x){
       const sch=def.scheme||{};
-      if(sch.type==='percent'&&sch.ref==='pull')return String(tcSchemeTarget(def));
+      if(sch.type==='percent')return tcSchemeTarget(def)==null?'—':String(tcSchemeTarget(def));
       if(sch.type==='fixed')return String(sch.value);
       if(sch.type==='max')return 'MAX';
       if(sch.type==='range_reps')return sch.min+'–'+sch.max;
