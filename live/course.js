@@ -449,6 +449,7 @@
         (TC_course.level===3?'<p>Периодичность: <select id="tcAuxInterval3" style="background:#0c1218;color:#fff;border:1px solid #3a4653;border-radius:8px;padding:7px"><option value="7" '+(TC_course.auxInterval3===7?'selected':'')+'>Раз в 7 дней</option><option value="10" '+(TC_course.auxInterval3===10?'selected':'')+'>Раз в 10 дней</option></select></p>':'<p>Не чаще одного раза в 10 дней.</p>')+
         '<p class="meta">Это дополнительная тяговая работа из PDF; она не заменяет основной комплекс и не назначается на день основной тренировки или испытания. Включается по вашему выбору.</p></div>':'')+
       (tcCalibrationDefs('main',true).length?'<button class="btn ghost full" style="margin-top:8px" onclick="tcOpenCourseCalibration(\'main:all\')">Изменить максимумы отдельных вариантов</button>':'')+
+      ([3,6].includes(TC_course.level)&&tcCalibrationDefs('aux',true).length?'<button class="btn ghost full" style="margin-top:8px" onclick="tcOpenCourseCalibration(\'aux:all\')">Изменить максимумы вспомогательного комплекса</button>':'')+
             '<div class="tcInfoBlock"><h3>Дополнительный вес</h3><p>Используется в комплексах, где курс назначает тяжёлые подтягивания с весом.<input id="tcCourseLoad" type="number" min="0" step="0.5" value="'+TC_course.weightedLoad+'" style="width:100%;box-sizing:border-box;margin-top:7px;background:#0c1218;color:#fff;border:1px solid #3a4653;border-radius:10px;padding:10px"></p></div>'+
       (l.supplement?'<div class="tcInfoBlock"><h3>Дополнительные подтягивания по курсу</h3><p><label style="display:flex;gap:9px;align-items:flex-start"><input id="tcCourseSupplement" type="checkbox" '+(TC_course.authorSupplement?'checked':'')+'><span>'+l.supplement+'</span></label></p></div>':'')+
       tcAuthorFrequencyAdvice()+tcAuthorRestAdvice()+tcAuthorSourceBoundaries()+
@@ -531,7 +532,7 @@
       return last;
     }
     function tcSupplementBreak(){
-      const all=TC_course.history.filter(h=>h.courseMode==='supplement'&&h.date).map(h=>h.date).sort();
+      const all=TC_course.history.filter(h=>h.courseMode==='supplement'&&h.date&&h.courseLevel===TC_course.level).map(h=>h.date).sort();
       if(!all.length)return false;
       const elapsed=tcDayDiff(all[0],dateKey());
       // App convention: 30-day work interval followed by a 5-day pause, repeated.
@@ -553,8 +554,7 @@
       const title='Комплекс №2 · вспомогательная работа';
       if(tcCalibrationDefs('aux').length){
         return '<div class="todayCard" style="margin-top:12px;border-color:#6a5520"><div class="dateBig">'+title+
-          '</div><div class="meta">Перед дополнительной работой укажите максимумы отдельных вариантов подтягиваний.</div>'+
-          tcCalibrationCard('aux')+'</div>';
+          '</div><button class="btn yellow full" style="margin-top:10px" onclick="tcOpenCourseCalibration(\'aux\')">Указать максимумы</button></div>';
       }
       const items=tcBuildAuxItems();
       return '<div class="todayCard" style="margin-top:12px;border-color:#6a5520"><div class="dateBig">'+title+
