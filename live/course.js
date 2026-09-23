@@ -1,7 +1,7 @@
-/* TURNIKCOACH_COURSE 1.0.3-compact-plan */
+/* TURNIKCOACH_COURSE 1.0.4-plan-only */
 (function(){
   'use strict';
-  const COURSE_MODULE_VERSION='1.0.3-compact-plan';
+  const COURSE_MODULE_VERSION='1.0.4-plan-only';
   if(window.__TC_COURSE_MODULE_VERSION===COURSE_MODULE_VERSION)return;
   window.__TC_COURSE_MODULE_VERSION=COURSE_MODULE_VERSION;
   function tcClamp(v,a,b){return Math.max(a,Math.min(b,v))}
@@ -341,6 +341,32 @@
       if(def.tip)return def.tip;
       return 'В тексте PDF для этого упражнения в текущем разделе отдельное техническое пояснение не приведено; курс задаёт его место, объём и режим работы в составе комплекса.';
     }
+
+    function tcCurrentCalculationHtml(){
+      if(!window.W||!['course','supplement'].includes(W.mode)||!W.items||!W.items.length)return '';
+      const x=W.items[W.exerciseIndex],def=x&&(x.def||x.e.courseDef);
+      if(!def)return '';
+      const sch=def.scheme||{};
+      let body='<b>'+x.e.name+'</b><br>';
+      if(sch.type==='percent'&&sch.ref==='pull'){
+        const raw=TC_course.pullMax*(+sch.pct||0),target=tcSchemeTarget(def);
+        body+=def.sets+' подхода × '+target+' повторений.<br>Расчёт: '+TC_course.pullMax+' × '+Math.round((+sch.pct||0)*100)+'% = '+String(Math.round(raw*10)/10).replace('.',',')+' → '+target+'.';
+      }else if(sch.type==='fixed'){
+        body+=def.sets+' подхода × '+sch.value+'.';
+      }else if(sch.type==='max'){
+        body+=def.sets+' подхода × MAX.';
+      }else if(sch.type==='range_reps'){
+        body+=def.sets+' подхода × '+sch.min+'–'+sch.max+'.';
+      }else if(sch.type==='timed'){
+        body+=def.sets+' подхода × '+(sch.label||sch.value)+'.';
+      }else{
+        body+='План: '+tcSchemeLabel(def)+'.';
+      }
+      if(def.metric==='weighted'&&x.e.load)body+='<br>Дополнительный вес: +'+x.e.load+' кг.';
+      if(def.metric==='reps_side'||def.metric==='time_side')body+='<br>Выполняется на каждую сторону.';
+      return '<div class="tcInfoBlock"><h3>Расчёт текущего задания</h3><p>'+body+'</p></div>';
+    }
+
     function tcAuthorComplexHtml(c){
       if(!c||!c.def)return '';
       return c.def.items.map(def=>'<div class="tcInfoBlock"><h3>'+def.name+'</h3><p><b>По курсу:</b> '+def.sets+' подх. · '+tcSchemeLabel(def)+' · отдых '+tcCourseRestText(def.rest)+'<br><br>'+tcAuthorExerciseNote(def)+'</p></div>').join('');
@@ -351,6 +377,7 @@
       const goalText=tcAuthorGoalText(TC_course.level,TC_course.goal);
       box.innerHTML='<div class="sheettitle">Советы автора · '+l.title+'</div>'+
       '<div class="sub" style="margin-top:6px">Здесь показывается содержание и логика самого курса Морозова. Технические правила TurnikCoach сюда не подмешиваются.</div>'+
+      tcCurrentCalculationHtml()+
       '<div class="tcInfoBlock"><h3>Что автор говорит об этом уровне</h3><p>'+tcAuthorLevelText(TC_course.level)+'</p></div>'+
       (goalText?'<div class="tcInfoBlock"><h3>Для выбранной цели</h3><p>'+goalText+'</p></div>':'')+
       '<div class="tcInfoBlock"><h3>Текущий комплекс</h3><p><b>'+(c.def?c.def.name:'—')+'</b><br>'+(c.def&&c.def.purpose?c.def.purpose:'')+'</p></div>'+
@@ -385,7 +412,7 @@
       if(sch.type==='percent'&&sch.ref==='pull'){
         const target=tcSchemeTarget(def);
         main=sets+' × '+target;
-        sub=Math.round((+sch.pct||0)*100)+'% от максимума '+TC_course.pullMax;
+        sub='';
       }else if(sch.type==='fixed'){
         main=sets+' × '+sch.value;
       }else if(sch.type==='max'){
