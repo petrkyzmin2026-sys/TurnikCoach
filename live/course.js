@@ -218,7 +218,9 @@
         const day=new Date(mon);day.setDate(mon.getDate()+i);
         const key=dateKey(day),planned=tcScheduledOn(key),completed=TC_course.history.some(h=>h.courseMode==='course'&&h.date===key);
         const testDone=TC_course.tests.some(t=>t.date===key);
-        const type=testDone?'КОНТР.':completed?'ГОТОВО':planned?'КУРС':'ДОП.';
+        const dueTest=key===dateKey()&&tcTestDue();
+        const missed=key<dateKey()&&planned&&!completed&&!testDone;
+        const type=testDone?'ТЕСТ':completed?'ГОТОВО':dueTest?'ТЕСТ':missed?'ПРОП.':planned?'КУРС':tcExtraExercises().length?'ДОП.':'ОТД.';
         const status=key===dateKey()?' tcWeekToday':'';
         return '<div class="tcWeekDay'+status+'"><b>'+names[i]+'</b><span>'+day.getDate()+'</span><small>'+type+'</small></div>';
       });
@@ -379,7 +381,7 @@
       }else{
         const nextKey=tcWeeklyMode()?tcNextCourseDay():'';
         const next=new Date(TC_course.lastCourseDate+'T12:00:00');next.setDate(next.getDate()+2);
-        q('todaySub').textContent='День без основного комплекса · восстановление тяговой нагрузки';
+        q('todaySub').textContent=tcWeeklyMode()?'День без основного комплекса · следующая тренировка по календарю':'День без основного комплекса · восстановление тяговой нагрузки';
         let html='<div class="todayCard"><div class="row between"><div><div class="dateBig">Сегодня без курса</div><div class="sessionNo">Следующий основной комплекс — не раньше '+fmtKeyDate(nextKey||dateKey(next),false)+'</div></div><span class="tag stage4">ВОССТАНОВЛЕНИЕ</span></div>';
         if(extras.length){html+='<div class="info" style="margin-top:10px">Подтягивания сегодня не повторяем. Можно выполнить выбранные дополнительные упражнения, которые не относятся к тяговому блоку курса.</div>'+tcExtraRowsHtml(extras)+'<button class="btn yellow full" style="margin-top:12px" onclick="tcStartExtraWorkout()">Начать дополнительную тренировку</button>'}
         else html+='<div class="empty" style="margin-top:12px">Дополнительные упражнения не выбраны. Сегодня можно оставить полный отдых.</div><button class="btn ghost full" style="margin-top:10px" onclick="go(\'exercise\')">Выбрать пресс, ноги или отжимания</button>';
