@@ -754,10 +754,6 @@
       return '<div class="tcInfoBlock"><h3>Расчёт текущего задания</h3><p>'+body+'</p></div>';
     }
 
-    function tcAuthorComplexHtml(c){
-      if(!c||!c.def)return '';
-      return c.def.items.map(def=>'<div class="tcInfoBlock"><h3>'+def.name+'</h3><p><b>По курсу:</b> '+def.sets+' подх. · '+tcSchemeLabel(def)+' · отдых '+tcCourseRestText(def.rest)+'<br><br>'+tcAuthorExerciseNote(def)+'</p></div>').join('');
-    }
 
 
     // Read-only seven-level catalogue. Browsing does not change a workout or saved preferences.
@@ -875,16 +871,6 @@
       if(!c.def)return '';
       const lines=c.def.items.map(x=>x.name+': '+tcCourseRestText(x.rest));
       return '<div class="tcInfoBlock"><h3>Отдых в текущем комплексе</h3><p>'+lines.map(tcProgramEscape).join('<br>')+'</p></div>';
-    }
-    function tcAuthorSourceBoundaries(){
-      return '<div class="tcInfoBlock"><h3>Питание и восстановление</h3><p>В предоставленном PDF не установлены суточная калорийность, нормы белка, режим питания и продолжительность сна. Приписывать автору конкретные цифры нельзя. Из курса здесь приведены указанные им дни отдыха, интервалы между подходами и перерыв в дополнительной ежедневной работе. Автор предусматривает от ежедневных подтягиваний не менее пяти дней отдыха раз в месяц; TurnikCoach для расчёта назначает пятидневную паузу после каждых 30 дней использования дополнения (автоматизация приложения, не конкретные даты автора).</p></div>';
-    }
-
-    function tcAdviceCurrentDef(){
-      if(W&&['course','auxCourse','supplement','courseTest'].includes(W.mode)&&W.items&&W.items.length){
-        const x=W.items[W.exerciseIndex];return x&&(x.def||x.e.courseDef);
-      }
-      const c=tcCourseComplex();return c.def&&c.def.items[0]||null;
     }
     function tcAdvicePanel(title,body,opened){
       return '<details class="tcProgramNote"'+(opened?' open':'')+'><summary style="font-size:14px;font-weight:800">'+title+'</summary>'+
