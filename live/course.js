@@ -1,7 +1,7 @@
-/* TURNIKCOACH_COURSE 1.0.1-course-ui */
+/* TURNIKCOACH_COURSE 1.0.2-author-guidance */
 (function(){
   'use strict';
-  const COURSE_MODULE_VERSION='1.0.1-course-ui';
+  const COURSE_MODULE_VERSION='1.0.2-author-guidance';
   if(window.__TC_COURSE_MODULE_VERSION===COURSE_MODULE_VERSION)return;
   window.__TC_COURSE_MODULE_VERSION=COURSE_MODULE_VERSION;
   function tcClamp(v,a,b){return Math.max(a,Math.min(b,v))}
@@ -237,7 +237,7 @@
       tcNormalizeGoal();const l=tcCourseLevel(),goals=tcGoalOptions(TC_course.level);
       const box=q('sheetbox');
       box.innerHTML='<div class="sheettitle">Курс Морозова</div><div class="sub" style="margin-top:6px">Курс работает отдельным блоком. Обычный каталог остаётся для пресса, ног, отжиманий и другой дополнительной работы.</div>'+
-      '<div class="tcInfoBlock"><h3>Состояние</h3><p><label style="display:flex;gap:9px;align-items:center"><input id="tcCourseEnabled" type="checkbox" '+(TC_course.enabled?'checked':'')+'> использовать курс подтягиваний</label></p></div>'+
+      '<div class="tcInfoBlock"><h3>Состояние</h3><p><label style="display:flex;gap:9px;align-items:center"><input id="tcCourseEnabled" type="checkbox" '+(TC_course.enabled?'checked':'')+'> Включить курс Морозова</label></p></div>'+
       '<div class="tcInfoBlock"><h3>Уровень</h3><p><select id="tcCourseLevel" style="width:100%;margin-top:4px;background:#0c1218;color:#fff;border:1px solid #3a4653;border-radius:10px;padding:10px">'+Object.keys(TC_COURSE).map(n=>'<option value="'+n+'" '+(+n===TC_course.level?'selected':'')+'>'+n+' · '+TC_COURSE[n].title+'</option>').join('')+'</select></p></div>'+
       '<div class="tcInfoBlock"><h3>Текущий максимум</h3><p><input id="tcCourseMax" type="number" min="1" value="'+TC_course.pullMax+'" style="width:100%;box-sizing:border-box;margin-top:4px;background:#0c1218;color:#fff;border:1px solid #3a4653;border-radius:10px;padding:10px"></p></div>'+
       '<div class="tcInfoBlock"><h3>Цель</h3><p><select id="tcCourseGoal" style="width:100%;margin-top:4px;background:#0c1218;color:#fff;border:1px solid #3a4653;border-radius:10px;padding:10px">'+goals.map(g=>'<option value="'+g[0]+'" '+(g[0]===TC_course.goal?'selected':'')+'>'+g[1]+'</option>').join('')+'</select></p></div>'+
@@ -298,7 +298,7 @@
       q('todayTitle').textContent=fmtDate(now);
       if(due){
         q('todaySub').textContent='Курс Морозова · '+l.title+' · '+tcCourseGoalName(TC_course.goal);
-        q('todayList').innerHTML='<div class="todayCard"><div class="row between"><div><div class="dateBig">'+(c.def?c.def.name:'Основной комплекс')+'</div><div class="sessionNo">'+l.frequency+'</div></div><span class="tag">КУРС</span></div>'+tcCourseRowsHtml(items)+'<div class="info" style="margin-top:10px"><b>Критерий уровня:</b> '+l.mastery+'<br><br>Содержание комплекса и интервалы отдыха взяты из курса. Раскладка дней восстановления и дополнительных упражнений — логика TurnikCoach.</div><button class="btn yellow full" style="margin-top:12px" onclick="tcStartCourseWorkout()">Начать основной комплекс</button><button class="btn ghost full" style="margin-top:8px" onclick="tcOpenCourseInfo()">ⓘ О программе и текущем уровне</button></div>';
+        q('todayList').innerHTML='<div class="todayCard"><div class="row between"><div><div class="dateBig">'+(c.def?c.def.name:'Основной комплекс')+'</div><div class="sessionNo">'+l.frequency+'</div></div><span class="tag">КУРС</span></div>'+tcCourseRowsHtml(items)+'<div class="info" style="margin-top:10px"><b>Критерий уровня:</b> '+l.mastery+'<br><br>Содержание комплекса и интервалы отдыха взяты из курса. Раскладка дней восстановления и дополнительных упражнений — логика TurnikCoach.</div><button class="btn yellow full" style="margin-top:12px" onclick="tcStartCourseWorkout()">Начать основной комплекс</button><button class="btn ghost full" style="margin-top:8px" onclick="tcOpenCourseInfo()">ⓘ Советы автора</button></div>';
       }else{
         const next=new Date(TC_course.lastCourseDate+'T12:00:00');next.setDate(next.getDate()+2);
         q('todaySub').textContent='День без основного комплекса · восстановление тяговой нагрузки';
@@ -306,20 +306,59 @@
         if(extras.length){html+='<div class="info" style="margin-top:10px">Подтягивания сегодня не повторяем. Можно выполнить выбранные дополнительные упражнения, которые не относятся к тяговому блоку курса.</div>'+tcExtraRowsHtml(extras)+'<button class="btn yellow full" style="margin-top:12px" onclick="tcStartExtraWorkout()">Начать дополнительную тренировку</button>'}
         else html+='<div class="empty" style="margin-top:12px">Дополнительные упражнения не выбраны. Сегодня можно оставить полный отдых.</div><button class="btn ghost full" style="margin-top:10px" onclick="go(\'exercise\')">Выбрать пресс, ноги или отжимания</button>';
         const conflicts=tcConflictExercises();if(conflicts.length)html+='<div class="info" style="margin-top:10px"><b>Не поставлены автоматически в восстановительный день:</b> '+conflicts.map(e=>e.name).join(', ')+'. Они продолжают нагружать тяговую систему или относятся к сложным элементам.</div>';
-        html+='<button class="btn ghost full" style="margin-top:8px" onclick="tcOpenCourseInfo()">ⓘ Почему сегодня так</button></div>'+tcSupplementHtml();q('todayList').innerHTML=html;
+        html+='<button class="btn ghost full" style="margin-top:8px" onclick="tcOpenCourseInfo()">ⓘ Советы автора</button></div>'+tcSupplementHtml();q('todayList').innerHTML=html;
       }
       tcQueueDecorate();
     }
 
+
+    function tcAuthorLevelText(level){
+      if(level===1)return 'Автор относит сюда тех, кто делает 0–1 обычное подтягивание или работает с резиной. Основная задача уровня — увеличить силу тянущих мышц комплексно. Для сохранения правильной техники предлагается использовать помощь ног и резину.';
+      if(level===2)return 'Автор переводит работу ближе к самим подтягиваниям: объём уменьшается, интенсивность увеличивается. Главный акцент — не допускать технических ошибок и научиться выполнять чёткие 2–4 подтягивания.';
+      if(level===3)return 'Задача уровня — максимально увеличить количество подтягиваний. Автор предлагает комбинировать работу на силовую выносливость с упражнениями на вспомогательные звенья и отдельно подчёркивает важность работы ног и кора в подтягиваниях.';
+      if(level===4)return 'При результате примерно 15–25 подтягиваний автор предлагает выбрать направление: продолжать развивать выносливость и постепенно идти к 25–30 повторениям либо смещать работу к одноповторному максимуму для выхода силой и подтягивания на одной руке.';
+      if(level===5)return 'На этом уровне курс продолжает специализацию на выходе силой или подтягивании на одной руке и повышает требования к скоростно-силовой и тяжёлой тяговой работе.';
+      if(level===6)return 'Шестой уровень продолжает специальную силовую подготовку: одноручные негативы, облегчённые одноручные варианты, работа хвата и тяжёлые подтягивания с дополнительным весом.';
+      if(level===7)return 'Седьмой уровень автор строит вокруг прогрессии подтягивания на одной руке. Прогрессию предлагается подбирать по своему уровню и сочетать с упражнениями предыдущих уровней.';
+      return '';
+    }
+    function tcAuthorGoalText(level,goal){
+      if(level===4&&goal==='quantity')return 'Для увеличения количества автор выделяет комплекс №3: 3 подхода по 80% от максимума, 2 подхода широким хватом до максимума и 4×3 с дополнительным весом. Отдых между упражнениями комплекса — 2–4 минуты. Даже при цели увеличить количество автор допускает добавлять комплекс №1 и/или №2 примерно раз в неделю–10 дней.';
+      if(level===4&&goal==='muscleup')return 'Для выхода силой автор назначает комплекс №1: плиометрические подтягивания, широкий хват по 80% от максимума и тягу к плечу хватом «игуаны».';
+      if(level===4&&goal==='onearm')return 'Для подтягивания на одной руке автор назначает комплекс №2: асимметричные подтягивания, активный вис на одной руке и перехваты в висе на полусогнутых руках.';
+      return '';
+    }
+    function tcAuthorExerciseNote(def){
+      if(!def)return '';
+      const id=def.id||'';
+      if(id.includes('wide'))return 'По тексту курса широкий верхний хват сильнее смещает акцент на мышцы спины и подключает стабилизаторы плеча. Автор отмечает, что для большего акцента на спину часто используют частичную амплитуду без полного разгибания рук.';
+      if(id.includes('pull80')||id==='c_classic_max'||id.includes('pull50'))return 'Классические подтягивания верхним хватом автор описывает как вариант, где нагрузка относительно равномерно распределяется между мышцами рук и спины.';
+      if(id.includes('plyo')||id.includes('high'))return 'Высокие подтягивания в курсе используются для развития взрывной силы; целевые мышцы остаются теми же, что и в классических подтягиваниях.';
+      if(id.includes('three_stage'))return 'Трёхстадийные подтягивания автор использует для нейромышечного контроля: движение разделяется на фазы, чтобы лучше контролировать работу в каждой части амплитуды.';
+      if(id.includes('asym'))return 'Асимметричные подтягивания увеличивают нагрузку на тянущую сторону, а вспомогательная сторона стабилизирует положение и снимает часть нагрузки.';
+      if(id.includes('shrug'))return 'Шраги в курсе направлены на мышцы, опускающие плечо, ротаторы плеча и при большей амплитуде — трапеции.';
+      if(id.includes('chin'))return 'Нижний хват немного сильнее переносит нагрузку на бицепс, но автор подчёркивает, что распределение нагрузки сильно зависит от техники.';
+      if(def.tip)return def.tip;
+      return 'В тексте PDF для этого упражнения в текущем разделе отдельное техническое пояснение не приведено; курс задаёт его место, объём и режим работы в составе комплекса.';
+    }
+    function tcAuthorComplexHtml(c){
+      if(!c||!c.def)return '';
+      return c.def.items.map(def=>'<div class="tcInfoBlock"><h3>'+def.name+'</h3><p><b>По курсу:</b> '+def.sets+' подх. · '+tcSchemeLabel(def)+' · отдых '+tcCourseRestText(def.rest)+'<br><br>'+tcAuthorExerciseNote(def)+'</p></div>').join('');
+    }
+
     window.tcOpenCourseInfo=function(){
       const l=tcCourseLevel(),c=tcCourseComplex(),box=q('sheetbox');
-      box.innerHTML='<div class="sheettitle">Курс Морозова · '+l.title+'</div><div class="sub" style="margin-top:6px">TurnikCoach не заменяет комплекс своей старой формулой: порядок упражнений, подходы, MAX, проценты и авторские интервалы отдыха сохраняются.</div>'+
-      '<div class="tcInfoBlock"><h3>Текущая цель</h3><p><b>'+tcCourseGoalName(TC_course.goal)+'</b><br>'+(c.def?c.def.purpose:'')+'</p></div>'+
-      '<div class="tcInfoBlock"><h3>Как работает неделя</h3><p>'+l.frequency+'<br><br>В приложении после основного комплекса по умолчанию ставится день без тягового комплекса. В этот день можно выполнять выбранный пресс, ноги или толкающие упражнения. Это компромисс TurnikCoach для восстановления; это не отдельная формулировка из PDF.</p></div>'+
-      '<div class="tcInfoBlock"><h3>Отдых между подходами</h3><p>Если курс задаёт точное время — используется оно. Если указан диапазон, TurnikCoach выбирает время только внутри этого диапазона. MAX и недовыполненный план сдвигают отдых к верхней границе. «Минимальный» и «по усмотрению» не заменяются выдуманным числом.</p></div>'+
-      '<div class="tcInfoBlock"><h3>Критерий освоения</h3><p>'+l.mastery+'</p></div>'+
-      (l.supplement?'<div class="tcInfoBlock"><h3>Дополнение автора</h3><p>'+l.supplement+'</p></div>':'')+
-      '<button class="btn yellow full" style="margin-top:14px" onclick="closeSheet()">Понятно</button>';q('sheet').classList.add('open');
+      const goalText=tcAuthorGoalText(TC_course.level,TC_course.goal);
+      box.innerHTML='<div class="sheettitle">Советы автора · '+l.title+'</div>'+
+      '<div class="sub" style="margin-top:6px">Здесь показывается содержание и логика самого курса Морозова. Технические правила TurnikCoach сюда не подмешиваются.</div>'+
+      '<div class="tcInfoBlock"><h3>Что автор говорит об этом уровне</h3><p>'+tcAuthorLevelText(TC_course.level)+'</p></div>'+
+      (goalText?'<div class="tcInfoBlock"><h3>Для выбранной цели</h3><p>'+goalText+'</p></div>':'')+
+      '<div class="tcInfoBlock"><h3>Текущий комплекс</h3><p><b>'+(c.def?c.def.name:'—')+'</b><br>'+(c.def&&c.def.purpose?c.def.purpose:'')+'</p></div>'+
+      tcAuthorComplexHtml(c)+
+      '<div class="tcInfoBlock"><h3>Критерий освоения уровня</h3><p>'+l.mastery+'</p></div>'+
+      (l.supplement?'<div class="tcInfoBlock"><h3>Дополнительные подтягивания по курсу</h3><p>'+l.supplement+'</p></div>':'')+
+      '<button class="btn yellow full" style="margin-top:14px" onclick="closeSheet()">Понятно</button>';
+      q('sheet').classList.add('open');
     };
 
     window.tcStartCourseWorkout=function(){
