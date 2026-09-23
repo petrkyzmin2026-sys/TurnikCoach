@@ -1,7 +1,7 @@
-/* TURNIKCOACH_COURSE 1.0.6-program-browser */
+/* TURNIKCOACH_COURSE 1.0.7-advice-audit */
 (function(){
   'use strict';
-  const COURSE_MODULE_VERSION='1.0.6-program-browser';
+  const COURSE_MODULE_VERSION='1.0.7-advice-audit';
   if(window.__TC_COURSE_MODULE_VERSION===COURSE_MODULE_VERSION)return;
   window.__TC_COURSE_MODULE_VERSION=COURSE_MODULE_VERSION;
   function tcClamp(v,a,b){return Math.max(a,Math.min(b,v))}
@@ -243,6 +243,7 @@
       '<div class="tcInfoBlock"><h3>Цель</h3><p><select id="tcCourseGoal" style="width:100%;margin-top:4px;background:#0c1218;color:#fff;border:1px solid #3a4653;border-radius:10px;padding:10px">'+goals.map(g=>'<option value="'+g[0]+'" '+(g[0]===TC_course.goal?'selected':'')+'>'+g[1]+'</option>').join('')+'</select></p></div>'+
       '<div class="tcInfoBlock"><h3>Дополнительный вес</h3><p>Используется в комплексах, где курс назначает тяжёлые подтягивания с весом.<input id="tcCourseLoad" type="number" min="0" step="0.5" value="'+TC_course.weightedLoad+'" style="width:100%;box-sizing:border-box;margin-top:7px;background:#0c1218;color:#fff;border:1px solid #3a4653;border-radius:10px;padding:10px"></p></div>'+
       (l.supplement?'<div class="tcInfoBlock"><h3>Дополнительные подтягивания по курсу</h3><p><label style="display:flex;gap:9px;align-items:flex-start"><input id="tcCourseSupplement" type="checkbox" '+(TC_course.authorSupplement?'checked':'')+'><span>'+l.supplement+'</span></label></p></div>':'')+
+      tcAuthorFrequencyAdvice()+tcAuthorRestAdvice()+tcAuthorSourceBoundaries()+
       '<div class="tcInfoBlock"><h3>Критерий освоения уровня</h3><p>'+l.mastery+'</p></div>'+
       '<button class="btn yellow full" style="margin-top:14px" onclick="tcSaveCourseSettings()">Сохранить</button><button class="btn ghost full" style="margin-top:8px" onclick="closeSheet()">Отмена</button>';
       q('sheet').classList.add('open');
@@ -311,7 +312,7 @@
       q('todayTitle').textContent=fmtDate(now);
       if(due){
         q('todaySub').textContent='Курс Морозова · '+l.title+' · '+tcCourseGoalName(TC_course.goal);
-        q('todayList').innerHTML='<div class="todayCard"><div class="row between"><div><div class="dateBig">'+(c.def?c.def.name:'Основной комплекс')+'</div><div class="sessionNo">'+l.frequency+'</div></div><span class="tag">КУРС</span></div>'+tcCourseRowsHtml(items)+'<div class="info" style="margin-top:10px"><b>Критерий уровня:</b> '+l.mastery+'<br><br>Содержание комплекса и интервалы отдыха взяты из курса. Раскладка дней восстановления и дополнительных упражнений — логика TurnikCoach.</div><button class="btn yellow full" style="margin-top:12px" onclick="tcStartCourseWorkout()">Начать основной комплекс</button><button class="btn ghost full" style="margin-top:8px" onclick="tcOpenCourseProgram()">Программа курса</button><button class="btn ghost full" style="margin-top:8px" onclick="tcOpenCourseInfo()">ⓘ Советы автора</button></div>';
+        q('todayList').innerHTML='<div class="todayCard"><div class="row between"><div><div class="dateBig">'+(c.def?c.def.name:'Основной комплекс')+'</div><div class="sessionNo">'+l.frequency+'</div></div><span class="tag">КУРС</span></div>'+tcCourseRowsHtml(items)+'<div class="meta" style="margin-top:10px">Текущий уровень: '+l.title+' · контроль: '+l.mastery+'</div><button class="btn yellow full" style="margin-top:12px" onclick="tcStartCourseWorkout()">Начать основной комплекс</button><button class="btn ghost full" style="margin-top:8px" onclick="tcOpenCourseInfo()">ⓘ Советы автора</button></div>';
       }else{
         const next=new Date(TC_course.lastCourseDate+'T12:00:00');next.setDate(next.getDate()+2);
         q('todaySub').textContent='День без основного комплекса · восстановление тяговой нагрузки';
@@ -319,7 +320,7 @@
         if(extras.length){html+='<div class="info" style="margin-top:10px">Подтягивания сегодня не повторяем. Можно выполнить выбранные дополнительные упражнения, которые не относятся к тяговому блоку курса.</div>'+tcExtraRowsHtml(extras)+'<button class="btn yellow full" style="margin-top:12px" onclick="tcStartExtraWorkout()">Начать дополнительную тренировку</button>'}
         else html+='<div class="empty" style="margin-top:12px">Дополнительные упражнения не выбраны. Сегодня можно оставить полный отдых.</div><button class="btn ghost full" style="margin-top:10px" onclick="go(\'exercise\')">Выбрать пресс, ноги или отжимания</button>';
         const conflicts=tcConflictExercises();if(conflicts.length)html+='<div class="info" style="margin-top:10px"><b>Не поставлены автоматически в восстановительный день:</b> '+conflicts.map(e=>e.name).join(', ')+'. Они продолжают нагружать тяговую систему или относятся к сложным элементам.</div>';
-        html+='<button class="btn ghost full" style="margin-top:8px" onclick="tcOpenCourseProgram()">Программа курса</button><button class="btn ghost full" style="margin-top:8px" onclick="tcOpenCourseInfo()">ⓘ Советы автора</button></div>'+tcSupplementHtml();q('todayList').innerHTML=html;
+        html+='<button class="btn ghost full" style="margin-top:8px" onclick="tcOpenCourseInfo()">ⓘ Советы автора</button></div>'+tcSupplementHtml();q('todayList').innerHTML=html;
       }
       tcQueueDecorate();
     }
@@ -449,11 +450,34 @@
       sheet.classList.add('open');
     };
 
+
+    function tcAuthorFrequencyAdvice(){
+      const l=tcCourseLevel(),level=TC_course.level,goal=TC_course.goal;
+      const page={1:26,2:30,3:36,4:goal==='quantity'?46:goal==='muscleup'?44:45,5:goal==='onearm'?53:52,6:58,7:goal==='muscleup'?66:65}[level];
+      let schedule=l.frequency;
+      if(level===4){
+        if(goal==='quantity')schedule='Для комплекса №3 автор указывает 3–5 тренировок в неделю. Пример на стр. 46: понедельник, среда, пятница и воскресенье — комплекс №3; между ними дни отдыха.';
+        else if(goal==='muscleup')schedule='Для комплекса №1 автор указывает 2–4 тренировки в неделю; пример на стр. 44: понедельник, среда и суббота.';
+        else schedule='Для комплекса №2 автор указывает 3–4 тренировки в неделю; пример на стр. 45: понедельник, среда, пятница и воскресенье.';
+      }
+      if(level===3)schedule='Комплекс №1 — три раза в неделю. Комплекс №2 — один раз в неделю или раз в 10 дней (стр. 36).';
+      return '<div class="tcInfoBlock"><h3>Частота занятий · PDF, стр. '+page+'</h3><p>'+tcProgramEscape(schedule)+'</p></div>';
+    }
+    function tcAuthorRestAdvice(){
+      const c=tcCourseComplex();
+      if(!c.def)return '';
+      const lines=c.def.items.map(x=>x.name+': '+tcCourseRestText(x.rest));
+      return '<div class="tcInfoBlock"><h3>Отдых в текущем комплексе</h3><p>'+lines.map(tcProgramEscape).join('<br>')+'</p></div>';
+    }
+    function tcAuthorSourceBoundaries(){
+      return '<div class="tcInfoBlock"><h3>Питание и восстановление</h3><p>В предоставленном PDF не установлены суточная калорийность, нормы белка, режим питания и продолжительность сна. Приписывать автору конкретные цифры нельзя. Из курса здесь приведены только указанные им дни отдыха, интервалы между подходами и перерыв в дополнительной ежедневной работе.</p></div>';
+    }
+
     window.tcOpenCourseInfo=function(){
       const l=tcCourseLevel(),c=tcCourseComplex(),box=q('sheetbox');
       const goalText=tcAuthorGoalText(TC_course.level,TC_course.goal);
       box.innerHTML='<div class="sheettitle">Советы автора · '+l.title+'</div>'+
-      '<div class="sub" style="margin-top:6px">Здесь показывается содержание и логика самого курса Морозова. Технические правила TurnikCoach сюда не подмешиваются.</div>'+
+      '<div class="sub" style="margin-top:6px">Рекомендации и значения из PDF. Расчёт задания TurnikCoach указан отдельно.</div>'+
       tcCurrentCalculationHtml()+
       '<div class="tcInfoBlock"><h3>Что автор говорит об этом уровне</h3><p>'+tcAuthorLevelText(TC_course.level)+'</p></div>'+
       (goalText?'<div class="tcInfoBlock"><h3>Для выбранной цели</h3><p>'+goalText+'</p></div>':'')+
