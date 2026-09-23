@@ -739,8 +739,8 @@
     }
     function tcProgramExerciseHtml(def){
       const tip=tcAuthorExerciseNote(def);
-      const noTip=tip.indexOf('отдельное техническое пояснение не приведено')>=0;
-      const note=(!noTip&&tip)?'<details class="tcProgramNote"><summary>Пояснение к упражнению</summary><p>'+tcProgramEscape(tip)+'</p></details>':'';
+      const noTip=!tcSourceExerciseInfo(def);
+      const note=noTip?'<details class="tcProgramNote"><summary>Техника упражнения</summary><p>В текстовой части PDF пошаговая техника отсутствует; дополнительные пояснения автор предлагает смотреть в видео.</p></details>':'<details class="tcProgramNote"><summary>Пояснение автора</summary><p>'+tcProgramEscape(tip)+'</p></details>';
       return '<div class="tcProgramExercise"><div class="tcProgramExerciseName">'+tcProgramEscape(def.name)+'</div>'+
         '<div class="tcProgramPrescription">'+tcProgramEscape(tcProgramPrescription(def))+'</div>'+
         '<div class="tcProgramRest">Отдых: '+tcProgramEscape(tcCourseRestText(def.rest))+'</div>'+note+'</div>';
@@ -806,22 +806,46 @@
       return '<div class="tcInfoBlock"><h3>Питание и восстановление</h3><p>В предоставленном PDF не установлены суточная калорийность, нормы белка, режим питания и продолжительность сна. Приписывать автору конкретные цифры нельзя. Из курса здесь приведены указанные им дни отдыха, интервалы между подходами и перерыв в дополнительной ежедневной работе. Автор предусматривает от ежедневных подтягиваний не менее пяти дней отдыха раз в месяц; TurnikCoach для расчёта назначает пятидневную паузу после каждых 30 дней использования дополнения (автоматизация приложения, не конкретные даты автора).</p></div>';
     }
 
+    function tcAdviceCurrentDef(){
+      if(W&&['course','auxCourse','supplement','courseTest'].includes(W.mode)&&W.items&&W.items.length){
+        const x=W.items[W.exerciseIndex];return x&&(x.def||x.e.courseDef);
+      }
+      const c=tcCourseComplex();return c.def&&c.def.items[0]||null;
+    }
+    function tcAdvicePanel(title,body,opened){
+      return '<details class="tcProgramNote"'+(opened?' open':'')+'><summary style="font-size:14px;font-weight:800">'+title+'</summary>'+
+        '<div style="font-size:13px;line-height:1.55;color:#c6d0dd;padding-top:8px">'+body+'</div></details>';
+    }
     window.tcOpenCourseInfo=function(){
-      const l=tcCourseLevel(),c=W&&W.mode==='auxCourse'?{no:2,def:TC_COURSE[TC_course.level].complexes[2]}:tcCourseComplex(),box=q('sheetbox');
-      const goalText=tcAuthorGoalText(TC_course.level,TC_course.goal);
-      box.innerHTML='<div class="sheettitle">Советы автора · '+l.title+'</div>'+
-      '<div class="sub" style="margin-top:6px">Рекомендации и значения из PDF. Расчёт задания TurnikCoach указан отдельно.</div>'+
-      tcCurrentCalculationHtml()+
-      '<div class="tcInfoBlock"><h3>Что автор говорит об этом уровне</h3><p>'+tcAuthorLevelText(TC_course.level)+'</p></div>'+
-      (goalText?'<div class="tcInfoBlock"><h3>Для выбранной цели</h3><p>'+goalText+'</p></div>':'')+
-      '<div class="tcInfoBlock"><h3>Текущий комплекс</h3><p><b>'+(c.def?c.def.name:'—')+'</b><br>'+(c.def&&c.def.purpose?c.def.purpose:'')+'</p></div>'+
-      tcAuthorComplexHtml(c)+
-      ([3,6].includes(TC_course.level)?'<div class="tcInfoBlock"><h3>Комплекс №2</h3><p>'+
-        (TC_course.level===3?'Автор предлагает вспомогательный комплекс раз в неделю или раз в 10 дней (PDF, стр. 36).':'Автор указывает для вспомогательного комплекса возможность выполнения раз в 10 дней (PDF, стр. 59).')+
-        '</p></div>':'')+
-      '<div class="tcInfoBlock"><h3>Критерий освоения уровня</h3><p>'+l.mastery+'</p></div>'+
-      (l.supplement?'<div class="tcInfoBlock"><h3>Дополнительные подтягивания по курсу</h3><p>'+l.supplement+'</p></div>':'')+
-      '<button class="btn yellow full" style="margin-top:14px" onclick="closeSheet()">Понятно</button>';
+      const l=tcCourseLevel();
+      const c=W&&W.mode==='auxCourse'?
+        {no:2,def:TC_COURSE[TC_course.level].complexes[2]}:tcCourseComplex();
+      const def=tcAdviceCurrentDef(),source=tcSourceExerciseInfo(def);
+      tcInjectProgramStyles();
+      const exercise=def?
+        '<b>'+tcProgramEscape(def.name)+'</b><br>'+tcProgramEscape(tcAuthorExerciseNote(def))+
+        (source?'<br><span class="meta">Источник: PDF, стр. '+source.page+'</span>':''):'';
+      const frequency=tcAuthorFrequencyAdvice();
+      const rest=tcAuthorRestAdvice();
+      const recovery='<b>В тексте курса:</b> '+tcProgramEscape(l.frequency)+
+        (l.supplement?'<br><br>Автор предлагает пропускать ежедневные 10 подходов в дни основной тренировки и не менее пяти дней ежемесячно отдыхать от этой дополнительной работы (PDF, стр. '+(TC_course.level===3?34:43)+').':'')+
+        '<br><br><b>Планировщик TurnikCoach:</b> в дни без основного тягового комплекса предлагает выбранную дополнительную работу. Это правило приложения, а не формулировка из PDF.';
+      const nutrition='В предоставленном PDF нет индивидуального плана питания, норм калорийности и белка, меню или числового норматива продолжительности сна. Поэтому здесь нет вымышленных рекомендаций «от Морозова». Для заполнения этого раздела необходимы дополнительные материалы автора.';
+      const safety='В юридическом разделе PDF (стр. 70) автор указывает на необходимость консультации со специалистом до начала тренировок.';
+      const box=q('sheetbox');
+      box.innerHTML='<div class="sheettitle">ⓘ Советы автора</div>'+
+        '<div class="sub" style="margin-top:6px">'+tcProgramEscape(l.title)+' · '+tcProgramEscape(c.def?c.def.name:'')+'</div>'+
+        (def?tcAdvicePanel('Текущее упражнение · техника и назначение',exercise,true):'')+
+        (W?tcAdvicePanel('Расчёт текущего плана',tcCurrentCalculationHtml(),false):'')+
+        tcAdvicePanel('Уровень и цель','<b>Идея этапа:</b> '+tcProgramEscape(tcAuthorLevelText(TC_course.level))+
+          (tcAuthorGoalText(TC_course.level,TC_course.goal)?'<br><br>'+tcProgramEscape(tcAuthorGoalText(TC_course.level,TC_course.goal)):'')+
+          '<br><br><b>Критерий освоения:</b> '+tcProgramEscape(l.mastery),false)+
+        tcAdvicePanel('Частота и отдых по курсу',frequency+rest,false)+
+        tcAdvicePanel('Восстановление и дополнительные занятия',recovery,false)+
+        tcAdvicePanel('Питание и сон',nutrition,false)+
+        tcAdvicePanel('Перед началом тренировок',safety,false)+
+        '<button class="btn yellow full" style="margin-top:14px" onclick="closeSheet()">Закрыть</button>';
+      box.scrollTop=0;
       q('sheet').classList.add('open');
     };
 
