@@ -639,6 +639,136 @@
         '</div>';
     }
 
+
+    // PDF "ТЕСТ МАСТЕРИНГ": only the criteria actually printed for levels 1–5.
+    // Levels 6–7 have no quantified promotion test in the supplied PDF.
+    function tcMasteryDefinition(){
+      const level=TC_course.level;
+      if(level===1)return {page:26,name:'Подтягивания с минимальной резиной',fields:[
+        {id:'band',label:'Подтягивания с резиной, повторений',min:0},
+        {id:'lowBand',label:'Использована резина минимального натяжения',check:true}
+      ]};
+      if(level===2)return {page:30,name:'Подтягивания средним хватом',fields:[
+        {id:'regular',label:'Подтягивания средним хватом, повторений',min:0}
+      ]};
+      if(level===3)return {page:36,name:'Количество и широкий хват',fields:[
+        {id:'regular',label:'Классические подтягивания, повторений',min:0},
+        {id:'wide',label:'Подтягивания широким хватом, повторений',min:0}
+      ]};
+      if(level===4&&TC_course.goal!=='quantity')return {page:43,name:'Асимметричные и высокие подтягивания',fields:[
+        {id:'left',label:'Асимметричные на левую руку, повторений',min:0},
+        {id:'right',label:'Асимметричные на правую руку, повторений',min:0},
+        {id:'high',label:'Подтягивания выше груди, повторений',min:0}
+      ]};
+      if(level===5)return {page:52,name:'Подтягивания с дополнительным весом',fields:[
+        {id:'body',label:'Собственная масса тела, кг',min:0.1,step:'0.1'},
+        {id:'added',label:'Дополнительный вес при подтягивании, кг',min:0,step:'0.5'}
+      ]};
+      return null;
+    }
+    function tcMasteryOutcome(level,values){
+      if(level===1)return values.band>=8&&values.lowBand===true;
+      if(level===2)return values.regular>=8;
+      if(level===3)return values.regular>=15&&values.wide>=6;
+      if(level===4)return values.left>=5&&values.right>=5&&values.high>=1;
+      if(level===5)return values.body>0&&values.added>=0.6*values.body;
+      return false;
+    }
+    function tcMasteryCardHtml(){
+      const def=tcMasteryDefinition();
+      if(!def||!TC_course.lastCourseDate)return '';
+      const recovered=tcRecoveredForTest(),readyDate=tcNextTestDate();
+      const due=readyDate&&dateKey()>=readyDate&&
+        (!TC_course.testDeferredUntil||dateKey()>=TC_course.testDeferredUntil);
+      if(!due)return '<div class="meta" style="margin-top:8px">Контроль нормативов уровня: '+
+        (readyDate?fmtKeyDate(readyDate,false):'после начала цикла')+
+        ' · ⓘ нормативы и техника находятся в советах автора.</div>';
+      return '<div class="todayCard" style="margin-top:12px;border-color:#ffd84d">'+
+        '<div class="dateBig">Контроль освоения уровня</div>'+
+        '<div class="meta">'+def.name+' · норматив автора, PDF, стр. '+def.page+'</div>'+
+        (recovered?'<button class="btn yellow full" style="margin-top:10px" onclick="tcOpenMasteryTest()">Проверить нормативы</button>':
+          '<div class="meta" style="margin-top:8px">Контроль выполняется после восстановления от предыдущей тяговой нагрузки.</div>')+
+        '<button class="btn ghost full" style="margin-top:8px" onclick="tcDeferMasteryTest()">Перенести на 7 дней</button></div>';
+    }
+    window.tcDeferMasteryTest=function(){
+      if(!tcMasteryDefinition()||!TC_course.lastCourseDate)return;
+      const d=new Date(dateKey()+'T12:00:00');d.setDate(d.getDate()+7);
+      TC_course.testDeferredUntil=dateKey(d);tcSaveCourse();render();
+    };
+    window.tcOpenMasteryTest=function(){
+      const def=tcMasteryDefinition();
+      if(!def||!tcRecoveredForTest())return;
+      const inputs=def.fields.map(f=>
+        f.check?'<label style="display:flex;gap:9px;align-items:center;margin:12px 0"><input type="checkbox" id="tcMastery_'+f.id+'"><span>'+f.label+'</span></label>':
+        '<label style="display:block;font-size:13px;color:#dae2eb;margin:12px 0">'+f.label+
+        '<input id="tcMastery_'+f.id+'" type="number" inputmode="decimal" min="'+f.min+'"'+
+        (f.step?' step="'+f.step+'"':' step="1"')+
+        ' style="display:block;margin-top:5px;width:100%;box-sizing:border-box;padding:11px;border-radius:9px;background:#0c1218;color:#fff;border:1px solid #344250"></label>'
+      ).join('');
+      q('sheetbox').innerHTML='<div class="sheettitle">Контроль · '+def.name+'</div>'+
+        '<div class="sub" style="margin-top:5px">PDF, стр. '+def.page+
+        '. Введите фактически полученные результаты. Проверка не является частью основного комплекса и не меняет уровень автоматически.</div>'+
+        inputs+'<button class="btn yellow full" onclick="tcSaveMasteryTest()">Сохранить результат</button>'+
+        '<button class="btn ghost full" style="margin-top:8px" onclick="closeSheet()">Отмена</button>';
+      q('sheet').classList.add('open');
+    };
+    window.tcSaveMasteryTest=function(){
+      const def=tcMasteryDefinition();if(!def||!tcRecoveredForTest())return;
+      const values={};
+      for(const field of def.fields){
+        const el=document.getElementById('tcMastery_'+field.id);
+        if(!el)return;
+        if(field.check){values[field.id]=!!el.checked;continue}
+        const raw=String(el.value||'').trim();
+        const n=Number(raw);
+        if(raw===''||!Number.isFinite(n)||n<field.min||(!field.step&&!Number.isInteger(n))){
+          el.style.borderColor='#ff7777';el.focus();return;
+        }
+        values[field.id]=n;
+      }
+      const passed=tcMasteryOutcome(TC_course.level,values);
+      const rec={date:dateKey(),ts:Date.now(),level:TC_course.level,values,passed,sourcePage:def.page,goal:TC_course.goal};
+      TC_course.masteryTests.unshift(rec);
+      TC_course.lastTestDate=rec.date;
+      TC_course.testAnchorDate=rec.date;
+      TC_course.testDeferredUntil='';
+      TC_course.lastCourseDate=rec.date;
+      TC_course.lastCourseTs=rec.ts;
+      TC_course.pendingTransition=passed&&TC_course.level<6?
+        {from:TC_course.level,to:TC_course.level+1,testTs:rec.ts}:null;
+      if(values.regular&&values.regular>TC_course.pullMax){
+        TC_course.pullMax=values.regular;
+        const pull=state.ex.find(e=>e.id==='pull');if(pull)pull.max=values.regular;
+        save();
+      }
+      tcSaveCourse();
+      q('sheet').classList.remove('open');
+      go('today');
+      q('sheetbox').innerHTML='<div class="sheettitle">Контроль уровня '+rec.level+'</div>'+
+        '<div class="tcInfoBlock"><h3>'+(passed?'Норматив выполнен':'Норматив пока не выполнен')+
+        '</h3><p>Результаты сохранены отдельно от основной тренировки. '+
+        (passed?'Вы можете перейти к следующему уровню либо продолжить работу на текущем.':
+         'Следующий контроль будет предложен по установленному интервалу.')+'</p></div>'+
+        (passed?'<button class="btn yellow full" onclick="tcAdvanceCourseLevel()">Перейти на уровень '+(rec.level+1)+'</button>':'')+
+        '<button class="btn ghost full" style="margin-top:8px" onclick="closeSheet()">Остаться на текущем уровне</button>';
+      q('sheet').classList.add('open');
+    };
+    window.tcAdvanceCourseLevel=function(){
+      const p=TC_course.pendingTransition;
+      if(!p||p.from!==TC_course.level||p.to!==p.from+1||p.to>6)return;
+      const current=TC_course.masteryTests.find(t=>t.ts===p.testTs&&t.level===p.from);
+      if(!current||!current.passed)return;
+      TC_course.level=p.to;TC_course.courseSeq=0;
+      TC_course.pendingTransition=null;
+      TC_course.lastTestDate='';TC_course.testAnchorDate='';
+      TC_course.testDeferredUntil='';
+      tcNormalizeGoal();
+      // Keep the last load date so an immediate consecutive workout is not introduced.
+      tcSaveCourse();
+      q('sheet').classList.remove('open');
+      W=null;go('today');
+    };
+
     window.tcStartCourseWorkout=function(){
       if(!tcCourseDue())return;
       const items=tcBuildCourseItems();if(!items.length)return;unlockAudio();
