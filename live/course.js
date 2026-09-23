@@ -1,7 +1,7 @@
-/* TURNIKCOACH_COURSE 1.0.12-final-source-guide */
+/* TURNIKCOACH_COURSE 1.0.13-final-integration */
 (function(){
   'use strict';
-  const COURSE_MODULE_VERSION='1.0.12-final-source-guide';
+  const COURSE_MODULE_VERSION='1.0.13-final-integration';
   if(window.__TC_COURSE_MODULE_VERSION===COURSE_MODULE_VERSION)return;
   window.__TC_COURSE_MODULE_VERSION=COURSE_MODULE_VERSION;
   function tcClamp(v,a,b){return Math.max(a,Math.min(b,v))}
@@ -487,10 +487,8 @@
       ([3,6].includes(TC_course.level)&&tcCalibrationDefs('aux',true).length?'<button class="btn ghost full" style="margin-top:8px" onclick="tcOpenCourseCalibration(\'aux:all\')">Изменить максимумы вспомогательного комплекса</button>':'')+
             '<div class="tcInfoBlock"><h3>Дополнительный вес</h3><p>Используется в комплексах, где курс назначает тяжёлые подтягивания с весом.<input id="tcCourseLoad" type="number" min="0" step="0.5" value="'+TC_course.weightedLoad+'" style="width:100%;box-sizing:border-box;margin-top:7px;background:#0c1218;color:#fff;border:1px solid #3a4653;border-radius:10px;padding:10px"></p></div>'+
       (l.supplement?'<div class="tcInfoBlock"><h3>Дополнительные подтягивания по курсу</h3><p><label style="display:flex;gap:9px;align-items:flex-start"><input id="tcCourseSupplement" type="checkbox" '+(TC_course.authorSupplement?'checked':'')+'><span>'+l.supplement+'</span></label></p></div>':'')+
-      tcAuthorFrequencyAdvice()+tcAuthorRestAdvice()+tcAuthorSourceBoundaries()+
       (TC_course.level===4&&TC_course.goal==='quantity'?'<div class="tcInfoBlock"><h3>Контроль максимума · TurnikCoach</h3><p>Цель: <input id="tcTargetMax" type="number" min="1" step="1" value="'+TC_course.targetMax+'" style="width:65px;background:#0c1218;color:#fff;border:1px solid #3a4653;border-radius:8px;padding:7px"> повторений.<br><br>Проверять каждые <select id="tcTestWeeks" style="background:#0c1218;color:#fff;border:1px solid #3a4653;border-radius:8px;padding:7px">'+[2,3,4].map(n=>'<option value="'+n+'" '+(TC_course.testPeriodWeeks===n?'selected':'')+'>'+n+' недели</option>').join('')+'</select><br><br>Контроль назначается после восстановления; результат сохраняется отдельно от основной тренировки.</p></div>':'')+
       (TC_course.level===7?'<button class="btn ghost full" style="margin-top:8px" onclick="tcOpenAdvancedChoiceSheet()">Выбрать два упражнения 7-го уровня</button>':'')+
-      '<div class="tcInfoBlock"><h3>Критерий освоения уровня</h3><p>'+l.mastery+'</p></div>'+
       '<button class="btn yellow full" style="margin-top:14px" onclick="tcSaveCourseSettings()">Сохранить</button><button class="btn ghost full" style="margin-top:8px" onclick="closeSheet()">Отмена</button>';
       q('sheet').classList.add('open');
       const levelEl=document.getElementById('tcCourseLevel');
@@ -669,7 +667,7 @@
         const next=new Date(TC_course.lastCourseDate+'T12:00:00');next.setDate(next.getDate()+2);
         q('todaySub').textContent=tcAuxDue()?'Вспомогательный комплекс №2 · отдельная тренировка':tcWeeklyMode()?'День без основного комплекса · следующая тренировка по календарю':'День без основного комплекса · восстановление тяговой нагрузки';
         let html='<div class="todayCard"><div class="row between"><div><div class="dateBig">Сегодня без основного комплекса</div><div class="sessionNo">Следующий основной комплекс — не раньше '+fmtKeyDate(nextKey||dateKey(next),false)+'</div></div><span class="tag stage4">ВОССТАНОВЛЕНИЕ</span></div>';
-        if(extras.length){html+='<div class="info" style="margin-top:10px">Подтягивания сегодня не повторяем. Можно выполнить выбранные дополнительные упражнения, которые не относятся к тяговому блоку курса.</div>'+tcExtraRowsHtml(extras)+'<button class="btn yellow full" style="margin-top:12px" onclick="tcStartExtraWorkout()">Начать дополнительную тренировку</button>'}
+        if(extras.length){html+='<div class="info" style="margin-top:10px">Основной тяговый комплекс сегодня не назначен. Можно выполнить выбранные дополнительные упражнения без дополнительной тяговой нагрузки.</div>'+tcExtraRowsHtml(extras)+'<button class="btn yellow full" style="margin-top:12px" onclick="tcStartExtraWorkout()">Начать дополнительную тренировку</button>'}
         else html+='<div class="empty" style="margin-top:12px">Дополнительные упражнения не выбраны. Сегодня можно оставить полный отдых.</div><button class="btn ghost full" style="margin-top:10px" onclick="go(\'exercise\')">Выбрать пресс, ноги или отжимания</button>';
         const conflicts=tcConflictExercises();if(conflicts.length)html+='<div class="info" style="margin-top:10px"><b>Не поставлены автоматически в восстановительный день:</b> '+conflicts.map(e=>e.name).join(', ')+'. Они продолжают нагружать тяговую систему или относятся к сложным элементам.</div>';
         html+='<button class="btn ghost full" style="margin-top:8px" onclick="tcOpenCourseInfo()">ⓘ Советы автора</button></div>'+tcCourseTestCard()+tcMasteryCardHtml()+tcSupplementHtml();q('todayList').innerHTML=tcWeeklyCalendarHtml()+tcPendingLevelHtml()+tcAuxCardHtml()+html;
@@ -872,7 +870,7 @@
       tcInjectProgramStyles();
       const exercise=def?
         '<b>'+tcProgramEscape(def.name)+'</b><br>'+tcProgramEscape(tcAuthorExerciseNote(def))+
-        (source?'<br><span class="meta">Источник: PDF, стр. '+source.page+'</span>':''):'';
+        (source?'':''):'';
       const frequency=tcAuthorFrequencyAdvice();
       const rest=tcAuthorRestAdvice();
       const recovery='<b>В тексте курса:</b> '+tcProgramEscape(l.frequency)+
