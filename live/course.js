@@ -1,7 +1,7 @@
-/* TURNIKCOACH_COURSE 1.0.11-auxiliary-calibration */
+/* TURNIKCOACH_COURSE 1.0.12-final-source-guide */
 (function(){
   'use strict';
-  const COURSE_MODULE_VERSION='1.0.11-auxiliary-calibration';
+  const COURSE_MODULE_VERSION='1.0.12-final-source-guide';
   if(window.__TC_COURSE_MODULE_VERSION===COURSE_MODULE_VERSION)return;
   window.__TC_COURSE_MODULE_VERSION=COURSE_MODULE_VERSION;
   function tcClamp(v,a,b){return Math.max(a,Math.min(b,v))}
@@ -652,18 +652,40 @@
       if(level===4&&goal==='onearm')return 'Для подтягивания на одной руке автор назначает комплекс №2: асимметричные подтягивания, активный вис на одной руке и перехваты в висе на полусогнутых руках.';
       return '';
     }
+
+    // Narrative notes from the supplied PDF, not imagined demonstrations from linked videos.
+    const TC_SOURCE_TECHNIQUE={
+      classic:{page:7,title:'Классический верхний хват',note:'Автор описывает работу мышц рук и спины с участием широчайших, трапециевидных, ромбовидных, круглой мышцы и сгибателей руки.'},
+      wide:{page:9,title:'Широкий верхний хват',note:'Автор относит более выраженный акцент к мышцам спины и стабилизаторам плеча. В качестве варианта для проработки спины упоминает частичную амплитуду.'},
+      chin:{page:11,title:'Нижний хват',note:'Нижний хват несколько увеличивает участие бицепса, однако распределение нагрузки, по пояснению автора, зависит от техники движения.'},
+      shrug:{page:15,title:'Шраги',note:'Автор связывает движение с работой мышц, опускающих плечо, ротаторов плеча и, при большей амплитуде, трапеций.'},
+      asym:{page:16,title:'Асимметричные подтягивания',note:'Тянущая сторона получает повышенную нагрузку, вспомогательная поддерживает положение тела и частично разгружает рабочую сторону.'},
+      high:{page:19,title:'Высокие подтягивания',note:'По автору, высокие подтягивания развивают взрывную силу; целевые мышцы аналогичны классическим подтягиваниям.'},
+      stages:{page:20,title:'Трёхстадийные подтягивания',note:'Разделение движения на стадии используется для развития контроля в разных частях амплитуды.'},
+      band:{page:23,title:'Резина и помощь ног на начальном уровне',note:'Автор предлагает помощь ног и резину, чтобы обучаться подтягиванию с сохранением правильной техники. Подробные нюансы вынесены в видео.'},
+      progression:{page:63,title:'Прогрессия подтягивания на одной руке',note:'Автор предлагает подобрать прогрессию по своему уровню и сочетать её с двумя упражнениями шестого уровня на выбор.'}
+    };
+    function tcSourceTechniqueKey(def){
+      const id=(def&&def.id||'').replace(/_lv7_\d+$/,'');
+      if(['c_pull80','c_pull50','c_pull80_l4','c_classic_max','c_test_pull','c_daily80'].includes(id))return 'classic';
+      if(['c_wide80','c_wide_max_l4','c_wide_band_max'].includes(id))return 'wide';
+      if(['c_chin_max'].includes(id))return 'chin';
+      if(['c_shrug'].includes(id))return 'shrug';
+      if(['c_asym80','c_asym_max','c_full_asym2'].includes(id))return 'asym';
+      if(['c_high_max'].includes(id))return 'high';
+      if(['c_three_stage50'].includes(id))return 'stages';
+      if(['c_band','c_chair_pull'].includes(id))return 'band';
+      if(['c_onearm_progression','c_onearm_progression_mu'].includes(id))return 'progression';
+      return null;
+    }
+    function tcSourceExerciseInfo(def){
+      const key=tcSourceTechniqueKey(def);
+      return key?TC_SOURCE_TECHNIQUE[key]:null;
+    }
     function tcAuthorExerciseNote(def){
-      if(!def)return '';
-      const id=def.id||'';
-      if(id.includes('wide'))return 'По тексту курса широкий верхний хват сильнее смещает акцент на мышцы спины и подключает стабилизаторы плеча. Автор отмечает, что для большего акцента на спину часто используют частичную амплитуду без полного разгибания рук.';
-      if(id.includes('pull80')||id==='c_classic_max'||id.includes('pull50'))return 'Классические подтягивания верхним хватом автор описывает как вариант, где нагрузка относительно равномерно распределяется между мышцами рук и спины.';
-      if(id.includes('plyo')||id.includes('high'))return 'Высокие подтягивания в курсе используются для развития взрывной силы; целевые мышцы остаются теми же, что и в классических подтягиваниях.';
-      if(id.includes('three_stage'))return 'Трёхстадийные подтягивания автор использует для нейромышечного контроля: движение разделяется на фазы, чтобы лучше контролировать работу в каждой части амплитуды.';
-      if(id.includes('asym'))return 'Асимметричные подтягивания увеличивают нагрузку на тянущую сторону, а вспомогательная сторона стабилизирует положение и снимает часть нагрузки.';
-      if(id.includes('shrug'))return 'Шраги в курсе направлены на мышцы, опускающие плечо, ротаторы плеча и при большей амплитуде — трапеции.';
-      if(id.includes('chin'))return 'Нижний хват немного сильнее переносит нагрузку на бицепс, но автор подчёркивает, что распределение нагрузки сильно зависит от техники.';
-      if(def.tip)return def.tip;
-      return 'В тексте PDF для этого упражнения в текущем разделе отдельное техническое пояснение не приведено; курс задаёт его место, объём и режим работы в составе комплекса.';
+      const info=tcSourceExerciseInfo(def);
+      if(info)return info.note+' (PDF, стр. '+info.page+'.)';
+      return 'В текстовой части предоставленного PDF для этого упражнения нет отдельной пошаговой техники. Автор указывает его объём в комплексе; некоторые пояснения вынесены в видео, которое не входит в текст PDF.';
     }
 
     function tcCurrentCalculationHtml(){
