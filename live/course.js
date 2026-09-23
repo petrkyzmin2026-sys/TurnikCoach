@@ -1,7 +1,7 @@
-/* TURNIKCOACH_COURSE 1.0.4-plan-only */
+/* TURNIKCOACH_COURSE 1.0.5-sequence-plan */
 (function(){
   'use strict';
-  const COURSE_MODULE_VERSION='1.0.4-plan-only';
+  const COURSE_MODULE_VERSION='1.0.5-sequence-plan';
   if(window.__TC_COURSE_MODULE_VERSION===COURSE_MODULE_VERSION)return;
   window.__TC_COURSE_MODULE_VERSION=COURSE_MODULE_VERSION;
   function tcClamp(v,a,b){return Math.max(a,Math.min(b,v))}
@@ -259,7 +259,7 @@
     function tcInjectCourseUiStyles(){
       if(document.getElementById('tcCourseUiStyles'))return;
       const st=document.createElement('style');st.id='tcCourseUiStyles';
-      st.textContent="#sheet.open{overflow:hidden!important}#sheet .sheetbox{max-height:min(88dvh,calc(100vh - 22px))!important;overflow-y:auto!important;overflow-x:hidden!important;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;touch-action:pan-y;padding-bottom:max(28px,calc(18px + env(safe-area-inset-bottom)))!important}#sheet .sheetbox::-webkit-scrollbar{width:4px}#sheet .sheetbox::-webkit-scrollbar-thumb{background:#475563;border-radius:999px}.tcExtrasDetails{margin:10px 0 16px;border:1px solid #2e3945;border-radius:16px;background:#111820;overflow:hidden}.tcExtrasSummary{list-style:none;display:flex;align-items:center;gap:9px;padding:14px;cursor:pointer;user-select:none;-webkit-tap-highlight-color:transparent}.tcExtrasSummary::-webkit-details-marker{display:none}.tcExtrasTri{display:inline-block;font-size:15px;color:#ffd84d;transition:transform .16s ease;transform:rotate(0deg)}.tcExtrasDetails[open] .tcExtrasTri{transform:rotate(90deg)}.tcExtrasSummaryText{flex:1;min-width:0}.tcExtrasSummaryTitle{font-weight:900;font-size:15px;color:#fff}.tcExtrasSummaryMeta{font-size:11px;color:#939eac;margin-top:2px}.tcExtrasBody{padding:0 10px 10px}.tcExtrasBody>.card,.tcExtrasBody>.catalogGroup{margin-top:8px}#workout #wplan.tcCoursePlan{min-width:118px;text-align:right;line-height:1.1}#workout #wplan.tcCoursePlan .tcPlanMain{display:block;color:#ffd84d;font-size:25px;font-weight:950;white-space:nowrap}#workout #wplan.tcCoursePlan .tcPlanSub{display:block;color:#9aa6b2;font-size:11px;font-weight:700;margin-top:5px;white-space:nowrap}#workout #wplan.tcCoursePlan .tcPlanSide{display:block;color:#c9d1d9;font-size:10px;font-weight:700;margin-top:3px;white-space:nowrap}";
+      st.textContent="#sheet.open{overflow:hidden!important}#sheet .sheetbox{max-height:min(88dvh,calc(100vh - 22px))!important;overflow-y:auto!important;overflow-x:hidden!important;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;touch-action:pan-y;padding-bottom:max(28px,calc(18px + env(safe-area-inset-bottom)))!important}#sheet .sheetbox::-webkit-scrollbar{width:4px}#sheet .sheetbox::-webkit-scrollbar-thumb{background:#475563;border-radius:999px}.tcExtrasDetails{margin:10px 0 16px;border:1px solid #2e3945;border-radius:16px;background:#111820;overflow:hidden}.tcExtrasSummary{list-style:none;display:flex;align-items:center;gap:9px;padding:14px;cursor:pointer;user-select:none;-webkit-tap-highlight-color:transparent}.tcExtrasSummary::-webkit-details-marker{display:none}.tcExtrasTri{display:inline-block;font-size:15px;color:#ffd84d;transition:transform .16s ease;transform:rotate(0deg)}.tcExtrasDetails[open] .tcExtrasTri{transform:rotate(90deg)}.tcExtrasSummaryText{flex:1;min-width:0}.tcExtrasSummaryTitle{font-weight:900;font-size:15px;color:#fff}.tcExtrasSummaryMeta{font-size:11px;color:#939eac;margin-top:2px}.tcExtrasBody{padding:0 10px 10px}.tcExtrasBody>.card,.tcExtrasBody>.catalogGroup{margin-top:8px}#workout #wplan.tcCoursePlan{min-width:118px;text-align:right;line-height:1.1}#workout #wplan.tcCoursePlan .tcPlanMain{display:block;color:#ffd84d;font-size:23px;font-weight:950;white-space:nowrap;letter-spacing:.02em}#workout #wplan.tcCoursePlan .tcPlanSub{display:block;color:#9aa6b2;font-size:11px;font-weight:700;margin-top:5px;white-space:nowrap}#workout #wplan.tcCoursePlan .tcPlanSide{display:block;color:#c9d1d9;font-size:10px;font-weight:700;margin-top:3px;white-space:nowrap}";
       document.head.appendChild(st);
     }
 
@@ -289,9 +289,22 @@
       }
     }
 
-    function tcCourseRowsHtml(items){return items.map(x=>'<div class="planrow"><div><div class="strong" style="font-size:15px">'+x.e.name+'</div><div class="meta">'+x.def.sets+' подх. · '+tcDisplayScheme(x.def)+' · отдых '+tcCourseRestText(x.def.rest)+(x.e.load?' · +'+x.e.load+' кг':'')+'</div></div><div class="r sets">'+x.planLabels.join(' · ')+'</div></div>').join('')}
+    function tcCourseRowsHtml(items){
+      return items.map(x=>{
+        const seq=Array.from({length:x.plan.length},()=>tcPlanToken(x.def,x)).join('  ');
+        const load=x.e.load?'<span class="meta" style="white-space:nowrap">+'+x.e.load+' кг</span>':'';
+        return '<div class="planrow"><div class="grow"><div class="strong" style="font-size:15px">'+x.e.name+'</div>'+load+'</div><div class="r sets" style="white-space:nowrap">'+seq+'</div></div>';
+      }).join('');
+    }
+
     function tcExtraRowsHtml(items){return items.map(x=>'<div class="planrow"><div><div class="strong" style="font-size:15px">'+x.e.name+'</div><div class="meta">Дополнительное упражнение · '+metricTitle(x.e)+'</div></div><div class="r sets">'+x.plan.join(' · ')+'</div></div>').join('')}
-    function tcSupplementHtml(){if(!TC_course.authorSupplement||!tcCourseLevel().supplement)return'';const reps=Math.max(1,Math.floor(TC_course.pullMax*.8));return '<div class="todayCard" style="margin-top:12px;border-color:#6a5520"><div class="row between"><div><div class="dateBig">Дополнительные подтягивания по курсу</div><div class="sessionNo">Не путать с восстановительным днём</div></div><span class="tag stage4">КУРС</span></div><div class="planrow"><div><div class="strong" style="font-size:15px">Классические подтягивания</div><div class="meta">10 подходов · 80% от максимума · в PDF отдых не задан</div></div><div class="r sets">10 × '+reps+'</div></div><div class="info" style="margin-top:10px">'+tcCourseLevel().supplement+'</div><button class="btn ghost full" style="margin-top:10px" onclick="tcStartSupplementWorkout()">Начать авторское дополнение</button></div>'}
+    function tcSupplementHtml(){
+      if(!TC_course.authorSupplement||!tcCourseLevel().supplement)return'';
+      const reps=Math.max(1,Math.floor(TC_course.pullMax*.8));
+      const seq=Array(10).fill(String(reps)).join('  ');
+      return '<div class="todayCard" style="margin-top:12px;border-color:#6a5520"><div class="row between"><div><div class="dateBig">Дополнительные подтягивания по курсу</div></div><span class="tag stage4">КУРС</span></div><div class="planrow"><div class="grow"><div class="strong" style="font-size:15px">Классические подтягивания</div></div><div class="r sets" style="white-space:normal">'+seq+'</div></div><button class="btn ghost full" style="margin-top:10px" onclick="tcStartSupplementWorkout()">Начать</button></div>';
+    }
+
 
     function tcRenderToday(){
       const now=new Date(),due=tcCourseDue(),l=tcCourseLevel(),c=tcCourseComplex(),items=tcBuildCourseItems(),extras=tcBuildExtraItems();
@@ -406,31 +419,25 @@
     function tcRestoreRestUI(){const title=document.querySelector('#rest h1'),sub=document.querySelector('#rest .sub'),buttons=document.querySelectorAll('#rest button');if(title)title.textContent='Восстановись';if(sub)sub.textContent='За 3 секунды до окончания прозвучат три сигнала';if(buttons[0])buttons[0].textContent='Готов раньше';if(buttons[1])buttons[1].style.display='block';window.__tcManualCourseRest=false}
 
 
-    function tcCompactCoursePlan(def,x){
-      const sch=def.scheme||{},sets=(x&&x.plan?x.plan.length:def.sets)||1;
-      let main='',sub='',side='';
-      if(sch.type==='percent'&&sch.ref==='pull'){
-        const target=tcSchemeTarget(def);
-        main=sets+' × '+target;
-        sub='';
-      }else if(sch.type==='fixed'){
-        main=sets+' × '+sch.value;
-      }else if(sch.type==='max'){
-        main=sets+' × MAX';
-      }else if(sch.type==='range_reps'){
-        main=sets+' × '+sch.min+'–'+sch.max;
-      }else if(sch.type==='timed'){
-        main=sets+' × '+sch.value;
-        if(sch.label&&sch.label!==String(sch.value))sub=sch.label.replace(String(sch.value),'').replace(/^[ ·×-]+/,'').trim();
-      }else if(sch.type==='choice'){
-        main='На выбор';
-      }else{
-        const vals=(x&&x.plan)||[];
-        main=vals.length?vals.join(' · '):tcSchemeLabel(def);
-      }
+    function tcPlanToken(def,x){
+      const sch=def.scheme||{};
+      if(sch.type==='percent'&&sch.ref==='pull')return String(tcSchemeTarget(def));
+      if(sch.type==='fixed')return String(sch.value);
+      if(sch.type==='max')return 'MAX';
+      if(sch.type==='range_reps')return sch.min+'–'+sch.max;
+      if(sch.type==='timed')return sch.label||String(sch.value);
+      if(sch.type==='choice')return 'НА ВЫБОР';
+      const vals=(x&&x.plan)||[];
+      return vals.length?String(vals[0]):tcSchemeLabel(def);
+    }
+    function tcSequenceCoursePlan(def,x){
+      const sets=(x&&x.plan?x.plan.length:def.sets)||1;
+      const token=tcPlanToken(def,x);
+      const seq=Array.from({length:sets},()=>token).join('  ');
+      let side='';
       if(def.metric==='reps_side'||def.metric==='time_side')side='на каждую сторону';
       if(def.metric==='weighted'&&x&&x.e&&x.e.load)side='+'+x.e.load+' кг';
-      return '<span class="tcPlanMain">'+main+'</span>'+(sub?'<span class="tcPlanSub">'+sub+'</span>':'')+(side?'<span class="tcPlanSide">'+side+'</span>':'');
+      return '<span class="tcPlanMain">'+seq+'</span>'+(side?'<span class="tcPlanSide">'+side+'</span>':'');
     }
 
     const tcBeforeCourseRenderWork=window.renderWork;
@@ -438,7 +445,7 @@
       const r=tcBeforeCourseRenderWork();
       if(!W||W.mode!=='course'&&W.mode!=='supplement'){const wp=q('wplan');if(wp)wp.classList.remove('tcCoursePlan');return r;}
       const x=W.items[W.exerciseIndex],def=x.def||x.e.courseDef;if(!def)return r;
-      q('wname').textContent=x.e.name;q('wmeta').textContent='Курс Морозова · упражнение '+(W.exerciseIndex+1)+' из '+W.items.length+' · подход '+(W.setIndex+1)+' из '+x.plan.length+(x.e.load?' · +'+x.e.load+' кг':'');q('wplan').classList.add('tcCoursePlan');q('wplan').innerHTML=tcCompactCoursePlan(def,x);q('factUnit').textContent=tcUnitForMetric(def.metric)+(x.e.load?' · +'+x.e.load+' кг':'');const fb=q('mediaFallback'),img=q('visualImg');if(img){img.removeAttribute('src');img.style.display='none'}if(fb)fb.style.display='none';return r;
+      q('wname').textContent=x.e.name;q('wmeta').textContent='Курс Морозова · упражнение '+(W.exerciseIndex+1)+' из '+W.items.length+' · подход '+(W.setIndex+1)+' из '+x.plan.length+(x.e.load?' · +'+x.e.load+' кг':'');q('wplan').classList.add('tcCoursePlan');q('wplan').innerHTML=tcSequenceCoursePlan(def,x);q('factUnit').textContent=tcUnitForMetric(def.metric)+(x.e.load?' · +'+x.e.load+' кг':'');const fb=q('mediaFallback'),img=q('visualImg');if(img){img.removeAttribute('src');img.style.display='none'}if(fb)fb.style.display='none';return r;
     };
 
     const tcBeforeCourseSetDone=window.setDone;
