@@ -1,7 +1,7 @@
-/* TURNIKCOACH_COURSE 1.0.9-weekly-schedule */
+/* TURNIKCOACH_COURSE 1.0.10-all-levels */
 (function(){
   'use strict';
-  const COURSE_MODULE_VERSION='1.0.9-weekly-schedule';
+  const COURSE_MODULE_VERSION='1.0.10-all-levels';
   if(window.__TC_COURSE_MODULE_VERSION===COURSE_MODULE_VERSION)return;
   window.__TC_COURSE_MODULE_VERSION=COURSE_MODULE_VERSION;
   function tcClamp(v,a,b){return Math.max(a,Math.min(b,v))}
@@ -186,18 +186,28 @@
     function tcDayDiff(a,b){if(!a||!b)return 999;const x=new Date(a+'T12:00:00'),y=new Date(b+'T12:00:00');return Math.round((y-x)/86400000)}
     // Level 4 quantity: an actual weekly calendar, not rolling "48 hours since last workout".
     // Default three sessions (within the author's 3–5 range) preserve days between workouts.
-    function tcWeeklyMode(){return TC_course.level===4&&TC_course.goal==='quantity'}
-    function tcCourseWeekdays(){return TC_course.weeklySessions===4?[1,3,5,0]:[1,3,6]}
+    function tcWeeklyMode(){return TC_course.enabled&&TC_course.level>=1&&TC_course.level<=7}
+    function tcCourseWeekdays(){
+      const l=TC_course.level,g=TC_course.goal;
+      if(l===1)return [1,3,5,0]; // Page 26: alternating complexes 1 and 2.
+      if(l===2)return TC_course.weeklySessions===4?[1,3,6,0]:[1,3,6]; // 2–4/week.
+      if(l===3)return [1,3,6]; // Main complex 1 three times/week; auxiliary is separate.
+      if(l===4){
+        if(g==='quantity')return TC_course.weeklySessions===4?[1,3,5,0]:[1,3,6];
+        return g==='onearm'?[1,3,5,0]:[1,3,6];
+      }
+      if(l===5)return g==='onearm'?[1,3,5,0]:[1,3,6];
+      if(l===6)return [1,3,6];
+      return [1,4,6]; // Page 65–66: level seven.
+    }
     function tcDateFromKey(k){return new Date(k+'T12:00:00')}
     function tcScheduledOn(k){return tcCourseWeekdays().includes(tcDateFromKey(k).getDay())}
     function tcCourseDue(){
-      if(!tcWeeklyMode()){
-        if(!TC_course.lastCourseDate)return true;
-        return tcDayDiff(TC_course.lastCourseDate,dateKey())>=2;
-      }
-      if(!TC_course.lastCourseDate)return true; // Allow an initial session on the setup day.
+      if(!tcWeeklyMode())return false;
       const today=dateKey();
-      return today!==TC_course.lastCourseDate&&tcScheduledOn(today)&&!tcTestDue();
+      if(TC_course.lastCourseDate===today||tcTestDue())return false;
+      if(!TC_course.lastCourseDate)return true; // First course session may start on setup day.
+      return tcScheduledOn(today);
     }
     function tcNextCourseDay(){
       const today=tcDateFromKey(dateKey());
@@ -629,7 +639,7 @@
     }
 
     window.tcStartCourseWorkout=function(){
-      if(tcWeeklyMode()&&!tcCourseDue())return;
+      if(!tcCourseDue())return;
       const items=tcBuildCourseItems();if(!items.length)return;unlockAudio();
       const c=tcCourseComplex();W={mode:'course',sessionIndex:0,exerciseIndex:0,setIndex:0,items,actual:tcSchemeTarget(items[0].def),early:false,courseLevel:TC_course.level,courseComplex:c.no,courseGoal:TC_course.goal};go('workout');
     };
