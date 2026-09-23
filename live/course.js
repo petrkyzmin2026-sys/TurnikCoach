@@ -1,7 +1,7 @@
-/* TURNIKCOACH_COURSE 1.0.0-morozov */
+/* TURNIKCOACH_COURSE 1.0.1-course-ui */
 (function(){
   'use strict';
-  const COURSE_MODULE_VERSION='1.0.0-morozov';
+  const COURSE_MODULE_VERSION='1.0.1-course-ui';
   if(window.__TC_COURSE_MODULE_VERSION===COURSE_MODULE_VERSION)return;
   window.__TC_COURSE_MODULE_VERSION=COURSE_MODULE_VERSION;
   function tcClamp(v,a,b){return Math.max(a,Math.min(b,v))}
@@ -242,7 +242,7 @@
       '<div class="tcInfoBlock"><h3>Текущий максимум</h3><p><input id="tcCourseMax" type="number" min="1" value="'+TC_course.pullMax+'" style="width:100%;box-sizing:border-box;margin-top:4px;background:#0c1218;color:#fff;border:1px solid #3a4653;border-radius:10px;padding:10px"></p></div>'+
       '<div class="tcInfoBlock"><h3>Цель</h3><p><select id="tcCourseGoal" style="width:100%;margin-top:4px;background:#0c1218;color:#fff;border:1px solid #3a4653;border-radius:10px;padding:10px">'+goals.map(g=>'<option value="'+g[0]+'" '+(g[0]===TC_course.goal?'selected':'')+'>'+g[1]+'</option>').join('')+'</select></p></div>'+
       '<div class="tcInfoBlock"><h3>Дополнительный вес</h3><p>Используется в комплексах, где курс назначает тяжёлые подтягивания с весом.<input id="tcCourseLoad" type="number" min="0" step="0.5" value="'+TC_course.weightedLoad+'" style="width:100%;box-sizing:border-box;margin-top:7px;background:#0c1218;color:#fff;border:1px solid #3a4653;border-radius:10px;padding:10px"></p></div>'+
-      (l.supplement?'<div class="tcInfoBlock"><h3>Авторское дополнение</h3><p><label style="display:flex;gap:9px;align-items:flex-start"><input id="tcCourseSupplement" type="checkbox" '+(TC_course.authorSupplement?'checked':'')+'><span>'+l.supplement+'</span></label></p></div>':'')+
+      (l.supplement?'<div class="tcInfoBlock"><h3>Дополнительные подтягивания по курсу</h3><p><label style="display:flex;gap:9px;align-items:flex-start"><input id="tcCourseSupplement" type="checkbox" '+(TC_course.authorSupplement?'checked':'')+'><span>'+l.supplement+'</span></label></p></div>':'')+
       '<div class="tcInfoBlock"><h3>Критерий освоения уровня</h3><p>'+l.mastery+'</p></div>'+
       '<button class="btn yellow full" style="margin-top:14px" onclick="tcSaveCourseSettings()">Сохранить</button><button class="btn ghost full" style="margin-top:8px" onclick="closeSheet()">Отмена</button>';
       q('sheet').classList.add('open');
@@ -256,20 +256,42 @@
       tcSaveCourse();save();closeSheet();render();
     };
 
+    function tcInjectCourseUiStyles(){
+      if(document.getElementById('tcCourseUiStyles'))return;
+      const st=document.createElement('style');st.id='tcCourseUiStyles';
+      st.textContent="#sheet.open{overflow:hidden!important}#sheet .sheetbox{max-height:min(88dvh,calc(100vh - 22px))!important;overflow-y:auto!important;overflow-x:hidden!important;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;touch-action:pan-y;padding-bottom:max(28px,calc(18px + env(safe-area-inset-bottom)))!important}#sheet .sheetbox::-webkit-scrollbar{width:4px}#sheet .sheetbox::-webkit-scrollbar-thumb{background:#475563;border-radius:999px}.tcExtrasDetails{margin:10px 0 16px;border:1px solid #2e3945;border-radius:16px;background:#111820;overflow:hidden}.tcExtrasSummary{list-style:none;display:flex;align-items:center;gap:9px;padding:14px;cursor:pointer;user-select:none;-webkit-tap-highlight-color:transparent}.tcExtrasSummary::-webkit-details-marker{display:none}.tcExtrasTri{display:inline-block;font-size:15px;color:#ffd84d;transition:transform .16s ease;transform:rotate(0deg)}.tcExtrasDetails[open] .tcExtrasTri{transform:rotate(90deg)}.tcExtrasSummaryText{flex:1;min-width:0}.tcExtrasSummaryTitle{font-weight:900;font-size:15px;color:#fff}.tcExtrasSummaryMeta{font-size:11px;color:#939eac;margin-top:2px}.tcExtrasBody{padding:0 10px 10px}.tcExtrasBody>.card,.tcExtrasBody>.catalogGroup{margin-top:8px}";
+      document.head.appendChild(st);
+    }
+
+    function tcCollapseExtraCatalog(host){
+      if(!TC_course.enabled||!host)return;
+      if(document.getElementById('tcExtrasDetails'))return;
+      const selectedExtra=tcExtraExercises().length;
+      const details=document.createElement('details');details.id='tcExtrasDetails';details.className='tcExtrasDetails';details.open=!!window.__tcExtrasOpen;
+      const summary=document.createElement('summary');summary.className='tcExtrasSummary';
+      summary.innerHTML='<span class="tcExtrasTri">▶</span><div class="tcExtrasSummaryText"><div class="tcExtrasSummaryTitle">Дополнительные упражнения TurnikCoach</div><div class="tcExtrasSummaryMeta">'+(selectedExtra?('Выбрано: '+selectedExtra):'Свернуто · нажми, чтобы выбрать пресс, ноги, отжимания и другое')+'</div></div>';
+      const body=document.createElement('div');body.className='tcExtrasBody';
+      [...host.children].forEach(node=>{if(node.id!=='tcCourseCard')body.appendChild(node)});
+      details.appendChild(summary);details.appendChild(body);details.addEventListener('toggle',()=>{window.__tcExtrasOpen=details.open});host.appendChild(details);
+    }
+
     function tcDecorateCourseCatalog(){
       const host=q('exerciseList');if(!host)return;
       const old=document.getElementById('tcCourseCard');if(old)old.remove();
+      const oldDetails=document.getElementById('tcExtrasDetails');
+      if(oldDetails&&oldDetails.parentNode===host){const body=oldDetails.querySelector('.tcExtrasBody');if(body){[...body.children].forEach(n=>host.appendChild(n))}oldDetails.remove()}
       host.insertAdjacentHTML('afterbegin',tcCourseCardHtml());
-      const head=document.querySelector('#exercise .head .sub');if(head)head.textContent=TC_course.enabled?'Подтягивания ведёт отдельный курс Морозова. Ниже выбери дополнительные упражнения для дней без основного комплекса.':'Можно использовать обычный конструктор либо подключить отдельный курс Морозова для подтягиваний.';
+      const head=document.querySelector('#exercise .head .sub');if(head)head.textContent=TC_course.enabled?'Подтягивания ведёт отдельный курс Морозова. Дополнительные упражнения ниже свернуты и не вмешиваются в структуру курса.':'Можно использовать обычный конструктор либо подключить отдельный курс Морозова для подтягиваний.';
       if(TC_course.enabled){
         host.querySelectorAll('.catalogGroup').forEach(g=>{const name=g.querySelector('.catalogHead .strong');if(name&&(name.textContent||'').trim()==='Турник')g.style.display='none'});
-        const summary=host.querySelector('.catalogSummary .meta');if(summary)summary.textContent='Ниже — дополнительные упражнения TurnikCoach. Тяговая часть курса рассчитывается отдельно.';
+        const summary=host.querySelector('.catalogSummary .meta');if(summary)summary.textContent='Дополнительные упражнения TurnikCoach. Тяговая часть курса рассчитывается отдельно.';
+        tcCollapseExtraCatalog(host);
       }
     }
 
     function tcCourseRowsHtml(items){return items.map(x=>'<div class="planrow"><div><div class="strong" style="font-size:15px">'+x.e.name+'</div><div class="meta">'+x.def.sets+' подх. · '+tcDisplayScheme(x.def)+' · отдых '+tcCourseRestText(x.def.rest)+(x.e.load?' · +'+x.e.load+' кг':'')+'</div></div><div class="r sets">'+x.planLabels.join(' · ')+'</div></div>').join('')}
     function tcExtraRowsHtml(items){return items.map(x=>'<div class="planrow"><div><div class="strong" style="font-size:15px">'+x.e.name+'</div><div class="meta">Дополнительное упражнение · '+metricTitle(x.e)+'</div></div><div class="r sets">'+x.plan.join(' · ')+'</div></div>').join('')}
-    function tcSupplementHtml(){if(!TC_course.authorSupplement||!tcCourseLevel().supplement)return'';const reps=Math.max(1,Math.floor(TC_course.pullMax*.8));return '<div class="todayCard" style="margin-top:12px;border-color:#6a5520"><div class="row between"><div><div class="dateBig">Авторское дополнение</div><div class="sessionNo">Не путать с восстановительным днём</div></div><span class="tag stage4">КУРС</span></div><div class="planrow"><div><div class="strong" style="font-size:15px">Классические подтягивания</div><div class="meta">10 подходов · 80% от максимума · в PDF отдых не задан</div></div><div class="r sets">10 × '+reps+'</div></div><div class="info" style="margin-top:10px">'+tcCourseLevel().supplement+'</div><button class="btn ghost full" style="margin-top:10px" onclick="tcStartSupplementWorkout()">Начать авторское дополнение</button></div>'}
+    function tcSupplementHtml(){if(!TC_course.authorSupplement||!tcCourseLevel().supplement)return'';const reps=Math.max(1,Math.floor(TC_course.pullMax*.8));return '<div class="todayCard" style="margin-top:12px;border-color:#6a5520"><div class="row between"><div><div class="dateBig">Дополнительные подтягивания по курсу</div><div class="sessionNo">Не путать с восстановительным днём</div></div><span class="tag stage4">КУРС</span></div><div class="planrow"><div><div class="strong" style="font-size:15px">Классические подтягивания</div><div class="meta">10 подходов · 80% от максимума · в PDF отдых не задан</div></div><div class="r sets">10 × '+reps+'</div></div><div class="info" style="margin-top:10px">'+tcCourseLevel().supplement+'</div><button class="btn ghost full" style="margin-top:10px" onclick="tcStartSupplementWorkout()">Начать авторское дополнение</button></div>'}
 
     function tcRenderToday(){
       const now=new Date(),due=tcCourseDue(),l=tcCourseLevel(),c=tcCourseComplex(),items=tcBuildCourseItems(),extras=tcBuildExtraItems();
@@ -352,7 +374,7 @@
     const tcBeforeCourseInfo=window.tcOpenTrainingInfo;
     window.tcOpenTrainingInfo=function(){if(TC_course.enabled&&(W&&['course','supplement'].includes(W.mode)||q('today').classList.contains('on')))return tcOpenCourseInfo();return tcBeforeCourseInfo()};
 
-    function tcCourseHistoryHtml(){if(!TC_course.enabled&&!TC_course.history.length)return'';const rows=TC_course.history.slice(0,8).map(h=>'<div class="historyitem"><div class="row between"><div><div class="strong" style="font-size:14px">'+(h.courseMode==='supplement'?'Авторское дополнение':'Курс Морозова · уровень '+h.courseLevel+' · комплекс '+h.courseComplex)+'</div><div class="meta">'+fmtRecordDate(h)+' · '+(h.feedback||'—')+'</div></div><span class="badge">КУРС</span></div>'+(h.details||[]).map(d=>'<div class="meta" style="margin-top:6px">'+d.name+': '+d.actual.map(v=>v===null?'—':v).join(' · ')+'</div>').join('')+'</div>').join('');return '<div class="exerciseProgressCard"><div class="progressHead"><div><div class="progressName">Курс Морозова</div><div class="meta">Отдельная история основной тяговой программы</div></div><span class="badge">ур. '+TC_course.level+'</span></div><div class="tcInfoBlock"><h3>Критерий текущего уровня</h3><p>'+tcCourseLevel().mastery+'</p></div>'+rows+'</div>'}
+    function tcCourseHistoryHtml(){if(!TC_course.enabled&&!TC_course.history.length)return'';const rows=TC_course.history.slice(0,8).map(h=>'<div class="historyitem"><div class="row between"><div><div class="strong" style="font-size:14px">'+(h.courseMode==='supplement'?'Дополнительные подтягивания по курсу':'Курс Морозова · уровень '+h.courseLevel+' · комплекс '+h.courseComplex)+'</div><div class="meta">'+fmtRecordDate(h)+' · '+(h.feedback||'—')+'</div></div><span class="badge">КУРС</span></div>'+(h.details||[]).map(d=>'<div class="meta" style="margin-top:6px">'+d.name+': '+d.actual.map(v=>v===null?'—':v).join(' · ')+'</div>').join('')+'</div>').join('');return '<div class="exerciseProgressCard"><div class="progressHead"><div><div class="progressName">Курс Морозова</div><div class="meta">Отдельная история основной тяговой программы</div></div><span class="badge">ур. '+TC_course.level+'</span></div><div class="tcInfoBlock"><h3>Критерий текущего уровня</h3><p>'+tcCourseLevel().mastery+'</p></div>'+rows+'</div>'}
     const tcBeforeCourseRenderHistory=window.renderHistory;
     window.renderHistory=function(){const r=tcBeforeCourseRenderHistory();const host=q('exerciseProgress');if(host){const old=document.getElementById('tcCourseHistoryWrap');if(old)old.remove();const wrap=document.createElement('div');wrap.id='tcCourseHistoryWrap';wrap.innerHTML=tcCourseHistoryHtml();host.parentNode.insertBefore(wrap,host)}return r};
 
@@ -360,6 +382,7 @@
     window.render=function(){const r=tcBeforeCourseRender();tcDecorateCourseCatalog();if(TC_course.enabled&&q('today').classList.contains('on'))tcRenderToday();return r};
 
     // Initial redraw after installing the module.
+    tcInjectCourseUiStyles();
     render();
 
 })();
