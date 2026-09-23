@@ -773,7 +773,7 @@
       return '<div class="tcInfoBlock"><h3>Частота занятий · PDF, стр. '+page+'</h3><p>'+tcProgramEscape(schedule)+'</p></div>';
     }
     function tcAuthorRestAdvice(){
-      const c=tcCourseComplex();
+      const c=W&&W.mode==='auxCourse'?{no:2,def:TC_COURSE[TC_course.level].complexes[2]}:tcCourseComplex();
       if(!c.def)return '';
       const lines=c.def.items.map(x=>x.name+': '+tcCourseRestText(x.rest));
       return '<div class="tcInfoBlock"><h3>Отдых в текущем комплексе</h3><p>'+lines.map(tcProgramEscape).join('<br>')+'</p></div>';
@@ -783,7 +783,7 @@
     }
 
     window.tcOpenCourseInfo=function(){
-      const l=tcCourseLevel(),c=tcCourseComplex(),box=q('sheetbox');
+      const l=tcCourseLevel(),c=W&&W.mode==='auxCourse'?{no:2,def:TC_COURSE[TC_course.level].complexes[2]}:tcCourseComplex(),box=q('sheetbox');
       const goalText=tcAuthorGoalText(TC_course.level,TC_course.goal);
       box.innerHTML='<div class="sheettitle">Советы автора · '+l.title+'</div>'+
       '<div class="sub" style="margin-top:6px">Рекомендации и значения из PDF. Расчёт задания TurnikCoach указан отдельно.</div>'+
