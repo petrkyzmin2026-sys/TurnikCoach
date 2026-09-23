@@ -327,7 +327,7 @@
       q('todayTitle').textContent=fmtDate(now);
       if(due){
         q('todaySub').textContent=tcTestDue()?'Контроль прогресса · курс Морозова':'Курс Морозова · '+l.title+' · '+tcCourseGoalName(TC_course.goal);
-        q('todayList').innerHTML='<div class="todayCard"><div class="row between"><div><div class="dateBig">'+(c.def?c.def.name:'Основной комплекс')+'</div><div class="sessionNo">'+l.frequency+'</div></div><span class="tag">КУРС</span></div>'+tcCourseRowsHtml(items)+'<div class="meta" style="margin-top:10px">Текущий уровень: '+l.title+' · контроль: '+l.mastery+'</div><button class="btn yellow full" style="margin-top:12px" onclick="tcStartCourseWorkout()">Начать основной комплекс</button><button class="btn ghost full" style="margin-top:8px" onclick="tcOpenCourseInfo()">ⓘ Советы автора</button></div>'+tcCourseTestCard();
+        q('todayList').innerHTML=tcCourseTestCard()+'<div class="todayCard"><div class="row between"><div><div class="dateBig">'+(c.def?c.def.name:'Основной комплекс')+'</div><div class="sessionNo">'+l.frequency+'</div></div><span class="tag">КУРС</span></div>'+tcCourseRowsHtml(items)+'<div class="meta" style="margin-top:10px">Текущий уровень: '+l.title+' · контроль: '+l.mastery+'</div><button class="btn yellow full" style="margin-top:12px" onclick="tcStartCourseWorkout()">Начать основной комплекс</button><button class="btn ghost full" style="margin-top:8px" onclick="tcOpenCourseInfo()">ⓘ Советы автора</button></div>';
       }else{
         const next=new Date(TC_course.lastCourseDate+'T12:00:00');next.setDate(next.getDate()+2);
         q('todaySub').textContent='День без основного комплекса · восстановление тяговой нагрузки';
@@ -507,7 +507,7 @@
 
     // Control trial is a single MAX set, separate from the author's workout complex.
     window.tcStartCourseTest=function(){
-      if(window.W){return}
+      if(W){return}
       if(!tcCourseDue()){window.tcOpenCourseInfo();return}
       const src=state.ex.find(e=>e.id==='pull')||{};
       const e={...src,id:'c_test_pull',name:'Контрольный максимум · классические подтягивания',
@@ -521,7 +521,7 @@
       go('workout');
     };
     window.tcConfirmCourseTest=function(){
-      if(!window.W||W.mode!=='courseTest')return;
+      if(!W||W.mode!=='courseTest')return;
       const value=+(W.items[0].actual[0]);
       if(!Number.isInteger(value)||value<1)return;
       const previous=TC_course.pullMax,achieved=value>=TC_course.targetMax;
@@ -651,7 +651,7 @@
     };
 
     const tcBeforeCourseInfo=window.tcOpenTrainingInfo;
-    window.tcOpenTrainingInfo=function(){if(TC_course.enabled&&(W&&['course','supplement'].includes(W.mode)||q('today').classList.contains('on')))return tcOpenCourseInfo();return tcBeforeCourseInfo()};
+    window.tcOpenTrainingInfo=function(){if(TC_course.enabled&&(W&&['course','supplement','courseTest'].includes(W.mode)||q('today').classList.contains('on')))return tcOpenCourseInfo();return tcBeforeCourseInfo()};
 
 
     function tcCourseTestsHtml(){
