@@ -872,6 +872,14 @@
       const lines=c.def.items.map(x=>x.name+': '+tcCourseRestText(x.rest));
       return '<div class="tcInfoBlock"><h3>Отдых в текущем комплексе</h3><p>'+lines.map(tcProgramEscape).join('<br>')+'</p></div>';
     }
+    function tcAdviceCurrentDef(){
+      if(W&&W.items&&W.items.length){
+        const current=W.items[W.exerciseIndex];
+        if(current)return current.def||current.e&&current.e.courseDef||null;
+      }
+      const next=tcCourseComplex();
+      return next.def&&next.def.items&&next.def.items[0]||null;
+    }
     function tcAdvicePanel(title,body,opened){
       return '<details class="tcProgramNote"'+(opened?' open':'')+'><summary style="font-size:14px;font-weight:800">'+title+'</summary>'+
         '<div style="font-size:13px;line-height:1.55;color:#c6d0dd;padding-top:8px">'+body+'</div></details>';
