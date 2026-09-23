@@ -1,7 +1,7 @@
-/* TURNIKCOACH_COURSE 1.0.5-sequence-plan */
+/* TURNIKCOACH_COURSE 1.0.6-program-browser */
 (function(){
   'use strict';
-  const COURSE_MODULE_VERSION='1.0.5-sequence-plan';
+  const COURSE_MODULE_VERSION='1.0.6-program-browser';
   if(window.__TC_COURSE_MODULE_VERSION===COURSE_MODULE_VERSION)return;
   window.__TC_COURSE_MODULE_VERSION=COURSE_MODULE_VERSION;
   function tcClamp(v,a,b){return Math.max(a,Math.min(b,v))}
@@ -231,7 +231,7 @@
       return '<div class="card" id="tcCourseCard" style="margin-bottom:12px;border-color:'+(enabled?'#ffd84d':'#2c3945')+'">'+
         '<div class="row between"><div class="grow"><div class="k">ПРОГРАММА</div><div class="strong" style="font-size:18px;margin-top:3px">Курс Морозова</div><div class="meta">«Подтягивания с нуля до киборга»</div></div><span class="tag '+(enabled?'':'stage4')+'">'+(enabled?'ВКЛЮЧЁН':'ВЫКЛЮЧЕН')+'</span></div>'+
         (enabled?'<div class="tcInfoBlock"><h3>'+l.title+'</h3><p><b>Цель:</b> '+tcCourseGoalName(TC_course.goal)+'<br><b>Следующий:</b> '+(c.def?c.def.name:'—')+'<br><b>Текущий максимум:</b> '+TC_course.pullMax+'<br><b>Частота по курсу:</b> '+l.frequency+'</p></div>':'<div class="sub" style="margin-top:10px">Отдельная система тренировок: уровни, комплексы, проценты, MAX, отдых и контрольные критерии берутся из курса. Остальные упражнения TurnikCoach можно использовать отдельно.</div>')+
-        '<button class="btn '+(enabled?'ghost':'yellow')+' full" style="margin-top:12px" onclick="tcOpenCourseSettings()">'+(enabled?'Настроить курс':'Подключить курс')+'</button></div>';
+        '<button class="btn yellow full" style="margin-top:12px" onclick="tcOpenCourseProgram()">Программа курса</button>'+ '<button class="btn ghost full" style="margin-top:8px" onclick="tcOpenCourseSettings()">'+(enabled?'Настройки курса':'Подключить курс')+'</button></div>';
     }
     window.tcOpenCourseSettings=function(){
       tcNormalizeGoal();const l=tcCourseLevel(),goals=tcGoalOptions(TC_course.level);
@@ -311,7 +311,7 @@
       q('todayTitle').textContent=fmtDate(now);
       if(due){
         q('todaySub').textContent='Курс Морозова · '+l.title+' · '+tcCourseGoalName(TC_course.goal);
-        q('todayList').innerHTML='<div class="todayCard"><div class="row between"><div><div class="dateBig">'+(c.def?c.def.name:'Основной комплекс')+'</div><div class="sessionNo">'+l.frequency+'</div></div><span class="tag">КУРС</span></div>'+tcCourseRowsHtml(items)+'<div class="info" style="margin-top:10px"><b>Критерий уровня:</b> '+l.mastery+'<br><br>Содержание комплекса и интервалы отдыха взяты из курса. Раскладка дней восстановления и дополнительных упражнений — логика TurnikCoach.</div><button class="btn yellow full" style="margin-top:12px" onclick="tcStartCourseWorkout()">Начать основной комплекс</button><button class="btn ghost full" style="margin-top:8px" onclick="tcOpenCourseInfo()">ⓘ Советы автора</button></div>';
+        q('todayList').innerHTML='<div class="todayCard"><div class="row between"><div><div class="dateBig">'+(c.def?c.def.name:'Основной комплекс')+'</div><div class="sessionNo">'+l.frequency+'</div></div><span class="tag">КУРС</span></div>'+tcCourseRowsHtml(items)+'<div class="info" style="margin-top:10px"><b>Критерий уровня:</b> '+l.mastery+'<br><br>Содержание комплекса и интервалы отдыха взяты из курса. Раскладка дней восстановления и дополнительных упражнений — логика TurnikCoach.</div><button class="btn yellow full" style="margin-top:12px" onclick="tcStartCourseWorkout()">Начать основной комплекс</button><button class="btn ghost full" style="margin-top:8px" onclick="tcOpenCourseProgram()">Программа курса</button><button class="btn ghost full" style="margin-top:8px" onclick="tcOpenCourseInfo()">ⓘ Советы автора</button></div>';
       }else{
         const next=new Date(TC_course.lastCourseDate+'T12:00:00');next.setDate(next.getDate()+2);
         q('todaySub').textContent='День без основного комплекса · восстановление тяговой нагрузки';
@@ -319,7 +319,7 @@
         if(extras.length){html+='<div class="info" style="margin-top:10px">Подтягивания сегодня не повторяем. Можно выполнить выбранные дополнительные упражнения, которые не относятся к тяговому блоку курса.</div>'+tcExtraRowsHtml(extras)+'<button class="btn yellow full" style="margin-top:12px" onclick="tcStartExtraWorkout()">Начать дополнительную тренировку</button>'}
         else html+='<div class="empty" style="margin-top:12px">Дополнительные упражнения не выбраны. Сегодня можно оставить полный отдых.</div><button class="btn ghost full" style="margin-top:10px" onclick="go(\'exercise\')">Выбрать пресс, ноги или отжимания</button>';
         const conflicts=tcConflictExercises();if(conflicts.length)html+='<div class="info" style="margin-top:10px"><b>Не поставлены автоматически в восстановительный день:</b> '+conflicts.map(e=>e.name).join(', ')+'. Они продолжают нагружать тяговую систему или относятся к сложным элементам.</div>';
-        html+='<button class="btn ghost full" style="margin-top:8px" onclick="tcOpenCourseInfo()">ⓘ Советы автора</button></div>'+tcSupplementHtml();q('todayList').innerHTML=html;
+        html+='<button class="btn ghost full" style="margin-top:8px" onclick="tcOpenCourseProgram()">Программа курса</button><button class="btn ghost full" style="margin-top:8px" onclick="tcOpenCourseInfo()">ⓘ Советы автора</button></div>'+tcSupplementHtml();q('todayList').innerHTML=html;
       }
       tcQueueDecorate();
     }
@@ -384,6 +384,70 @@
       if(!c||!c.def)return '';
       return c.def.items.map(def=>'<div class="tcInfoBlock"><h3>'+def.name+'</h3><p><b>По курсу:</b> '+def.sets+' подх. · '+tcSchemeLabel(def)+' · отдых '+tcCourseRestText(def.rest)+'<br><br>'+tcAuthorExerciseNote(def)+'</p></div>').join('');
     }
+
+
+    // Read-only seven-level catalogue. Browsing does not change a workout or saved preferences.
+    function tcProgramEscape(v){
+      return String(v==null?'':v).replace(/[&<>"']/g,ch=>({
+        '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+      }[ch]));
+    }
+    function tcProgramPrescription(def){
+      const scheme=def.scheme||{};
+      let target=tcSchemeLabel(def);
+      if(scheme.type==='percent')target=Math.round((+scheme.pct||0)*100)+'% от максимума';
+      if(scheme.type==='max')target='MAX';
+      if(scheme.type==='choice')return 'Упражнение на выбор из указанного уровня';
+      const sides=(def.metric==='reps_side'||def.metric==='time_side')?' на каждую руку':'';
+      const units=(def.metric==='time'||def.metric==='time_side')?' сек':'';
+      const weight=(def.metric==='weighted')?' с дополнительным весом':'';
+      return def.sets+' подх.'+sides+' · '+target+units+weight;
+    }
+    function tcProgramExerciseHtml(def){
+      const tip=tcAuthorExerciseNote(def);
+      const noTip=tip.indexOf('отдельное техническое пояснение не приведено')>=0;
+      const note=(!noTip&&tip)?'<details class="tcProgramNote"><summary>Пояснение к упражнению</summary><p>'+tcProgramEscape(tip)+'</p></details>':'';
+      return '<div class="tcProgramExercise"><div class="tcProgramExerciseName">'+tcProgramEscape(def.name)+'</div>'+
+        '<div class="tcProgramPrescription">'+tcProgramEscape(tcProgramPrescription(def))+'</div>'+
+        '<div class="tcProgramRest">Отдых: '+tcProgramEscape(tcCourseRestText(def.rest))+'</div>'+note+'</div>';
+    }
+    function tcProgramComplexHtml(levelNo,no,complex){
+      const active=levelNo===TC_course.level&&no===tcCourseComplexNo();
+      return '<details class="tcProgramComplex"'+(active?' open':'')+'><summary><span class="tcProgramChevron">▶</span><span class="tcProgramGrow">'+tcProgramEscape(complex.name)+'</span>'+(active?'<span class="tcProgramCurrent">Следующий</span>':'')+'</summary>'+
+        '<div class="tcProgramComplexBody">'+
+        (complex.purpose?'<p class="tcProgramPurpose">'+tcProgramEscape(complex.purpose)+'</p>':'')+
+        complex.items.map(tcProgramExerciseHtml).join('')+'</div></details>';
+    }
+    function tcProgramLevelHtml(levelNo){
+      const level=TC_COURSE[levelNo],active=levelNo===TC_course.level;
+      const nums=Object.keys(level.complexes).map(Number).sort((a,b)=>a-b);
+      return '<details class="tcProgramLevel"'+(active?' open':'')+'>'+
+        '<summary><span class="tcProgramChevron">▶</span><span class="tcProgramGrow">Уровень '+levelNo+' · '+tcProgramEscape(level.title)+'</span>'+(active?'<span class="tcProgramCurrent">Ваш уровень</span>':'')+'</summary>'+
+        '<div class="tcProgramLevelBody">'+
+        (level.entry?'<div class="tcProgramLine"><b>Ориентир:</b> '+tcProgramEscape(level.entry)+'</div>':'')+
+        '<div class="tcProgramLine"><b>Частота:</b> '+tcProgramEscape(level.frequency)+'</div>'+
+        nums.map(no=>tcProgramComplexHtml(levelNo,no,level.complexes[no])).join('')+
+        '<div class="tcProgramLine"><b>Контроль уровня:</b> '+tcProgramEscape(level.mastery)+'</div>'+
+        (level.supplement?'<details class="tcProgramNote"><summary>Дополнительная работа по курсу</summary><p>'+tcProgramEscape(level.supplement)+'</p></details>':'')+
+        '</div></details>';
+    }
+    function tcInjectProgramStyles(){
+      if(document.getElementById('tcCourseProgramStyles'))return;
+      const el=document.createElement('style');el.id='tcCourseProgramStyles';
+      el.textContent='.tcProgramLevel{border:1px solid #35414d;border-radius:14px;margin:10px 0;background:#111920;overflow:visible}.tcProgramLevel[open]{border-color:#6e6040}.tcProgramLevel>summary,.tcProgramComplex>summary{list-style:none;display:flex;align-items:center;gap:9px;padding:13px 11px;min-height:48px;cursor:pointer}.tcProgramLevel>summary::-webkit-details-marker,.tcProgramComplex>summary::-webkit-details-marker,.tcProgramNote>summary::-webkit-details-marker{display:none}.tcProgramChevron{color:#ffd84d;font-size:12px;flex:none;transition:transform .15s ease}.tcProgramLevel[open]>summary>.tcProgramChevron,.tcProgramComplex[open]>summary>.tcProgramChevron{transform:rotate(90deg)}.tcProgramGrow{flex:1;min-width:0;font-weight:850;font-size:14px}.tcProgramCurrent{flex:none;font-size:10px;color:#17130a;background:#ffd84d;border-radius:7px;padding:4px 6px;font-weight:800}.tcProgramLevelBody{padding:0 11px 12px}.tcProgramLine{font-size:12px;color:#c6d0d9;line-height:1.45;margin:8px 0}.tcProgramComplex{background:#1b242c;border:1px solid #34414c;border-radius:11px;margin:9px 0;overflow:visible}.tcProgramComplexBody{padding:0 11px 10px}.tcProgramPurpose{font-size:12px;line-height:1.45;color:#bec7d2;margin:0 0 10px}.tcProgramExercise{border-top:1px solid #35404b;padding:10px 0}.tcProgramExerciseName{font-weight:850;color:#fff;font-size:13px;line-height:1.4}.tcProgramPrescription{font-size:12px;color:#ffd84d;font-weight:800;line-height:1.45;margin-top:3px}.tcProgramRest{font-size:11px;color:#b1bbc6;margin-top:4px}.tcProgramNote{margin-top:9px;padding:8px 9px;border-radius:9px;background:#121b23;border:1px solid #33404b}.tcProgramNote>summary{font-size:12px;color:#d4deea;cursor:pointer}.tcProgramNote p{font-size:12px;line-height:1.5;color:#c2ccd6;margin:7px 0 0}';
+      document.head.appendChild(el);
+    }
+    window.tcOpenCourseProgram=function(){
+      const sheet=q('sheet'),box=q('sheetbox');
+      if(!sheet||!box)return;
+      tcInjectProgramStyles();
+      box.innerHTML='<div class="sheettitle">Программа курса</div>'+
+        '<div class="sub" style="margin-top:5px">Артём Морозов · «Подтягивания с нуля до киборга». Откройте уровень, затем комплекс. Просмотр не меняет настройки курса и не запускает тренировку.</div>'+
+        Array.from({length:7},(_,i)=>tcProgramLevelHtml(i+1)).join('')+
+        '<button class="btn yellow full" style="margin-top:13px" onclick="closeSheet()">Закрыть программу</button>';
+      box.scrollTop=0;
+      sheet.classList.add('open');
+    };
 
     window.tcOpenCourseInfo=function(){
       const l=tcCourseLevel(),c=tcCourseComplex(),box=q('sheetbox');
