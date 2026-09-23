@@ -147,12 +147,12 @@
       const pull=state.ex.find(e=>e.id==='pull');
       const weighted=state.ex.find(e=>e.id==='weightedPull');
       const m=Math.max(1,+((pull&&pull.max)||1));
-      return{enabled:false,level:m<=1?1:m<=3?2:m<=14?3:4,goal:'quantity',pullMax:m,weightedLoad:+((weighted&&weighted.load)||0),courseSeq:0,extraSeq:0,lastCourseDate:'',lastCourseTs:0,authorSupplement:false,history:[],tests:[],testPeriodWeeks:3,targetMax:30,testAnchorDate:'',lastTestDate:'',testDeferredUntil:'',weeklySessions:3,masteryTests:[],pendingTransition:null};
+      return{enabled:false,level:m<=1?1:m<=3?2:m<=14?3:4,goal:'quantity',pullMax:m,weightedLoad:+((weighted&&weighted.load)||0),courseSeq:0,extraSeq:0,lastCourseDate:'',lastCourseTs:0,authorSupplement:false,history:[],tests:[],testPeriodWeeks:3,targetMax:30,testAnchorDate:'',lastTestDate:'',testDeferredUntil:'',weeklySessions:3,masteryTests:[],pendingTransition:null,advancedChoices:{onearm:[],muscleup:[]}};
     }
     function tcLoadCourse(){
       let c=tcCourseDefault();
       try{const raw=JSON.parse(localStorage.getItem(TC_COURSE_KEY)||'null');if(raw&&typeof raw==='object')c={...c,...raw}}catch(e){}
-      c.level=tcClamp(Math.floor(+c.level||1),1,7);c.pullMax=Math.max(1,Math.floor(+c.pullMax||1));c.weightedLoad=Math.max(0,+c.weightedLoad||0);c.courseSeq=Math.max(0,Math.floor(+c.courseSeq||0));c.extraSeq=Math.max(0,Math.floor(+c.extraSeq||0));c.history=Array.isArray(c.history)?c.history:[];c.tests=Array.isArray(c.tests)?c.tests:[];c.masteryTests=Array.isArray(c.masteryTests)?c.masteryTests:[];c.pendingTransition=c.pendingTransition&&typeof c.pendingTransition==='object'?c.pendingTransition:null;c.testPeriodWeeks=[2,3,4].includes(+c.testPeriodWeeks)?+c.testPeriodWeeks:3;c.weeklySessions=[2,3,4].includes(+c.weeklySessions)?+c.weeklySessions:3;c.targetMax=Math.max(1,Math.floor(+c.targetMax||30));c.testAnchorDate=/^\d{4}-\d{2}-\d{2}$/.test(c.testAnchorDate||'')?c.testAnchorDate:'';c.lastTestDate=/^\d{4}-\d{2}-\d{2}$/.test(c.lastTestDate||'')?c.lastTestDate:'';c.testDeferredUntil=/^\d{4}-\d{2}-\d{2}$/.test(c.testDeferredUntil||'')?c.testDeferredUntil:'';
+      c.level=tcClamp(Math.floor(+c.level||1),1,7);c.pullMax=Math.max(1,Math.floor(+c.pullMax||1));c.weightedLoad=Math.max(0,+c.weightedLoad||0);c.courseSeq=Math.max(0,Math.floor(+c.courseSeq||0));c.extraSeq=Math.max(0,Math.floor(+c.extraSeq||0));c.history=Array.isArray(c.history)?c.history:[];c.tests=Array.isArray(c.tests)?c.tests:[];c.masteryTests=Array.isArray(c.masteryTests)?c.masteryTests:[];c.pendingTransition=c.pendingTransition&&typeof c.pendingTransition==='object'?c.pendingTransition:null;c.advancedChoices=c.advancedChoices&&typeof c.advancedChoices==='object'?c.advancedChoices:{onearm:[],muscleup:[]};c.testPeriodWeeks=[2,3,4].includes(+c.testPeriodWeeks)?+c.testPeriodWeeks:3;c.weeklySessions=[2,3,4].includes(+c.weeklySessions)?+c.weeklySessions:3;c.targetMax=Math.max(1,Math.floor(+c.targetMax||30));c.testAnchorDate=/^\d{4}-\d{2}-\d{2}$/.test(c.testAnchorDate||'')?c.testAnchorDate:'';c.lastTestDate=/^\d{4}-\d{2}-\d{2}$/.test(c.lastTestDate||'')?c.lastTestDate:'';c.testDeferredUntil=/^\d{4}-\d{2}-\d{2}$/.test(c.testDeferredUntil||'')?c.testDeferredUntil:'';
       return c;
     }
     let TC_course=tcLoadCourse();
@@ -273,9 +273,62 @@
       if(s.type==='percent'&&s.ref==='pull')return tcSchemeTarget(def)+' · '+Math.round(s.pct*100)+'% от '+TC_course.pullMax;
       return tcSchemeLabel(def);
     }
+
+    function tcAdvancedChoicePool(){
+      if(TC_course.level!==7)return[];
+      if(TC_course.goal==='muscleup')return TC_COURSE[5].complexes[1].items.slice();
+      return Object.values(TC_COURSE[6].complexes).flatMap(c=>c.items);
+    }
+    function tcAdvancedSelected(){
+      const chosen=TC_course.advancedChoices[TC_course.goal]||[];
+      const pool=tcAdvancedChoicePool();
+      return chosen.length===2&&chosen[0]!==chosen[1]&&
+        chosen.every(id=>pool.some(def=>def.id===id));
+    }
+    function tcResolvedCourseDefs(c){
+      if(TC_course.level!==7||!tcAdvancedSelected())return c.def.items;
+      const picked=TC_course.advancedChoices[TC_course.goal],pool=tcAdvancedChoicePool();
+      let index=0;
+      return c.def.items.map(def=>{
+        if(def.scheme&&def.scheme.type==='choice'){
+          const src=pool.find(x=>x.id===picked[index]);
+          index++;
+          return src?{...src,id:src.id+'_lv7_'+index}:def;
+        }
+        return def;
+      });
+    }
+    window.tcOpenAdvancedChoiceSheet=function(){
+      if(TC_course.level!==7)return;
+      const pool=tcAdvancedChoicePool(),chosen=TC_course.advancedChoices[TC_course.goal]||[];
+      q('sheetbox').innerHTML='<div class="sheettitle">Упражнения для 7-го уровня</div>'+
+        '<div class="sub" style="margin-top:6px">По курсу выберите два разных упражнения из '+
+        (TC_course.goal==='muscleup'?'комплекса №1 пятого уровня':'любого комплекса шестого уровня')+
+        '. Их объём и отдых будут взяты из соответствующих комплексов; PDF седьмого уровня не устанавливает для них отдельных чисел.</div>'+
+        pool.map(def=>'<label style="display:flex;gap:10px;align-items:flex-start;padding:11px 3px;border-bottom:1px solid #34414d">'+
+          '<input type="checkbox" class="tcAdvancedSelect" value="'+def.id+'" '+
+          (chosen.includes(def.id)?'checked':'')+'>'+
+          '<span><b>'+def.name+'</b><br><small>'+tcProgramPrescription(def)+' · отдых '+tcCourseRestText(def.rest)+'</small></span></label>').join('')+
+        '<div id="tcAdvancedError" class="meta" style="margin-top:9px">Выберите ровно два упражнения.</div>'+
+        '<button class="btn yellow full" style="margin-top:12px" onclick="tcSaveAdvancedChoices()">Сохранить выбор</button>'+
+        '<button class="btn ghost full" style="margin-top:8px" onclick="closeSheet()">Отмена</button>';
+      q('sheet').classList.add('open');
+    };
+    window.tcSaveAdvancedChoices=function(){
+      if(TC_course.level!==7)return;
+      const ids=Array.from(document.querySelectorAll('.tcAdvancedSelect:checked')).map(el=>el.value);
+      const pool=tcAdvancedChoicePool();
+      if(ids.length!==2||ids[0]===ids[1]||ids.some(id=>!pool.some(x=>x.id===id))){
+        const error=document.getElementById('tcAdvancedError');
+        if(error)error.textContent='Для продолжения требуется выбрать ровно два разных упражнения.';
+        return;
+      }
+      TC_course.advancedChoices[TC_course.goal]=ids;
+      tcSaveCourse();closeSheet();render();
+    };
     function tcBuildCourseItems(){
       const c=tcCourseComplex();if(!c.def)return[];
-      return c.def.items.map(def=>{
+      return tcResolvedCourseDefs(c).map(def=>{
         const target=tcSchemeTarget(def),labels=Array.from({length:def.sets},()=>tcDisplayScheme(def));
         const e={id:def.id,name:def.name,metric:def.metric||'reps',max:TC_course.pullMax,load:tcItemLoad(def),courseDef:def};
         return{e,def,plan:Array.from({length:def.sets},()=>target),planLabels:labels,actual:[]};
