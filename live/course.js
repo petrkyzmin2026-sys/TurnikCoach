@@ -692,7 +692,7 @@
       if(level===1)return values.band>=8&&values.lowBand===true;
       if(level===2)return values.regular>=8;
       if(level===3)return values.regular>=15&&values.wide>=6;
-      if(level===4)return values.left>=5&&values.right>=5&&values.high>=1;
+      if(level===4)return TC_course.goal!=='quantity'&&values.left>=5&&values.right>=5&&values.high>=1;
       if(level===5)return values.body>0&&values.added>=0.6*values.body;
       return false;
     }
