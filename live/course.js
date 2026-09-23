@@ -410,6 +410,41 @@
         return{e,def,plan:Array.from({length:def.sets},()=>target),planLabels:labels,actual:[]};
       });
     }
+    function tcNeedsWorkingWeight(mode){
+      const defs=mode==='aux'&&[3,6].includes(TC_course.level)?
+        TC_COURSE[TC_course.level].complexes[2].items:tcResolvedCourseDefs(tcCourseComplex());
+      return defs.some(def=>def.metric==='weighted')&&!(TC_course.weightedLoad>0);
+    }
+    function tcWorkingWeightCard(mode){
+      return '<div class="todayCard" style="border-color:#d5a84e;margin-top:10px">'+
+        '<div class="dateBig">Назначьте рабочий вес</div>'+
+        '<div class="meta">В комплексе предусмотрены подтягивания с дополнительным весом. Конкретный вес необходимо указать самостоятельно; приложение не определяет его без фактического результата.</div>'+
+        '<button class="btn yellow full" style="margin-top:10px" data-mode="'+mode+
+        '" onclick="tcOpenWorkingWeight(this.dataset.mode)">Указать дополнительный вес</button></div>';
+    }
+    window.tcOpenWorkingWeight=function(mode){
+      if(W)return;
+      q('sheetbox').innerHTML='<div class="sheettitle">Дополнительный вес</div>'+
+        '<div class="sub">Введите фактически выбранный вес отягощения в килограммах. В PDF для этого комплекса требуется максимальный рабочий вес, но конкретная масса не указана.</div>'+
+        '<input type="number" id="tcWorkingWeightInput" min="0.5" step="0.5" inputmode="decimal" value="'+(TC_course.weightedLoad||'')+'" style="width:100%;box-sizing:border-box;margin:14px 0;background:#0c1218;color:#fff;padding:11px;border:1px solid #344250;border-radius:9px">'+
+        '<div id="tcWorkingWeightError" class="meta"></div>'+
+        '<button class="btn yellow full" data-mode="'+(mode==='aux'?'aux':'main')+'" onclick="tcSaveWorkingWeight(this.dataset.mode)">Сохранить</button>'+
+        '<button class="btn ghost full" style="margin-top:8px" onclick="closeSheet()">Отмена</button>';
+      q('sheet').classList.add('open');
+    };
+    window.tcSaveWorkingWeight=function(mode){
+      const el=document.getElementById('tcWorkingWeightInput');
+      const raw=el&&el.value.trim()||'',value=Number(raw);
+      if(!raw||!Number.isFinite(value)||value<=0||value>1000){
+        const msg=document.getElementById('tcWorkingWeightError');
+        if(msg)msg.textContent='Укажите положительное значение дополнительного веса в килограммах.';
+        return;
+      }
+      TC_course.weightedLoad=value;
+      const wp=state.ex.find(e=>e.id==='weightedPull');if(wp)wp.load=value;
+      tcSaveCourse();save();closeSheet();render();
+    };
+
     function tcBuildCourseItems(){const c=tcCourseComplex();return c.def?tcBuildItemsFor(tcResolvedCourseDefs(c)):[]}
     function tcBuildAuxItems(){return [3,6].includes(TC_course.level)?tcBuildItemsFor(TC_COURSE[TC_course.level].complexes[2].items):[]}
     function tcBuildExtraItems(){const idx=TC_course.extraSeq%3;return tcExtraExercises().map(e=>({e,plan:pres(e,idx),actual:[]}))}
@@ -556,6 +591,7 @@
         return '<div class="todayCard" style="margin-top:12px;border-color:#6a5520"><div class="dateBig">'+title+
           '</div><button class="btn yellow full" style="margin-top:10px" onclick="tcOpenCourseCalibration(\'aux\')">Указать максимумы</button></div>';
       }
+      if(tcNeedsWorkingWeight('aux'))return tcWorkingWeightCard('aux');
       const items=tcBuildAuxItems();
       return '<div class="todayCard" style="margin-top:12px;border-color:#6a5520"><div class="dateBig">'+title+
         '</div><div class="meta">Это отдельная тяговая нагрузка по курсу, а не обычные упражнения в день восстановления.</div>'+
@@ -565,6 +601,7 @@
     window.tcStartAuxWorkout=function(){
       if(W||!tcAuxDue())return;
       if(tcCalibrationDefs('aux').length){tcOpenCourseCalibration('aux');return;}
+      if(tcNeedsWorkingWeight('aux')){tcOpenWorkingWeight('aux');return;}
       const items=tcBuildAuxItems();if(!items.length)return;
       unlockAudio();
       W={mode:'auxCourse',sessionIndex:0,exerciseIndex:0,setIndex:0,items,
@@ -617,6 +654,11 @@
       if(due&&tcCalibrationDefs('main').length){
         q('todaySub').textContent='Курс Морозова · настройка нагрузки';
         q('todayList').innerHTML=tcWeeklyCalendarHtml()+tcCalibrationCard('main');
+        return;
+      }
+      if(due&&tcNeedsWorkingWeight('main')){
+        q('todaySub').textContent='Курс Морозова · дополнительный вес';
+        q('todayList').innerHTML=tcWeeklyCalendarHtml()+tcWorkingWeightCard('main');
         return;
       }
       if(due){
@@ -1064,6 +1106,7 @@
     window.tcStartCourseWorkout=function(){
       if(!tcCourseDue()||W)return;
       if(tcCalibrationDefs('main').length){tcOpenCourseCalibration('main');return;}
+      if(tcNeedsWorkingWeight('main')){tcOpenWorkingWeight('main');return;}
       if(TC_course.level===7&&!tcAdvancedSelected()){tcOpenAdvancedChoiceSheet();return;}
       const items=tcBuildCourseItems();if(!items.length)return;unlockAudio();
       const c=tcCourseComplex();W={mode:'course',sessionIndex:0,exerciseIndex:0,setIndex:0,items,actual:tcSchemeTarget(items[0].def),early:false,courseLevel:TC_course.level,courseComplex:c.no,courseGoal:TC_course.goal};go('workout');
