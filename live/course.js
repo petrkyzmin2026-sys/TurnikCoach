@@ -321,13 +321,24 @@
       '<div class="tcInfoBlock"><h3>Критерий освоения уровня</h3><p>'+l.mastery+'</p></div>'+
       '<button class="btn yellow full" style="margin-top:14px" onclick="tcSaveCourseSettings()">Сохранить</button><button class="btn ghost full" style="margin-top:8px" onclick="closeSheet()">Отмена</button>';
       q('sheet').classList.add('open');
-      const levelEl=document.getElementById('tcCourseLevel');if(levelEl)levelEl.onchange=()=>{TC_course.level=tcClamp(+levelEl.value||1,1,7);tcNormalizeGoal();tcSaveCourse();closeSheet();tcOpenCourseSettings()};
+      const levelEl=document.getElementById('tcCourseLevel');
+      if(levelEl)levelEl.onchange=()=>{
+        const select=document.getElementById('tcCourseGoal');if(!select)return;
+        const choices=tcGoalOptions(+levelEl.value||TC_course.level),previous=select.value;
+        select.innerHTML=choices.map(x=>'<option value="'+x[0]+'">'+x[1]+'</option>').join('');
+        select.value=choices.some(x=>x[0]===previous)?previous:choices[0][0];
+      };
     };
     window.tcSaveCourseSettings=function(){
+      const oldLevel=TC_course.level,oldGoal=TC_course.goal;
       const enabled=document.getElementById('tcCourseEnabled'),level=document.getElementById('tcCourseLevel'),mx=document.getElementById('tcCourseMax'),goal=document.getElementById('tcCourseGoal'),load=document.getElementById('tcCourseLoad'),sup=document.getElementById('tcCourseSupplement');
       const weeklyEl=document.getElementById('tcWeeklySessions');if(weeklyEl)TC_course.weeklySessions=[3,4].includes(+weeklyEl.value)?+weeklyEl.value:3;
       const targetEl=document.getElementById('tcTargetMax'),weeksEl=document.getElementById('tcTestWeeks');if(targetEl)TC_course.targetMax=Math.max(1,Math.floor(+targetEl.value||TC_course.targetMax));if(weeksEl)TC_course.testPeriodWeeks=[2,3,4].includes(+weeksEl.value)?+weeksEl.value:3;
       TC_course.enabled=!!(enabled&&enabled.checked);TC_course.level=tcClamp(+(level&&level.value)||TC_course.level,1,7);TC_course.pullMax=Math.max(1,Math.floor(+(mx&&mx.value)||TC_course.pullMax));TC_course.goal=(goal&&goal.value)||TC_course.goal;TC_course.weightedLoad=Math.max(0,+(load&&load.value)||0);if(sup)TC_course.authorSupplement=!!sup.checked;tcNormalizeGoal();
+      if(TC_course.level!==oldLevel||TC_course.goal!==oldGoal){
+        TC_course.courseSeq=0;TC_course.pendingTransition=null;
+        TC_course.testAnchorDate='';TC_course.lastTestDate='';TC_course.testDeferredUntil='';
+      }
       if(TC_course.enabled){state.ex.forEach(e=>{if(TC_PULL_CONFLICT_IDS.has(e.id)){e.sel=false;e.main=false}})}
       const pull=state.ex.find(e=>e.id==='pull');if(pull)pull.max=TC_course.pullMax;const wp=state.ex.find(e=>e.id==='weightedPull');if(wp)wp.load=TC_course.weightedLoad;
       tcSaveCourse();save();closeSheet();render();
