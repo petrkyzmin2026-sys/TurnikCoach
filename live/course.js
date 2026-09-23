@@ -558,7 +558,8 @@
       if(TC_course.level!==4||TC_course.goal!=='quantity')return '';
       if(!next)return '<div class="meta" style="margin-top:8px">Первый контроль будет назначен после начала тренировочного цикла.</div>';
       const last=tcLatestTest();
-      if(!due)return '<div class="meta" style="margin-top:8px">Контроль максимума: '+fmtKeyDate(next,false)+
+      if(!due)return '<div class="meta" style="margin-top:8px">'+
+        (TC_course.testDeferredUntil&&dateKey()>=next&&dateKey()<TC_course.testDeferredUntil?'Контроль перенесён на '+fmtKeyDate(TC_course.testDeferredUntil,false):'Контроль максимума: '+fmtKeyDate(next,false))+
         ' · цель '+TC_course.targetMax+(last?' · последний результат '+last.value:'')+'</div>';
       return '<div class="todayCard" style="margin-top:12px;border-color:#ffd84d">'+
         '<div class="dateBig">Контрольный максимум</div>'+
