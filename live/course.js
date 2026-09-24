@@ -1,4 +1,4 @@
-/* TURNIKCOACH_COURSE 1.0.14-final-course */
+/* TURNIKCOACH_COURSE 1.0.15-bar-only */
 (function(){
   'use strict';
   const COURSE_MODULE_VERSION='1.0.14-final-course';
@@ -147,12 +147,12 @@
       const pull=state.ex.find(e=>e.id==='pull');
       const weighted=state.ex.find(e=>e.id==='weightedPull');
       const m=Math.max(1,+((pull&&pull.max)||1));
-      return{enabled:false,level:m<=1?1:m<=3?2:m<=14?3:4,goal:'quantity',pullMax:m,weightedLoad:+((weighted&&weighted.load)||0),courseSeq:0,extraSeq:0,lastCourseDate:'',lastCourseTs:0,authorSupplement:false,history:[],tests:[],testPeriodWeeks:3,targetMax:30,testAnchorDate:'',lastTestDate:'',testDeferredUntil:'',weeklySessions:3,masteryTests:[],pendingTransition:null,advancedChoices:{onearm:[],muscleup:[]},auxEnabled:{3:false,6:false},auxInterval3:10,exerciseMax:{}};
+      return{enabled:false,level:m<=1?1:m<=3?2:m<=14?3:4,goal:'quantity',pullMax:m,weightedLoad:+((weighted&&weighted.load)||0),courseSeq:0,extraSeq:0,lastCourseDate:'',lastCourseTs:0,authorSupplement:false,history:[],tests:[],testPeriodWeeks:3,targetMax:30,testAnchorDate:'',lastTestDate:'',testDeferredUntil:'',weeklySessions:3,masteryTests:[],pendingTransition:null,advancedChoices:{onearm:[],muscleup:[]},auxEnabled:{3:false,6:false},auxInterval3:10,exerciseMax:{},equipment:'bar'};
     }
     function tcLoadCourse(){
       let c=tcCourseDefault();
       try{const raw=JSON.parse(localStorage.getItem(TC_COURSE_KEY)||'null');if(raw&&typeof raw==='object')c={...c,...raw}}catch(e){}
-      c.level=tcClamp(Math.floor(+c.level||1),1,7);c.pullMax=Math.max(1,Math.floor(+c.pullMax||1));c.weightedLoad=Math.max(0,+c.weightedLoad||0);c.courseSeq=Math.max(0,Math.floor(+c.courseSeq||0));c.extraSeq=Math.max(0,Math.floor(+c.extraSeq||0));c.history=Array.isArray(c.history)?c.history:[];c.tests=Array.isArray(c.tests)?c.tests:[];c.masteryTests=Array.isArray(c.masteryTests)?c.masteryTests:[];c.pendingTransition=c.pendingTransition&&typeof c.pendingTransition==='object'?c.pendingTransition:null;c.advancedChoices=c.advancedChoices&&typeof c.advancedChoices==='object'?c.advancedChoices:{onearm:[],muscleup:[]};c.advancedChoices.onearm=Array.isArray(c.advancedChoices.onearm)?c.advancedChoices.onearm:[];c.advancedChoices.muscleup=Array.isArray(c.advancedChoices.muscleup)?c.advancedChoices.muscleup:[];c.auxEnabled=c.auxEnabled&&typeof c.auxEnabled==='object'?c.auxEnabled:{3:false,6:false};c.auxEnabled[3]=c.auxEnabled[3]===true;c.auxEnabled[6]=c.auxEnabled[6]===true;c.auxInterval3=[7,10].includes(+c.auxInterval3)?+c.auxInterval3:10;c.exerciseMax=c.exerciseMax&&typeof c.exerciseMax==='object'&&!Array.isArray(c.exerciseMax)?c.exerciseMax:{};c.testPeriodWeeks=[2,3,4].includes(+c.testPeriodWeeks)?+c.testPeriodWeeks:3;c.weeklySessions=[2,3,4].includes(+c.weeklySessions)?+c.weeklySessions:3;c.targetMax=Math.max(1,Math.floor(+c.targetMax||30));c.testAnchorDate=/^\d{4}-\d{2}-\d{2}$/.test(c.testAnchorDate||'')?c.testAnchorDate:'';c.lastTestDate=/^\d{4}-\d{2}-\d{2}$/.test(c.lastTestDate||'')?c.lastTestDate:'';c.testDeferredUntil=/^\d{4}-\d{2}-\d{2}$/.test(c.testDeferredUntil||'')?c.testDeferredUntil:'';
+      c.level=tcClamp(Math.floor(+c.level||1),1,7);c.pullMax=Math.max(1,Math.floor(+c.pullMax||1));c.weightedLoad=Math.max(0,+c.weightedLoad||0);c.courseSeq=Math.max(0,Math.floor(+c.courseSeq||0));c.extraSeq=Math.max(0,Math.floor(+c.extraSeq||0));c.history=Array.isArray(c.history)?c.history:[];c.tests=Array.isArray(c.tests)?c.tests:[];c.masteryTests=Array.isArray(c.masteryTests)?c.masteryTests:[];c.pendingTransition=c.pendingTransition&&typeof c.pendingTransition==='object'?c.pendingTransition:null;c.advancedChoices=c.advancedChoices&&typeof c.advancedChoices==='object'?c.advancedChoices:{onearm:[],muscleup:[]};c.advancedChoices.onearm=Array.isArray(c.advancedChoices.onearm)?c.advancedChoices.onearm:[];c.advancedChoices.muscleup=Array.isArray(c.advancedChoices.muscleup)?c.advancedChoices.muscleup:[];c.auxEnabled=c.auxEnabled&&typeof c.auxEnabled==='object'?c.auxEnabled:{3:false,6:false};c.auxEnabled[3]=c.auxEnabled[3]===true;c.auxEnabled[6]=c.auxEnabled[6]===true;c.auxInterval3=[7,10].includes(+c.auxInterval3)?+c.auxInterval3:10;c.exerciseMax=c.exerciseMax&&typeof c.exerciseMax==='object'&&!Array.isArray(c.exerciseMax)?c.exerciseMax:{};c.equipment='bar';c.testPeriodWeeks=[2,3,4].includes(+c.testPeriodWeeks)?+c.testPeriodWeeks:3;c.weeklySessions=[2,3,4].includes(+c.weeklySessions)?+c.weeklySessions:3;c.targetMax=Math.max(1,Math.floor(+c.targetMax||30));c.testAnchorDate=/^\d{4}-\d{2}-\d{2}$/.test(c.testAnchorDate||'')?c.testAnchorDate:'';c.lastTestDate=/^\d{4}-\d{2}-\d{2}$/.test(c.lastTestDate||'')?c.lastTestDate:'';c.testDeferredUntil=/^\d{4}-\d{2}-\d{2}$/.test(c.testDeferredUntil||'')?c.testDeferredUntil:'';
       return c;
     }
     let TC_course=tcLoadCourse();
@@ -180,6 +180,52 @@
     function tcCourseGoalName(g){return g==='muscleup'?'Выход силой':g==='onearm'?'Подтягивание на одной руке':'Количество подтягиваний'}
     function tcGoalOptions(level){if(level<=3)return[['quantity','Количество подтягиваний']];if(level===4)return[['quantity','Количество подтягиваний'],['muscleup','Выход силой'],['onearm','Подтягивание на одной руке']];return[['muscleup','Выход силой'],['onearm','Подтягивание на одной руке']]}
     function tcNormalizeGoal(){const a=tcGoalOptions(TC_course.level).map(x=>x[0]);if(!a.includes(TC_course.goal))TC_course.goal=a[0]}
+
+    // Equipment profile: the user owns only a standard horizontal bar.
+    // The PDF programme is retained verbatim in TC_COURSE; filtering applies ONLY to executable assignments.
+    const TC_UNAVAILABLE_BAR_ONLY={
+      c_band:'Требуется резиновая петля',
+      c_australian:'Требуется низкая перекладина либо иной опорный снаряд',
+      c_band_row:'Требуется резиновая петля',
+      c_chair_pull:'Требуется стул или иная дополнительная опора',
+      c_aus_biceps:'Требуется низкая перекладина',
+      c_wide_band_max:'Требуется резиновая петля',
+      c_weighted3:'Требуется дополнительное отягощение',
+      c_weighted3_l5:'Требуется дополнительное отягощение',
+      c_weighted23:'Требуется дополнительное отягощение',
+      c_band_onearm:'Требуется резиновая петля',
+      c_towel_hang:'Требуется полотенце',
+      c_onearm_negative:'Для варианта курса требуется нейтральный хват; наличие такой перекладины не подтверждено',
+      c_slow_negative:'Для начала из верхнего положения на данном уровне нужна дополнительная опора; она не подтверждена'
+    };
+    function tcEquipmentReason(def){
+      if(!def)return 'Упражнение не определено';
+      const id=String(def.id||'').replace(/_lv7_\d+$/,'');
+      if(Object.prototype.hasOwnProperty.call(TC_UNAVAILABLE_BAR_ONLY,id))return TC_UNAVAILABLE_BAR_ONLY[id];
+      if(def.metric==='weighted'||/резин|полотен|стул|австралийск|нейтральном хвате/i.test(def.name||'')){
+        return 'Требуется дополнительный снаряд или приспособление';
+      }
+      if(def.scheme&&def.scheme.type==='choice')return 'До назначения необходимо выбрать доступное упражнение';
+      return '';
+    }
+    function tcRunnableDefs(defs){return (defs||[]).filter(def=>!tcEquipmentReason(def))}
+    function tcUnavailableDefs(defs){return (defs||[]).filter(def=>!!tcEquipmentReason(def))}
+    function tcOriginalCourseDefs(){return tcResolvedCourseDefs(tcCourseComplex())}
+    function tcAdaptationNote(defs){
+      const unavailable=tcUnavailableDefs(defs);
+      if(!unavailable.length)return '';
+      return '<div class="info" style="margin-top:9px"><b>Адаптация: только турник.</b> '+
+        'Исходный комплекс Морозова содержит недоступные упражнения: '+
+        unavailable.map(def=>tcProgramEscape(def.name)).join(', ')+
+        '. Они исключены из назначения, но сохранены в полной программе. '+
+        'Полученная тренировка не является полным комплексом автора.</div>';
+    }
+    function tcNoEquipmentCard(defs){
+      return '<div class="todayCard"><div class="dateBig">Комплекс не может быть выполнен полностью</div>'+
+        '<div class="meta">Имеется только турник. В исходной программе есть упражнения, требующие другого оборудования.</div>'+
+        tcAdaptationNote(defs)+
+        '<button class="btn ghost full" style="margin-top:10px" onclick="tcOpenCourseProgram()">Посмотреть исходный курс</button></div>';
+    }
     function tcCourseComplexNo(){
       const l=tcCourseLevel(),ids=Object.keys(l.complexes).map(Number);
       if(TC_course.level===3||TC_course.level===6)return 1;
@@ -294,8 +340,8 @@
 
     function tcAdvancedChoicePool(){
       if(TC_course.level!==7)return[];
-      if(TC_course.goal==='muscleup')return TC_COURSE[5].complexes[1].items.slice();
-      return Object.values(TC_COURSE[6].complexes).flatMap(c=>c.items);
+      if(TC_course.goal==='muscleup')return tcRunnableDefs(TC_COURSE[5].complexes[1].items);
+      return tcRunnableDefs(Object.values(TC_COURSE[6].complexes).flatMap(c=>c.items));
     }
     function tcAdvancedSelected(){
       const chosen=TC_course.advancedChoices[TC_course.goal]||[];
@@ -346,7 +392,7 @@
     };
 
     function tcCalibrationDefs(mode,all=false){
-      const raw=mode==='aux'&&[3,6].includes(TC_course.level)?TC_COURSE[TC_course.level].complexes[2].items:tcResolvedCourseDefs(tcCourseComplex());
+      const raw=tcRunnableDefs(mode==='aux'&&[3,6].includes(TC_course.level)?TC_COURSE[TC_course.level].complexes[2].items:tcResolvedCourseDefs(tcCourseComplex()));
       return all?raw.filter(def=>tcVariantKey(def)):tcUncalibrated(raw);
     }
     function tcCalibrationCard(mode){
@@ -404,15 +450,15 @@
     };
 
     function tcBuildItemsFor(defs){
-      return defs.map(def=>{
+      return tcRunnableDefs(defs).map(def=>{
         const target=tcSchemeTarget(def),labels=Array.from({length:def.sets},()=>tcDisplayScheme(def));
         const e={id:def.id,name:def.name,metric:def.metric||'reps',max:TC_course.pullMax,load:tcItemLoad(def),courseDef:def,media:'',muscles:[]};
         return{e,def,plan:Array.from({length:def.sets},()=>target),planLabels:labels,actual:[]};
       });
     }
     function tcNeedsWorkingWeight(mode){
-      const defs=mode==='aux'&&[3,6].includes(TC_course.level)?
-        TC_COURSE[TC_course.level].complexes[2].items:tcResolvedCourseDefs(tcCourseComplex());
+      const defs=tcRunnableDefs(mode==='aux'&&[3,6].includes(TC_course.level)?
+        TC_COURSE[TC_course.level].complexes[2].items:tcResolvedCourseDefs(tcCourseComplex()));
       return defs.some(def=>def.metric==='weighted')&&!(TC_course.weightedLoad>0);
     }
     function tcWorkingWeightCard(mode){
