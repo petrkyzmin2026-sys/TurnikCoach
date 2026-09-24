@@ -1,7 +1,7 @@
 /* TURNIKCOACH_COURSE 1.0.15-bar-only */
 (function(){
   'use strict';
-  const COURSE_MODULE_VERSION='1.0.14-final-course';
+  const COURSE_MODULE_VERSION='1.0.15-bar-only';
   if(window.__TC_COURSE_MODULE_VERSION===COURSE_MODULE_VERSION)return;
   window.__TC_COURSE_MODULE_VERSION=COURSE_MODULE_VERSION;
   function tcClamp(v,a,b){return Math.max(a,Math.min(b,v))}
@@ -291,7 +291,14 @@
       return '<div class="tcWeekCalendar" aria-label="Расписание недели">'+days.join('')+'</div>';
     }
 
-    function tcExtraExercises(){return selected().filter(e=>!TC_PULL_HEAVY_IDS.has(e.id)&&e.g!=='Турник'&&e.g!=='Элементы')}
+
+    function tcBaseExerciseAvailable(ex){
+      if(!ex)return false;
+      const name=String(ex.name||'').toLowerCase();
+      if(/резин|гантел|гир|штанг|весом|отягощ|стул|скамь|полотен|брус|кольц|блок|тренаж|низк.*перекладин|австралийск/i.test(name))return false;
+      return true;
+    }
+    function tcExtraExercises(){return selected().filter(e=>!TC_PULL_HEAVY_IDS.has(e.id)&&e.g!=='Турник'&&e.g!=='Элементы'&&tcBaseExerciseAvailable(e))}
     function tcConflictExercises(){return selected().filter(e=>TC_PULL_HEAVY_IDS.has(e.id)||e.g==='Турник'||e.g==='Элементы')}
     function tcUnitForMetric(m){return m==='time'||m==='time_side'?'сек.':m==='reps_side'?'повт./стор.':m==='weighted'?'повт.':'повт.'}
     function tcItemLoad(def){return def.metric==='weighted'?TC_course.weightedLoad:0}
@@ -637,10 +644,11 @@
       }
       if(tcNeedsWorkingWeight('aux'))return tcWorkingWeightCard('aux');
       const items=tcBuildAuxItems();
+      if(!items.length)return tcNoEquipmentCard(TC_COURSE[TC_course.level].complexes[2].items);
       return '<div class="todayCard" style="margin-top:12px;border-color:#6a5520"><div class="dateBig">'+title+
         '</div><div class="meta">Это отдельная тяговая нагрузка по курсу, а не обычные упражнения в день восстановления.</div>'+
-        tcCourseRowsHtml(items)+
-        '<button class="btn ghost full" style="margin-top:10px" onclick="tcStartAuxWorkout()">Начать комплекс №2</button></div>';
+        tcCourseRowsHtml(items)+tcAdaptationNote(TC_COURSE[TC_course.level].complexes[2].items)+
+        '<button class="btn ghost full" style="margin-top:10px" onclick="tcStartAuxWorkout()">Начать адаптированную тренировку</button></div>';
     }
     window.tcStartAuxWorkout=function(){
       if(W||!tcAuxDue())return;
@@ -650,7 +658,7 @@
       unlockAudio();
       W={mode:'auxCourse',sessionIndex:0,exerciseIndex:0,setIndex:0,items,
         actual:tcSchemeTarget(items[0].def),early:false,courseLevel:TC_course.level,
-        courseComplex:2,courseGoal:TC_course.goal};
+        courseComplex:2,courseGoal:TC_course.goal,adapted:tcUnavailableDefs(TC_COURSE[TC_course.level].complexes[2].items).length>0};
       go('workout');
     };
     function tcCourseRowsHtml(items){
@@ -695,6 +703,11 @@
           '<button class="btn yellow full" style="margin-top:12px" onclick="tcOpenAdvancedChoiceSheet()">Выбрать упражнения</button></div>';
         return;
       }
+      if(due&&!tcRunnableDefs(tcOriginalCourseDefs()).length){
+        q('todaySub').textContent='Курс Морозова · ограничение оборудования';
+        q('todayList').innerHTML=tcWeeklyCalendarHtml()+tcNoEquipmentCard(tcOriginalCourseDefs());
+        return;
+      }
       if(due&&tcCalibrationDefs('main').length){
         q('todaySub').textContent='Курс Морозова · настройка нагрузки';
         q('todayList').innerHTML=tcWeeklyCalendarHtml()+tcCalibrationCard('main');
@@ -707,7 +720,7 @@
       }
       if(due){
         q('todaySub').textContent=tcTestDue()?'Контроль прогресса · курс Морозова':'Курс Морозова · '+l.title+' · '+tcCourseGoalName(TC_course.goal);
-        q('todayList').innerHTML=tcWeeklyCalendarHtml()+tcPendingLevelHtml()+'<div class="todayCard"><div class="row between"><div><div class="dateBig">'+(c.def?c.def.name:'Основной комплекс')+'</div><div class="sessionNo">'+l.frequency+'</div></div><span class="tag">КУРС</span></div>'+tcCourseRowsHtml(items)+'<button class="btn yellow full" style="margin-top:12px" onclick="tcStartCourseWorkout()">Начать основной комплекс</button><button class="btn ghost full" style="margin-top:8px" onclick="tcOpenCourseInfo()">ⓘ Советы автора</button></div>'+tcMasteryCardHtml();
+        q('todayList').innerHTML=tcWeeklyCalendarHtml()+tcPendingLevelHtml()+'<div class="todayCard"><div class="row between"><div><div class="dateBig">'+(c.def?c.def.name:'Основной комплекс')+'</div><div class="sessionNo">'+l.frequency+'</div></div><span class="tag">КУРС</span></div>'+tcCourseRowsHtml(items)+tcAdaptationNote(tcOriginalCourseDefs())+'<button class="btn yellow full" style="margin-top:12px" onclick="tcStartCourseWorkout()">'+(tcUnavailableDefs(tcOriginalCourseDefs()).length?'Начать адаптированную тренировку':'Начать основной комплекс')+'</button><button class="btn ghost full" style="margin-top:8px" onclick="tcOpenCourseInfo()">ⓘ Советы автора</button></div>'+tcMasteryCardHtml();
       }else{
         const nextKey=tcWeeklyMode()?tcNextCourseDay():'';
         const next=new Date(TC_course.lastCourseDate+'T12:00:00');next.setDate(next.getDate()+2);
@@ -1213,11 +1226,12 @@
 
     window.tcStartCourseWorkout=function(){
       if(!tcCourseDue()||W)return;
+      if(!tcRunnableDefs(tcOriginalCourseDefs()).length)return;
       if(tcCalibrationDefs('main').length){tcOpenCourseCalibration('main');return;}
       if(tcNeedsWorkingWeight('main')){tcOpenWorkingWeight('main');return;}
       if(TC_course.level===7&&!tcAdvancedSelected()){tcOpenAdvancedChoiceSheet();return;}
       const items=tcBuildCourseItems();if(!items.length)return;unlockAudio();
-      const c=tcCourseComplex();W={mode:'course',sessionIndex:0,exerciseIndex:0,setIndex:0,items,actual:tcSchemeTarget(items[0].def),early:false,courseLevel:TC_course.level,courseComplex:c.no,courseGoal:TC_course.goal};go('workout');
+      const c=tcCourseComplex();W={mode:'course',sessionIndex:0,exerciseIndex:0,setIndex:0,items,actual:tcSchemeTarget(items[0].def),early:false,courseLevel:TC_course.level,courseComplex:c.no,courseGoal:TC_course.goal,adapted:tcUnavailableDefs(tcOriginalCourseDefs()).length>0};go('workout');
     };
     window.tcStartExtraWorkout=function(){
       if(W)return;
@@ -1321,7 +1335,7 @@
       if(!W)return;
       if(!['course','extra','supplement','auxCourse'].includes(W.mode))return tcBeforeCourseFinishWorkout(feel);
       let total=0,details=[];W.items.forEach(x=>{const actual=x.plan.map((_,i)=>x.actual[i]===undefined?null:x.actual[i]);const sum=actual.reduce((s,v)=>s+(Number.isFinite(+v)?+v:0),0);total+=sum;details.push({id:x.e.id,name:x.e.name,metric:x.e.metric,load:x.e.load||0,plan:x.plan.slice(),planLabels:(x.planLabels||x.plan.map(String)).slice(),actual,sum})});
-      const rec={type:'workout',date:dateKey(),ts:Date.now(),feedback:feel,total,details,early:!!W.early,courseMode:W.mode,session:W.mode==='extra'?'доп.':'курс'};
+      const rec={type:'workout',date:dateKey(),ts:Date.now(),feedback:feel,total,details,early:!!W.early,courseMode:W.mode,adapted:!!W.adapted,equipment:'bar',session:W.mode==='extra'?'доп.':'курс'};
       if(W.mode==='course'){rec.courseLevel=W.courseLevel;rec.courseComplex=W.courseComplex;rec.courseGoal=W.courseGoal;TC_course.history.unshift(rec);TC_course.courseSeq++;TC_course.lastCourseDate=rec.date;TC_course.lastCourseTs=rec.ts;if(!TC_course.testAnchorDate)TC_course.testAnchorDate=rec.date;tcSaveCourse()}
       else if(W.mode==='auxCourse'){rec.courseLevel=W.courseLevel;rec.courseComplex=2;rec.courseGoal=W.courseGoal;TC_course.history.unshift(rec);tcSaveCourse()}
       else if(W.mode==='extra'){TC_course.extraSeq++;tcSaveCourse();state.history.unshift(rec);save()}
