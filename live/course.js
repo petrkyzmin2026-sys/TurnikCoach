@@ -521,13 +521,13 @@
       const l=tcCourseLevel(),c=tcCourseComplex(),enabled=TC_course.enabled;
       return '<div class="card" id="tcCourseCard" style="margin-bottom:12px;border-color:'+(enabled?'#ffd84d':'#2c3945')+'">'+
         '<div class="row between"><div class="grow"><div class="k">ПРОГРАММА</div><div class="strong" style="font-size:18px;margin-top:3px">Курс Морозова</div><div class="meta">«Подтягивания с нуля до киборга»</div></div><span class="tag '+(enabled?'':'stage4')+'">'+(enabled?'ВКЛЮЧЁН':'ВЫКЛЮЧЕН')+'</span></div>'+
-        (enabled?'<div class="tcInfoBlock"><h3>'+l.title+'</h3><p><b>Цель:</b> '+tcCourseGoalName(TC_course.goal)+'<br><b>Следующий:</b> '+(c.def?c.def.name:'—')+'<br><b>Текущий максимум:</b> '+TC_course.pullMax+'<br><b>Частота по курсу:</b> '+l.frequency+'</p></div>':'<div class="sub" style="margin-top:10px">Отдельная система тренировок: уровни, комплексы, проценты, MAX, отдых и контрольные критерии берутся из курса. Остальные упражнения TurnikCoach можно использовать отдельно.</div>')+
+        (enabled?'<div class="tcInfoBlock"><h3>Оборудование: только турник</h3><p>В тренировочный план не включаются упражнения, требующие резины, отягощения, полотенца, стула или низкой перекладины.</p></div><div class="tcInfoBlock"><h3>'+l.title+'</h3><p><b>Цель:</b> '+tcCourseGoalName(TC_course.goal)+'<br><b>Следующий:</b> '+(c.def?c.def.name:'—')+'<br><b>Текущий максимум:</b> '+TC_course.pullMax+'<br><b>Частота по курсу:</b> '+l.frequency+'</p></div>':'<div class="sub" style="margin-top:10px">Отдельная система тренировок: уровни, комплексы, проценты, MAX, отдых и контрольные критерии берутся из курса. Остальные упражнения TurnikCoach можно использовать отдельно.</div>')+
         '<button class="btn yellow full" style="margin-top:12px" onclick="tcOpenCourseProgram()">Программа курса</button>'+ '<button class="btn ghost full" style="margin-top:8px" onclick="tcOpenCourseSettings()">'+(enabled?'Настройки курса':'Подключить курс')+'</button></div>';
     }
     window.tcOpenCourseSettings=function(){
       tcNormalizeGoal();const l=tcCourseLevel(),goals=tcGoalOptions(TC_course.level);
       const box=q('sheetbox');
-      box.innerHTML='<div class="sheettitle">Курс Морозова</div><div class="sub" style="margin-top:6px">Курс работает отдельным блоком. Обычный каталог остаётся для пресса, ног, отжиманий и другой дополнительной работы.</div>'+
+      box.innerHTML='<div class="sheettitle">Курс Морозова</div><div class="sub" style="margin-top:6px">Оборудование: только турник. В исходной программе доступны все упражнения автора, но задания с дополнительными снарядами не назначаются. Упражнения без оборудования из обычного каталога доступны отдельно.</div>'+
       '<div class="tcInfoBlock"><h3>Состояние</h3><p><label style="display:flex;gap:9px;align-items:center"><input id="tcCourseEnabled" type="checkbox" '+(TC_course.enabled?'checked':'')+'> Включить курс Морозова</label></p></div>'+
       '<div class="tcInfoBlock"><h3>Уровень</h3><p><select id="tcCourseLevel" style="width:100%;margin-top:4px;background:#0c1218;color:#fff;border:1px solid #3a4653;border-radius:10px;padding:10px">'+Object.keys(TC_COURSE).map(n=>'<option value="'+n+'" '+(+n===TC_course.level?'selected':'')+'>'+n+' · '+TC_COURSE[n].title+'</option>').join('')+'</select></p></div>'+
       '<div class="tcInfoBlock"><h3>Текущий максимум</h3><p><input id="tcCourseMax" type="number" min="1" value="'+TC_course.pullMax+'" style="width:100%;box-sizing:border-box;margin-top:4px;background:#0c1218;color:#fff;border:1px solid #3a4653;border-radius:10px;padding:10px"></p></div>'+
@@ -538,8 +538,8 @@
         '<p class="meta">Это дополнительная тяговая работа из PDF; она не заменяет основной комплекс и не назначается на день основной тренировки или испытания. Включается по вашему выбору.</p></div>':'')+
       (tcCalibrationDefs('main',true).length?'<button class="btn ghost full" style="margin-top:8px" onclick="tcOpenCourseCalibration(\'main:all\')">Изменить максимумы отдельных вариантов</button>':'')+
       ([3,6].includes(TC_course.level)&&tcCalibrationDefs('aux',true).length?'<button class="btn ghost full" style="margin-top:8px" onclick="tcOpenCourseCalibration(\'aux:all\')">Изменить максимумы вспомогательного комплекса</button>':'')+
-            '<div class="tcInfoBlock"><h3>Дополнительный вес</h3><p>Используется в комплексах, где курс назначает тяжёлые подтягивания с весом.<input id="tcCourseLoad" type="number" min="0" step="0.5" value="'+TC_course.weightedLoad+'" style="width:100%;box-sizing:border-box;margin-top:7px;background:#0c1218;color:#fff;border:1px solid #3a4653;border-radius:10px;padding:10px"></p></div>'+
-      (l.supplement?'<div class="tcInfoBlock"><h3>Дополнительные подтягивания по курсу</h3><p><label style="display:flex;gap:9px;align-items:flex-start"><input id="tcCourseSupplement" type="checkbox" '+(TC_course.authorSupplement?'checked':'')+'><span>'+l.supplement+'</span></label></p></div>':'')+
+            '<div class="tcInfoBlock"><h3>Оборудование</h3><p>Только турник. Упражнения с резиной, отягощением, полотенцем, стулом и низкой перекладиной сохраняются в справочнике курса, но не включаются в назначаемую тренировку.</p></div>'+ 
+            (l.supplement?'<div class="tcInfoBlock"><h3>Дополнительные подтягивания по курсу</h3><p><label style="display:flex;gap:9px;align-items:flex-start"><input id="tcCourseSupplement" type="checkbox" '+(TC_course.authorSupplement?'checked':'')+'><span>'+l.supplement+'</span></label></p></div>':'')+
       (TC_course.level===4&&TC_course.goal==='quantity'?'<div class="tcInfoBlock"><h3>Контроль максимума · TurnikCoach</h3><p>Цель: <input id="tcTargetMax" type="number" min="1" step="1" value="'+TC_course.targetMax+'" style="width:65px;background:#0c1218;color:#fff;border:1px solid #3a4653;border-radius:8px;padding:7px"> повторений.<br><br>Проверять каждые <select id="tcTestWeeks" style="background:#0c1218;color:#fff;border:1px solid #3a4653;border-radius:8px;padding:7px">'+[2,3,4].map(n=>'<option value="'+n+'" '+(TC_course.testPeriodWeeks===n?'selected':'')+'>'+n+' недели</option>').join('')+'</select><br><br>Контроль назначается после восстановления; результат сохраняется отдельно от основной тренировки.</p></div>':'')+
       (TC_course.level===7?'<button class="btn ghost full" style="margin-top:8px" onclick="tcOpenAdvancedChoiceSheet()">Выбрать два упражнения 7-го уровня</button>':'')+
       '<button class="btn yellow full" style="margin-top:14px" onclick="tcSaveCourseSettings()">Сохранить</button><button class="btn ghost full" style="margin-top:8px" onclick="closeSheet()">Отмена</button>';
@@ -627,6 +627,7 @@
     }
     function tcAuxDue(){
       const level=TC_course.level,today=dateKey();
+      if(![3,6].includes(level)||!tcRunnableDefs(TC_COURSE[level].complexes[2].items).length)return false;
       if(!TC_course.enabled||![3,6].includes(level)||!TC_course.auxEnabled[level])return false;
       if(!TC_course.lastCourseDate||tcScheduledOn(today)||tcCourseDue()||tcTestDue()||tcMasteryDue())return false;
       if(tcDayDiff(tcLastPullLoadDate(),today)<2)return false;
@@ -720,7 +721,7 @@
       }
       if(due){
         q('todaySub').textContent=tcTestDue()?'Контроль прогресса · курс Морозова':'Курс Морозова · '+l.title+' · '+tcCourseGoalName(TC_course.goal);
-        q('todayList').innerHTML=tcWeeklyCalendarHtml()+tcPendingLevelHtml()+'<div class="todayCard"><div class="row between"><div><div class="dateBig">'+(c.def?c.def.name:'Основной комплекс')+'</div><div class="sessionNo">'+l.frequency+'</div></div><span class="tag">КУРС</span></div>'+tcCourseRowsHtml(items)+tcAdaptationNote(tcOriginalCourseDefs())+'<button class="btn yellow full" style="margin-top:12px" onclick="tcStartCourseWorkout()">'+(tcUnavailableDefs(tcOriginalCourseDefs()).length?'Начать адаптированную тренировку':'Начать основной комплекс')+'</button><button class="btn ghost full" style="margin-top:8px" onclick="tcOpenCourseInfo()">ⓘ Советы автора</button></div>'+tcMasteryCardHtml();
+        q('todayList').innerHTML=tcWeeklyCalendarHtml()+tcPendingLevelHtml()+tcEquipmentMasteryNote()+'<div class="todayCard"><div class="row between"><div><div class="dateBig">'+(c.def?c.def.name:'Основной комплекс')+'</div><div class="sessionNo">'+l.frequency+'</div></div><span class="tag">КУРС</span></div>'+tcCourseRowsHtml(items)+tcAdaptationNote(tcOriginalCourseDefs())+'<button class="btn yellow full" style="margin-top:12px" onclick="tcStartCourseWorkout()">'+(tcUnavailableDefs(tcOriginalCourseDefs()).length?'Начать адаптированную тренировку':'Начать основной комплекс')+'</button><button class="btn ghost full" style="margin-top:8px" onclick="tcOpenCourseInfo()">ⓘ Советы автора</button></div>'+tcMasteryCardHtml();
       }else{
         const nextKey=tcWeeklyMode()?tcNextCourseDay():'';
         const next=new Date(TC_course.lastCourseDate+'T12:00:00');next.setDate(next.getDate()+2);
@@ -729,7 +730,7 @@
         if(extras.length){html+='<div class="info" style="margin-top:10px">Основной тяговый комплекс сегодня не назначен. Можно выполнить выбранные дополнительные упражнения без дополнительной тяговой нагрузки.</div>'+tcExtraRowsHtml(extras)+'<button class="btn yellow full" style="margin-top:12px" onclick="tcStartExtraWorkout()">Начать дополнительную тренировку</button>'}
         else html+='<div class="empty" style="margin-top:12px">Дополнительные упражнения не выбраны. Сегодня можно оставить полный отдых.</div><button class="btn ghost full" style="margin-top:10px" onclick="go(\'exercise\')">Выбрать пресс, ноги или отжимания</button>';
         const conflicts=tcConflictExercises();if(conflicts.length)html+='<div class="info" style="margin-top:10px"><b>Не поставлены автоматически в восстановительный день:</b> '+conflicts.map(e=>e.name).join(', ')+'. Они продолжают нагружать тяговую систему или относятся к сложным элементам.</div>';
-        html+='<button class="btn ghost full" style="margin-top:8px" onclick="tcOpenCourseInfo()">ⓘ Советы автора</button>'+tcCourseControlStatusHtml()+'</div>'+tcSupplementHtml();q('todayList').innerHTML=tcWeeklyCalendarHtml()+tcPendingLevelHtml()+tcAuxCardHtml()+html;
+        html+='<button class="btn ghost full" style="margin-top:8px" onclick="tcOpenCourseInfo()">ⓘ Советы автора</button>'+tcCourseControlStatusHtml()+'</div>'+tcSupplementHtml();q('todayList').innerHTML=tcWeeklyCalendarHtml()+tcPendingLevelHtml()+tcEquipmentMasteryNote()+tcAuxCardHtml()+html;
       }
       tcQueueDecorate();
     }
@@ -863,7 +864,8 @@
       const tip=tcAuthorExerciseNote(def);
       const noTip=!tcSourceExerciseInfo(def);
       const note=noTip?'<details class="tcProgramNote"><summary>Техника упражнения</summary><p>В текстовой части PDF пошаговая техника этого упражнения не описана. Для подробностей необходимы соответствующие видеоматериалы автора.</p></details>':'<details class="tcProgramNote"><summary>Пояснение автора</summary><p>'+tcProgramEscape(tip)+'</p></details>';
-      return '<div class="tcProgramExercise"><div class="tcProgramExerciseName">'+tcProgramEscape(def.name)+'</div>'+
+      return '<div class="tcProgramExercise"><div class="tcProgramExerciseName">'+tcProgramEscape(def.name)+'</div>'+ 
+        (tcEquipmentReason(def)?'<div class="tcProgramRest"><b>Не назначается: '+tcProgramEscape(tcEquipmentReason(def))+'</b></div>':'')+
         '<div class="tcProgramPrescription">'+tcProgramEscape(tcProgramPrescription(def))+'</div>'+
         '<div class="tcProgramRest">Отдых: '+tcProgramEscape(tcCourseRestText(def.rest))+'</div>'+note+'</div>';
     }
@@ -876,7 +878,7 @@
       const sourcePage=TC_PDF_COMPLEX_PAGE[levelNo][no];
       return '<details class="tcProgramComplex"'+(active?' open':'')+'><summary><span class="tcProgramChevron">▶</span><span class="tcProgramGrow">'+tcProgramEscape(complex.name)+'</span>'+(active?'<span class="tcProgramCurrent">Следующий</span>':'')+'</summary>'+
         '<div class="tcProgramComplexBody">'+
-        '<p class="tcProgramPurpose">Источник: PDF, стр. '+sourcePage+'. Число подходов и интервалы отдыха воспроизведены из таблицы комплекса.</p>'+
+        '<p class="tcProgramPurpose">Источник: PDF, стр. '+sourcePage+'. Число подходов и интервалы отдыха приведены по исходному курсу. Пометки о доступности оборудования относятся только к плану TurnikCoach.</p>'+
         (complex.purpose?'<p class="tcProgramPurpose">'+tcProgramEscape(complex.purpose)+'</p>':'')+
         complex.items.map(tcProgramExerciseHtml).join('')+'</div></details>';
     }
@@ -1090,6 +1092,7 @@
     // Levels 6–7 have no quantified promotion test in the supplied PDF.
     function tcMasteryDefinition(){
       const level=TC_course.level;
+      if(level===1||level===5)return null; // Source tests require unavailable band / external load.
       if(level===1)return {page:26,name:'Подтягивания с минимальной резиной',fields:[
         {id:'band',label:'Подтягивания с резиной, повторений',min:0},
         {id:'lowBand',label:'Использована резина минимального натяжения',check:true}
@@ -1128,6 +1131,12 @@
         '<div class="meta">Результат контрольного испытания сохранён. Текущий уровень не изменён.</div>'+
         '<button class="btn yellow full" style="margin-top:10px" onclick="tcAdvanceCourseLevel()">Перейти на уровень '+p.to+'</button>'+
         '</div>';
+    }
+
+    function tcEquipmentMasteryNote(){
+      if(TC_course.level===1)return '<div class="info" style="margin-top:8px">Контрольный норматив автора требует резиновую петлю минимального натяжения. При наличии только турника это испытание не назначается; норматив сохранён в полной программе.</div>';
+      if(TC_course.level===5)return '<div class="info" style="margin-top:8px">Контрольный норматив автора требует подтягивания с дополнительным весом. Без отягощения испытание не назначается; норматив сохранён в полной программе.</div>';
+      return '';
     }
     function tcMasteryCardHtml(){
       const def=tcMasteryDefinition();
