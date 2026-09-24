@@ -297,6 +297,7 @@
 
     function tcBaseExerciseAvailable(ex){
       if(!ex)return false;
+      if(['weightedPull','bandPull','benchDip','dipBars','australianPull','towelHang'].includes(ex.id))return false;
       const name=String(ex.name||'').toLowerCase();
       if(/резин|гантел|гир|штанг|весом|отягощ|стул|скамь|полотен|брус|кольц|блок|тренаж|низк.*(перекладин|турник)|австралийск|эспандер|шведск.*стенк/i.test(name))return false;
       return true;
