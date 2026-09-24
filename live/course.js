@@ -196,7 +196,10 @@
       c_band_onearm:'Требуется резиновая петля',
       c_towel_hang:'Требуется полотенце',
       c_onearm_negative:'Для варианта курса требуется нейтральный хват; наличие такой перекладины не подтверждено',
-      c_slow_negative:'Для начала из верхнего положения на данном уровне нужна дополнительная опора; она не подтверждена'
+      c_slow_negative:'Для начала из верхнего положения на данном уровне нужна дополнительная опора; она не подтверждена',
+      c_pause_negative:'Возможность безопасно выйти в верхнее положение без опоры не подтверждена',
+      c_negative_pause_max:'Возможность безопасно выйти в верхнее положение без опоры не подтверждена',
+      c_jump_onearm:'Для упражнения автор указывает низкий турник; высота имеющейся перекладины не подтверждена'
     };
     function tcEquipmentReason(def){
       if(!def)return 'Упражнение не определено';
@@ -295,7 +298,7 @@
     function tcBaseExerciseAvailable(ex){
       if(!ex)return false;
       const name=String(ex.name||'').toLowerCase();
-      if(/резин|гантел|гир|штанг|весом|отягощ|стул|скамь|полотен|брус|кольц|блок|тренаж|низк.*перекладин|австралийск/i.test(name))return false;
+      if(/резин|гантел|гир|штанг|весом|отягощ|стул|скамь|полотен|брус|кольц|блок|тренаж|низк.*(перекладин|турник)|австралийск|эспандер|шведск.*стенк/i.test(name))return false;
       return true;
     }
     function tcExtraExercises(){return selected().filter(e=>!TC_PULL_HEAVY_IDS.has(e.id)&&e.g!=='Турник'&&e.g!=='Элементы'&&tcBaseExerciseAvailable(e))}
@@ -590,8 +593,35 @@
       details.appendChild(summary);details.appendChild(body);details.addEventListener('toggle',()=>{window.__tcExtrasOpen=details.open});host.appendChild(details);
     }
 
+
+    function tcSanitizeSelectedEquipment(){
+      let dirty=false;
+      for(const e of state.ex){
+        if(!tcBaseExerciseAvailable(e)&&(e.sel||e.main)){
+          e.sel=false;e.main=false;dirty=true;
+        }
+      }
+      if(dirty)save();
+      return dirty;
+    }
+    function tcDisableUnavailableCatalog(host){
+      host.querySelectorAll('.exercise').forEach(row=>{
+        const name=row.querySelector('.strong');
+        if(!name)return;
+        const ex=state.ex.find(e=>e.name===name.textContent.trim());
+        if(!ex||tcBaseExerciseAvailable(ex))return;
+        row.querySelectorAll('input,button').forEach(control=>{control.disabled=true});
+        if(!row.querySelector('.tcEquipmentUnavailable')){
+          const badge=document.createElement('div');
+          badge.className='meta tcEquipmentUnavailable';
+          badge.textContent='Недоступно: требуется другое оборудование';
+          (name.parentNode||row).appendChild(badge);
+        }
+      });
+    }
     function tcDecorateCourseCatalog(){
       const host=q('exerciseList');if(!host)return;
+      tcDisableUnavailableCatalog(host);
       const old=document.getElementById('tcCourseCard');if(old)old.remove();
       const oldDetails=document.getElementById('tcExtrasDetails');
       if(oldDetails&&oldDetails.parentNode===host){const body=oldDetails.querySelector('.tcExtrasBody');if(body){[...body.children].forEach(n=>host.appendChild(n))}oldDetails.remove()}
@@ -1377,7 +1407,7 @@
       return '<div class="tcInfoBlock"><h3>Контрольные испытания</h3><p>Текущий максимум: '+
         TC_course.pullMax+' · цель: '+TC_course.targetMax+'</p></div>'+rows;
     }
-    function tcCourseHistoryHtml(){if(!TC_course.enabled&&!TC_course.history.length)return'';const rows=TC_course.history.slice(0,8).map(h=>'<div class="historyitem"><div class="row between"><div><div class="strong" style="font-size:14px">'+(h.courseMode==='supplement'?'Дополнительные подтягивания по курсу':h.courseMode==='auxCourse'?'Вспомогательный комплекс №2 · уровень '+h.courseLevel:'Курс Морозова · уровень '+h.courseLevel+' · комплекс '+h.courseComplex)+'</div><div class="meta">'+fmtRecordDate(h)+' · '+(h.feedback||'—')+'</div></div><span class="badge">КУРС</span></div>'+(h.details||[]).map(d=>'<div class="meta" style="margin-top:6px">'+d.name+': '+d.actual.map(v=>v===null?'—':v).join(' · ')+'</div>').join('')+'</div>').join('');return '<div class="exerciseProgressCard"><div class="progressHead"><div><div class="progressName">Курс Морозова</div><div class="meta">Отдельная история основной тяговой программы</div></div><span class="badge">ур. '+TC_course.level+'</span></div><div class="tcInfoBlock"><h3>Критерий текущего уровня</h3><p>'+tcCourseLevel().mastery+'</p></div>'+tcCourseTestsHtml()+rows+'</div>'}
+    function tcCourseHistoryHtml(){if(!TC_course.enabled&&!TC_course.history.length)return'';const rows=TC_course.history.slice(0,8).map(h=>'<div class="historyitem"><div class="row between"><div><div class="strong" style="font-size:14px">'+(h.courseMode==='supplement'?'Дополнительные подтягивания по курсу':h.courseMode==='auxCourse'?'Вспомогательный комплекс №2 · уровень '+h.courseLevel:'Курс Морозова · уровень '+h.courseLevel+' · комплекс '+h.courseComplex)+(h.adapted?' · адаптация: только турник':'')+'</div><div class="meta">'+fmtRecordDate(h)+' · '+(h.feedback||'—')+'</div></div><span class="badge">КУРС</span></div>'+(h.details||[]).map(d=>'<div class="meta" style="margin-top:6px">'+d.name+': '+d.actual.map(v=>v===null?'—':v).join(' · ')+'</div>').join('')+'</div>').join('');return '<div class="exerciseProgressCard"><div class="progressHead"><div><div class="progressName">Курс Морозова</div><div class="meta">Отдельная история основной тяговой программы</div></div><span class="badge">ур. '+TC_course.level+'</span></div><div class="tcInfoBlock"><h3>Критерий текущего уровня</h3><p>'+tcCourseLevel().mastery+'</p></div>'+tcCourseTestsHtml()+rows+'</div>'}
     const tcBeforeCourseRenderHistory=window.renderHistory;
     window.renderHistory=function(){const r=tcBeforeCourseRenderHistory();const host=q('exerciseProgress');if(host){const old=document.getElementById('tcCourseHistoryWrap');if(old)old.remove();const wrap=document.createElement('div');wrap.id='tcCourseHistoryWrap';wrap.innerHTML=tcCourseHistoryHtml();host.parentNode.insertBefore(wrap,host)}return r};
 
@@ -1385,6 +1415,7 @@
     window.render=function(){const r=tcBeforeCourseRender();tcDecorateCourseCatalog();if(TC_course.enabled&&q('today').classList.contains('on'))tcRenderToday();return r};
 
     // Initial redraw after installing the module.
+    tcSanitizeSelectedEquipment();
     tcInjectCourseUiStyles();
     render();
 
