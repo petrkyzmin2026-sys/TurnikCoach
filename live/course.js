@@ -1,7 +1,7 @@
-/* TURNIKCOACH_COURSE 1.0.13-final-integration */
+/* TURNIKCOACH_COURSE 1.0.14-final-course */
 (function(){
   'use strict';
-  const COURSE_MODULE_VERSION='1.0.13-final-integration';
+  const COURSE_MODULE_VERSION='1.0.14-final-course';
   if(window.__TC_COURSE_MODULE_VERSION===COURSE_MODULE_VERSION)return;
   window.__TC_COURSE_MODULE_VERSION=COURSE_MODULE_VERSION;
   function tcClamp(v,a,b){return Math.max(a,Math.min(b,v))}
@@ -661,7 +661,7 @@
       }
       if(due){
         q('todaySub').textContent=tcTestDue()?'Контроль прогресса · курс Морозова':'Курс Морозова · '+l.title+' · '+tcCourseGoalName(TC_course.goal);
-        q('todayList').innerHTML=tcWeeklyCalendarHtml()+tcPendingLevelHtml()+tcCourseTestCard()+'<div class="todayCard"><div class="row between"><div><div class="dateBig">'+(c.def?c.def.name:'Основной комплекс')+'</div><div class="sessionNo">'+l.frequency+'</div></div><span class="tag">КУРС</span></div>'+tcCourseRowsHtml(items)+'<button class="btn yellow full" style="margin-top:12px" onclick="tcStartCourseWorkout()">Начать основной комплекс</button><button class="btn ghost full" style="margin-top:8px" onclick="tcOpenCourseInfo()">ⓘ Советы автора</button></div>'+tcMasteryCardHtml();
+        q('todayList').innerHTML=tcWeeklyCalendarHtml()+tcPendingLevelHtml()+'<div class="todayCard"><div class="row between"><div><div class="dateBig">'+(c.def?c.def.name:'Основной комплекс')+'</div><div class="sessionNo">'+l.frequency+'</div></div><span class="tag">КУРС</span></div>'+tcCourseRowsHtml(items)+'<button class="btn yellow full" style="margin-top:12px" onclick="tcStartCourseWorkout()">Начать основной комплекс</button><button class="btn ghost full" style="margin-top:8px" onclick="tcOpenCourseInfo()">ⓘ Советы автора</button></div>'+tcMasteryCardHtml();
       }else{
         const nextKey=tcWeeklyMode()?tcNextCourseDay():'';
         const next=new Date(TC_course.lastCourseDate+'T12:00:00');next.setDate(next.getDate()+2);
@@ -670,7 +670,7 @@
         if(extras.length){html+='<div class="info" style="margin-top:10px">Основной тяговый комплекс сегодня не назначен. Можно выполнить выбранные дополнительные упражнения без дополнительной тяговой нагрузки.</div>'+tcExtraRowsHtml(extras)+'<button class="btn yellow full" style="margin-top:12px" onclick="tcStartExtraWorkout()">Начать дополнительную тренировку</button>'}
         else html+='<div class="empty" style="margin-top:12px">Дополнительные упражнения не выбраны. Сегодня можно оставить полный отдых.</div><button class="btn ghost full" style="margin-top:10px" onclick="go(\'exercise\')">Выбрать пресс, ноги или отжимания</button>';
         const conflicts=tcConflictExercises();if(conflicts.length)html+='<div class="info" style="margin-top:10px"><b>Не поставлены автоматически в восстановительный день:</b> '+conflicts.map(e=>e.name).join(', ')+'. Они продолжают нагружать тяговую систему или относятся к сложным элементам.</div>';
-        html+='<button class="btn ghost full" style="margin-top:8px" onclick="tcOpenCourseInfo()">ⓘ Советы автора</button></div>'+tcCourseTestCard()+tcMasteryCardHtml()+tcSupplementHtml();q('todayList').innerHTML=tcWeeklyCalendarHtml()+tcPendingLevelHtml()+tcAuxCardHtml()+html;
+        html+='<button class="btn ghost full" style="margin-top:8px" onclick="tcOpenCourseInfo()">ⓘ Советы автора</button>'+tcCourseControlStatusHtml()+'</div>'+tcSupplementHtml();q('todayList').innerHTML=tcWeeklyCalendarHtml()+tcPendingLevelHtml()+tcAuxCardHtml()+html;
       }
       tcQueueDecorate();
     }
@@ -880,6 +880,21 @@
       const next=tcCourseComplex();
       return next.def&&next.def.items&&next.def.items[0]||null;
     }
+
+    function tcAuthorTechniqueGuideHtml(){
+      const rows=[
+        ['Классический верхний хват','Нагрузка распределяется между мышцами рук и спины; автор перечисляет широчайшие, трапециевидные, ромбовидные, большую круглую, сгибатели руки, предплечья и грудные.','7–8'],
+        ['Широкий верхний хват','Акцент сильнее смещается на спину и стабилизаторы плеча; автор также упоминает частичную амплитуду как вариант дополнительного акцента на спину.','9'],
+        ['Узкий верхний хват','Акцент больше смещается на руки и предплечья, при сохранении работы спины.','10'],
+        ['Нижний хват','Несколько увеличивается участие бицепса, но распределение нагрузки зависит от техники.','11–13'],
+        ['Шраги','Работа мышц, опускающих плечо, ротаторов плеча и, при большей амплитуде, трапеций.','15'],
+        ['Асимметричные подтягивания','Тянущая сторона получает повышенную нагрузку; вспомогательная стабилизирует положение и снимает часть нагрузки.','16'],
+        ['Высокие подтягивания','Используются для развития взрывной силы.','19'],
+        ['Трёхстадийные подтягивания','Разделение движения на фазы используется для развития нейромышечного контроля по амплитуде.','20']
+      ];
+      return rows.map(r=>'<div style="margin:8px 0"><b>'+r[0]+'</b><br>'+r[1]+' <span class="meta">PDF, стр. '+r[2]+'</span></div>').join('');
+    }
+
     function tcAdvicePanel(title,body,opened){
       return '<details class="tcProgramNote"'+(opened?' open':'')+'><summary style="font-size:14px;font-weight:800">'+title+'</summary>'+
         '<div style="font-size:13px;line-height:1.55;color:#c6d0dd;padding-top:8px">'+body+'</div></details>';
@@ -898,7 +913,7 @@
       const recovery='<b>В тексте курса:</b> '+tcProgramEscape(l.frequency)+
         (l.supplement?'<br><br>Автор предлагает пропускать ежедневные 10 подходов в дни основной тренировки и не менее пяти дней ежемесячно отдыхать от этой дополнительной работы (PDF, стр. '+(TC_course.level===3?34:43)+').':'')+
         '<br><br><b>Планировщик TurnikCoach:</b> в дни без основного тягового комплекса предлагает выбранную дополнительную работу. Это правило приложения, а не формулировка из PDF.';
-      const nutrition='В предоставленном PDF нет индивидуального плана питания, норм калорийности и белка, меню или числового норматива продолжительности сна. Поэтому здесь нет вымышленных рекомендаций «от Морозова». Для заполнения этого раздела необходимы дополнительные материалы автора.';
+      const nutrition='В предоставленном PDF нет рекомендаций по калорийности, норме белка, меню, режиму питания или числовой норме сна. Эти данные не добавляются от имени автора. Если будут предоставлены его отдельные материалы по питанию или восстановлению, их можно встроить в этот же раздел.';
       const safety='В юридическом разделе PDF (стр. 70) автор указывает на необходимость консультации со специалистом до начала тренировок.';
       const box=q('sheetbox');
       box.innerHTML='<div class="sheettitle">ⓘ Советы автора</div>'+
@@ -910,6 +925,7 @@
           '<br><br><b>Критерий освоения:</b> '+tcProgramEscape(l.mastery),false)+
         tcAdvicePanel('Частота и отдых по курсу',frequency+rest,false)+
         tcAdvicePanel('Восстановление и дополнительные занятия',recovery,false)+
+        tcAdvicePanel('Справочник техники из PDF',tcAuthorTechniqueGuideHtml(),false)+
         tcAdvicePanel('Питание и сон',nutrition,false)+
         tcAdvicePanel('Перед началом тренировок',safety,false)+
         '<button class="btn yellow full" style="margin-top:14px" onclick="closeSheet()">Закрыть</button>';
@@ -972,6 +988,26 @@
       const lastDate=lastLoad&&lastLoad.date>TC_course.lastCourseDate?lastLoad.date:TC_course.lastCourseDate;
       return !!lastDate&&tcDayDiff(lastDate,dateKey())>=2;
     }
+
+    function tcCourseControlStatusHtml(){
+      if(!TC_course.lastCourseDate)return '';
+      const next=tcNextTestDate();
+      if(!next)return '';
+      const deferred=TC_course.testDeferredUntil&&TC_course.testDeferredUntil>next?TC_course.testDeferredUntil:next;
+      if(TC_course.level===4&&TC_course.goal==='quantity'){
+        const last=tcLatestTest();
+        return '<div class="meta" style="margin-top:9px">Следующий контроль максимума: '+
+          fmtKeyDate(deferred,false)+' · цель '+TC_course.targetMax+
+          (last?' · последний '+last.value:'')+'</div>';
+      }
+      if(tcMasteryDefinition()){
+        const latest=TC_course.masteryTests.find(t=>t.level===TC_course.level);
+        return '<div class="meta" style="margin-top:9px">Следующая проверка норматива уровня: '+
+          fmtKeyDate(deferred,false)+(latest?' · предыдущая: '+(latest.passed?'выполнен':'не выполнен'):'')+'</div>';
+      }
+      return '';
+    }
+
     function tcCourseTestCard(){
       const next=tcNextTestDate(),due=tcTestDue(),ready=tcRecoveredForTest();
       if(TC_course.level!==4||TC_course.goal!=='quantity')return '';
