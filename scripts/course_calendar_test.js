@@ -23,13 +23,13 @@ function extract(name){
   return course.slice(start,end);
 }
 const names=['tcDayDiff','tcCourseWeekdays','tcDateFromKey','tcScheduledOn',
-  'tcProjectedCourseSeq','tcCourseComplexNo','tcCourseComplex'];
+  'tcProjectedCourseSeq','tcCourseComplexNo','tcCourseComplex','tcUndoLatestTodayCourseRecord'];
 const key=(date=new Date('2026-09-25T12:00:00'))=>
   date.getFullYear()+'-'+String(date.getMonth()+1).padStart(2,'0')+'-'+String(date.getDate()).padStart(2,'0');
 const courseState={enabled:true,level:4,goal:'quantity',weeklySessions:4,
   cycleStartDate:'2026-09-25',courseSeq:5,lastCourseDate:'',history:[]};
 const api=new Function('TC_course','dateKey','tcCourseLevel',
-  names.map(extract).join('\n')+'\nreturn {tcScheduledOn,tcProjectedCourseSeq,tcCourseComplex};')(
+  names.map(extract).join('\n')+'\nreturn {tcScheduledOn,tcProjectedCourseSeq,tcCourseComplex,tcUndoLatestTodayCourseRecord};')(
   courseState,key,()=>({complexes:{1:{name:'№1'},2:{name:'№2'},3:{name:'№3'}}})
 );
 const dates=['2026-09-25','2026-09-26','2026-09-27','2026-09-28',
@@ -52,4 +52,24 @@ assert(course.includes('tcPreviewCourseCard(tcSelectedDate)'),
  'choosing another date must show a read-only plan');
 assert(course.includes('id="tcCycleStartDate"'),
  'settings must expose a cycle start date');
-console.log('PASS: syntax, bundled module, 3/4-day cycle, historical schedule, forecast and read-only preview');
+assert(hotfix.includes("const VERSION='5.16.19-discard-undo'"),
+ 'release hotfix version must be 5.16.19');
+assert(hotfix.includes("b.textContent='Выйти без сохранения'"),
+ 'workout UI must expose an explicit discard control');
+assert(course.includes('tcUndoTodayCourseWorkout'),
+ 'today screen must expose undo for an accidentally saved course workout');
+
+const undoState={enabled:true,level:4,goal:'quantity',weeklySessions:3,cycleStartDate:'2026-09-25',
+  courseSeq:1,lastCourseDate:'2026-09-25',lastCourseTs:123,testAnchorDate:'2026-09-25',
+  lastTestDate:'',history:[{courseMode:'course',date:'2026-09-25',ts:123,courseComplex:3}]};
+const undoApi=new Function('TC_course',
+  extract('tcUndoLatestTodayCourseRecord')+'\nreturn {tcUndoLatestTodayCourseRecord};')(undoState);
+assert.equal(undoApi.tcUndoLatestTodayCourseRecord('2026-09-25'),true);
+assert.equal(undoState.courseSeq,0);
+assert.equal(undoState.history.length,0);
+assert.equal(undoState.lastCourseDate,'');
+assert.equal(undoState.lastCourseTs,0);
+assert.equal(undoState.testAnchorDate,'');
+assert.equal(undoApi.tcUndoLatestTodayCourseRecord('2026-09-25'),false,
+ 'undo must not remove anything twice');
+console.log('PASS: syntax, bundle, calendar, discard control and safe same-day course undo');
