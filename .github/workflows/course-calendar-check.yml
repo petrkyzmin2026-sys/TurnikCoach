@@ -5,6 +5,7 @@ on:
     branches:
       - feature/course-calendar-start-date-20260925
       - feature/discard-workout-undo-today-20260925
+      - fix/undo-button-layout-20260925
   workflow_dispatch:
 
 permissions:
@@ -36,7 +37,7 @@ jobs:
       - name: Embed tested opt-in hotfix in test application
         run: |
           cp live/hotfix.js app/src/main/assets/hotfix.js
-          grep -q 'TURNIKCOACH_HOTFIX 5.16.19-discard-undo' app/src/main/assets/hotfix.js
+          grep -q 'TURNIKCOACH_HOTFIX 5.16.20-undo-ui-fix' app/src/main/assets/hotfix.js
       - name: Isolate test application from installed production data
         run: |
           python3 - <<'PY'
@@ -65,9 +66,9 @@ jobs:
       - name: Build isolated DEBUG preview APK
         run: |
           gradle --no-daemon :app:assembleDebug
-          cp app/build/outputs/apk/debug/app-debug.apk TurnikCoach-Discard-Preview-v5.16.19.apk
+          cp app/build/outputs/apk/debug/app-debug.apk TurnikCoach-UndoUI-Preview-v5.16.20.apk
       - uses: actions/upload-artifact@v4
         with:
-          name: TurnikCoach-5.16.19-discard-isolated-preview
-          path: TurnikCoach-Discard-Preview-v5.16.19.apk
+          name: TurnikCoach-5.16.20-undo-ui-isolated-preview
+          path: TurnikCoach-UndoUI-Preview-v5.16.20.apk
           if-no-files-found: error
