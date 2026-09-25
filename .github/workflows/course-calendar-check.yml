@@ -1,0 +1,45 @@
+name: Course calendar regression and Android test APK
+
+on:
+  push:
+    branches:
+      - feature/course-calendar-start-date-20260925
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  checks-and-test-apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check actual live code and bundled module
+        run: node scripts/course_calendar_test.js
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - name: Restore packaged base application
+        run: |
+          BASE_COMMIT="2d156b1c192e68f102a63d79cd3fa179fc412f5f"
+          : > /tmp/v513.b64
+          for n in 01 02 03 04 05; do
+            curl -fsSL "https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/${BASE_COMMIT}/.github/v5.13-index.part${n}.b64" >> /tmp/v513.b64
+          done
+          base64 --decode /tmp/v513.b64 | gzip -dc > app/src/main/assets/index.html
+          grep -q 'v5.13 — modern Android package' app/src/main/assets/index.html
+      - name: Embed tested opt-in hotfix in test application
+        run: |
+          cp live/hotfix.js app/src/main/assets/hotfix.js
+          grep -q 'TURNIKCOACH_HOTFIX 5.16.18-calendar-cycle' app/src/main/assets/hotfix.js
+      - name: Build DEBUG test APK (not an upgrade for installed release)
+        run: gradle --no-daemon :app:assembleDebug
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TurnikCoach-5.16.18-calendar-debug-test-NOT-UPGRADE
+          path: app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
