@@ -291,6 +291,37 @@
       }
       return seq;
     }
+
+    function tcPreviewCourseCard(key){
+      const now=dateKey(),records=TC_course.history.filter(h=>h.date===key);
+      const finished=records.filter(h=>['course','auxCourse','supplement'].includes(h.courseMode));
+      const tests=TC_course.tests.filter(t=>t.date===key);
+      const mastery=TC_course.masteryTests.filter(t=>t.date===key);
+      let html='<div class="todayCard tcCoursePreview"><div class="row between"><div><div class="dateBig">'+fmtDate(tcDateFromKey(key))+'</div><div class="meta">Просмотр без изменения расписания и истории</div></div><span class="tag stage4">ПРОСМОТР</span></div>';
+      finished.forEach(h=>{
+        html+='<div class="tcInfoBlock"><h3>'+(h.courseMode==='course'?'Выполнен комплекс №'+h.courseComplex:h.courseMode==='auxCourse'?'Выполнен вспомогательный комплекс':'Выполнена дополнительная работа')+'</h3>'+
+          (h.details||[]).map(d=>'<p>'+tcProgramEscape(d.name)+': '+(d.actual||[]).map(v=>v==null?'—':String(v)).join(' · ')+'</p>').join('')+'</div>';
+      });
+      tests.forEach(t=>{html+='<div class="tcInfoBlock"><h3>Контрольный максимум</h3><p>'+t.value+' повторений</p></div>'});
+      mastery.forEach(t=>{html+='<div class="tcInfoBlock"><h3>Контроль освоения уровня</h3><p>'+(t.passed?'Норматив выполнен':'Норматив не выполнен')+'</p></div>'});
+      if(key<now){
+        if(!finished.length&&!tests.length&&!mastery.length)html+='<div class="info">'+(TC_course.cycleStartDate&&key<TC_course.cycleStartDate?'Дата предшествует выбранному началу цикла.':tcScheduledOn(key)?'Занятие предусмотрено календарём; записи о выполнении нет.':'На эту дату основное занятие не назначено.')+'</div>';
+        return html+'</div>';
+      }
+      if(TC_course.cycleStartDate&&key<TC_course.cycleStartDate)return html+'<div class="info">Основные занятия начнутся '+fmtKeyDate(TC_course.cycleStartDate,false)+'.</div></div>';
+      if(tcScheduledOn(key)){
+        const seq=tcProjectedCourseSeq(key),complex=tcCourseComplex(seq),defs=tcResolvedCourseDefs(complex),items=tcBuildCourseItems(seq);
+        html+='<div class="row between" style="margin-top:12px"><div class="dateBig">'+(complex.def?complex.def.name:'Основной комплекс')+'</div><span class="tag">КУРС</span></div>';
+        html+=items.length?tcCourseRowsHtml(items):'<div class="info">Для выполнения комплекса требуется оборудование или калибровка. См. действующий план в день занятия.</div>';
+        html+=tcAdaptationNote(defs);
+        html+='<div class="meta" style="margin-top:10px">Предварительный план. После предыдущих занятий, пропусков и контрольных замеров комплекс или нагрузка могут измениться. Начать тренировку из режима просмотра нельзя.</div>';
+      }else{
+        const extras=tcBuildExtraItems();
+        html+='<div class="dateBig" style="margin-top:12px">День без основного комплекса</div>';
+        html+=extras.length?tcExtraRowsHtml(extras)+'<div class="meta" style="margin-top:9px">Дополнительные упражнения необязательны; их выполнение не записано.</div>':'<div class="info">Дополнительные упражнения не выбраны. День отдыха.</div>';
+      }
+      return html+'</div>';
+    }
     window.tcSelectCourseDay=function(key){
       if(!/^\d{4}-\d{2}-\d{2}$/.test(key))return;
       const d=tcDateFromKey(key);
@@ -743,6 +774,12 @@
     function tcRenderToday(){
       const now=new Date(),due=tcCourseDue(),l=tcCourseLevel(),c=tcCourseComplex(),items=tcBuildCourseItems(),extras=tcBuildExtraItems();
       q('todayTitle').textContent=fmtDate(now);
+      if(tcSelectedDate&&tcSelectedDate!==dateKey()){
+        q('todayTitle').textContent=fmtDate(tcDateFromKey(tcSelectedDate));
+        q('todaySub').textContent='Курс Морозова · '+l.title+' · просмотр плана';
+        q('todayList').innerHTML=tcWeeklyCalendarHtml()+tcPreviewCourseCard(tcSelectedDate);
+        return;
+      }
       if(tcWeeklyMode()&&tcTestDue()){
         q('todaySub').textContent='Контрольный день · курс Морозова';
         q('todayList').innerHTML=tcWeeklyCalendarHtml()+tcCourseTestCard();
