@@ -1,7 +1,7 @@
-/* TURNIKCOACH_COURSE 1.0.16-calendar-cycle */
+/* TURNIKCOACH_COURSE 1.0.17-discard-undo */
 (function(){
   'use strict';
-  const COURSE_MODULE_VERSION='1.0.16-calendar-cycle';
+  const COURSE_MODULE_VERSION='1.0.17-discard-undo';
   if(window.__TC_COURSE_MODULE_VERSION===COURSE_MODULE_VERSION)return;
   window.__TC_COURSE_MODULE_VERSION=COURSE_MODULE_VERSION;
   function tcClamp(v,a,b){return Math.max(a,Math.min(b,v))}
@@ -784,6 +784,36 @@
     }
 
 
+
+    function tcTodayCourseUndoHtml(){
+      const rec=TC_course.history.find(h=>h.courseMode==='course');
+      if(!rec||rec.date!==dateKey())return '';
+      return '<div class="todayCard" style="margin-bottom:12px;border-color:#784047">'+
+        '<div class="row between"><div><div class="dateBig">Сегодняшняя тренировка уже сохранена</div>'+
+        '<div class="meta">Если это был пробный запуск или ошибочное завершение, запись можно отменить и начать этот день курса заново.</div></div><span class="tag stage4">СОХРАНЕНО</span></div>'+
+        '<button class="btn danger full" style="margin-top:12px" onclick="tcUndoTodayCourseWorkout()">Отменить сегодняшнюю тренировку</button></div>';
+    }
+    function tcUndoLatestTodayCourseRecord(today){
+      const rec=TC_course.history.find(h=>h.courseMode==='course');
+      if(!rec||rec.date!==today)return false;
+      const idx=TC_course.history.indexOf(rec);
+      if(idx>=0)TC_course.history.splice(idx,1);
+      TC_course.courseSeq=Math.max(0,(+TC_course.courseSeq||0)-1);
+      const previous=TC_course.history.find(h=>h.courseMode==='course');
+      TC_course.lastCourseDate=previous&&previous.date||'';
+      TC_course.lastCourseTs=previous&&previous.ts||0;
+      if(TC_course.testAnchorDate===rec.date&&!TC_course.lastTestDate&&!previous)TC_course.testAnchorDate='';
+      return true;
+    }
+    window.tcUndoTodayCourseWorkout=function(){
+      const rec=TC_course.history.find(h=>h.courseMode==='course');
+      if(!rec||rec.date!==dateKey())return;
+      if(!window.confirm('Отменить сегодняшнюю сохранённую тренировку? Запись и выполненные подходы будут удалены, а этот день курса снова станет доступен для начала.'))return;
+      if(!tcUndoLatestTodayCourseRecord(dateKey()))return;
+      tcSelectedDate='';tcWeekOffset=0;
+      tcSaveCourse();render();
+    };
+
     function tcRenderToday(){
       const now=new Date(),due=tcCourseDue(),l=tcCourseLevel(),c=tcCourseComplex(),items=tcBuildCourseItems(),extras=tcBuildExtraItems();
       q('todayTitle').textContent=fmtDate(now);
@@ -838,7 +868,7 @@
         if(extras.length){html+='<div class="info" style="margin-top:10px">Основной тяговый комплекс сегодня не назначен. Можно выполнить выбранные дополнительные упражнения без дополнительной тяговой нагрузки.</div>'+tcExtraRowsHtml(extras)+'<button class="btn yellow full" style="margin-top:12px" onclick="tcStartExtraWorkout()">Начать дополнительную тренировку</button>'}
         else html+='<div class="empty" style="margin-top:12px">Дополнительные упражнения не выбраны. Сегодня можно оставить полный отдых.</div><button class="btn ghost full" style="margin-top:10px" onclick="go(\'exercise\')">Выбрать пресс, ноги или отжимания</button>';
         const conflicts=tcConflictExercises();if(conflicts.length)html+='<div class="info" style="margin-top:10px"><b>Не поставлены автоматически в восстановительный день:</b> '+conflicts.map(e=>e.name).join(', ')+'. Они продолжают нагружать тяговую систему или относятся к сложным элементам.</div>';
-        html+='<button class="btn ghost full" style="margin-top:8px" onclick="tcOpenCourseInfo()">ⓘ Советы автора</button>'+tcCourseControlStatusHtml()+'</div>'+tcSupplementHtml();q('todayList').innerHTML=tcWeeklyCalendarHtml()+tcPendingLevelHtml()+tcEquipmentMasteryNote()+tcAuxCardHtml()+html;
+        html+='<button class="btn ghost full" style="margin-top:8px" onclick="tcOpenCourseInfo()">ⓘ Советы автора</button>'+tcCourseControlStatusHtml()+'</div>'+tcSupplementHtml();q('todayList').innerHTML=tcWeeklyCalendarHtml()+tcTodayCourseUndoHtml()+tcPendingLevelHtml()+tcEquipmentMasteryNote()+tcAuxCardHtml()+html;
       }
       tcQueueDecorate();
     }
