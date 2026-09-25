@@ -1,7 +1,7 @@
-/* TURNIKCOACH_COURSE 1.0.15-bar-only */
+/* TURNIKCOACH_COURSE 1.0.16-calendar-cycle */
 (function(){
   'use strict';
-  const COURSE_MODULE_VERSION='1.0.15-bar-only';
+  const COURSE_MODULE_VERSION='1.0.16-calendar-cycle';
   if(window.__TC_COURSE_MODULE_VERSION===COURSE_MODULE_VERSION)return;
   window.__TC_COURSE_MODULE_VERSION=COURSE_MODULE_VERSION;
   function tcClamp(v,a,b){return Math.max(a,Math.min(b,v))}
@@ -147,12 +147,12 @@
       const pull=state.ex.find(e=>e.id==='pull');
       const weighted=state.ex.find(e=>e.id==='weightedPull');
       const m=Math.max(1,+((pull&&pull.max)||1));
-      return{enabled:false,level:m<=1?1:m<=3?2:m<=14?3:4,goal:'quantity',pullMax:m,weightedLoad:+((weighted&&weighted.load)||0),courseSeq:0,extraSeq:0,lastCourseDate:'',lastCourseTs:0,authorSupplement:false,history:[],tests:[],testPeriodWeeks:3,targetMax:30,testAnchorDate:'',lastTestDate:'',testDeferredUntil:'',weeklySessions:3,masteryTests:[],pendingTransition:null,advancedChoices:{onearm:[],muscleup:[]},auxEnabled:{3:false,6:false},auxInterval3:10,exerciseMax:{},equipment:'bar'};
+      return{enabled:false,level:m<=1?1:m<=3?2:m<=14?3:4,goal:'quantity',pullMax:m,weightedLoad:+((weighted&&weighted.load)||0),courseSeq:0,extraSeq:0,lastCourseDate:'',lastCourseTs:0,authorSupplement:false,history:[],tests:[],testPeriodWeeks:3,targetMax:30,testAnchorDate:'',lastTestDate:'',testDeferredUntil:'',weeklySessions:3,cycleStartDate:'',masteryTests:[],pendingTransition:null,advancedChoices:{onearm:[],muscleup:[]},auxEnabled:{3:false,6:false},auxInterval3:10,exerciseMax:{},equipment:'bar'};
     }
     function tcLoadCourse(){
       let c=tcCourseDefault();
       try{const raw=JSON.parse(localStorage.getItem(TC_COURSE_KEY)||'null');if(raw&&typeof raw==='object')c={...c,...raw}}catch(e){}
-      c.level=tcClamp(Math.floor(+c.level||1),1,7);c.pullMax=Math.max(1,Math.floor(+c.pullMax||1));c.weightedLoad=Math.max(0,+c.weightedLoad||0);c.courseSeq=Math.max(0,Math.floor(+c.courseSeq||0));c.extraSeq=Math.max(0,Math.floor(+c.extraSeq||0));c.history=Array.isArray(c.history)?c.history:[];c.tests=Array.isArray(c.tests)?c.tests:[];c.masteryTests=Array.isArray(c.masteryTests)?c.masteryTests:[];c.pendingTransition=c.pendingTransition&&typeof c.pendingTransition==='object'?c.pendingTransition:null;c.advancedChoices=c.advancedChoices&&typeof c.advancedChoices==='object'?c.advancedChoices:{onearm:[],muscleup:[]};c.advancedChoices.onearm=Array.isArray(c.advancedChoices.onearm)?c.advancedChoices.onearm:[];c.advancedChoices.muscleup=Array.isArray(c.advancedChoices.muscleup)?c.advancedChoices.muscleup:[];c.auxEnabled=c.auxEnabled&&typeof c.auxEnabled==='object'?c.auxEnabled:{3:false,6:false};c.auxEnabled[3]=c.auxEnabled[3]===true;c.auxEnabled[6]=c.auxEnabled[6]===true;c.auxInterval3=[7,10].includes(+c.auxInterval3)?+c.auxInterval3:10;c.exerciseMax=c.exerciseMax&&typeof c.exerciseMax==='object'&&!Array.isArray(c.exerciseMax)?c.exerciseMax:{};c.equipment='bar';c.testPeriodWeeks=[2,3,4].includes(+c.testPeriodWeeks)?+c.testPeriodWeeks:3;c.weeklySessions=[2,3,4].includes(+c.weeklySessions)?+c.weeklySessions:3;c.targetMax=Math.max(1,Math.floor(+c.targetMax||30));c.testAnchorDate=/^\d{4}-\d{2}-\d{2}$/.test(c.testAnchorDate||'')?c.testAnchorDate:'';c.lastTestDate=/^\d{4}-\d{2}-\d{2}$/.test(c.lastTestDate||'')?c.lastTestDate:'';c.testDeferredUntil=/^\d{4}-\d{2}-\d{2}$/.test(c.testDeferredUntil||'')?c.testDeferredUntil:'';
+      c.level=tcClamp(Math.floor(+c.level||1),1,7);c.pullMax=Math.max(1,Math.floor(+c.pullMax||1));c.weightedLoad=Math.max(0,+c.weightedLoad||0);c.courseSeq=Math.max(0,Math.floor(+c.courseSeq||0));c.extraSeq=Math.max(0,Math.floor(+c.extraSeq||0));c.history=Array.isArray(c.history)?c.history:[];c.tests=Array.isArray(c.tests)?c.tests:[];c.masteryTests=Array.isArray(c.masteryTests)?c.masteryTests:[];c.pendingTransition=c.pendingTransition&&typeof c.pendingTransition==='object'?c.pendingTransition:null;c.advancedChoices=c.advancedChoices&&typeof c.advancedChoices==='object'?c.advancedChoices:{onearm:[],muscleup:[]};c.advancedChoices.onearm=Array.isArray(c.advancedChoices.onearm)?c.advancedChoices.onearm:[];c.advancedChoices.muscleup=Array.isArray(c.advancedChoices.muscleup)?c.advancedChoices.muscleup:[];c.auxEnabled=c.auxEnabled&&typeof c.auxEnabled==='object'?c.auxEnabled:{3:false,6:false};c.auxEnabled[3]=c.auxEnabled[3]===true;c.auxEnabled[6]=c.auxEnabled[6]===true;c.auxInterval3=[7,10].includes(+c.auxInterval3)?+c.auxInterval3:10;c.exerciseMax=c.exerciseMax&&typeof c.exerciseMax==='object'&&!Array.isArray(c.exerciseMax)?c.exerciseMax:{};c.equipment='bar';c.testPeriodWeeks=[2,3,4].includes(+c.testPeriodWeeks)?+c.testPeriodWeeks:3;c.weeklySessions=[2,3,4].includes(+c.weeklySessions)?+c.weeklySessions:3;c.cycleStartDate=/^\d{4}-\d{2}-\d{2}$/.test(c.cycleStartDate||'')?c.cycleStartDate:'';c.targetMax=Math.max(1,Math.floor(+c.targetMax||30));c.testAnchorDate=/^\d{4}-\d{2}-\d{2}$/.test(c.testAnchorDate||'')?c.testAnchorDate:'';c.lastTestDate=/^\d{4}-\d{2}-\d{2}$/.test(c.lastTestDate||'')?c.lastTestDate:'';c.testDeferredUntil=/^\d{4}-\d{2}-\d{2}$/.test(c.testDeferredUntil||'')?c.testDeferredUntil:'';
       return c;
     }
     let TC_course=tcLoadCourse();
@@ -229,71 +229,98 @@
         tcAdaptationNote(defs)+
         '<button class="btn ghost full" style="margin-top:10px" onclick="tcOpenCourseProgram()">Посмотреть исходный курс</button></div>';
     }
-    function tcCourseComplexNo(){
+    function tcCourseComplexNo(seqIndex=TC_course.courseSeq){
       const l=tcCourseLevel(),ids=Object.keys(l.complexes).map(Number);
       if(TC_course.level===3||TC_course.level===6)return 1;
-      if(TC_course.level===4){if(TC_course.goal==='muscleup')return 1;if(TC_course.goal==='onearm')return 2;const seq=[3,3,3,1,3,3,3,2];return seq[TC_course.courseSeq%seq.length]}
+      if(TC_course.level===4){if(TC_course.goal==='muscleup')return 1;if(TC_course.goal==='onearm')return 2;const seq=[3,3,3,1,3,3,3,2];return seq[seqIndex%seq.length]}
       if(TC_course.level===5){return TC_course.goal==='onearm'?2:1}
       if(TC_course.level===7){return TC_course.goal==='muscleup'?2:1}
       const seq=l.sequence&&l.sequence.length?l.sequence:ids;
-      return seq[TC_course.courseSeq%seq.length]||ids[0]||1;
+      return seq[seqIndex%seq.length]||ids[0]||1;
     }
-    function tcCourseComplex(){const no=tcCourseComplexNo();return{no,def:tcCourseLevel().complexes[no]}}
+    function tcCourseComplex(seqIndex=TC_course.courseSeq){const no=tcCourseComplexNo(seqIndex);return{no,def:tcCourseLevel().complexes[no]}}
     function tcDayDiff(a,b){if(!a||!b)return 999;const x=new Date(a+'T12:00:00'),y=new Date(b+'T12:00:00');return Math.round((y-x)/86400000)}
-    // Level 4 quantity: an actual weekly calendar, not rolling "48 hours since last workout".
-    // Default three sessions (within the author's 3–5 range) preserve days between workouts.
+
+    // A saved date anchors the first main session; legacy users retain
+    // their former weekday pattern until they explicitly save a date.
+    let tcSelectedDate='',tcWeekOffset=0;
     function tcWeeklyMode(){return TC_course.enabled&&TC_course.level>=1&&TC_course.level<=7}
     function tcCourseWeekdays(){
       const l=TC_course.level,g=TC_course.goal;
-      if(l===1)return [1,3,5,0]; // Page 26: alternating complexes 1 and 2.
-      if(l===2)return TC_course.weeklySessions===2?[1,4]:TC_course.weeklySessions===4?[1,3,6,0]:[1,3,6]; // 2–4/week.
-      if(l===3)return [1,3,6]; // Main complex 1 three times/week; auxiliary is separate.
-      if(l===4){
-        if(g==='quantity')return TC_course.weeklySessions===4?[1,3,5,0]:[1,3,6];
-        return g==='onearm'?[1,3,5,0]:[1,3,6];
-      }
+      if(l===1)return [1,3,5,0];
+      if(l===2)return TC_course.weeklySessions===2?[1,4]:TC_course.weeklySessions===4?[1,3,6,0]:[1,3,6];
+      if(l===3)return [1,3,6];
+      if(l===4){if(g==='quantity')return TC_course.weeklySessions===4?[1,3,5,0]:[1,3,6];return g==='onearm'?[1,3,5,0]:[1,3,6]}
       if(l===5)return g==='onearm'?[1,3,5,0]:[1,3,6];
       if(l===6)return [1,3,6];
-      return [1,4,6]; // Page 65–66: level seven.
+      return [1,4,6];
     }
     function tcDateFromKey(k){return new Date(k+'T12:00:00')}
-    function tcScheduledOn(k){return tcCourseWeekdays().includes(tcDateFromKey(k).getDay())}
+    function tcScheduledOn(k){
+      if(TC_course.cycleStartDate){
+        const d=tcDayDiff(TC_course.cycleStartDate,k);
+        return d>=0&&tcCourseWeekdays().map(x=>(x+6)%7).includes(d%7);
+      }
+      return tcCourseWeekdays().includes(tcDateFromKey(k).getDay());
+    }
     function tcCourseDue(){
       if(!tcWeeklyMode())return false;
       const today=dateKey();
       if(TC_course.lastCourseDate===today||tcTestDue()||tcMasteryDue())return false;
-      if(!TC_course.lastCourseDate)return true; // First course session may start on setup day.
+      if(!TC_course.lastCourseDate&&!TC_course.cycleStartDate)return true;
       return tcScheduledOn(today);
     }
     function tcNextCourseDay(){
-      const today=tcDateFromKey(dateKey());
-      for(let i=0;i<10;i++){
-        const day=new Date(today);day.setDate(today.getDate()+i);
-        const key=dateKey(day);
-        if(tcScheduledOn(key)&&key!==TC_course.lastCourseDate&&
-           (i>0||tcCourseDue()))return key;
+      const now=tcDateFromKey(dateKey());
+      for(let i=0;i<28;i++){
+        const d=new Date(now);d.setDate(now.getDate()+i);const k=dateKey(d);
+        if(tcScheduledOn(k)&&k!==TC_course.lastCourseDate&&(i>0||tcCourseDue()))return k;
       }
       return '';
     }
+    function tcCalendarMonday(){
+      const d=tcDateFromKey(dateKey());
+      d.setDate(d.getDate()-(d.getDay()+6)%7+tcWeekOffset*7);return d;
+    }
+    function tcProjectedCourseSeq(key){
+      let seq=TC_course.courseSeq,d=tcDateFromKey(dateKey()),end=tcDateFromKey(key);
+      if(key<=dateKey())return seq;
+      for(;d<end;d.setDate(d.getDate()+1)){
+        const k=dateKey(d);
+        if(tcScheduledOn(k)&&k!==TC_course.lastCourseDate&&!TC_course.history.some(h=>h.courseMode==='course'&&h.date===k))seq++;
+      }
+      return seq;
+    }
+    window.tcSelectCourseDay=function(key){
+      if(!/^\d{4}-\d{2}-\d{2}$/.test(key))return;
+      const d=tcDateFromKey(key);
+      if(!Number.isFinite(d.getTime())||dateKey(d)!==key)return;
+      tcSelectedDate=key;render();
+    };
+    window.tcShiftCourseWeek=function(direction){
+      if(direction!==-1&&direction!==1)return;
+      tcWeekOffset=Math.max(-52,Math.min(52,tcWeekOffset+direction));
+      tcSelectedDate=dateKey(tcCalendarMonday());render();
+    };
+    window.tcShowCourseToday=function(){tcWeekOffset=0;tcSelectedDate='';render()};
     function tcWeeklyCalendarHtml(){
       if(!tcWeeklyMode())return '';
-      const names=['ПН','ВТ','СР','ЧТ','ПТ','СБ','ВС'];
-      const today=tcDateFromKey(dateKey()),offset=(today.getDay()+6)%7;
-      const mon=new Date(today);mon.setDate(today.getDate()-offset);
+      const names=['ПН','ВТ','СР','ЧТ','ПТ','СБ','ВС'],today=dateKey(),selected=tcSelectedDate||today;
+      const mon=tcCalendarMonday(),sun=new Date(mon);sun.setDate(mon.getDate()+6);
       const days=Array.from({length:7},(_,i)=>{
-        const day=new Date(mon);day.setDate(mon.getDate()+i);
-        const key=dateKey(day),planned=tcScheduledOn(key),completed=TC_course.history.some(h=>h.courseMode==='course'&&h.date===key);
-        const testDone=TC_course.tests.some(t=>t.date===key);
-        const dueTest=key===dateKey()&&(tcTestDue()||tcMasteryDue());
-        const dueAux=key===dateKey()&&tcAuxDue();
-        const missed=key<dateKey()&&planned&&!completed&&!testDone;
-        const type=testDone?'ТЕСТ':completed?'ГОТОВО':dueTest?'ТЕСТ':dueAux?'К№2':missed?'ПРОП.':planned?'КУРС':tcExtraExercises().length?'ДОП.':'ОТД.';
-        const status=key===dateKey()?' tcWeekToday':'';
-        return '<div class="tcWeekDay'+status+'"><b>'+names[i]+'</b><span>'+day.getDate()+'</span><small>'+type+'</small></div>';
+        const d=new Date(mon);d.setDate(mon.getDate()+i);
+        const key=dateKey(d),planned=tcScheduledOn(key)||(key===today&&tcCourseDue());
+        const done=TC_course.history.some(h=>h.courseMode==='course'&&h.date===key);
+        const test=TC_course.tests.some(t=>t.date===key)||TC_course.masteryTests.some(t=>t.date===key);
+        const dueTest=key===today&&(tcTestDue()||tcMasteryDue()),dueAux=key===today&&tcAuxDue();
+        const missed=key<today&&planned&&!done&&!test;
+        const type=test?'ТЕСТ':done?'ГОТОВО':dueTest?'ТЕСТ':dueAux?'К№2':missed?'ПРОП.':planned?'КУРС':TC_course.cycleStartDate&&key<TC_course.cycleStartDate?'ДО СТ.':tcExtraExercises().length?'ДОП.':'ОТД.';
+        const status=(key===today?' tcWeekToday':'')+(key===selected?' tcWeekSelected':'');
+        return '<button type="button" class="tcWeekDay'+status+'" aria-pressed="'+(key===selected?'true':'false')+'" onclick="tcSelectCourseDay(\''+key+'\')"><b>'+names[i]+'</b><span>'+d.getDate()+'</span><small>'+type+'</small></button>';
       });
-      return '<div class="tcWeekCalendar" aria-label="Расписание недели">'+days.join('')+'</div>';
+      return '<div class="tcWeekNav"><button type="button" onclick="tcShiftCourseWeek(-1)" aria-label="Предыдущая неделя">‹</button><span>'+fmtKeyDate(dateKey(mon),false)+' — '+fmtKeyDate(dateKey(sun),false)+'</span><button type="button" onclick="tcShiftCourseWeek(1)" aria-label="Следующая неделя">›</button><button type="button" class="tcWeekReset" onclick="tcShowCourseToday()">Сегодня</button></div>'+
+        '<div class="tcWeekCalendar" aria-label="Расписание недели">'+days.join('')+'</div>';
     }
-
 
     function tcBaseExerciseAvailable(ex){
       if(!ex)return false;
@@ -502,7 +529,7 @@
       tcSaveCourse();save();closeSheet();render();
     };
 
-    function tcBuildCourseItems(){const c=tcCourseComplex();return c.def?tcBuildItemsFor(tcResolvedCourseDefs(c)):[]}
+    function tcBuildCourseItems(seqIndex=TC_course.courseSeq){const c=tcCourseComplex(seqIndex);return c.def?tcBuildItemsFor(tcResolvedCourseDefs(c)):[]}
     function tcBuildAuxItems(){return [3,6].includes(TC_course.level)?tcBuildItemsFor(TC_COURSE[TC_course.level].complexes[2].items):[]}
     function tcBuildExtraItems(){const idx=TC_course.extraSeq%3;return tcExtraExercises().map(e=>({e,plan:pres(e,idx),actual:[]}))}
     function tcCourseRestText(r){if(!r)return'—';if(r.type==='fixed')return Math.round(r.sec/60)+' мин';if(r.type==='range')return Math.round(r.min/60)+'–'+Math.round(r.max/60)+' мин';return r.label||'по усмотрению'}
