@@ -12,9 +12,20 @@ def adb(*args,check=True):
     return subprocess.run(["adb",*args],check=check,text=True,capture_output=True)
 
 def dump():
-    adb("shell","uiautomator","dump","/sdcard/window.xml")
-    adb("pull","/sdcard/window.xml","/tmp/window.xml")
-    return ET.parse("/tmp/window.xml").getroot()
+    last=None
+    for _ in range(6):
+        r=adb("shell","uiautomator","dump","/sdcard/window.xml",check=False)
+        if r.returncode==0:
+            p=adb("pull","/sdcard/window.xml","/tmp/window.xml",check=False)
+            if p.returncode==0:
+                try:
+                    return ET.parse("/tmp/window.xml").getroot()
+                except Exception as e:
+                    last=e
+        else:
+            last=RuntimeError((r.stderr or r.stdout or "").strip())
+        time.sleep(1)
+    raise RuntimeError("UI dump failed after retries: "+str(last))
 
 def center(bounds):
     nums=[int(x) for x in re.findall(r"\d+",bounds)]
@@ -48,9 +59,9 @@ def screenshot(name):
     adb("pull",remote,OUT+"/"+name+".png")
 
 adb("shell","monkey","-p",PKG,"-c","android.intent.category.LAUNCHER","1")
-time.sleep(4)
+time.sleep(6)
 
-wait_text("Сегодняшняя тренировка уже сохранена")
+wait_text("Сегодняшняя тренировка уже сохранена",timeout=20)
 wait_text("Отменить запись и начать заново")
 screenshot("01-saved-state")
 
