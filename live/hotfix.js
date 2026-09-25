@@ -1,8 +1,8 @@
-/* TURNIKCOACH_HOTFIX 5.16.21-webview-confirm */
+/* TURNIKCOACH_HOTFIX 5.16.22-forced-handover */
 (function(){
   'use strict';
-  const VERSION='5.16.21-webview-confirm';
-  const LABEL='5.16.21';
+  const VERSION='5.16.22-forced-handover';
+  const LABEL='5.16.22';
   const APPROVED_KEY='tc_hotfix_approved_version';
   if(window.__TC_HOTFIX_VERSION===VERSION)return;
   const stalePrompt=document.getElementById('tcUpdatePrompt');
@@ -25,7 +25,7 @@
     title.textContent='Доступно обновление TurnikCoach '+LABEL;
     const text=document.createElement('div');
     text.style.cssText='font-size:15px;line-height:1.45;color:#cfd8e3;margin-bottom:18px';
-    text.innerHTML="Исправлена причина, по которой кнопка отмены выглядела нажатой, но ничего не делала: Android WebView не обслуживал системный JavaScript confirm. Все подтверждения удаления и выхода без сохранения переведены во внутреннее окно приложения. Компактный экран сохранённого занятия сохранён.<br><br>Версия для оборудования «только турник». Упражнения курса, требующие резины, дополнительного веса, полотенца, стула, низкой или специальной перекладины, исключены из назначаемых тренировок. Полная программа Морозова сохранена для просмотра: недоступные упражнения отмечены вместе с причиной. Если комплекс сокращён, он обозначается как адаптированный, а не как полный комплекс автора. Контрольные испытания, требующие резины или отягощения, не назначаются. Упражнения без дополнительных снарядов из обычного каталога остаются доступны; ранее выбранные недоступные позиции исключаются из выбора. Действующие результаты тренировок сохраняются.<br><br>Установить обновление сейчас?";
+    text.innerHTML="Исправлена доставка исправления 5.16.21 на уже установленное приложение. Для версий 5.16.19–5.16.21 безопасное обновление теперь подхватывается автоматически при следующем запуске, без зависания на устаревшем диалоге обновления. Подтверждение отмены тренировки остаётся внутренним окном приложения.<br><br>Версия для оборудования «только турник». Упражнения курса, требующие резины, дополнительного веса, полотенца, стула, низкой или специальной перекладины, исключены из назначаемых тренировок. Полная программа Морозова сохранена для просмотра: недоступные упражнения отмечены вместе с причиной. Если комплекс сокращён, он обозначается как адаптированный, а не как полный комплекс автора. Контрольные испытания, требующие резины или отягощения, не назначаются. Упражнения без дополнительных снарядов из обычного каталога остаются доступны; ранее выбранные недоступные позиции исключаются из выбора. Действующие результаты тренировок сохраняются.<br><br>Установить обновление сейчас?";
     const row=document.createElement('div');
     row.style.cssText='display:flex;gap:10px';
     const later=document.createElement('button');
@@ -675,6 +675,18 @@
 
   let approved=false;
   try{approved=localStorage.getItem(APPROVED_KEY)===VERSION}catch(e){}
+  const activeVersion=String(window.__TC_HOTFIX_VERSION||'');
+  const forceHandover=/^5\.16\.(19|20|21)(?:-|$)/.test(activeVersion);
+  const workoutActive=typeof W!=='undefined'&&!!W;
+  if(!approved&&forceHandover&&!workoutActive){
+    try{localStorage.setItem(APPROVED_KEY,VERSION)}catch(e){}
+    removeUpdatePrompt();
+    if(window.location&&typeof window.location.reload==='function'){
+      window.location.reload();
+      return;
+    }
+    approved=true;
+  }
   if(approved){
     installUpdate();
   }else{
