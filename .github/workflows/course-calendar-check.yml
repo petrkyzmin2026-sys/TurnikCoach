@@ -59,7 +59,7 @@ jobs:
           old='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/hotfix.js'
           assert java.count(old)==1
           java=java.replace(old,'https://127.0.0.1/turnikcoach-preview-no-remote-updates.js')
-          onfinish="                applyAssetHotfix();\\n                applyCachedHotfix();"
+          onfinish="                applyAssetHotfix();\n                applyCachedHotfix();"
           assert java.count(onfinish)==1
           seed='''                applyAssetHotfix();
                 applyCachedHotfix();
