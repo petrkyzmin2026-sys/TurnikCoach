@@ -36,10 +36,31 @@ jobs:
         run: |
           cp live/hotfix.js app/src/main/assets/hotfix.js
           grep -q 'TURNIKCOACH_HOTFIX 5.16.18-calendar-cycle' app/src/main/assets/hotfix.js
-      - name: Build DEBUG test APK (not an upgrade for installed release)
-        run: gradle --no-daemon :app:assembleDebug
+      - name: Isolate test application from installed production data
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('app/build.gradle')
+          s=p.read_text()
+          assert s.count('android {') == 1
+          s=s.replace('android {', """android {
+              buildTypes {
+                  debug {
+                      applicationIdSuffix '.calendarpreview'
+                      versionNameSuffix '-calendarpreview'
+                  }
+              }""",1)
+          p.write_text(s)
+          manifest=Path('app/src/main/AndroidManifest.xml')
+          s=manifest.read_text().replace('android:label="Турник Тренер"', 'android:label="Турник Тренер · ТЕСТ"')
+          manifest.write_text(s)
+          PY
+      - name: Build isolated DEBUG preview APK
+        run: |
+          gradle --no-daemon :app:assembleDebug
+          cp app/build/outputs/apk/debug/app-debug.apk TurnikCoach-Calendar-Preview-v5.16.18.apk
       - uses: actions/upload-artifact@v4
         with:
-          name: TurnikCoach-5.16.18-calendar-debug-test-NOT-UPGRADE
-          path: app/build/outputs/apk/debug/app-debug.apk
+          name: TurnikCoach-5.16.18-calendar-isolated-preview
+          path: TurnikCoach-Calendar-Preview-v5.16.18.apk
           if-no-files-found: error
