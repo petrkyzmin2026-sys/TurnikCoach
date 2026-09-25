@@ -52,8 +52,8 @@ assert(course.includes('tcPreviewCourseCard(tcSelectedDate)'),
  'choosing another date must show a read-only plan');
 assert(course.includes('id="tcCycleStartDate"'),
  'settings must expose a cycle start date');
-assert(hotfix.includes("const VERSION='5.16.21-webview-confirm'"),
- 'release hotfix version must be 5.16.21');
+assert(hotfix.includes("const VERSION='5.16.22-forced-handover'"),
+ 'release hotfix version must be 5.16.22');
 assert(hotfix.includes("b.textContent='Выйти без сохранения'"),
  'workout UI must expose an explicit discard control');
 assert(course.includes('tcUndoTodayCourseWorkout'),
@@ -62,6 +62,10 @@ assert(!course.includes('window.confirm('),'course module must not depend on uns
 assert(!hotfix.includes('window.confirm('),'hotfix navigation/discard must not depend on unsupported WebView JS dialogs');
 assert(course.includes('tcOpenUndoTodayCourseConfirm'),'same-day undo must use an in-app confirmation sheet');
 assert(hotfix.includes('tcConfirmDiscardWorkoutBtn'),'discard without saving must use an in-app confirmation sheet');
+assert(hotfix.includes("const forceHandover=/^5\\.16\\.(19|20|21)(?:-|$)/.test(activeVersion);"),
+ '5.16.19–5.16.21 must use the one-time forced handover');
+assert(hotfix.includes("if(!approved&&forceHandover&&!workoutActive)"),
+ 'forced handover must run only when the new version is not already approved and no workout is active');
 
 const uiState={history:[{courseMode:'course',date:'2026-09-25',ts:123}]};
 const uiApi=new Function('TC_course','dateKey',
@@ -99,4 +103,4 @@ assert.equal(undoState.lastCourseTs,0);
 assert.equal(undoState.testAnchorDate,'');
 assert.equal(undoApi.tcUndoLatestTodayCourseRecord('2026-09-25'),false,
  'undo must not remove anything twice');
-console.log('PASS: syntax, bundle, calendar, compact undo UI, in-app WebView-safe confirmations, discard and same-day undo');
+console.log('PASS: syntax, bundle, calendar, WebView-safe undo and one-time 5.16.19–5.16.21 update handover');
