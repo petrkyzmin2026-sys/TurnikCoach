@@ -52,12 +52,35 @@ assert(course.includes('tcPreviewCourseCard(tcSelectedDate)'),
  'choosing another date must show a read-only plan');
 assert(course.includes('id="tcCycleStartDate"'),
  'settings must expose a cycle start date');
-assert(hotfix.includes("const VERSION='5.16.19-discard-undo'"),
- 'release hotfix version must be 5.16.19');
+assert(hotfix.includes("const VERSION='5.16.20-undo-ui-fix'"),
+ 'release hotfix version must be 5.16.20');
 assert(hotfix.includes("b.textContent='Выйти без сохранения'"),
  'workout UI must expose an explicit discard control');
 assert(course.includes('tcUndoTodayCourseWorkout'),
  'today screen must expose undo for an accidentally saved course workout');
+
+const uiState={history:[{courseMode:'course',date:'2026-09-25',ts:123}]};
+const uiApi=new Function('TC_course','dateKey',
+  extract('tcTodayCourseRecord')+'\n'+extract('tcTodayCourseUndoHtml')+
+  '\nreturn {tcTodayCourseUndoHtml};')(uiState,()=> '2026-09-25');
+const undoHtml=uiApi.tcTodayCourseUndoHtml();
+assert(undoHtml.includes('id="tcUndoTodayCourseBtn"'),'undo button needs a stable DOM id');
+assert(undoHtml.includes('tcUndoStrip'),'saved-state UI must be the compact strip');
+assert(!undoHtml.includes('todayCard'),'saved-state UI must not render a second large today card');
+assert(!undoHtml.includes('onclick='),'undo action must not depend on an inline handler');
+
+let undoCalls=0,prevented=0,stopped=0;
+const fakeButton={dataset:{},onclick:null};
+const fakeDocument={getElementById:id=>id==='tcUndoTodayCourseBtn'?fakeButton:null};
+const fakeWindow={tcUndoTodayCourseWorkout:()=>{undoCalls++}};
+const bindApi=new Function('document','window',
+  extract('tcBindTodayCourseUndo')+'\nreturn {tcBindTodayCourseUndo};')(fakeDocument,fakeWindow);
+bindApi.tcBindTodayCourseUndo();
+assert.equal(typeof fakeButton.onclick,'function','undo button must receive a programmatic click handler');
+fakeButton.onclick({preventDefault:()=>prevented++,stopPropagation:()=>stopped++});
+assert.equal(undoCalls,1,'bound undo button must call undo exactly once');
+assert.equal(prevented,1);
+assert.equal(stopped,1);
 
 const undoState={enabled:true,level:4,goal:'quantity',weeklySessions:3,cycleStartDate:'2026-09-25',
   courseSeq:1,lastCourseDate:'2026-09-25',lastCourseTs:123,testAnchorDate:'2026-09-25',
@@ -72,4 +95,4 @@ assert.equal(undoState.lastCourseTs,0);
 assert.equal(undoState.testAnchorDate,'');
 assert.equal(undoApi.tcUndoLatestTodayCourseRecord('2026-09-25'),false,
  'undo must not remove anything twice');
-console.log('PASS: syntax, bundle, calendar, discard control and safe same-day course undo');
+console.log('PASS: syntax, bundle, calendar, compact undo UI, reliable click binding, discard and safe same-day undo');

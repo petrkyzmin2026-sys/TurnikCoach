@@ -1,7 +1,7 @@
-/* TURNIKCOACH_COURSE 1.0.17-discard-undo */
+/* TURNIKCOACH_COURSE 1.0.18-undo-ui */
 (function(){
   'use strict';
-  const COURSE_MODULE_VERSION='1.0.17-discard-undo';
+  const COURSE_MODULE_VERSION='1.0.18-undo-ui';
   if(window.__TC_COURSE_MODULE_VERSION===COURSE_MODULE_VERSION)return;
   window.__TC_COURSE_MODULE_VERSION=COURSE_MODULE_VERSION;
   function tcClamp(v,a,b){return Math.max(a,Math.min(b,v))}
@@ -650,6 +650,7 @@
       st.textContent="#sheet.open{overflow:hidden!important}#sheet .sheetbox{max-height:calc(100vh - 22px)!important;max-height:min(88dvh,calc(100vh - 22px))!important;overflow-y:auto!important;overflow-x:hidden!important;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;touch-action:pan-y;padding-bottom:max(28px,calc(18px + env(safe-area-inset-bottom)))!important}#sheet .sheetbox::-webkit-scrollbar{width:4px}#sheet .sheetbox::-webkit-scrollbar-thumb{background:#475563;border-radius:999px}.tcExtrasDetails{margin:10px 0 16px;border:1px solid #2e3945;border-radius:16px;background:#111820;overflow:hidden}.tcExtrasSummary{list-style:none;display:flex;align-items:center;gap:9px;padding:14px;cursor:pointer;user-select:none;-webkit-tap-highlight-color:transparent}.tcExtrasSummary::-webkit-details-marker{display:none}.tcExtrasTri{display:inline-block;font-size:15px;color:#ffd84d;transition:transform .16s ease;transform:rotate(0deg)}.tcExtrasDetails[open] .tcExtrasTri{transform:rotate(90deg)}.tcExtrasSummaryText{flex:1;min-width:0}.tcExtrasSummaryTitle{font-weight:900;font-size:15px;color:#fff}.tcExtrasSummaryMeta{font-size:11px;color:#939eac;margin-top:2px}.tcExtrasBody{padding:0 10px 10px}.tcExtrasBody>.card,.tcExtrasBody>.catalogGroup{margin-top:8px}#workout #wplan.tcCoursePlan{min-width:0;max-width:58vw;text-align:right;line-height:1.2;flex-shrink:1}#workout #wplan.tcCoursePlan .tcPlanMain{display:block;color:#ffd84d;font-size:clamp(17px,5vw,23px);font-weight:950;white-space:pre-wrap;overflow-wrap:normal;letter-spacing:.02em}#workout #wplan.tcCoursePlan .tcPlanSub{display:block;color:#9aa6b2;font-size:11px;font-weight:700;margin-top:5px;white-space:nowrap}#workout #wplan.tcCoursePlan .tcPlanSide{display:block;color:#c9d1d9;font-size:10px;font-weight:700;margin-top:3px;white-space:nowrap}";
       st.textContent+='.tcWeekCalendar{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;margin:10px 0 12px}.tcWeekDay{min-width:0;display:flex;flex-direction:column;align-items:center;gap:3px;border:1px solid #33414b;background:#151f28;border-radius:9px;padding:6px 1px;color:#c6d1db;font-size:10px}.tcWeekDay b{font-size:10px}.tcWeekDay span{font-size:13px;font-weight:850}.tcWeekDay small{font-size:8px;font-weight:800;color:#a5b4c1}.tcWeekToday{border-color:#ffd84d;background:#2a281b;color:#ffd84d}.tcWeekToday small{color:#ffd84d}';
       st.textContent+='.tcWeekNav{display:flex;align-items:center;gap:6px;margin-top:12px;color:#b9c4cf;font-size:11px}.tcWeekNav span{flex:1;min-width:0;text-align:center}.tcWeekNav button{border:1px solid #354351;border-radius:8px;background:#202b34;color:#fff;min-width:30px;min-height:32px;font-size:18px;cursor:pointer}.tcWeekNav button.tcWeekReset{font-size:11px;padding:0 7px}.tcWeekDay{font-family:inherit;appearance:none;cursor:pointer;touch-action:manipulation}.tcWeekDay.tcWeekSelected{border:2px solid #ffd84d;box-shadow:inset 0 0 0 1px rgba(255,216,77,.35);background:#352f1e;color:#ffe18a}.tcWeekDay.tcWeekSelected small{color:#ffe18a}.tcCoursePreview .dateBig{overflow-wrap:break-word}';
+      st.textContent+='.tcUndoStrip{margin:8px 0 12px;padding:13px 14px 14px;border:1px solid #70424a;border-radius:16px;background:#171d23;box-shadow:none}.tcUndoStripHead{display:flex;align-items:flex-start;gap:10px}.tcUndoStripHead>div{flex:1;min-width:0}.tcUndoStripTitle{font-size:17px;line-height:1.2;font-weight:900;color:#f6f7f9}.tcUndoStripText{margin-top:5px;font-size:12px;line-height:1.38;color:#aeb8c2}.tcUndoBadge{flex:0 0 auto;font-size:9px;font-weight:900;letter-spacing:.04em;color:#ffd8db;border:1px solid #70424a;background:#2a181b;border-radius:999px;padding:5px 7px}.tcUndoTodayCourseBtn{position:relative;z-index:4;pointer-events:auto!important;touch-action:manipulation;margin-top:11px!important;min-height:46px!important;border-radius:12px!important;font-size:14px!important}.tcUndoTodayCourseBtn:active{transform:scale(.99)}';
       document.head.appendChild(st);
     }
 
@@ -785,13 +786,27 @@
 
 
 
-    function tcTodayCourseUndoHtml(){
+    function tcTodayCourseRecord(){
       const rec=TC_course.history.find(h=>h.courseMode==='course');
-      if(!rec||rec.date!==dateKey())return '';
-      return '<div class="todayCard" style="margin-bottom:12px;border-color:#784047">'+
-        '<div class="row between"><div><div class="dateBig">Сегодняшняя тренировка уже сохранена</div>'+
-        '<div class="meta">Если это был пробный запуск или ошибочное завершение, запись можно отменить и начать этот день курса заново.</div></div><span class="tag stage4">СОХРАНЕНО</span></div>'+
-        '<button class="btn danger full" style="margin-top:12px" onclick="tcUndoTodayCourseWorkout()">Отменить сегодняшнюю тренировку</button></div>';
+      return rec&&rec.date===dateKey()?rec:null;
+    }
+    function tcTodayCourseUndoHtml(){
+      if(!tcTodayCourseRecord())return '';
+      return '<div class="tcUndoStrip" id="tcUndoTodayCourseStrip" role="status">'+
+        '<div class="tcUndoStripHead"><div><div class="tcUndoStripTitle">Сегодняшняя тренировка уже сохранена</div>'+
+        '<div class="tcUndoStripText">Если это был пробный запуск, отмените только сегодняшнюю запись — этот же день курса сразу станет доступен снова.</div></div>'+
+        '<span class="tcUndoBadge">СОХРАНЕНО</span></div>'+
+        '<button id="tcUndoTodayCourseBtn" type="button" class="btn danger full tcUndoTodayCourseBtn">Отменить запись и начать заново</button></div>';
+    }
+    function tcBindTodayCourseUndo(){
+      const btn=document.getElementById('tcUndoTodayCourseBtn');
+      if(!btn||btn.dataset.tcUndoBound==='1')return;
+      btn.dataset.tcUndoBound='1';
+      btn.onclick=function(ev){
+        if(ev){ev.preventDefault();ev.stopPropagation()}
+        window.tcUndoTodayCourseWorkout();
+        return false;
+      };
     }
     function tcUndoLatestTodayCourseRecord(today){
       const rec=TC_course.history.find(h=>h.courseMode==='course');
@@ -821,6 +836,13 @@
         q('todayTitle').textContent=fmtDate(tcDateFromKey(tcSelectedDate));
         q('todaySub').textContent='Курс Морозова · '+l.title+' · просмотр плана';
         q('todayList').innerHTML=tcWeeklyCalendarHtml()+tcPreviewCourseCard(tcSelectedDate);
+        return;
+      }
+      if(tcTodayCourseRecord()){
+        q('todaySub').textContent='Курс Морозова · сегодняшняя тренировка сохранена';
+        q('todayList').innerHTML=tcWeeklyCalendarHtml()+tcTodayCourseUndoHtml();
+        tcBindTodayCourseUndo();
+        tcQueueDecorate();
         return;
       }
       if(tcWeeklyMode()&&tcTestDue()){
@@ -868,7 +890,7 @@
         if(extras.length){html+='<div class="info" style="margin-top:10px">Основной тяговый комплекс сегодня не назначен. Можно выполнить выбранные дополнительные упражнения без дополнительной тяговой нагрузки.</div>'+tcExtraRowsHtml(extras)+'<button class="btn yellow full" style="margin-top:12px" onclick="tcStartExtraWorkout()">Начать дополнительную тренировку</button>'}
         else html+='<div class="empty" style="margin-top:12px">Дополнительные упражнения не выбраны. Сегодня можно оставить полный отдых.</div><button class="btn ghost full" style="margin-top:10px" onclick="go(\'exercise\')">Выбрать пресс, ноги или отжимания</button>';
         const conflicts=tcConflictExercises();if(conflicts.length)html+='<div class="info" style="margin-top:10px"><b>Не поставлены автоматически в восстановительный день:</b> '+conflicts.map(e=>e.name).join(', ')+'. Они продолжают нагружать тяговую систему или относятся к сложным элементам.</div>';
-        html+='<button class="btn ghost full" style="margin-top:8px" onclick="tcOpenCourseInfo()">ⓘ Советы автора</button>'+tcCourseControlStatusHtml()+'</div>'+tcSupplementHtml();q('todayList').innerHTML=tcWeeklyCalendarHtml()+tcTodayCourseUndoHtml()+tcPendingLevelHtml()+tcEquipmentMasteryNote()+tcAuxCardHtml()+html;
+        html+='<button class="btn ghost full" style="margin-top:8px" onclick="tcOpenCourseInfo()">ⓘ Советы автора</button>'+tcCourseControlStatusHtml()+'</div>'+tcSupplementHtml();q('todayList').innerHTML=tcWeeklyCalendarHtml()+tcPendingLevelHtml()+tcEquipmentMasteryNote()+tcAuxCardHtml()+html;
       }
       tcQueueDecorate();
     }
