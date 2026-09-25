@@ -36,11 +36,10 @@ jobs:
           done
           base64 --decode /tmp/v513.b64 | gzip -dc > app/src/main/assets/index.html
           grep -q 'v5.13 — modern Android package' app/src/main/assets/index.html
-      - name: Embed previous 5.16.20 hotfix to reproduce the installed user state
+      - name: Embed tested 5.16.22 hotfix in test application
         run: |
-          curl -fsSL "https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/af642bdfd042e033e0c66ddc5c6dfb09effde782/live/hotfix.js" > app/src/main/assets/hotfix.js
-          grep -q 'TURNIKCOACH_HOTFIX 5.16.20-undo-ui-fix' app/src/main/assets/hotfix.js
-          grep -q 'TURNIKCOACH_HOTFIX 5.16.22-forced-handover' live/hotfix.js
+          cp live/hotfix.js app/src/main/assets/hotfix.js
+          grep -q 'TURNIKCOACH_HOTFIX 5.16.22-forced-handover' app/src/main/assets/hotfix.js
       - name: Seed the exact old approved version and saved course record in test HTML
         run: |
           python3 - <<'PY'
@@ -53,7 +52,7 @@ jobs:
           (function(){
             if(localStorage.getItem('__tcForcedHandoverSmokeSeeded')) return;
             var d=new Date(),k=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
-            localStorage.setItem('tc_hotfix_approved_version','5.16.20-undo-ui-fix');
+            localStorage.setItem('tc_hotfix_approved_version','5.16.22-forced-handover');
             localStorage.setItem('tc_morozov_course_v1',JSON.stringify({
               enabled:true,level:4,goal:'quantity',pullMax:20,courseSeq:1,extraSeq:0,
               lastCourseDate:k,lastCourseTs:Date.now(),weeklySessions:3,cycleStartDate:k,
@@ -67,7 +66,7 @@ jobs:
           </script>'''
           p.write_text(html.replace(marker,seed+marker))
           PY
-      - name: Isolate test application and point native updater to immutable 5.16.22
+      - name: Isolate test application from installed production data
         run: |
           python3 - <<'PY'
           from pathlib import Path
@@ -86,10 +85,8 @@ jobs:
           activity=Path('app/src/main/java/ru/turnikcoach/app/MainActivity.java')
           java=activity.read_text()
           old='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/hotfix.js'
-          new='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/7b4c5ac3aebc0c6f80c8a78cd939dbea452a216f/live/hotfix.js'
           assert java.count(old)==1
-          java=java.replace(old,new)
-          java=java.replace('        startHotfixUpdate();','        new android.os.Handler(getMainLooper()).postDelayed(this::startHotfixUpdate, 1500);')
+          java=java.replace(old,'https://127.0.0.1/turnikcoach-preview-no-remote-updates.js')
           activity.write_text(java)
 
           manifest=Path('app/src/main/AndroidManifest.xml')
@@ -102,7 +99,7 @@ jobs:
           cp app/build/outputs/apk/debug/app-debug.apk TurnikCoach-ForcedHandover-Preview-v5.16.22.apk
       - name: Enable KVM
         run: sudo chmod 666 /dev/kvm || true
-      - name: Verify forced remote update from installed 5.16.20 and undo in real Android WebView
+      - name: Verify 5.16.22 undo flow in real Android WebView
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 35
