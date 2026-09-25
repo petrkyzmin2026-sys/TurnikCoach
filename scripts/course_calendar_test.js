@@ -52,12 +52,16 @@ assert(course.includes('tcPreviewCourseCard(tcSelectedDate)'),
  'choosing another date must show a read-only plan');
 assert(course.includes('id="tcCycleStartDate"'),
  'settings must expose a cycle start date');
-assert(hotfix.includes("const VERSION='5.16.20-undo-ui-fix'"),
- 'release hotfix version must be 5.16.20');
+assert(hotfix.includes("const VERSION='5.16.21-webview-confirm'"),
+ 'release hotfix version must be 5.16.21');
 assert(hotfix.includes("b.textContent='Выйти без сохранения'"),
  'workout UI must expose an explicit discard control');
 assert(course.includes('tcUndoTodayCourseWorkout'),
  'today screen must expose undo for an accidentally saved course workout');
+assert(!course.includes('window.confirm('),'course module must not depend on unsupported WebView JS dialogs');
+assert(!hotfix.includes('window.confirm('),'hotfix navigation/discard must not depend on unsupported WebView JS dialogs');
+assert(course.includes('tcOpenUndoTodayCourseConfirm'),'same-day undo must use an in-app confirmation sheet');
+assert(hotfix.includes('tcConfirmDiscardWorkoutBtn'),'discard without saving must use an in-app confirmation sheet');
 
 const uiState={history:[{courseMode:'course',date:'2026-09-25',ts:123}]};
 const uiApi=new Function('TC_course','dateKey',
@@ -72,13 +76,13 @@ assert(!undoHtml.includes('onclick='),'undo action must not depend on an inline 
 let undoCalls=0,prevented=0,stopped=0;
 const fakeButton={dataset:{},onclick:null};
 const fakeDocument={getElementById:id=>id==='tcUndoTodayCourseBtn'?fakeButton:null};
-const fakeWindow={tcUndoTodayCourseWorkout:()=>{undoCalls++}};
+const fakeWindow={tcOpenUndoTodayCourseConfirm:()=>{undoCalls++}};
 const bindApi=new Function('document','window',
   extract('tcBindTodayCourseUndo')+'\nreturn {tcBindTodayCourseUndo};')(fakeDocument,fakeWindow);
 bindApi.tcBindTodayCourseUndo();
 assert.equal(typeof fakeButton.onclick,'function','undo button must receive a programmatic click handler');
 fakeButton.onclick({preventDefault:()=>prevented++,stopPropagation:()=>stopped++});
-assert.equal(undoCalls,1,'bound undo button must call undo exactly once');
+assert.equal(undoCalls,1,'bound undo button must open the in-app confirmation exactly once');
 assert.equal(prevented,1);
 assert.equal(stopped,1);
 
@@ -95,4 +99,4 @@ assert.equal(undoState.lastCourseTs,0);
 assert.equal(undoState.testAnchorDate,'');
 assert.equal(undoApi.tcUndoLatestTodayCourseRecord('2026-09-25'),false,
  'undo must not remove anything twice');
-console.log('PASS: syntax, bundle, calendar, compact undo UI, reliable click binding, discard and safe same-day undo');
+console.log('PASS: syntax, bundle, calendar, compact undo UI, in-app WebView-safe confirmations, discard and same-day undo');

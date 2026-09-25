@@ -1,7 +1,7 @@
-/* TURNIKCOACH_COURSE 1.0.18-undo-ui */
+/* TURNIKCOACH_COURSE 1.0.19-webview-confirm */
 (function(){
   'use strict';
-  const COURSE_MODULE_VERSION='1.0.18-undo-ui';
+  const COURSE_MODULE_VERSION='1.0.19-webview-confirm';
   if(window.__TC_COURSE_MODULE_VERSION===COURSE_MODULE_VERSION)return;
   window.__TC_COURSE_MODULE_VERSION=COURSE_MODULE_VERSION;
   function tcClamp(v,a,b){return Math.max(a,Math.min(b,v))}
@@ -804,7 +804,7 @@
       btn.dataset.tcUndoBound='1';
       btn.onclick=function(ev){
         if(ev){ev.preventDefault();ev.stopPropagation()}
-        window.tcUndoTodayCourseWorkout();
+        window.tcOpenUndoTodayCourseConfirm();
         return false;
       };
     }
@@ -820,12 +820,26 @@
       if(TC_course.testAnchorDate===rec.date&&!TC_course.lastTestDate&&!previous)TC_course.testAnchorDate='';
       return true;
     }
+    window.tcOpenUndoTodayCourseConfirm=function(){
+      if(!tcTodayCourseRecord())return;
+      const box=q('sheetbox'),sheet=q('sheet');
+      if(!box||!sheet)return;
+      box.innerHTML='<div class="sheettitle">Отменить сегодняшнюю тренировку?</div>'+
+        '<div class="sub" style="margin-top:7px;line-height:1.45">Будет удалена только ошибочно сохранённая сегодня основная тренировка курса. Предыдущая история останется без изменений, а сегодняшнее занятие снова станет доступно для запуска.</div>'+
+        '<button id="tcConfirmUndoTodayCourseBtn" type="button" class="btn danger full" style="margin-top:16px">Отменить запись</button>'+
+        '<button id="tcCancelUndoTodayCourseBtn" type="button" class="btn ghost full" style="margin-top:8px">Назад</button>';
+      sheet.classList.add('open');
+      const yes=document.getElementById('tcConfirmUndoTodayCourseBtn');
+      const no=document.getElementById('tcCancelUndoTodayCourseBtn');
+      if(yes)yes.onclick=function(ev){if(ev){ev.preventDefault();ev.stopPropagation()}window.tcUndoTodayCourseWorkout();return false};
+      if(no)no.onclick=function(ev){if(ev){ev.preventDefault();ev.stopPropagation()}closeSheet();return false};
+    };
     window.tcUndoTodayCourseWorkout=function(){
-      const rec=TC_course.history.find(h=>h.courseMode==='course');
-      if(!rec||rec.date!==dateKey())return;
-      if(!window.confirm('Отменить сегодняшнюю сохранённую тренировку? Запись и выполненные подходы будут удалены, а этот день курса снова станет доступен для начала.'))return;
+      const rec=tcTodayCourseRecord();
+      if(!rec)return;
       if(!tcUndoLatestTodayCourseRecord(dateKey()))return;
       tcSelectedDate='';tcWeekOffset=0;
+      const sheet=q('sheet');if(sheet)sheet.classList.remove('open');
       tcSaveCourse();render();
     };
 
