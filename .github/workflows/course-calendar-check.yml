@@ -95,7 +95,7 @@ jobs:
           emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim
           script: |
             adb install -r TurnikCoach-WebViewConfirm-Preview-v5.16.21.apk
-            TC_TEST_PKG=ru.turnikcoach.app.calendarpreview python3 scripts/course_undo_ui_smoke.py
+            TC_TEST_PKG=ru.turnikcoach.v52tr.calendarpreview python3 scripts/course_undo_ui_smoke.py
       - name: Upload undo UI screenshots
         if: always()
         uses: actions/upload-artifact@v4
