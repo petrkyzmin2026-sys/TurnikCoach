@@ -59,7 +59,8 @@ def screenshot(name):
     adb("pull",remote,OUT+"/"+name+".png")
 
 adb("shell","monkey","-p",PKG,"-c","android.intent.category.LAUNCHER","1")
-time.sleep(6)
+time.sleep(10)
+screenshot("00-after-handover")
 
 wait_text("Сегодняшняя тренировка уже сохранена",timeout=20)
 wait_text("Отменить запись и начать заново")
