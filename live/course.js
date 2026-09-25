@@ -793,10 +793,9 @@
         '<div class="meta">Если это был пробный запуск или ошибочное завершение, запись можно отменить и начать этот день курса заново.</div></div><span class="tag stage4">СОХРАНЕНО</span></div>'+
         '<button class="btn danger full" style="margin-top:12px" onclick="tcUndoTodayCourseWorkout()">Отменить сегодняшнюю тренировку</button></div>';
     }
-    window.tcUndoTodayCourseWorkout=function(){
+    function tcUndoLatestTodayCourseRecord(today){
       const rec=TC_course.history.find(h=>h.courseMode==='course');
-      if(!rec||rec.date!==dateKey())return;
-      if(!window.confirm('Отменить сегодняшнюю сохранённую тренировку? Запись и выполненные подходы будут удалены, а этот день курса снова станет доступен для начала.'))return;
+      if(!rec||rec.date!==today)return false;
       const idx=TC_course.history.indexOf(rec);
       if(idx>=0)TC_course.history.splice(idx,1);
       TC_course.courseSeq=Math.max(0,(+TC_course.courseSeq||0)-1);
@@ -804,6 +803,13 @@
       TC_course.lastCourseDate=previous&&previous.date||'';
       TC_course.lastCourseTs=previous&&previous.ts||0;
       if(TC_course.testAnchorDate===rec.date&&!TC_course.lastTestDate&&!previous)TC_course.testAnchorDate='';
+      return true;
+    }
+    window.tcUndoTodayCourseWorkout=function(){
+      const rec=TC_course.history.find(h=>h.courseMode==='course');
+      if(!rec||rec.date!==dateKey())return;
+      if(!window.confirm('Отменить сегодняшнюю сохранённую тренировку? Запись и выполненные подходы будут удалены, а этот день курса снова станет доступен для начала.'))return;
+      if(!tcUndoLatestTodayCourseRecord(dateKey()))return;
       tcSelectedDate='';tcWeekOffset=0;
       tcSaveCourse();render();
     };
