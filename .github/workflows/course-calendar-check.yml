@@ -51,6 +51,12 @@ jobs:
                   }
               }""",1)
           p.write_text(s)
+          activity=Path('app/src/main/java/ru/turnikcoach/app/MainActivity.java')
+          java=activity.read_text()
+          old='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/hotfix.js'
+          assert java.count(old)==1
+          java=java.replace(old,'https://127.0.0.1/turnikcoach-preview-no-remote-updates.js')
+          activity.write_text(java)
           manifest=Path('app/src/main/AndroidManifest.xml')
           s=manifest.read_text().replace('android:label="Турник Тренер"', 'android:label="Турник Тренер · ТЕСТ"')
           manifest.write_text(s)
