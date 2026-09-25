@@ -6,6 +6,7 @@ on:
       - feature/course-calendar-start-date-20260925
       - feature/discard-workout-undo-today-20260925
       - fix/undo-button-layout-20260925
+      - fix/webview-confirm-undo-20260925
   workflow_dispatch:
 
 permissions:
@@ -37,7 +38,7 @@ jobs:
       - name: Embed tested opt-in hotfix in test application
         run: |
           cp live/hotfix.js app/src/main/assets/hotfix.js
-          grep -q 'TURNIKCOACH_HOTFIX 5.16.20-undo-ui-fix' app/src/main/assets/hotfix.js
+          grep -q 'TURNIKCOACH_HOTFIX 5.16.21-webview-confirm' app/src/main/assets/hotfix.js
       - name: Isolate test application from installed production data
         run: |
           python3 - <<'PY'
@@ -58,6 +59,22 @@ jobs:
           old='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/hotfix.js'
           assert java.count(old)==1
           java=java.replace(old,'https://127.0.0.1/turnikcoach-preview-no-remote-updates.js')
+          onfinish='''                applyAssetHotfix();
+                applyCachedHotfix();'''
+          assert java.count(onfinish)==1
+          seed='''                applyAssetHotfix();
+                applyCachedHotfix();
+                web.evaluateJavascript(
+                    "(function(){try{"+
+                    "if(localStorage.getItem('__tcUndoUiSmokeSeeded'))return;"+
+                    "var d=(typeof dateKey==='function'?dateKey():new Date().toISOString().slice(0,10));"+
+                    "localStorage.setItem('tc_hotfix_approved_version','5.16.21-webview-confirm');"+
+                    "localStorage.setItem('tc_morozov_course_v1',JSON.stringify({enabled:true,level:4,goal:'quantity',pullMax:20,courseSeq:1,extraSeq:0,lastCourseDate:d,lastCourseTs:Date.now(),weeklySessions:3,cycleStartDate:d,testAnchorDate:d,lastTestDate:'',testDeferredUntil:'',history:[{type:'workout',date:d,ts:Date.now(),feedback:'test',total:0,details:[],courseMode:'course',courseLevel:4,courseComplex:3,courseGoal:'quantity'}],tests:[],masteryTests:[],exerciseMax:{}}));"+
+                    "localStorage.setItem('__tcUndoUiSmokeSeeded','1');location.reload();"+
+                    "}catch(e){console.error(e)}})();",
+                    null
+                );'''
+          java=java.replace(onfinish,seed)
           activity.write_text(java)
           manifest=Path('app/src/main/AndroidManifest.xml')
           s=manifest.read_text().replace('android:label="Турник Тренер"', 'android:label="Турник Тренер · ТЕСТ"')
@@ -66,9 +83,29 @@ jobs:
       - name: Build isolated DEBUG preview APK
         run: |
           gradle --no-daemon :app:assembleDebug
-          cp app/build/outputs/apk/debug/app-debug.apk TurnikCoach-UndoUI-Preview-v5.16.20.apk
+          cp app/build/outputs/apk/debug/app-debug.apk TurnikCoach-WebViewConfirm-Preview-v5.16.21.apk
+      - name: Enable KVM
+        run: sudo chmod 666 /dev/kvm || true
+      - name: Verify undo button in a real Android WebView
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          profile: pixel_6
+          disable-animations: true
+          emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim
+          script: |
+            adb install -r TurnikCoach-WebViewConfirm-Preview-v5.16.21.apk
+            TC_TEST_PKG=ru.turnikcoach.app.calendarpreview python3 scripts/course_undo_ui_smoke.py
+      - name: Upload undo UI screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: TurnikCoach-5.16.21-undo-ui-smoke-screenshots
+          path: undo-ui-test-output
+          if-no-files-found: warn
       - uses: actions/upload-artifact@v4
         with:
-          name: TurnikCoach-5.16.20-undo-ui-isolated-preview
-          path: TurnikCoach-UndoUI-Preview-v5.16.20.apk
+          name: TurnikCoach-5.16.21-webview-confirm-isolated-preview
+          path: TurnikCoach-WebViewConfirm-Preview-v5.16.21.apk
           if-no-files-found: error
