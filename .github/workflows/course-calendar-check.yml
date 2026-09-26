@@ -12,6 +12,7 @@ on:
       - fix/ux-block4-action-feedback-20260926
       - fix/ux-block4b-forms-feedback-20260926
       - fix/ux-block5a-touch-targets-20260926
+      - fix/ux-block5b-exercise-touch-audit-20260926
   workflow_dispatch:
 
 permissions:
@@ -40,15 +41,15 @@ jobs:
           done
           base64 --decode /tmp/v513.b64 | gzip -dc > app/src/main/assets/index.html
           grep -q 'v5.13 — modern Android package' app/src/main/assets/index.html
-      - name: Reproduce packaged 5.14 + cached 5.16.25 + tested 5.16.26
+      - name: Reproduce packaged 5.14 + cached 5.16.27 + tested 5.16.27
         run: |
-          PREV_COMMIT="b52438f2e36553656538daf379e3cc05622e0c88"
+          PREV_COMMIT="c684481c790e79d47617a13f4a908dc1d7697945"
           grep -q 'TURNIKCOACH_HOTFIX 5.14.0-adaptive-rest' app/src/main/assets/hotfix.js
           curl -fsSL "https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/${PREV_COMMIT}/live/hotfix.js" > app/src/main/assets/hotfix-prev.js
           cp live/hotfix.js app/src/main/assets/hotfix-next.js
-          grep -q 'TURNIKCOACH_HOTFIX 5.16.25-forms-feedback' app/src/main/assets/hotfix-prev.js
-          grep -q 'TURNIKCOACH_HOTFIX 5.16.26-touch-targets' app/src/main/assets/hotfix-next.js
-          grep -q 'TURNIKCOACH_COURSE 1.0.24-touch-targets' app/src/main/assets/hotfix-next.js
+          grep -q 'TURNIKCOACH_HOTFIX 5.16.27-touch-targets' app/src/main/assets/hotfix-prev.js
+          grep -q 'TURNIKCOACH_HOTFIX 5.16.27-touch-audit' app/src/main/assets/hotfix-next.js
+          grep -q 'TURNIKCOACH_COURSE 1.0.25-touch-audit' app/src/main/assets/hotfix-next.js
       - name: Seed installed 5.16.25 approval and completed main-course state
         run: |
           python3 - <<'PY'
@@ -61,7 +62,7 @@ jobs:
           (function(){
             if(localStorage.getItem('__tcForcedHandoverSmokeSeeded')) return;
             var d=new Date(),k=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
-            localStorage.setItem('tc_hotfix_approved_version','5.16.25-forms-feedback');
+            localStorage.setItem('tc_hotfix_approved_version','5.16.26-touch-targets');
             localStorage.setItem('tc_morozov_course_v1',JSON.stringify({
               enabled:true,level:4,goal:'quantity',pullMax:20,courseSeq:1,extraSeq:0,
               lastCourseDate:k,lastCourseTs:Date.now(),weeklySessions:3,cycleStartDate:k,
@@ -124,10 +125,10 @@ jobs:
       - name: Build isolated DEBUG preview APK
         run: |
           gradle --no-daemon :app:assembleDebug
-          cp app/build/outputs/apk/debug/app-debug.apk TurnikCoach-UXBlock5A-Preview-v5.16.26.apk
+          cp app/build/outputs/apk/debug/app-debug.apk TurnikCoach-UXBlock5B-Preview-v5.16.27.apk
       - name: Enable KVM
         run: sudo chmod 666 /dev/kvm || true
-      - name: Verify 5.16.26 update and 48dp touch targets in real Android WebView
+      - name: Verify 5.16.27 update and 48dp touch targets in real Android WebView
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 35
@@ -136,17 +137,17 @@ jobs:
           disable-animations: true
           emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim
           script: |
-            adb install -r TurnikCoach-UXBlock5A-Preview-v5.16.26.apk
+            adb install -r TurnikCoach-UXBlock5B-Preview-v5.16.27.apk
             TC_TEST_PKG=ru.turnikcoach.v52tr.calendarpreview python3 scripts/course_undo_ui_smoke.py
-      - name: Upload UX block 5A screenshots
+      - name: Upload UX block 5B screenshots
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: TurnikCoach-5.16.26-ux-block5a-smoke-screenshots
+          name: TurnikCoach-5.16.27-ux-block5b-smoke-screenshots
           path: undo-ui-test-output
           if-no-files-found: warn
       - uses: actions/upload-artifact@v4
         with:
-          name: TurnikCoach-5.16.26-ux-block5a-isolated-preview
-          path: TurnikCoach-UXBlock5A-Preview-v5.16.26.apk
+          name: TurnikCoach-5.16.27-ux-block5b-isolated-preview
+          path: TurnikCoach-UXBlock5B-Preview-v5.16.27.apk
           if-no-files-found: error
