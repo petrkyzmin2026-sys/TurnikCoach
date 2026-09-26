@@ -52,13 +52,13 @@ assert(course.includes('tcPreviewCourseCard(tcSelectedDate)'),
  'choosing another date must show a read-only plan');
 assert(course.includes('id="tcCycleStartDate"'),
  'settings must expose a cycle start date');
-assert(hotfix.includes("const VERSION='5.16.24-action-feedback'"),
- 'release hotfix version must be 5.16.24');
-assert(course.includes("const COURSE_MODULE_VERSION='1.0.22-action-feedback'"),
- 'course module version must be 1.0.22');
+assert(hotfix.includes("const VERSION='5.16.25-forms-feedback'"),
+ 'release hotfix version must be 5.16.25');
+assert(course.includes("const COURSE_MODULE_VERSION='1.0.23-forms-feedback'"),
+ 'course module version must be 1.0.23');
 assert(!course.includes('window.confirm('),'course module must not depend on unsupported WebView JS dialogs');
 assert(!hotfix.includes('window.confirm('),'hotfix navigation/discard must not depend on unsupported WebView JS dialogs');
-assert(!hotfix.includes('forceHandover'),'5.16.24 must use an explicit user-visible update prompt');
+assert(!hotfix.includes('forceHandover'),'5.16.25 must use an explicit user-visible update prompt');
 assert(hotfix.includes("showRuntimeNotice('TurnikCoach обновлён до '+LABEL)"),
  'successful activation must give visible feedback');
 assert(hotfix.includes("localStorage.setItem('tc_hotfix_active_version',VERSION)"),
@@ -211,6 +211,64 @@ assert(feedbackCalls.some(x=>x[0]==='test'&&x[1]==='Тренировка уже 
 assert(feedbackCalls.some(x=>x[0]==='deferTest'&&x[1]==='Перенос не требуется'));
 assert(feedbackCalls.some(x=>x[0]==='advance'&&x[1]==='Переход недоступен'));
 
+const formBodies={
+  openAdvanced:windowFunctionBody('tcOpenAdvancedChoiceSheet'),
+  saveAdvanced:windowFunctionBody('tcSaveAdvancedChoices'),
+  openCalibration:windowFunctionBody('tcOpenCourseCalibration'),
+  saveCalibration:windowFunctionBody('tcSaveCourseCalibration'),
+  openWeight:windowFunctionBody('tcOpenWorkingWeight'),
+  saveWeight:windowFunctionBody('tcSaveWorkingWeight'),
+  openSettings:windowFunctionBody('tcOpenCourseSettings'),
+  saveSettings:windowFunctionBody('tcSaveCourseSettings')
+};
+assert(formBodies.openAdvanced.includes("tcActionMessage('Выбор упражнений недоступен'"),
+ 'advanced-choice stale action must explain wrong level');
+assert(formBodies.saveAdvanced.includes("tcActionMessage('Выбор не сохранён'"),
+ 'advanced-choice save must explain stale level');
+assert(formBodies.saveAdvanced.includes("tcShowRuntimeNotice('Выбор упражнений сохранён.')"),
+ 'advanced-choice save must confirm success');
+assert(formBodies.openCalibration.includes("tcActionMessage('Настройка недоступна'"),
+ 'calibration must explain active-workout blocking');
+assert(formBodies.openCalibration.includes("tcActionMessage('Контрольные максимумы не требуются'"),
+ 'calibration must explain empty form state');
+assert(formBodies.saveCalibration.includes("tcActionMessage('Результаты не сохранены'"),
+ 'calibration save must explain stale/missing fields');
+assert(formBodies.saveCalibration.includes("tcShowRuntimeNotice('Контрольные максимумы сохранены.')"),
+ 'calibration save must confirm success');
+assert(formBodies.openWeight.includes("tcActionMessage('Настройка недоступна'"),
+ 'working-weight form must explain active-workout blocking');
+assert(formBodies.saveWeight.includes("tcActionMessage('Вес не сохранён'"),
+ 'working-weight save must explain missing input');
+assert(formBodies.saveWeight.includes("tcShowRuntimeNotice('Дополнительный вес сохранён: '+value+' кг.')"),
+ 'working-weight save must confirm success');
+assert(formBodies.openSettings.includes("tcActionMessage('Настройки недоступны'"),
+ 'course settings must not silently open during an active workout');
+assert(formBodies.saveSettings.includes("tcActionMessage('Настройки не сохранены'"),
+ 'course settings must explain invalid/incomplete input');
+assert(formBodies.saveSettings.includes("tcShowRuntimeNotice('Настройки курса сохранены.')"),
+ 'course settings save must confirm success');
+assert(!formBodies.saveSettings.includes("Math.max(1,Math.floor(+(mx&&mx.value)||TC_course.pullMax))"),
+ 'invalid current maximum must not be silently coerced');
+assert(formBodies.saveSettings.indexOf("const parsed=")<formBodies.saveSettings.indexOf("TC_course.enabled=!!enabled.checked"),
+ 'settings must validate the cycle date before mutating course state');
+assert(formBodies.saveSettings.indexOf("const allowedGoals=")<formBodies.saveSettings.indexOf("TC_course.goal=nextGoal"),
+ 'settings must validate the goal before mutating course state');
+
+const staleFormFeedback=[];
+new Function('TC_course','tcActionMessage','tcAdvancedChoicePool',formBodies.openAdvanced)(
+  {level:6,advancedChoices:{},goal:'quantity'},
+  (...args)=>staleFormFeedback.push(args),
+  ()=>[]
+);
+assert.equal(staleFormFeedback[0][0],'Выбор упражнений недоступен');
+
+const weightFeedback=[];
+new Function('document','tcActionMessage',formBodies.saveWeight)(
+  {getElementById:()=>null},
+  (...args)=>weightFeedback.push(args)
+);
+assert.equal(weightFeedback[0][0],'Вес не сохранён');
+
 const undoState={enabled:true,level:4,goal:'quantity',weeklySessions:3,cycleStartDate:'2026-09-25',
   courseSeq:1,lastCourseDate:'2026-09-25',lastCourseTs:123,testAnchorDate:'2026-09-25',
   lastTestDate:'',history:[{courseMode:'course',date:'2026-09-25',ts:123,courseComplex:3}]};
@@ -224,4 +282,4 @@ assert.equal(undoState.lastCourseTs,0);
 assert.equal(undoState.testAnchorDate,'');
 assert.equal(undoApi.tcUndoLatestTodayCourseRecord('2026-09-25'),false,
  'undo must not remove anything twice');
-console.log('PASS: syntax, bundle, calendar, critical path and visible feedback for remaining training/test actions');
+console.log('PASS: syntax, bundle, critical actions and validate-before-commit form feedback');
