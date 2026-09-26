@@ -69,16 +69,21 @@ screenshot("01-main-done-extra-available")
 
 tap_text("Начать дополнительную тренировку",contains=False)
 wait_text("Подъём коленей в висе",timeout=12)
+wait_text("Завершить",contains=False)
 time.sleep(1)
 screenshot("02-extra-workout-started")
-wait_text("Выйти",contains=False)
 
-tap_text("Выйти",contains=False)
-wait_text("Выйти без сохранения?")
+tap_text("Завершить",contains=False)
+wait_text("Завершить тренировку?")
+wait_text("Сохранить и завершить",contains=False)
+wait_text("Выйти без сохранения",contains=False)
 wait_text("Продолжить тренировку",contains=False)
-screenshot("03-exit-confirm-visible")
-tap_text("Продолжить тренировку",contains=False)
-wait_text("Подъём коленей в висе",timeout=8)
+screenshot("03-safe-finish-menu")
+
+tap_text("Выйти без сохранения",contains=False)
+wait_text("Основной комплекс выполнен",timeout=10)
+wait_text("Начать дополнительную тренировку",contains=False)
+screenshot("04-extra-discarded-no-save")
 
 # Recreate the same saved-main state to verify the destructive undo path separately.
 adb("shell","am","force-stop",PKG)
@@ -86,17 +91,17 @@ adb("shell","pm","clear",PKG)
 launch()
 wait_text("Основной комплекс выполнен",timeout=20)
 wait_text("Ошибочно завершил — отменить запись")
-screenshot("04-main-done-before-undo")
+screenshot("05-main-done-before-undo")
 
 tap_text("Ошибочно завершил — отменить запись",contains=False)
 wait_text("Отменить сегодняшнюю тренировку?")
 wait_text("Отменить запись",contains=False)
-screenshot("05-in-app-confirm")
+screenshot("06-in-app-confirm")
 
 tap_text("Отменить запись",contains=False)
 wait_text("Комплекс №3")
 wait_text("Начать адаптированную тренировку")
-screenshot("06-course-restored")
+screenshot("07-course-restored")
 
 pos,_=find_text("Основной комплекс выполнен")
 if pos:
