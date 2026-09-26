@@ -54,8 +54,8 @@ assert(course.includes('id="tcCycleStartDate"'),
  'settings must expose a cycle start date');
 assert(hotfix.includes("const VERSION='5.16.23-critical-ux'"),
  'release hotfix version must be 5.16.23');
-assert(course.includes("const COURSE_MODULE_VERSION='1.0.20-critical-path'"),
- 'course module version must be 1.0.20');
+assert(course.includes("const COURSE_MODULE_VERSION='1.0.21-critical-controls'"),
+ 'course module version must be 1.0.21');
 assert(!course.includes('window.confirm('),'course module must not depend on unsupported WebView JS dialogs');
 assert(!hotfix.includes('window.confirm('),'hotfix navigation/discard must not depend on unsupported WebView JS dialogs');
 assert(!hotfix.includes('forceHandover'),'5.16.23 must use an explicit user-visible update prompt');
@@ -65,6 +65,10 @@ assert(hotfix.includes("localStorage.setItem('tc_hotfix_active_version',VERSION)
  'active hotfix version must be persisted for diagnostics');
 assert(hotfix.includes("b.type='button';b.className='tcWorkoutExitBtn';b.textContent='Выйти'"),
  'actual packaged workout header must receive a visible exit-without-saving action');
+assert(hotfix.includes('window.tcEnsureWorkoutControls=function()'),
+ 'workout control decorator must be explicitly callable after render');
+assert(course.includes("if(typeof window.tcEnsureWorkoutControls==='function')window.tcEnsureWorkoutControls();"),
+ 'course/extra workout rendering must explicitly request visible workout controls');
 assert(!hotfix.includes("querySelector('.controls')"),
  'discard control must not be injected into the hidden legacy .controls container');
 assert(hotfix.includes('tcConfirmDiscardWorkoutBtn'),
