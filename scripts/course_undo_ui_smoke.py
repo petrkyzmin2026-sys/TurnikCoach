@@ -80,8 +80,10 @@ screenshot("03-main-done-extra-available")
 
 tap_text("Начать дополнительную тренировку",contains=False)
 wait_text("Подъём коленей в висе",timeout=15)
-wait_text("Выйти",timeout=10,contains=False)
 screenshot("04-extra-workout-active")
+adb("shell","uiautomator","dump","/sdcard/uxb3-active.xml",check=False)
+adb("pull","/sdcard/uxb3-active.xml",OUT+"/04-extra-workout-active.xml",check=False)
+wait_text("Выйти",timeout=10,contains=False)
 
 # Explicit visible exit must work from the actual packaged v5.13 stageHeader.
 tap_text("Выйти",contains=False)
