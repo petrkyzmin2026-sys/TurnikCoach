@@ -127,7 +127,7 @@
     }
 
     function tcHasWorkout(){return typeof W!=='undefined'&&!!W}
-    function tcClearWorkout(){try{if(typeof rt!=='undefined'&&rt){clearInterval(rt);rt=null}}catch(e){}try{W=null}catch(e){}}
+    function tcClearWorkout(){try{if(typeof rt!=='undefined'&&rt){clearInterval(rt);rt=null}}catch(e){}try{W=null}catch(e){}try{if(typeof window.tcClearActiveWorkoutSnapshot==='function')window.tcClearActiveWorkoutSnapshot()}catch(e){}}
     const baseGo=window.go;
     window.go=function(id){
       const from=currentScreen();
