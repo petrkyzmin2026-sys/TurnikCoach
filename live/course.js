@@ -1,7 +1,7 @@
-/* TURNIKCOACH_COURSE 1.0.20-after-main-extras */
+/* TURNIKCOACH_COURSE 1.0.21-group1-controls */
 (function(){
   'use strict';
-  const COURSE_MODULE_VERSION='1.0.20-after-main-extras';
+  const COURSE_MODULE_VERSION='1.0.21-group1-controls';
   if(window.__TC_COURSE_MODULE_VERSION===COURSE_MODULE_VERSION)return;
   window.__TC_COURSE_MODULE_VERSION=COURSE_MODULE_VERSION;
   function tcClamp(v,a,b){return Math.max(a,Math.min(b,v))}
@@ -1492,6 +1492,7 @@
     const tcBeforeCourseRenderWork=window.renderWork;
     window.renderWork=function(){
       const r=tcBeforeCourseRenderWork();
+      if(typeof window.tcEnsureWorkoutControls==='function')window.tcEnsureWorkoutControls();
       const planEl=q('wplan');
       if(!W||!['course','supplement','auxCourse','courseTest'].includes(W.mode)){
         if(planEl)planEl.classList.remove('tcCoursePlan');
