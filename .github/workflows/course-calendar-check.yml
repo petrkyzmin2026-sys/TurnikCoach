@@ -8,6 +8,7 @@ on:
       - fix/undo-button-layout-20260925
       - fix/webview-confirm-undo-20260925
       - fix/forced-hotupdate-handover-20260925
+      - audit/group1-update-extra-20260926
   workflow_dispatch:
 
 permissions:
@@ -18,8 +19,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Check actual live code and bundled module
-        run: node scripts/course_calendar_test.js
+      - name: Check actual live code, bundled module and button handlers
+        run: |
+          node scripts/course_calendar_test.js
+          node scripts/button_static_audit.js
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -36,11 +39,11 @@ jobs:
           done
           base64 --decode /tmp/v513.b64 | gzip -dc > app/src/main/assets/index.html
           grep -q 'v5.13 — modern Android package' app/src/main/assets/index.html
-      - name: Embed tested 5.16.22 hotfix in test application
+      - name: Embed tested 5.16.23 hotfix in test application
         run: |
           cp live/hotfix.js app/src/main/assets/hotfix.js
-          grep -q 'TURNIKCOACH_HOTFIX 5.16.22-forced-handover' app/src/main/assets/hotfix.js
-      - name: Seed the exact old approved version and saved course record in test HTML
+          grep -q 'TURNIKCOACH_HOTFIX 5.16.23-group1-ux' app/src/main/assets/hotfix.js
+      - name: Seed approved 5.16.23 and a saved main-course workout in test HTML
         run: |
           python3 - <<'PY'
           from pathlib import Path
@@ -52,7 +55,7 @@ jobs:
           (function(){
             if(localStorage.getItem('__tcForcedHandoverSmokeSeeded')) return;
             var d=new Date(),k=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
-            localStorage.setItem('tc_hotfix_approved_version','5.16.22-forced-handover');
+            localStorage.setItem('tc_hotfix_approved_version','5.16.23-group1-ux');
             localStorage.setItem('tc_morozov_course_v1',JSON.stringify({
               enabled:true,level:4,goal:'quantity',pullMax:20,courseSeq:1,extraSeq:0,
               lastCourseDate:k,lastCourseTs:Date.now(),weeklySessions:3,cycleStartDate:k,
@@ -96,10 +99,10 @@ jobs:
       - name: Build isolated DEBUG preview APK
         run: |
           gradle --no-daemon :app:assembleDebug
-          cp app/build/outputs/apk/debug/app-debug.apk TurnikCoach-ForcedHandover-Preview-v5.16.22.apk
+          cp app/build/outputs/apk/debug/app-debug.apk TurnikCoach-Group1-Preview-v5.16.23.apk
       - name: Enable KVM
         run: sudo chmod 666 /dev/kvm || true
-      - name: Verify 5.16.22 undo flow in real Android WebView
+      - name: Verify after-main extra start and undo in real Android WebView
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 35
@@ -108,17 +111,17 @@ jobs:
           disable-animations: true
           emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim
           script: |
-            adb install -r TurnikCoach-ForcedHandover-Preview-v5.16.22.apk
+            adb install -r TurnikCoach-Group1-Preview-v5.16.23.apk
             TC_TEST_PKG=ru.turnikcoach.v52tr.calendarpreview python3 scripts/course_undo_ui_smoke.py
-      - name: Upload undo UI screenshots
+      - name: Upload group 1 UI screenshots
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: TurnikCoach-5.16.22-forced-handover-smoke-screenshots
+          name: TurnikCoach-5.16.23-group1-ux-smoke-screenshots
           path: undo-ui-test-output
           if-no-files-found: warn
       - uses: actions/upload-artifact@v4
         with:
-          name: TurnikCoach-5.16.22-forced-handover-isolated-preview
-          path: TurnikCoach-ForcedHandover-Preview-v5.16.22.apk
+          name: TurnikCoach-5.16.23-group1-ux-isolated-preview
+          path: TurnikCoach-Group1-Preview-v5.16.23.apk
           if-no-files-found: error
