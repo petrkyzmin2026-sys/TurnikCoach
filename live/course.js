@@ -1,7 +1,7 @@
-/* TURNIKCOACH_COURSE 1.0.22-action-feedback */
+/* TURNIKCOACH_COURSE 1.0.23-forms-feedback */
 (function(){
   'use strict';
-  const COURSE_MODULE_VERSION='1.0.22-action-feedback';
+  const COURSE_MODULE_VERSION='1.0.23-forms-feedback';
   if(window.__TC_COURSE_MODULE_VERSION===COURSE_MODULE_VERSION)return;
   window.__TC_COURSE_MODULE_VERSION=COURSE_MODULE_VERSION;
   function tcClamp(v,a,b){return Math.max(a,Math.min(b,v))}
@@ -432,8 +432,9 @@
       });
     }
     window.tcOpenAdvancedChoiceSheet=function(){
-      if(TC_course.level!==7)return;
+      if(TC_course.level!==7){tcActionMessage('Выбор упражнений недоступен','Два вспомогательных упражнения выбираются только для 7-го уровня курса.');return;}
       const pool=tcAdvancedChoicePool(),chosen=TC_course.advancedChoices[TC_course.goal]||[];
+      if(!pool.length){tcActionMessage('Нет упражнений для выбора','Для текущей цели не удалось сформировать список допустимых упражнений.');return;}
       q('sheetbox').innerHTML='<div class="sheettitle">Упражнения для 7-го уровня</div>'+
         '<div class="sub" style="margin-top:6px">По курсу выберите два разных упражнения из '+
         (TC_course.goal==='muscleup'?'комплекса №1 пятого уровня':'любого комплекса шестого уровня')+
@@ -448,7 +449,7 @@
       q('sheet').classList.add('open');
     };
     window.tcSaveAdvancedChoices=function(){
-      if(TC_course.level!==7)return;
+      if(TC_course.level!==7){tcActionMessage('Выбор не сохранён','Текущий уровень курса уже изменился. Откройте настройки заново.');return;}
       const ids=Array.from(document.querySelectorAll('.tcAdvancedSelect:checked')).map(el=>el.value);
       const pool=tcAdvancedChoicePool();
       if(ids.length!==2||ids[0]===ids[1]||ids.some(id=>!pool.some(x=>x.id===id))){
@@ -458,6 +459,7 @@
       }
       TC_course.advancedChoices[TC_course.goal]=ids;
       tcSaveCourse();closeSheet();render();
+      if(typeof window.tcShowRuntimeNotice==='function')window.tcShowRuntimeNotice('Выбор упражнений сохранён.');
     };
 
     function tcCalibrationDefs(mode,all=false){
@@ -472,11 +474,13 @@
         '<button class="btn yellow full" style="margin-top:10px" data-mode="'+mode+'" onclick="tcOpenCourseCalibration(this.dataset.mode)">Ввести результаты</button></div>';
     }
     window.tcOpenCourseCalibration=function(mode){
-      if(W)return;
+      if(W){tcActionMessage('Настройка недоступна','Сначала завершите текущую тренировку или выйдите из неё без сохранения.');return;}
+      mode=String(mode||'');
+      if(!['main','main:all','aux','aux:all'].includes(mode)){tcActionMessage('Не удалось открыть форму','Неизвестный тип контрольных максимумов. Откройте настройку заново.');return;}
       const all=mode==='main:all'||mode==='aux:all';
       const kind=mode.startsWith('aux')?'aux':'main';
       const defs=tcCalibrationDefs(kind,all);
-      if(!defs.length)return;
+      if(!defs.length){tcActionMessage('Контрольные максимумы не требуются','Для текущего комплекса нет упражнений, которым нужно отдельно задавать максимум.');return;}
       const fields=defs.map(def=>{
         const sides=def.id==='c_asym80';
         const names=sides?[
@@ -496,19 +500,23 @@
       q('sheet').classList.add('open');
     };
     window.tcSaveCourseCalibration=function(mode){
+      mode=String(mode||'');
+      if(!['main','main:all','aux','aux:all'].includes(mode)){tcActionMessage('Результаты не сохранены','Форма устарела или была открыта некорректно. Откройте её заново.');return;}
       const all=mode==='main:all'||mode==='aux:all';
       const kind=mode.startsWith('aux')?'aux':'main';
       const defs=tcCalibrationDefs(kind,all),pending={};
+      if(!defs.length){tcActionMessage('Результаты не сохранены','Для текущего комплекса больше нет упражнений, требующих отдельного максимума.');return;}
       for(const def of defs){
         const keys=def.id==='c_asym80'?[def.id+'_left',def.id+'_right']:[def.id];
         for(const key of keys){
           const el=document.getElementById('tcCal_'+key);
-          if(!el)return;
+          if(!el){tcActionMessage('Результаты не сохранены','Поле контрольного максимума исчезло из формы. Откройте настройку заново.');return;}
           const raw=el.value.trim(),n=Number(raw);
           if(!raw||!Number.isSafeInteger(n)||n<1){
             el.style.borderColor='#ff7777';
             const warn=document.getElementById('tcCalError');
             if(warn)warn.textContent='Для каждого упражнения укажите целый положительный максимум.';
+            if(typeof el.focus==='function')el.focus();
             return;
           }
           pending[key]=n;
@@ -516,6 +524,7 @@
       }
       Object.assign(TC_course.exerciseMax,pending);
       tcSaveCourse();closeSheet();render();
+      if(typeof window.tcShowRuntimeNotice==='function')window.tcShowRuntimeNotice('Контрольные максимумы сохранены.');
     };
 
     function tcBuildItemsFor(defs){
@@ -538,26 +547,33 @@
         '" onclick="tcOpenWorkingWeight(this.dataset.mode)">Указать дополнительный вес</button></div>';
     }
     window.tcOpenWorkingWeight=function(mode){
-      if(W)return;
-      q('sheetbox').innerHTML='<div class="sheettitle">Дополнительный вес</div>'+
+      if(W){tcActionMessage('Настройка недоступна','Сначала завершите текущую тренировку или выйдите из неё без сохранения.');return;}
+      mode=String(mode||'');
+      if(!['main','aux'].includes(mode)){tcActionMessage('Не удалось открыть форму','Неизвестный тип тренировки для дополнительного веса.');return;}
+      const box=q('sheetbox'),sheet=q('sheet');
+      if(!box||!sheet){tcActionMessage('Не удалось открыть форму','Интерфейс настройки веса недоступен. Вернитесь на экран «Сегодня» и повторите.');return;}
+      box.innerHTML='<div class="sheettitle">Дополнительный вес</div>'+
         '<div class="sub">Введите фактически выбранный вес отягощения в килограммах. В PDF для этого комплекса требуется максимальный рабочий вес, но конкретная масса не указана.</div>'+
         '<input type="number" id="tcWorkingWeightInput" min="0.5" step="0.5" inputmode="decimal" value="'+(TC_course.weightedLoad||'')+'" style="width:100%;box-sizing:border-box;margin:14px 0;background:#0c1218;color:#fff;padding:11px;border:1px solid #344250;border-radius:9px">'+
         '<div id="tcWorkingWeightError" class="meta"></div>'+
         '<button class="btn yellow full" data-mode="'+(mode==='aux'?'aux':'main')+'" onclick="tcSaveWorkingWeight(this.dataset.mode)">Сохранить</button>'+
         '<button class="btn ghost full" style="margin-top:8px" onclick="closeSheet()">Отмена</button>';
-      q('sheet').classList.add('open');
+      sheet.classList.add('open');
     };
     window.tcSaveWorkingWeight=function(mode){
       const el=document.getElementById('tcWorkingWeightInput');
-      const raw=el&&el.value.trim()||'',value=Number(raw);
+      if(!el){tcActionMessage('Вес не сохранён','Поле дополнительного веса отсутствует. Откройте форму заново.');return;}
+      const raw=el.value.trim(),value=Number(raw);
       if(!raw||!Number.isFinite(value)||value<=0||value>1000){
         const msg=document.getElementById('tcWorkingWeightError');
         if(msg)msg.textContent='Укажите положительное значение дополнительного веса в килограммах.';
+        if(typeof el.focus==='function')el.focus();
         return;
       }
       TC_course.weightedLoad=value;
       const wp=state.ex.find(e=>e.id==='weightedPull');if(wp)wp.load=value;
       tcSaveCourse();save();closeSheet();render();
+      if(typeof window.tcShowRuntimeNotice==='function')window.tcShowRuntimeNotice('Дополнительный вес сохранён: '+value+' кг.');
     };
 
     function tcBuildCourseItems(seqIndex=TC_course.courseSeq){const c=tcCourseComplex(seqIndex);return c.def?tcBuildItemsFor(tcResolvedCourseDefs(c)):[]}
@@ -603,8 +619,10 @@
     window.tcActionMessage=tcActionMessage;
 
     window.tcOpenCourseSettings=function(){
+      if(W){tcActionMessage('Настройки недоступны','Сначала завершите текущую тренировку или выйдите из неё без сохранения.');return;}
       tcNormalizeGoal();const l=tcCourseLevel(),goals=tcGoalOptions(TC_course.level);
-      const box=q('sheetbox');
+      const box=q('sheetbox'),sheet=q('sheet');
+      if(!box||!sheet){tcActionMessage('Не удалось открыть настройки','Экран настроек недоступен. Вернитесь в раздел «Тренировка» и повторите.');return;}
       box.innerHTML='<div class="sheettitle">Курс Морозова</div><div class="sub" style="margin-top:6px">Оборудование: только турник. В исходной программе доступны все упражнения автора, но задания с дополнительными снарядами не назначаются. Упражнения без оборудования из обычного каталога доступны отдельно.</div>'+
       '<div class="tcInfoBlock"><h3>Состояние</h3><p><label style="display:flex;gap:9px;align-items:center"><input id="tcCourseEnabled" type="checkbox" '+(TC_course.enabled?'checked':'')+'> Включить курс Морозова</label></p></div>'+
       '<div class="tcInfoBlock"><h3>Уровень</h3><p><select id="tcCourseLevel" style="width:100%;margin-top:4px;background:#0c1218;color:#fff;border:1px solid #3a4653;border-radius:10px;padding:10px">'+Object.keys(TC_COURSE).map(n=>'<option value="'+n+'" '+(+n===TC_course.level?'selected':'')+'>'+n+' · '+TC_COURSE[n].title+'</option>').join('')+'</select></p></div>'+
@@ -623,10 +641,11 @@
       (TC_course.level===7?'<button class="btn ghost full" style="margin-top:8px" onclick="tcOpenAdvancedChoiceSheet()">Выбрать два упражнения 7-го уровня</button>':'')+
       '<div class="tcInfoBlock"><h3>Версия</h3><p>Hotfix: <b>'+(window.__TC_HOTFIX_LABEL||window.__TC_HOTFIX_VERSION||'не определён')+'</b><br>Модуль курса: <b>'+COURSE_MODULE_VERSION+'</b>'+(window.__TC_HOTFIX_INSTALLED_AT?'<br>Активирован: '+new Date(window.__TC_HOTFIX_INSTALLED_AT).toLocaleString('ru-RU'):'')+'</p></div>'+
       '<button class="btn yellow full" style="margin-top:14px" onclick="tcSaveCourseSettings()">Сохранить</button><button class="btn ghost full" style="margin-top:8px" onclick="closeSheet()">Отмена</button>';
-      q('sheet').classList.add('open');
+      sheet.classList.add('open');
       const levelEl=document.getElementById('tcCourseLevel');
       if(levelEl)levelEl.onchange=()=>{
-        const select=document.getElementById('tcCourseGoal');if(!select)return;
+        const select=document.getElementById('tcCourseGoal');
+        if(!select){tcActionMessage('Настройки изменились','Поле цели недоступно. Закройте настройки и откройте их заново.');return;}
         const choices=tcGoalOptions(+levelEl.value||TC_course.level),previous=select.value;
         select.innerHTML=choices.map(x=>'<option value="'+x[0]+'">'+x[1]+'</option>').join('');
         select.value=choices.some(x=>x[0]===previous)?previous:choices[0][0];
@@ -634,21 +653,98 @@
     };
     window.tcSaveCourseSettings=function(){
       const oldLevel=TC_course.level,oldGoal=TC_course.goal;
-      const enabled=document.getElementById('tcCourseEnabled'),level=document.getElementById('tcCourseLevel'),mx=document.getElementById('tcCourseMax'),goal=document.getElementById('tcCourseGoal'),load=document.getElementById('tcCourseLoad'),sup=document.getElementById('tcCourseSupplement');
-      const auxEl=document.getElementById('tcAuxEnabled'),auxIntervalEl=document.getElementById('tcAuxInterval3');if(auxEl&&[3,6].includes(oldLevel))TC_course.auxEnabled[oldLevel]=!!auxEl.checked;if(auxIntervalEl)TC_course.auxInterval3=[7,10].includes(+auxIntervalEl.value)?+auxIntervalEl.value:10;
+      const enabled=document.getElementById('tcCourseEnabled');
+      const level=document.getElementById('tcCourseLevel');
+      const mx=document.getElementById('tcCourseMax');
+      const goal=document.getElementById('tcCourseGoal');
       const startEl=document.getElementById('tcCycleStartDate');
-      if(startEl){
-        const raw=startEl.value,parsed=/^\d{4}-\d{2}-\d{2}$/.test(raw)?tcDateFromKey(raw):null;
-        if(!parsed||!Number.isFinite(parsed.getTime())||dateKey(parsed)!==raw){
-          const error=document.getElementById('tcCycleDateError');
-          if(error)error.textContent='Укажите действительную дату начала цикла.';
+      if(!enabled||!level||!mx||!goal||!startEl){
+        tcActionMessage('Настройки не сохранены','Форма настроек изменилась или загрузилась не полностью. Закройте её и откройте заново.');
+        return;
+      }
+
+      const nextLevel=Number(level.value);
+      if(!Number.isInteger(nextLevel)||nextLevel<1||nextLevel>7){
+        tcActionMessage('Настройки не сохранены','Выберите допустимый уровень курса от 1 до 7.');
+        return;
+      }
+      const maxRaw=String(mx.value||'').trim(),nextMax=Number(maxRaw);
+      if(!maxRaw||!Number.isSafeInteger(nextMax)||nextMax<1){
+        mx.style.borderColor='#ff7777';if(typeof mx.focus==='function')mx.focus();
+        tcActionMessage('Настройки не сохранены','Текущий максимум должен быть целым положительным числом.');
+        return;
+      }
+      const nextGoal=String(goal.value||'');
+      const allowedGoals=tcGoalOptions(nextLevel).map(x=>x[0]);
+      if(!allowedGoals.includes(nextGoal)){
+        tcActionMessage('Настройки не сохранены','Выбранная цель не подходит для указанного уровня. Выберите цель заново.');
+        return;
+      }
+      const startRaw=String(startEl.value||'');
+      const parsed=/^\d{4}-\d{2}-\d{2}$/.test(startRaw)?tcDateFromKey(startRaw):null;
+      if(!parsed||!Number.isFinite(parsed.getTime())||dateKey(parsed)!==startRaw){
+        startEl.style.borderColor='#ff7777';if(typeof startEl.focus==='function')startEl.focus();
+        const error=document.getElementById('tcCycleDateError');
+        if(error)error.textContent='Укажите действительную дату начала цикла.';
+        return;
+      }
+
+      const weeklyEl=document.getElementById('tcWeeklySessions');
+      let nextWeekly=TC_course.weeklySessions;
+      if(weeklyEl){
+        nextWeekly=Number(weeklyEl.value);
+        const allowedWeekly=nextLevel===2?[2,3,4]:(nextLevel===4&&nextGoal==='quantity'?[3,4]:[3,4]);
+        if(!allowedWeekly.includes(nextWeekly)){
+          tcActionMessage('Настройки не сохранены','Выберите допустимое количество основных тренировок в неделю.');
           return;
         }
-        TC_course.cycleStartDate=raw;
       }
-      const weeklyEl=document.getElementById('tcWeeklySessions');if(weeklyEl)TC_course.weeklySessions=[2,3,4].includes(+weeklyEl.value)?+weeklyEl.value:3;
-      const targetEl=document.getElementById('tcTargetMax'),weeksEl=document.getElementById('tcTestWeeks');if(targetEl)TC_course.targetMax=Math.max(1,Math.floor(+targetEl.value||TC_course.targetMax));if(weeksEl)TC_course.testPeriodWeeks=[2,3,4].includes(+weeksEl.value)?+weeksEl.value:3;
-      TC_course.enabled=!!(enabled&&enabled.checked);TC_course.level=tcClamp(+(level&&level.value)||TC_course.level,1,7);TC_course.pullMax=Math.max(1,Math.floor(+(mx&&mx.value)||TC_course.pullMax));TC_course.goal=(goal&&goal.value)||TC_course.goal;TC_course.weightedLoad=Math.max(0,+(load&&load.value)||0);if(sup)TC_course.authorSupplement=!!sup.checked;tcNormalizeGoal();
+
+      const targetEl=document.getElementById('tcTargetMax');
+      let nextTarget=TC_course.targetMax;
+      if(targetEl){
+        const raw=String(targetEl.value||'').trim(),n=Number(raw);
+        if(!raw||!Number.isSafeInteger(n)||n<1){
+          targetEl.style.borderColor='#ff7777';if(typeof targetEl.focus==='function')targetEl.focus();
+          tcActionMessage('Настройки не сохранены','Цель контрольного максимума должна быть целым положительным числом.');
+          return;
+        }
+        nextTarget=n;
+      }
+      const weeksEl=document.getElementById('tcTestWeeks');
+      let nextWeeks=TC_course.testPeriodWeeks;
+      if(weeksEl){
+        nextWeeks=Number(weeksEl.value);
+        if(![2,3,4].includes(nextWeeks)){
+          tcActionMessage('Настройки не сохранены','Интервал контрольного максимума должен составлять 2, 3 или 4 недели.');
+          return;
+        }
+      }
+      const auxEl=document.getElementById('tcAuxEnabled');
+      const auxIntervalEl=document.getElementById('tcAuxInterval3');
+      let nextAuxInterval=TC_course.auxInterval3;
+      if(auxIntervalEl){
+        nextAuxInterval=Number(auxIntervalEl.value);
+        if(![7,10].includes(nextAuxInterval)){
+          tcActionMessage('Настройки не сохранены','Периодичность вспомогательного комплекса должна составлять 7 или 10 дней.');
+          return;
+        }
+      }
+
+      TC_course.enabled=!!enabled.checked;
+      TC_course.level=nextLevel;
+      TC_course.pullMax=nextMax;
+      TC_course.goal=nextGoal;
+      TC_course.cycleStartDate=startRaw;
+      TC_course.weeklySessions=nextWeekly;
+      TC_course.targetMax=nextTarget;
+      TC_course.testPeriodWeeks=nextWeeks;
+      TC_course.auxInterval3=nextAuxInterval;
+      if(auxEl&&[3,6].includes(oldLevel))TC_course.auxEnabled[oldLevel]=!!auxEl.checked;
+      const sup=document.getElementById('tcCourseSupplement');
+      if(sup)TC_course.authorSupplement=!!sup.checked;
+      tcNormalizeGoal();
+
       if(TC_course.level===4&&TC_course.goal==='quantity'&&TC_course.weeklySessions<3)TC_course.weeklySessions=3;
       if(TC_course.level!==oldLevel||TC_course.goal!==oldGoal){
         TC_course.courseSeq=0;TC_course.pendingTransition=null;
@@ -656,11 +752,12 @@
         TC_course.testAnchorDate='';TC_course.lastTestDate='';TC_course.testDeferredUntil='';
       }
       if(TC_course.enabled){state.ex.forEach(e=>{if(TC_PULL_CONFLICT_IDS.has(e.id)){e.sel=false;e.main=false}})}
-      const pull=state.ex.find(e=>e.id==='pull');if(pull)pull.max=TC_course.pullMax;const wp=state.ex.find(e=>e.id==='weightedPull');if(wp)wp.load=TC_course.weightedLoad;
+      const pull=state.ex.find(e=>e.id==='pull');if(pull)pull.max=TC_course.pullMax;
+      const wp=state.ex.find(e=>e.id==='weightedPull');if(wp)wp.load=TC_course.weightedLoad;
       tcSelectedDate='';tcWeekOffset=0;
       tcSaveCourse();save();closeSheet();render();
+      if(typeof window.tcShowRuntimeNotice==='function')window.tcShowRuntimeNotice('Настройки курса сохранены.');
     };
-
     function tcInjectCourseUiStyles(){
       if(document.getElementById('tcCourseUiStyles'))return;
       const st=document.createElement('style');st.id='tcCourseUiStyles';
