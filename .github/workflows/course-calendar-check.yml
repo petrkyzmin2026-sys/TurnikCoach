@@ -3,6 +3,7 @@ name: Course calendar regression and Android test APK
 on:
   push:
     branches:
+      - main
       - feature/course-calendar-start-date-20260925
       - feature/discard-workout-undo-today-20260925
       - fix/undo-button-layout-20260925
