@@ -8,6 +8,7 @@ on:
       - fix/undo-button-layout-20260925
       - fix/webview-confirm-undo-20260925
       - fix/forced-hotupdate-handover-20260925
+      - fix/ux-block3-critical-path-20260926
   workflow_dispatch:
 
 permissions:
@@ -36,11 +37,16 @@ jobs:
           done
           base64 --decode /tmp/v513.b64 | gzip -dc > app/src/main/assets/index.html
           grep -q 'v5.13 — modern Android package' app/src/main/assets/index.html
-      - name: Embed tested 5.16.22 hotfix in test application
+      - name: Reproduce installed 5.16.22 and verify remote 5.16.23 source
         run: |
-          cp live/hotfix.js app/src/main/assets/hotfix.js
+          OLD_COMMIT="c5624cb6f7d36b5c3598a71c7e4010cb8b859b5a"
+          NEW_COMMIT="de0438d75095364f4400f0044e42e859dea5e0cd"
+          curl -fsSL "https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/${OLD_COMMIT}/live/hotfix.js" > app/src/main/assets/hotfix.js
           grep -q 'TURNIKCOACH_HOTFIX 5.16.22-forced-handover' app/src/main/assets/hotfix.js
-      - name: Seed the exact old approved version and saved course record in test HTML
+          curl -fsSL "https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/${NEW_COMMIT}/live/hotfix.js" > /tmp/new-hotfix.js
+          grep -q 'TURNIKCOACH_HOTFIX 5.16.23-critical-ux' /tmp/new-hotfix.js
+          grep -q 'TURNIKCOACH_COURSE 1.0.20-critical-path' /tmp/new-hotfix.js
+      - name: Seed installed 5.16.22 approval and completed main-course state
         run: |
           python3 - <<'PY'
           from pathlib import Path
@@ -85,8 +91,9 @@ jobs:
           activity=Path('app/src/main/java/ru/turnikcoach/app/MainActivity.java')
           java=activity.read_text()
           old='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/hotfix.js'
+          new='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/de0438d75095364f4400f0044e42e859dea5e0cd/live/hotfix.js'
           assert java.count(old)==1
-          java=java.replace(old,'https://127.0.0.1/turnikcoach-preview-no-remote-updates.js')
+          java=java.replace(old,new)
           activity.write_text(java)
 
           manifest=Path('app/src/main/AndroidManifest.xml')
@@ -96,10 +103,10 @@ jobs:
       - name: Build isolated DEBUG preview APK
         run: |
           gradle --no-daemon :app:assembleDebug
-          cp app/build/outputs/apk/debug/app-debug.apk TurnikCoach-ForcedHandover-Preview-v5.16.22.apk
+          cp app/build/outputs/apk/debug/app-debug.apk TurnikCoach-UXBlock3-Preview-v5.16.23.apk
       - name: Enable KVM
         run: sudo chmod 666 /dev/kvm || true
-      - name: Verify 5.16.22 undo flow in real Android WebView
+      - name: Verify update, after-main extra and visible discard in real Android WebView
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 35
@@ -108,17 +115,17 @@ jobs:
           disable-animations: true
           emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim
           script: |
-            adb install -r TurnikCoach-ForcedHandover-Preview-v5.16.22.apk
+            adb install -r TurnikCoach-UXBlock3-Preview-v5.16.23.apk
             TC_TEST_PKG=ru.turnikcoach.v52tr.calendarpreview python3 scripts/course_undo_ui_smoke.py
-      - name: Upload undo UI screenshots
+      - name: Upload UX block 3 screenshots
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: TurnikCoach-5.16.22-forced-handover-smoke-screenshots
+          name: TurnikCoach-5.16.23-ux-block3-smoke-screenshots
           path: undo-ui-test-output
           if-no-files-found: warn
       - uses: actions/upload-artifact@v4
         with:
-          name: TurnikCoach-5.16.22-forced-handover-isolated-preview
-          path: TurnikCoach-ForcedHandover-Preview-v5.16.22.apk
+          name: TurnikCoach-5.16.23-ux-block3-isolated-preview
+          path: TurnikCoach-UXBlock3-Preview-v5.16.23.apk
           if-no-files-found: error
