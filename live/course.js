@@ -1,7 +1,7 @@
-/* TURNIKCOACH_COURSE 1.0.21-critical-controls */
+/* TURNIKCOACH_COURSE 1.0.22-action-feedback */
 (function(){
   'use strict';
-  const COURSE_MODULE_VERSION='1.0.21-critical-controls';
+  const COURSE_MODULE_VERSION='1.0.22-action-feedback';
   if(window.__TC_COURSE_MODULE_VERSION===COURSE_MODULE_VERSION)return;
   window.__TC_COURSE_MODULE_VERSION=COURSE_MODULE_VERSION;
   function tcClamp(v,a,b){return Math.max(a,Math.min(b,v))}
@@ -588,7 +588,10 @@
     }
     function tcActionMessage(title,text){
       const box=q('sheetbox'),sheet=q('sheet');
-      if(!box||!sheet)return false;
+      if(!box||!sheet){
+        if(typeof window.tcShowRuntimeNotice==='function')window.tcShowRuntimeNotice(title+': '+text,'danger');
+        return false;
+      }
       box.innerHTML='<div class="sheettitle">'+title+'</div>'+
         '<div class="sub" style="margin-top:7px;line-height:1.45">'+text+'</div>'+
         '<button id="tcActionMessageClose" type="button" class="btn yellow full" style="margin-top:16px">Понятно</button>';
@@ -769,10 +772,12 @@
         '<button class="btn ghost full" style="margin-top:10px" onclick="tcStartAuxWorkout()">Начать адаптированную тренировку</button></div>';
     }
     window.tcStartAuxWorkout=function(){
-      if(W||!tcAuxDue())return;
+      if(W){tcActionMessage('Тренировка уже запущена','Сначала завершите текущую тренировку или выйдите из неё без сохранения.');return;}
+      if(!tcAuxDue()){tcActionMessage('Вспомогательный комплекс сейчас недоступен','Он назначается только в подходящий день с учётом основной тренировки, контрольных испытаний и восстановления.');return;}
       if(tcCalibrationDefs('aux').length){tcOpenCourseCalibration('aux');return;}
       if(tcNeedsWorkingWeight('aux')){tcOpenWorkingWeight('aux');return;}
-      const items=tcBuildAuxItems();if(!items.length)return;
+      const items=tcBuildAuxItems();
+      if(!items.length){tcActionMessage('Нет доступных упражнений','Вспомогательный комплекс не удалось собрать для текущего оборудования и настроек курса.');return;}
       unlockAudio();
       W={mode:'auxCourse',sessionIndex:0,exerciseIndex:0,setIndex:0,items,
         actual:tcSchemeTarget(items[0].def),early:false,courseLevel:TC_course.level,
@@ -1220,8 +1225,8 @@
 
     // Control trial is a single MAX set, separate from the author's workout complex.
     window.tcStartCourseTest=function(){
-      if(W){return}
-      if(!tcRecoveredForTest())return;
+      if(W){tcActionMessage('Тренировка уже запущена','Сначала завершите текущую тренировку или выйдите из неё без сохранения.');return;}
+      if(!tcRecoveredForTest()){tcActionMessage('Контроль пока недоступен','После предыдущей тяговой нагрузки требуется не менее двух дней восстановления.');return;}
       const src=state.ex.find(e=>e.id==='pull')||{};
       const e={...src,id:'c_test_pull',name:'Контрольный максимум · классические подтягивания',
         max:TC_course.pullMax,media:src.media||'',muscles:Array.isArray(src.muscles)?src.muscles:[]};
@@ -1234,9 +1239,9 @@
       go('workout');
     };
     window.tcConfirmCourseTest=function(){
-      if(!W||W.mode!=='courseTest')return;
+      if(!W||W.mode!=='courseTest'){tcActionMessage('Контроль уже закрыт','Активного контрольного испытания нет.');return;}
       const value=+(W.items[0].actual[0]);
-      if(!Number.isInteger(value)||value<1)return;
+      if(!Number.isInteger(value)||value<1){tcActionMessage('Результат не сохранён','Укажите целое положительное количество выполненных повторений.');return;}
       const previous=TC_course.pullMax,achieved=value>=TC_course.targetMax;
       const rec={date:dateKey(),ts:Date.now(),value,previous,goal:TC_course.targetMax,level:TC_course.level};
       TC_course.tests.unshift(rec);
@@ -1261,10 +1266,11 @@
       q('sheet').classList.add('open');
     };
     window.tcDeferCourseTest=function(){
-      if(!tcTestDue())return;
+      if(!tcTestDue()){tcActionMessage('Перенос не требуется','Контроль максимума сейчас не назначен на сегодня.');return;}
       const until=new Date(dateKey()+'T12:00:00');until.setDate(until.getDate()+7);
       TC_course.testDeferredUntil=dateKey(until);
       tcSaveCourse();render();
+      if(typeof window.tcShowRuntimeNotice==='function')window.tcShowRuntimeNotice('Контроль перенесён на '+fmtKeyDate(TC_course.testDeferredUntil,false));
     };
     function tcRecoveredForTest(){
       const lastLoad=(TC_course.history||[]).find(h=>
@@ -1378,13 +1384,16 @@
         '<button class="btn ghost full" style="margin-top:8px" onclick="tcDeferMasteryTest()">Перенести на 7 дней</button></div>';
     }
     window.tcDeferMasteryTest=function(){
-      if(!tcMasteryDefinition()||!TC_course.lastCourseDate)return;
+      if(!tcMasteryDefinition()){tcActionMessage('Перенос недоступен','Для текущего уровня и оборудования отдельный норматив освоения не назначается.');return;}
+      if(!TC_course.lastCourseDate){tcActionMessage('Перенос недоступен','Сначала начните тренировочный цикл курса.');return;}
       const d=new Date(dateKey()+'T12:00:00');d.setDate(d.getDate()+7);
       TC_course.testDeferredUntil=dateKey(d);tcSaveCourse();render();
+      if(typeof window.tcShowRuntimeNotice==='function')window.tcShowRuntimeNotice('Проверка норматива перенесена на '+fmtKeyDate(TC_course.testDeferredUntil,false));
     };
     window.tcOpenMasteryTest=function(){
       const def=tcMasteryDefinition();
-      if(!def||!tcRecoveredForTest())return;
+      if(!def){tcActionMessage('Контроль недоступен','Для текущего уровня и оборудования отдельный норматив освоения не назначается.');return;}
+      if(!tcRecoveredForTest()){tcActionMessage('Контроль пока недоступен','После предыдущей тяговой нагрузки требуется не менее двух дней восстановления.');return;}
       const inputs=def.fields.map(f=>
         f.check?'<label style="display:flex;gap:9px;align-items:center;margin:12px 0"><input type="checkbox" id="tcMastery_'+f.id+'"><span>'+f.label+'</span></label>':
         '<label style="display:block;font-size:13px;color:#dae2eb;margin:12px 0">'+f.label+
@@ -1395,21 +1404,27 @@
       q('sheetbox').innerHTML='<div class="sheettitle">Контроль · '+def.name+'</div>'+
         '<div class="sub" style="margin-top:5px">PDF, стр. '+def.page+
         '. Введите фактически полученные результаты. Проверка не является частью основного комплекса и не меняет уровень автоматически.</div>'+
-        inputs+'<button class="btn yellow full" onclick="tcSaveMasteryTest()">Сохранить результат</button>'+
+        inputs+'<div id="tcMasteryError" class="meta" style="color:#ff9b9b;margin:6px 0"></div>'+
+        '<button class="btn yellow full" onclick="tcSaveMasteryTest()">Сохранить результат</button>'+
         '<button class="btn ghost full" style="margin-top:8px" onclick="closeSheet()">Отмена</button>';
       q('sheet').classList.add('open');
     };
     window.tcSaveMasteryTest=function(){
-      const def=tcMasteryDefinition();if(!def||!tcRecoveredForTest())return;
+      const def=tcMasteryDefinition();
+      if(!def){tcActionMessage('Результат не сохранён','Для текущего уровня нет активного норматива освоения.');return;}
+      if(!tcRecoveredForTest()){tcActionMessage('Результат не сохранён','Контроль должен выполняться после необходимого периода восстановления.');return;}
       const values={};
       for(const field of def.fields){
         const el=document.getElementById('tcMastery_'+field.id);
-        if(!el)return;
+        if(!el){tcActionMessage('Результат не сохранён','Форма контрольного испытания изменилась. Откройте её заново.');return;}
         if(field.check){values[field.id]=!!el.checked;continue}
         const raw=String(el.value||'').trim();
         const n=Number(raw);
         if(raw===''||!Number.isFinite(n)||n<field.min||(!field.step&&!Number.isInteger(n))){
-          el.style.borderColor='#ff7777';el.focus();return;
+          el.style.borderColor='#ff7777';el.focus();
+          const error=document.getElementById('tcMasteryError');
+          if(error)error.textContent='Проверьте выделенное поле: требуется допустимое числовое значение.';
+          return;
         }
         values[field.id]=n;
       }
@@ -1442,9 +1457,9 @@
     };
     window.tcAdvanceCourseLevel=function(){
       const p=TC_course.pendingTransition;
-      if(!p||p.from!==TC_course.level||p.to!==p.from+1||p.to>6)return;
+      if(!p||p.from!==TC_course.level||p.to!==p.from+1||p.to>6){tcActionMessage('Переход недоступен','Нет подтверждённого перехода с текущего уровня на следующий.');return;}
       const current=TC_course.masteryTests.find(t=>t.ts===p.testTs&&t.level===p.from);
-      if(!current||!current.passed)return;
+      if(!current||!current.passed){tcActionMessage('Переход недоступен','Сначала необходимо выполнить и сохранить норматив текущего уровня.');return;}
       TC_course.level=p.to;TC_course.courseSeq=0;TC_course.weeklySessions=3;
       TC_course.pendingTransition=null;
       TC_course.lastTestDate='';TC_course.testAnchorDate='';
@@ -1477,7 +1492,13 @@
       const idx=TC_course.extraSeq%3;W={mode:'extra',sessionIndex:idx,exerciseIndex:0,setIndex:0,items,actual:items[0].plan[0],early:false};go('workout');
     };
     window.tcStartSupplementWorkout=function(){
-      if(W||!TC_course.authorSupplement||!tcCourseLevel().supplement||tcCourseDue()||tcAuxDue()||tcTestDue()||tcMasteryDue()||tcSupplementBreak()||TC_course.history.some(h=>h.courseMode==='supplement'&&h.date===dateKey()))return;
+      if(W){tcActionMessage('Тренировка уже запущена','Сначала завершите текущую тренировку или выйдите из неё без сохранения.');return;}
+      if(!TC_course.authorSupplement||!tcCourseLevel().supplement){tcActionMessage('Дополнение курса выключено','Включите дополнительные подтягивания в настройках курса, если они предусмотрены текущим уровнем.');return;}
+      if(tcCourseDue()){tcActionMessage('Сегодня основной комплекс','Дополнительные подтягивания по курсу не выполняются в день основной тренировки.');return;}
+      if(tcAuxDue()){tcActionMessage('Сегодня вспомогательный комплекс','Дополнительные подтягивания не назначаются одновременно со вспомогательной тяговой тренировкой.');return;}
+      if(tcTestDue()||tcMasteryDue()){tcActionMessage('Сегодня контрольное испытание','Дополнительную тяговую нагрузку перед контрольным испытанием приложение не назначает.');return;}
+      if(tcSupplementBreak()){tcActionMessage('Разгрузка от дополнительной работы','Сейчас действует пятидневный перерыв от дополнительных подтягиваний.');return;}
+      if(TC_course.history.some(h=>h.courseMode==='supplement'&&h.date===dateKey())){tcActionMessage('Дополнение уже выполнено','Сегодняшние дополнительные подтягивания уже сохранены в истории.');return;}
       const reps=Math.max(1,Math.floor(TC_course.pullMax*.8)),def={id:'c_daily80',name:'Классические подтягивания · авторское дополнение',metric:'reps',sets:10,scheme:{type:'fixed',value:reps,label:String(reps)},rest:{type:'manual',label:'отдых в PDF не задан'}};
       const e={id:def.id,name:def.name,metric:'reps',max:TC_course.pullMax,load:0,courseDef:def,media:'',muscles:[]};const item={e,def,plan:Array(10).fill(reps),planLabels:Array(10).fill(String(reps)),actual:[]};W={mode:'supplement',sessionIndex:0,exerciseIndex:0,setIndex:0,items:[item],actual:reps,early:false};go('workout');
     };
