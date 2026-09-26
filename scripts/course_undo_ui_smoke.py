@@ -152,7 +152,7 @@ def launch():
 launch()
 dismiss_system_anr()
 
-# Exact update path: packaged 5.14 + cached 5.16.25 are active first; staged 5.16.27 must be offered explicitly.
+# Exact update path: packaged 5.14 + cached 5.16.26 are active first; staged 5.16.27 must be offered explicitly.
 time.sleep(3)
 screenshot("00-before-update-assert")
 adb("shell","uiautomator","dump","/sdcard/uxb3-before-update.xml",check=False)
