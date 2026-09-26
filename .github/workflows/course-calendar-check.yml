@@ -3,11 +3,18 @@ name: Course calendar regression and Android test APK
 on:
   push:
     branches:
+      - main
       - feature/course-calendar-start-date-20260925
       - feature/discard-workout-undo-today-20260925
       - fix/undo-button-layout-20260925
       - fix/webview-confirm-undo-20260925
       - fix/forced-hotupdate-handover-20260925
+      - fix/ux-block3-critical-path-20260926
+      - fix/ux-block4-action-feedback-20260926
+      - fix/ux-block4b-forms-feedback-20260926
+      - fix/ux-block5a-touch-targets-20260926
+      - fix/ux-block5b-exercise-touch-audit-20260926
+      - fix/ux-block5c-form-controls-20260926
   workflow_dispatch:
 
 permissions:
@@ -36,11 +43,16 @@ jobs:
           done
           base64 --decode /tmp/v513.b64 | gzip -dc > app/src/main/assets/index.html
           grep -q 'v5.13 — modern Android package' app/src/main/assets/index.html
-      - name: Embed tested 5.16.22 hotfix in test application
+      - name: Reproduce packaged 5.14 + cached 5.16.27 + tested 5.16.28
         run: |
-          cp live/hotfix.js app/src/main/assets/hotfix.js
-          grep -q 'TURNIKCOACH_HOTFIX 5.16.22-forced-handover' app/src/main/assets/hotfix.js
-      - name: Seed the exact old approved version and saved course record in test HTML
+          PREV_COMMIT="756da47f946bc863be11df5534c68c14062ab6bd"
+          grep -q 'TURNIKCOACH_HOTFIX 5.14.0-adaptive-rest' app/src/main/assets/hotfix.js
+          curl -fsSL "https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/${PREV_COMMIT}/live/hotfix.js" > app/src/main/assets/hotfix-prev.js
+          cp live/hotfix.js app/src/main/assets/hotfix-next.js
+          grep -q 'TURNIKCOACH_HOTFIX 5.16.27-touch-audit' app/src/main/assets/hotfix-prev.js
+          grep -q 'TURNIKCOACH_HOTFIX 5.16.28-form-controls' app/src/main/assets/hotfix-next.js
+          grep -q 'TURNIKCOACH_COURSE 1.0.26-form-controls' app/src/main/assets/hotfix-next.js
+      - name: Seed installed 5.16.27 approval and completed main-course state
         run: |
           python3 - <<'PY'
           from pathlib import Path
@@ -52,7 +64,7 @@ jobs:
           (function(){
             if(localStorage.getItem('__tcForcedHandoverSmokeSeeded')) return;
             var d=new Date(),k=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
-            localStorage.setItem('tc_hotfix_approved_version','5.16.22-forced-handover');
+            localStorage.setItem('tc_hotfix_approved_version','5.16.27-touch-audit');
             localStorage.setItem('tc_morozov_course_v1',JSON.stringify({
               enabled:true,level:4,goal:'quantity',pullMax:20,courseSeq:1,extraSeq:0,
               lastCourseDate:k,lastCourseTs:Date.now(),weeklySessions:3,cycleStartDate:k,
@@ -84,9 +96,28 @@ jobs:
 
           activity=Path('app/src/main/java/ru/turnikcoach/app/MainActivity.java')
           java=activity.read_text()
-          old='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/hotfix.js'
-          assert java.count(old)==1
-          java=java.replace(old,'https://127.0.0.1/turnikcoach-preview-no-remote-updates.js')
+          java=java.replace('        startHotfixUpdate();','        // deterministic test: staged hotfix is applied from assets')
+          asset_line='                applyAssetHotfix();'
+          assert java.count(asset_line)==1
+          java=java.replace(asset_line,asset_line+'\n                applyTestAssetHotfix("hotfix-prev.js");')
+          cached_line='                applyCachedHotfix();'
+          assert java.count(cached_line)==1
+          java=java.replace(cached_line,cached_line+'\n                web.postDelayed(() -> applyTestAssetHotfix("hotfix-next.js"), 1200);')
+          marker='''    private void applyAssetHotfix() {'''
+          assert java.count(marker)==1
+          helper=(
+              "    private void applyTestAssetHotfix(String name) {\n"
+              "        try (InputStream in = getAssets().open(name); ByteArrayOutputStream out = new ByteArrayOutputStream()) {\n"
+              "            byte[] buf = new byte[8192];\n"
+              "            int n;\n"
+              "            while ((n = in.read(buf)) > 0) out.write(buf, 0, n);\n"
+              "            String js = out.toString(StandardCharsets.UTF_8.name());\n"
+              "            if (validHotfix(js)) applyScript(js);\n"
+              "        } catch (Exception ignored) {\n"
+              "        }\n"
+              "    }\n\n"
+          )
+          java=java.replace(marker,helper+marker)
           activity.write_text(java)
 
           manifest=Path('app/src/main/AndroidManifest.xml')
@@ -96,10 +127,10 @@ jobs:
       - name: Build isolated DEBUG preview APK
         run: |
           gradle --no-daemon :app:assembleDebug
-          cp app/build/outputs/apk/debug/app-debug.apk TurnikCoach-ForcedHandover-Preview-v5.16.22.apk
+          cp app/build/outputs/apk/debug/app-debug.apk TurnikCoach-UXBlock5C-Preview-v5.16.28.apk
       - name: Enable KVM
         run: sudo chmod 666 /dev/kvm || true
-      - name: Verify 5.16.22 undo flow in real Android WebView
+      - name: Verify 5.16.28 update and form/touch targets in real Android WebView
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 35
@@ -108,17 +139,17 @@ jobs:
           disable-animations: true
           emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim
           script: |
-            adb install -r TurnikCoach-ForcedHandover-Preview-v5.16.22.apk
+            adb install -r TurnikCoach-UXBlock5C-Preview-v5.16.28.apk
             TC_TEST_PKG=ru.turnikcoach.v52tr.calendarpreview python3 scripts/course_undo_ui_smoke.py
-      - name: Upload undo UI screenshots
+      - name: Upload UX block 5C screenshots
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: TurnikCoach-5.16.22-forced-handover-smoke-screenshots
+          name: TurnikCoach-5.16.28-ux-block5c-smoke-screenshots
           path: undo-ui-test-output
           if-no-files-found: warn
       - uses: actions/upload-artifact@v4
         with:
-          name: TurnikCoach-5.16.22-forced-handover-isolated-preview
-          path: TurnikCoach-ForcedHandover-Preview-v5.16.22.apk
+          name: TurnikCoach-5.16.28-ux-block5c-isolated-preview
+          path: TurnikCoach-UXBlock5C-Preview-v5.16.28.apk
           if-no-files-found: error
