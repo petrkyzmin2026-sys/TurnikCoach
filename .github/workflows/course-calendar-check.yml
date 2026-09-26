@@ -90,11 +90,9 @@ jobs:
           activity=Path('app/src/main/java/ru/turnikcoach/app/MainActivity.java')
           java=activity.read_text()
           java=java.replace('        startHotfixUpdate();','        // deterministic test: staged hotfix is applied from assets')
-          onfinish='''                applyAssetHotfix();
-                applyCachedHotfix();'''
-          assert java.count(onfinish)==1
-          java=java.replace(onfinish,onfinish+'''
-                web.postDelayed(() -> applyTestNextHotfix(), 1200);''')
+          cached_line='                applyCachedHotfix();'
+          assert java.count(cached_line)==1
+          java=java.replace(cached_line,cached_line+'\n                web.postDelayed(() -> applyTestNextHotfix(), 1200);')
           marker='''    private void applyAssetHotfix() {'''
           assert java.count(marker)==1
           helper=(
