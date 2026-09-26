@@ -89,8 +89,8 @@
       '.tcBackBtn:active,.tcWorkoutExitBtn:active,.tcRestExitBtn:active{transform:scale(.96)}'+
       '.tcRestBack{position:absolute;left:12px;top:12px}'+
       '.tcSheetClose{position:sticky;float:right;top:0;margin:-4px -3px 6px 10px;width:48px;height:48px;min-width:48px;border-radius:50%;border:1px solid #3a4653;background:#202a32;color:#fff;font-size:24px;font-weight:900;z-index:5;touch-action:manipulation}'+
-      '#workout .wtop{padding-left:94px!important}'+
-      '.tcWorkoutExitBtn{position:absolute;left:12px;top:12px;z-index:30;min-width:70px;height:48px;border-radius:12px;border:1px solid #694047;background:#24171a;color:#ffb8bd;font-size:12px;font-weight:900;padding:0 10px;touch-action:manipulation}'+
+      '.tcWorkoutExitBtn{position:absolute;right:12px;top:12px;z-index:30;min-width:76px;height:48px;border-radius:12px;border:1px solid #694047;background:#24171a;color:#ffb8bd;font-size:12px;font-weight:900;padding:0 10px;touch-action:manipulation}'+
+      '.tcSafeEndBtn{min-height:48px!important;touch-action:manipulation}'+
       '.tcRestExitBtn{position:absolute;right:12px;top:12px;z-index:30;min-width:70px;height:48px;border-radius:12px;border:1px solid #694047;background:#24171a;color:#ffb8bd;font-size:12px;font-weight:900;padding:0 10px;touch-action:manipulation}';
     document.head.appendChild(style);
 
@@ -180,6 +180,39 @@
       if(no)no.onclick=function(ev){if(ev){ev.preventDefault();ev.stopPropagation()}closeSheetNow();return false};
     };
 
+    window.tcDiscardWorkoutNow=tcDiscardWorkoutNow;
+    window.tcOpenWorkoutFinishMenu=function(originalButton){
+      if(!window.W)return;
+      const box=document.getElementById('sheetbox');
+      if(!box||!sheet)return;
+      window.__tcOriginalWorkoutFinishButton=originalButton||window.__tcOriginalWorkoutFinishButton||null;
+      box.innerHTML='<div class="sheettitle">Завершить тренировку?</div>'+
+        '<div class="sub" style="margin-top:7px;line-height:1.45">Выберите, что сделать с текущими подходами. Сохранение и выход без сохранения разделены, чтобы случайное нажатие не записывало тренировку.</div>'+
+        '<button id="tcSaveAndFinishWorkoutBtn" type="button" class="btn yellow full" style="margin-top:16px">Сохранить и завершить</button>'+
+        '<button id="tcDiscardFromFinishMenuBtn" type="button" class="btn danger full" style="margin-top:8px">Выйти без сохранения</button>'+
+        '<button id="tcContinueWorkoutBtn" type="button" class="btn ghost full" style="margin-top:8px">Продолжить тренировку</button>';
+      sheet.classList.add('open');
+      const saveBtn=document.getElementById('tcSaveAndFinishWorkoutBtn');
+      const discardBtn=document.getElementById('tcDiscardFromFinishMenuBtn');
+      const continueBtn=document.getElementById('tcContinueWorkoutBtn');
+      if(saveBtn)saveBtn.onclick=function(ev){
+        if(ev){ev.preventDefault();ev.stopPropagation()}
+        const original=window.__tcOriginalWorkoutFinishButton;
+        closeSheetNow();
+        if(original&&document.documentElement.contains(original)){original.click();return false}
+        if(typeof window.askFeedback==='function')window.askFeedback(true);
+        return false;
+      };
+      if(discardBtn)discardBtn.onclick=function(ev){
+        if(ev){ev.preventDefault();ev.stopPropagation()}
+        tcDiscardWorkoutNow();return false;
+      };
+      if(continueBtn)continueBtn.onclick=function(ev){
+        if(ev){ev.preventDefault();ev.stopPropagation()}
+        closeSheetNow();return false;
+      };
+    };
+
     window.tcNavigateBack=function(){
       const scr=currentScreen();
       if(sheet&&sheet.classList.contains('open')){
@@ -235,8 +268,26 @@
 
     function tcDecorateBackControls(){
       const workout=document.querySelector('#workout.screen.on');
+      const modernHead=workout&&workout.querySelector('.stageHeader .row.between');
+      const end=modernHead&&modernHead.querySelector('.endBtn:not([data-tc-safe-end="1"])');
+      if(end){
+        const original=end;
+        const safe=original.cloneNode(true);
+        safe.removeAttribute('id');
+        safe.removeAttribute('onclick');
+        safe.dataset.tcSafeEnd='1';
+        safe.classList.add('tcSafeEndBtn');
+        original.classList.remove('endBtn');
+        original.style.display='none';
+        safe.onclick=function(ev){
+          if(ev){ev.preventDefault();ev.stopPropagation()}
+          window.tcOpenWorkoutFinishMenu(original);
+          return false;
+        };
+        original.parentNode.insertBefore(safe,original);
+      }
       const wtop=workout&&workout.querySelector('.wtop');
-      if(wtop&&!wtop.querySelector('.tcWorkoutExitBtn')){
+      if(!modernHead&&wtop&&!wtop.querySelector('.tcWorkoutExitBtn')){
         const b=document.createElement('button');
         b.type='button';b.className='tcWorkoutExitBtn';b.textContent='Выйти';b.title='Выйти без сохранения';
         b.onclick=window.tcDiscardWorkout;
@@ -641,10 +692,12 @@
       if(today&&!today.querySelector('.tcInfoBtn')){
         const b=document.createElement('button');b.type='button';b.className='tcInfoBtn';b.textContent='ⓘ';b.title='О тренировке';b.onclick=window.tcOpenTrainingInfo;today.appendChild(b);
       }
-      const wh=document.querySelector('#workout.screen.on .wtop .row.between');
+      const wh=document.querySelector('#workout.screen.on .stageHeader .row.between')||
+        document.querySelector('#workout.screen.on .wtop .row.between');
       if(wh&&!wh.querySelector('.tcInfoBtn')){
+        const end=wh.querySelector('.endBtn');
         const b=document.createElement('button');b.type='button';b.className='tcInfoBtn';b.textContent='ⓘ';b.title='О тренировке';b.onclick=window.tcOpenTrainingInfo;
-        wh.appendChild(b);
+        if(end)wh.insertBefore(b,end);else wh.appendChild(b);
       }
       const rest=document.querySelector('#rest.screen.on .rest');
       if(rest&&!rest.querySelector('.tcInfoBtn')){
