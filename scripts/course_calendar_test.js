@@ -52,13 +52,13 @@ assert(course.includes('tcPreviewCourseCard(tcSelectedDate)'),
  'choosing another date must show a read-only plan');
 assert(course.includes('id="tcCycleStartDate"'),
  'settings must expose a cycle start date');
-assert(hotfix.includes("const VERSION='5.16.23-critical-ux'"),
- 'release hotfix version must be 5.16.23');
-assert(course.includes("const COURSE_MODULE_VERSION='1.0.21-critical-controls'"),
- 'course module version must be 1.0.21');
+assert(hotfix.includes("const VERSION='5.16.24-action-feedback'"),
+ 'release hotfix version must be 5.16.24');
+assert(course.includes("const COURSE_MODULE_VERSION='1.0.22-action-feedback'"),
+ 'course module version must be 1.0.22');
 assert(!course.includes('window.confirm('),'course module must not depend on unsupported WebView JS dialogs');
 assert(!hotfix.includes('window.confirm('),'hotfix navigation/discard must not depend on unsupported WebView JS dialogs');
-assert(!hotfix.includes('forceHandover'),'5.16.23 must use an explicit user-visible update prompt');
+assert(!hotfix.includes('forceHandover'),'5.16.24 must use an explicit user-visible update prompt');
 assert(hotfix.includes("showRuntimeNotice('TurnikCoach обновлён до '+LABEL)"),
  'successful activation must give visible feedback');
 assert(hotfix.includes("localStorage.setItem('tc_hotfix_active_version',VERSION)"),
@@ -134,6 +134,59 @@ assert(startExtraBody.includes("tcActionMessage('Тренировка уже з�
 assert(startExtraBody.includes("tcActionMessage('Нет дополнительных упражнений'"),
  'empty extra selection must explain why the action cannot start');
 
+function windowFunctionBody(name){
+  const start=course.indexOf('window.'+name+'=function(');
+  assert(start>=0,'window function missing: '+name);
+  const begin=course.indexOf('{',start);
+  let depth=1,end=begin+1;
+  while(depth&&end<course.length){
+    if(course[end]==='{')depth++;
+    if(course[end]==='}')depth--;
+    end++;
+  }
+  assert.equal(depth,0,'window function not closed: '+name);
+  return course.slice(begin+1,end-1);
+}
+const actionBodies={
+  aux:windowFunctionBody('tcStartAuxWorkout'),
+  supplement:windowFunctionBody('tcStartSupplementWorkout'),
+  startTest:windowFunctionBody('tcStartCourseTest'),
+  confirmTest:windowFunctionBody('tcConfirmCourseTest'),
+  deferTest:windowFunctionBody('tcDeferCourseTest'),
+  deferMastery:windowFunctionBody('tcDeferMasteryTest'),
+  openMastery:windowFunctionBody('tcOpenMasteryTest'),
+  saveMastery:windowFunctionBody('tcSaveMasteryTest'),
+  advance:windowFunctionBody('tcAdvanceCourseLevel')
+};
+assert(actionBodies.aux.includes("tcActionMessage('Вспомогательный комплекс сейчас недоступен'"),
+ 'auxiliary workout must explain schedule/recovery blocking');
+assert(actionBodies.aux.includes("tcActionMessage('Нет доступных упражнений'"),
+ 'auxiliary workout must explain empty runnable set');
+assert(actionBodies.supplement.includes("tcActionMessage('Сегодня основной комплекс'"),
+ 'supplement must explain main-day blocking');
+assert(actionBodies.supplement.includes("tcActionMessage('Сегодня контрольное испытание'"),
+ 'supplement must explain control-day blocking');
+assert(actionBodies.supplement.includes("tcActionMessage('Дополнение уже выполнено'"),
+ 'supplement must explain duplicate same-day attempt');
+assert(actionBodies.startTest.includes("tcActionMessage('Контроль пока недоступен'"),
+ 'course test start must explain recovery blocking');
+assert(actionBodies.confirmTest.includes("tcActionMessage('Результат не сохранён'"),
+ 'course test confirmation must explain invalid result');
+assert(actionBodies.deferTest.includes("tcActionMessage('Перенос не требуется'"),
+ 'course test defer must explain stale action');
+assert(actionBodies.deferMastery.includes("tcActionMessage('Перенос недоступен'"),
+ 'mastery defer must explain stale action');
+assert(actionBodies.openMastery.includes("tcActionMessage('Контроль недоступен'"),
+ 'mastery open must explain unsupported level');
+assert(actionBodies.saveMastery.includes("tcActionMessage('Результат не сохранён'"),
+ 'mastery save must explain invalid/stale form state');
+assert(actionBodies.advance.includes("tcActionMessage('Переход недоступен'"),
+ 'level advance must explain stale/invalid transition');
+for(const [name,body] of Object.entries(actionBodies)){
+  assert(!/if\s*\([^\n;]+\)\s*return\s*;/.test(body),
+    name+' still contains a silent one-line guard');
+}
+
 const undoState={enabled:true,level:4,goal:'quantity',weeklySessions:3,cycleStartDate:'2026-09-25',
   courseSeq:1,lastCourseDate:'2026-09-25',lastCourseTs:123,testAnchorDate:'2026-09-25',
   lastTestDate:'',history:[{courseMode:'course',date:'2026-09-25',ts:123,courseComplex:3}]};
@@ -147,4 +200,4 @@ assert.equal(undoState.lastCourseTs,0);
 assert.equal(undoState.testAnchorDate,'');
 assert.equal(undoApi.tcUndoLatestTodayCourseRecord('2026-09-25'),false,
  'undo must not remove anything twice');
-console.log('PASS: syntax, bundle, calendar, explicit update status, after-main extra workout and visible discard path');
+console.log('PASS: syntax, bundle, calendar, critical path and visible feedback for remaining training/test actions');
