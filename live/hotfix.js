@@ -4,9 +4,10 @@
   const VERSION='5.16.23-critical-ux';
   const LABEL='5.16.23';
   const APPROVED_KEY='tc_hotfix_approved_version';
-  if(window.__TC_HOTFIX_VERSION===VERSION)return;
+  const LEGACY_ASSET_VERSION='5.14.0-adaptive-rest';
   const stalePrompt=document.getElementById('tcUpdatePrompt');
   if(stalePrompt&&!stalePrompt.textContent.includes('TurnikCoach '+LABEL))stalePrompt.remove();
+  if(window.__TC_HOTFIX_ACTIVE_VERSION===VERSION)return;
 
   function removeUpdatePrompt(){
     const p=document.getElementById('tcUpdatePrompt');
@@ -57,7 +58,8 @@
         text.textContent='Сначала завершите или отмените текущую тренировку. Обновление перезапустит экран, чтобы не потерять незаписанные подходы.';
         return;
       }
-      const installed=window.__TC_HOTFIX_VERSION&&window.__TC_HOTFIX_VERSION!==VERSION;
+      const currentVersion=String(window.__TC_HOTFIX_ACTIVE_VERSION||window.__TC_HOTFIX_VERSION||'');
+      const installed=!!currentVersion&&currentVersion!==VERSION;
       try{localStorage.setItem(APPROVED_KEY,VERSION)}catch(e){}
       removeUpdatePrompt();
       if(installed&&window.location&&typeof window.location.reload==='function'){
@@ -300,9 +302,10 @@
   }
 
   function installUpdate(){
-    if(window.__TC_HOTFIX_VERSION===VERSION)return;
-    const previousVersion=String(window.__TC_HOTFIX_VERSION||'');
-    window.__TC_HOTFIX_VERSION=VERSION;
+    if(window.__TC_HOTFIX_ACTIVE_VERSION===VERSION)return;
+    const previousVersion=String(window.__TC_HOTFIX_ACTIVE_VERSION||window.__TC_HOTFIX_VERSION||'');
+    window.__TC_HOTFIX_ACTIVE_VERSION=VERSION;
+    window.__TC_HOTFIX_VERSION=LEGACY_ASSET_VERSION;
     window.__TC_HOTFIX_LABEL=LABEL;
     const activatedAt=Date.now();
     window.__TC_HOTFIX_INSTALLED_AT=activatedAt;
