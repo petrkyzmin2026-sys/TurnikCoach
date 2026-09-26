@@ -63,6 +63,12 @@ assert(hotfix.includes("showRuntimeNotice('TurnikCoach обновлён до '+L
  'successful activation must give visible feedback');
 assert(hotfix.includes("localStorage.setItem('tc_hotfix_active_version',VERSION)"),
  'active hotfix version must be persisted for diagnostics');
+assert(hotfix.includes("const LEGACY_ASSET_VERSION='5.14.0-adaptive-rest'"),
+ 'live hotfix must know the immutable packaged asset version');
+assert(hotfix.includes('window.__TC_HOTFIX_ACTIVE_VERSION=VERSION'),
+ 'live hotfix must keep its active version separate from the legacy asset compatibility sentinel');
+assert(hotfix.includes('window.__TC_HOTFIX_VERSION=LEGACY_ASSET_VERSION'),
+ 'packaged 5.14 hotfix must be prevented from re-patching the page after the live update');
 assert(hotfix.includes("b.type='button';b.className='tcWorkoutExitBtn';b.textContent='Выйти'"),
  'actual packaged workout header must receive a visible exit-without-saving action');
 assert(hotfix.includes('window.tcEnsureWorkoutControls=function()'),
