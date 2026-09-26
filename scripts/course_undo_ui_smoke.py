@@ -69,8 +69,15 @@ screenshot("01-main-done-extra-available")
 
 tap_text("Начать дополнительную тренировку",contains=False)
 wait_text("Подъём коленей в висе",timeout=12)
-wait_text("Выйти без сохранения")
+wait_text("Выйти",contains=False)
 screenshot("02-extra-workout-started")
+
+tap_text("Выйти",contains=False)
+wait_text("Выйти без сохранения?")
+wait_text("Продолжить тренировку",contains=False)
+screenshot("03-exit-confirm-visible")
+tap_text("Продолжить тренировку",contains=False)
+wait_text("Подъём коленей в висе",timeout=8)
 
 # Recreate the same saved-main state to verify the destructive undo path separately.
 adb("shell","am","force-stop",PKG)
@@ -78,17 +85,17 @@ adb("shell","pm","clear",PKG)
 launch()
 wait_text("Основной комплекс выполнен",timeout=20)
 wait_text("Ошибочно завершил — отменить запись")
-screenshot("03-main-done-before-undo")
+screenshot("04-main-done-before-undo")
 
 tap_text("Ошибочно завершил — отменить запись",contains=False)
 wait_text("Отменить сегодняшнюю тренировку?")
 wait_text("Отменить запись",contains=False)
-screenshot("04-in-app-confirm")
+screenshot("05-in-app-confirm")
 
 tap_text("Отменить запись",contains=False)
 wait_text("Комплекс №3")
 wait_text("Начать адаптированную тренировку")
-screenshot("05-course-restored")
+screenshot("06-course-restored")
 
 pos,_=find_text("Основной комплекс выполнен")
 if pos:
