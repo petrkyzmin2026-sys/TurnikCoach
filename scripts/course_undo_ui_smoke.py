@@ -58,11 +58,27 @@ def screenshot(name):
     adb("shell","screencap","-p",remote)
     adb("pull",remote,OUT+"/"+name+".png")
 
+def dismiss_system_anr():
+    # Android emulator can transiently show a launcher/Quickstep ANR over the tested app.
+    # It is unrelated to the WebView and blocks UIAutomator from seeing underlying app text.
+    for _ in range(4):
+        _,value=find_text("isn't responding")
+        if value:
+            pos,_=find_text("Wait",contains=False)
+            if pos:
+                adb("shell","input","tap",str(pos[0]),str(pos[1]))
+                time.sleep(2)
+                continue
+            adb("shell","input","keyevent","4")
+            time.sleep(1)
+        break
+
 def launch():
     adb("shell","monkey","-p",PKG,"-c","android.intent.category.LAUNCHER","1")
     time.sleep(5)
 
 launch()
+dismiss_system_anr()
 
 # Exact update path: packaged 5.14 + cached 5.16.23 are active first; staged 5.16.24 must be offered explicitly.
 time.sleep(3)
