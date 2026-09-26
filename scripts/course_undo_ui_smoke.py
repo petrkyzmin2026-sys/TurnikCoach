@@ -169,8 +169,8 @@ screenshot("01-update-offered")
 
 tap_text("Обновить",contains=False)
 wait_text("TurnikCoach обновлён до 5.16.29",timeout=25)
-wait_text("План",timeout=12,contains=False)
-wait_text("Прогресс",timeout=12,contains=False)
+assert_accessibility_target("План",48)
+assert_accessibility_target("Прогресс",48)
 screenshot("02-update-installed")
 
 # Main course is already saved by the seeded user state; extra workout must still be available.
