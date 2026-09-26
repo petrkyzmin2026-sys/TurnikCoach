@@ -69,8 +69,9 @@ screenshot("01-main-done-extra-available")
 
 tap_text("Начать дополнительную тренировку",contains=False)
 wait_text("Подъём коленей в висе",timeout=12)
-wait_text("Выйти",contains=False)
+time.sleep(1)
 screenshot("02-extra-workout-started")
+wait_text("Выйти",contains=False)
 
 tap_text("Выйти",contains=False)
 wait_text("Выйти без сохранения?")
