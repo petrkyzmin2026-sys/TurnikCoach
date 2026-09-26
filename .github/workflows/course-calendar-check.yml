@@ -97,18 +97,18 @@ jobs:
                 web.postDelayed(() -> applyTestNextHotfix(), 1200);''')
           marker='''    private void applyAssetHotfix() {'''
           assert java.count(marker)==1
-          helper='''    private void applyTestNextHotfix() {
-        try (InputStream in = getAssets().open("hotfix-next.js"); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
-            byte[] buf = new byte[8192];
-            int n;
-            while ((n = in.read(buf)) > 0) out.write(buf, 0, n);
-            String js = out.toString(StandardCharsets.UTF_8.name());
-            if (validHotfix(js)) applyScript(js);
-        } catch (Exception ignored) {
-        }
-    }
-
-'''
+          helper=(
+              "    private void applyTestNextHotfix() {\n"
+              "        try (InputStream in = getAssets().open(\"hotfix-next.js\"); ByteArrayOutputStream out = new ByteArrayOutputStream()) {\n"
+              "            byte[] buf = new byte[8192];\n"
+              "            int n;\n"
+              "            while ((n = in.read(buf)) > 0) out.write(buf, 0, n);\n"
+              "            String js = out.toString(StandardCharsets.UTF_8.name());\n"
+              "            if (validHotfix(js)) applyScript(js);\n"
+              "        } catch (Exception ignored) {\n"
+              "        }\n"
+              "    }\n\n"
+          )
           java=java.replace(marker,helper+marker)
           activity.write_text(java)
 
