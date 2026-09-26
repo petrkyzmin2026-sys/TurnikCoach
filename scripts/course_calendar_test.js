@@ -52,8 +52,8 @@ assert(course.includes('tcPreviewCourseCard(tcSelectedDate)'),
  'choosing another date must show a read-only plan');
 assert(course.includes('id="tcCycleStartDate"'),
  'settings must expose a cycle start date');
-assert(hotfix.includes("const VERSION='5.16.22-forced-handover'"),
- 'release hotfix version must be 5.16.22');
+assert(hotfix.includes("const VERSION='5.16.23-group1-ux'"),
+ 'release hotfix version must be 5.16.23');
 assert(hotfix.includes("b.textContent='Выйти без сохранения'"),
  'workout UI must expose an explicit discard control');
 assert(course.includes('tcUndoTodayCourseWorkout'),
@@ -62,33 +62,59 @@ assert(!course.includes('window.confirm('),'course module must not depend on uns
 assert(!hotfix.includes('window.confirm('),'hotfix navigation/discard must not depend on unsupported WebView JS dialogs');
 assert(course.includes('tcOpenUndoTodayCourseConfirm'),'same-day undo must use an in-app confirmation sheet');
 assert(hotfix.includes('tcConfirmDiscardWorkoutBtn'),'discard without saving must use an in-app confirmation sheet');
-assert(hotfix.includes("const forceHandover=/^5\\.16\\.(19|20|21)(?:-|$)/.test(activeVersion);"),
- '5.16.19–5.16.21 must use the one-time forced handover');
-assert(hotfix.includes("if(!approved&&forceHandover&&!workoutActive)"),
- 'forced handover must run only when the new version is not already approved and no workout is active');
+assert(!hotfix.includes('forceHandover'),'update must no longer silently hand over between versions');
+assert(hotfix.includes('showInstalledNotice'),'successful update must provide visible feedback');
 
-const uiState={history:[{courseMode:'course',date:'2026-09-25',ts:123}]};
-const uiApi=new Function('TC_course','dateKey',
-  extract('tcTodayCourseRecord')+'\n'+extract('tcTodayCourseUndoHtml')+
-  '\nreturn {tcTodayCourseUndoHtml};')(uiState,()=> '2026-09-25');
-const undoHtml=uiApi.tcTodayCourseUndoHtml();
-assert(undoHtml.includes('id="tcUndoTodayCourseBtn"'),'undo button needs a stable DOM id');
-assert(undoHtml.includes('tcUndoStrip'),'saved-state UI must be the compact strip');
-assert(!undoHtml.includes('todayCard'),'saved-state UI must not render a second large today card');
-assert(!undoHtml.includes('onclick='),'undo action must not depend on an inline handler');
+const uiState={
+  courseHistory:[{courseMode:'course',date:'2026-09-25',ts:123}],
+  appHistory:[],
+};
+const uiApi=new Function('TC_course','state','dateKey','tcExtraRowsHtml',
+  extract('tcTodayCourseRecord')+'\n'+extract('tcTodayExtraRecord')+'\n'+extract('tcTodayCourseDoneHtml')+
+  '\nreturn {tcTodayCourseDoneHtml};')(
+    {history:uiState.courseHistory},
+    {history:uiState.appHistory},
+    ()=> '2026-09-25',
+    items=>items.map(x=>'<div>'+x.e.name+'</div>').join('')
+  );
+const extras=[{e:{name:'Отжимания'},plan:[10,10,10]}];
+const doneHtml=uiApi.tcTodayCourseDoneHtml(extras);
+assert(doneHtml.includes('Основной комплекс выполнен'),'saved main workout must render as a completed state');
+assert(doneHtml.includes('id="tcStartExtraAfterCourseBtn"'),'after-main extras need a stable start button');
+assert(doneHtml.includes('Начать дополнительную тренировку'),'after-main extra workout must be visibly available');
+assert(doneHtml.includes('id="tcUndoTodayCourseBtn"'),'same-day undo remains available as a secondary action');
+assert(!doneHtml.includes('onclick='),'critical after-main actions must not depend on inline onclick');
 
-let undoCalls=0,prevented=0,stopped=0;
-const fakeButton={dataset:{},onclick:null};
-const fakeDocument={getElementById:id=>id==='tcUndoTodayCourseBtn'?fakeButton:null};
-const fakeWindow={tcOpenUndoTodayCourseConfirm:()=>{undoCalls++}};
-const bindApi=new Function('document','window',
-  extract('tcBindTodayCourseUndo')+'\nreturn {tcBindTodayCourseUndo};')(fakeDocument,fakeWindow);
-bindApi.tcBindTodayCourseUndo();
-assert.equal(typeof fakeButton.onclick,'function','undo button must receive a programmatic click handler');
-fakeButton.onclick({preventDefault:()=>prevented++,stopPropagation:()=>stopped++});
-assert.equal(undoCalls,1,'bound undo button must open the in-app confirmation exactly once');
-assert.equal(prevented,1);
-assert.equal(stopped,1);
+let undoCalls=0,extraCalls=0,chooseCalls=0,prevented=0,stopped=0;
+function fakeButton(){
+  return {dataset:{},handlers:{},addEventListener(type,fn){this.handlers[type]=fn}};
+}
+const undoButton=fakeButton(),extraButton=fakeButton(),chooseButton=fakeButton();
+const fakeDocument={getElementById:id=>({
+  tcUndoTodayCourseBtn:undoButton,
+  tcStartExtraAfterCourseBtn:extraButton,
+  tcChooseExtrasAfterCourseBtn:chooseButton
+}[id]||null)};
+const fakeWindow={
+  tcOpenUndoTodayCourseConfirm:()=>{undoCalls++},
+  tcStartExtraWorkout:()=>{extraCalls++}
+};
+const bindApi=new Function('document','window','go',
+  extract('tcBindTodayDoneActions')+'\nreturn {tcBindTodayDoneActions};')(
+    fakeDocument,fakeWindow,()=>{chooseCalls++}
+  );
+bindApi.tcBindTodayDoneActions();
+const ev={preventDefault:()=>prevented++,stopPropagation:()=>stopped++};
+assert.equal(typeof undoButton.handlers.click,'function','undo action must receive a programmatic listener');
+assert.equal(typeof extraButton.handlers.click,'function','extra action must receive a programmatic listener');
+undoButton.handlers.click(ev);
+extraButton.handlers.click(ev);
+chooseButton.handlers.click(ev);
+assert.equal(undoCalls,1);
+assert.equal(extraCalls,1,'after-main extra start button must invoke the workout exactly once');
+assert.equal(chooseCalls,1);
+assert.equal(prevented,3);
+assert.equal(stopped,3);
 
 const undoState={enabled:true,level:4,goal:'quantity',weeklySessions:3,cycleStartDate:'2026-09-25',
   courseSeq:1,lastCourseDate:'2026-09-25',lastCourseTs:123,testAnchorDate:'2026-09-25',
@@ -103,4 +129,4 @@ assert.equal(undoState.lastCourseTs,0);
 assert.equal(undoState.testAnchorDate,'');
 assert.equal(undoApi.tcUndoLatestTodayCourseRecord('2026-09-25'),false,
  'undo must not remove anything twice');
-console.log('PASS: syntax, bundle, calendar, WebView-safe undo and one-time 5.16.19–5.16.21 update handover');
+console.log('PASS: syntax, bundle, calendar, visible update flow, WebView-safe undo and after-main extra workout');
