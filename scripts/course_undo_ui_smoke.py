@@ -84,6 +84,30 @@ def screenshot(name):
     adb("shell","screencap","-p",remote)
     adb("pull",remote,OUT+"/"+name+".png")
 
+def assert_touch_target(text,min_dp=48,contains=False):
+    density_out=adb("shell","wm","density").stdout
+    m=re.search(r"(\d+)",density_out.split("Override density:")[-1])
+    if not m:
+        raise AssertionError("Cannot determine screen density")
+    dpi=int(m.group(1))
+    min_px=min_dp*dpi/160.0
+    target=text.lower()
+    candidates=[]
+    for n in dump().iter("node"):
+        value=(n.attrib.get("text") or "")
+        ok=(target in value.lower()) if contains else (target==value.lower())
+        if not ok or not n.attrib.get("bounds"):
+            continue
+        nums=[int(x) for x in re.findall(r"\d+",n.attrib["bounds"])]
+        if len(nums)!=4:
+            continue
+        w,h=nums[2]-nums[0],nums[3]-nums[1]
+        candidates.append((w,h,value,n.attrib["bounds"]))
+    if not candidates:
+        raise AssertionError("Touch target not found: "+text)
+    if not any(w>=min_px and h>=min_px for w,h,_,_ in candidates):
+        raise AssertionError("Touch target below %ddp: %s"%(min_dp,candidates))
+
 def dismiss_system_anr():
     # Android emulator can transiently show a launcher/Quickstep ANR over the tested app.
     # It is unrelated to the WebView and blocks UIAutomator from seeing underlying app text.
@@ -106,13 +130,13 @@ def launch():
 launch()
 dismiss_system_anr()
 
-# Exact update path: packaged 5.14 + cached 5.16.24 are active first; staged 5.16.25 must be offered explicitly.
+# Exact update path: packaged 5.14 + cached 5.16.25 are active first; staged 5.16.26 must be offered explicitly.
 time.sleep(3)
 screenshot("00-before-update-assert")
 adb("shell","uiautomator","dump","/sdcard/uxb3-before-update.xml",check=False)
 adb("pull","/sdcard/uxb3-before-update.xml",OUT+"/00-before-update.xml",check=False)
 try:
-    wait_text("Доступно обновление TurnikCoach 5.16.25",timeout=20)
+    wait_text("Доступно обновление TurnikCoach 5.16.26",timeout=20)
 except Exception:
     log=adb("logcat","-d","-t","500",check=False)
     with open(OUT+"/00-logcat.txt","w",encoding="utf-8") as fp:
@@ -122,7 +146,7 @@ wait_text("Обновить",contains=False)
 screenshot("01-update-offered")
 
 tap_text("Обновить",contains=False)
-wait_text("TurnikCoach обновлён до 5.16.25",timeout=25)
+wait_text("TurnikCoach обновлён до 5.16.26",timeout=25)
 screenshot("02-update-installed")
 
 # Main course is already saved by the seeded user state; extra workout must still be available.
@@ -136,6 +160,9 @@ screenshot("04-extra-workout-active")
 adb("shell","uiautomator","dump","/sdcard/uxb3-active.xml",check=False)
 adb("pull","/sdcard/uxb3-active.xml",OUT+"/04-extra-workout-active.xml",check=False)
 wait_text("Выйти",timeout=10,contains=False)
+assert_touch_target("Выйти",48,contains=False)
+wait_text("ⓘ",timeout=10,contains=False)
+assert_touch_target("ⓘ",48,contains=False)
 
 # Explicit visible exit must work from the actual packaged v5.13 stageHeader.
 tap_text("Выйти",contains=False)
@@ -172,11 +199,17 @@ wait_text("Настройки курса",timeout=12,contains=False)
 tap_text("Настройки курса",contains=False)
 wait_text("Начало тренировочного цикла",timeout=12)
 wait_text("Версия",timeout=12,contains=False)
-wait_text("5.16.25",timeout=12)
+wait_text("5.16.26",timeout=12)
 screenshot("09-course-settings")
 
 tap_visible_text("Сохранить",contains=False)
 wait_text("Настройки курса сохранены.",timeout=12,contains=False)
 screenshot("10-settings-saved")
 
-print("UX_BLOCK4B_SMOKE_OK")
+# Calendar navigation must remain usable after increasing its touch targets.
+tap_bottom_nav("today")
+wait_text("Сегодня",timeout=10)
+assert_touch_target("Сегодня",48,contains=False)
+screenshot("11-touch-targets-today")
+
+print("UX_BLOCK5A_SMOKE_OK")
