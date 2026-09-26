@@ -64,13 +64,13 @@ def launch():
 
 launch()
 
-# Exact update path: packaged 5.14 + cached 5.16.22 are active first; staged 5.16.23 must be offered explicitly.
+# Exact update path: packaged 5.14 + cached 5.16.23 are active first; staged 5.16.24 must be offered explicitly.
 time.sleep(3)
 screenshot("00-before-update-assert")
 adb("shell","uiautomator","dump","/sdcard/uxb3-before-update.xml",check=False)
 adb("pull","/sdcard/uxb3-before-update.xml",OUT+"/00-before-update.xml",check=False)
 try:
-    wait_text("Доступно обновление TurnikCoach 5.16.23",timeout=20)
+    wait_text("Доступно обновление TurnikCoach 5.16.24",timeout=20)
 except Exception:
     log=adb("logcat","-d","-t","500",check=False)
     with open(OUT+"/00-logcat.txt","w",encoding="utf-8") as fp:
@@ -80,7 +80,7 @@ wait_text("Обновить",contains=False)
 screenshot("01-update-offered")
 
 tap_text("Обновить",contains=False)
-wait_text("TurnikCoach обновлён до 5.16.23",timeout=25)
+wait_text("TurnikCoach обновлён до 5.16.24",timeout=25)
 screenshot("02-update-installed")
 
 # Main course is already saved by the seeded user state; extra workout must still be available.
@@ -119,4 +119,4 @@ wait_text("Комплекс №3",timeout=12)
 wait_text("Начать адаптированную тренировку",timeout=12)
 screenshot("08-course-restored")
 
-print("UX_BLOCK3_SMOKE_OK")
+print("UX_BLOCK4A_SMOKE_OK")
