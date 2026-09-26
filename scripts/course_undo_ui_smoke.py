@@ -237,6 +237,8 @@ wait_text("Контроль прогресса",timeout=12,contains=False)
 wait_text("Система и оборудование",timeout=12,contains=False)
 tap_text("Расписание",contains=False)
 wait_text("Начало тренировочного цикла",timeout=12)
+tap_text("Система и оборудование",contains=False)
+wait_text("Версия",timeout=12,contains=False)
 wait_text("5.16.30",timeout=12)
 # The long settings sheet exercises select, number and date controls before Save.
 # Static regression enforces their 48px CSS contract; the Android smoke verifies the form remains operable.
