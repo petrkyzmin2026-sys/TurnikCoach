@@ -303,6 +303,9 @@ assert(hotfix.includes('#workout .stageHeader .endBtn{min-height:48px!important;
 assert(hotfix.includes('#workout .stageControls .btn,#rest .btn,#sheet .sheetbox .btn{min-height:48px!important'),
  'critical workout, rest and sheet buttons need 48px minimum height');
 
+assert(hotfix.includes('#rest .tcInfoBtn{position:absolute;right:92px;top:12px}'),
+ 'rest info button must not overlap the rest Exit control');
+
 const staleFormFeedback=[];
 new Function('TC_course','tcActionMessage','tcAdvancedChoicePool',formBodies.openAdvanced)(
   {level:6,advancedChoices:{},goal:'quantity'},
