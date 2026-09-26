@@ -16,6 +16,7 @@ on:
       - fix/ux-block5b-exercise-touch-audit-20260926
       - fix/ux-block5c-form-controls-20260926
       - feature/ux2-foundation-20260926
+      - feature/ux2-progressive-settings-20260926
   workflow_dispatch:
 
 permissions:
@@ -44,16 +45,16 @@ jobs:
           done
           base64 --decode /tmp/v513.b64 | gzip -dc > app/src/main/assets/index.html
           grep -q 'v5.13 — modern Android package' app/src/main/assets/index.html
-      - name: Reproduce packaged 5.14 + cached 5.16.28 + tested 5.16.29
+      - name: Reproduce packaged 5.14 + cached 5.16.29 + tested 5.16.30
         run: |
-          PREV_COMMIT="6d950c1c452c44be8667dbcba22e0089d602d695"
+          PREV_COMMIT="d21a81a6d5f80a2f7ecb678d53a1bbf894ce0248"
           grep -q 'TURNIKCOACH_HOTFIX 5.14.0-adaptive-rest' app/src/main/assets/hotfix.js
           curl -fsSL "https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/${PREV_COMMIT}/live/hotfix.js" > app/src/main/assets/hotfix-prev.js
           cp live/hotfix.js app/src/main/assets/hotfix-next.js
-          grep -q 'TURNIKCOACH_HOTFIX 5.16.28-form-controls' app/src/main/assets/hotfix-prev.js
-          grep -q 'TURNIKCOACH_HOTFIX 5.16.29-ux2-foundation' app/src/main/assets/hotfix-next.js
-          grep -q 'TURNIKCOACH_COURSE 1.0.27-ux2-today' app/src/main/assets/hotfix-next.js
-      - name: Seed installed 5.16.28 approval and completed main-course state
+          grep -q 'TURNIKCOACH_HOTFIX 5.16.29-ux2-foundation' app/src/main/assets/hotfix-prev.js
+          grep -q 'TURNIKCOACH_HOTFIX 5.16.30-progressive-settings' app/src/main/assets/hotfix-next.js
+          grep -q 'TURNIKCOACH_COURSE 1.0.28-progressive-settings' app/src/main/assets/hotfix-next.js
+      - name: Seed installed 5.16.29 approval and completed main-course state
         run: |
           python3 - <<'PY'
           from pathlib import Path
@@ -65,7 +66,7 @@ jobs:
           (function(){
             if(localStorage.getItem('__tcForcedHandoverSmokeSeeded')) return;
             var d=new Date(),k=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
-            localStorage.setItem('tc_hotfix_approved_version','5.16.28-form-controls');
+            localStorage.setItem('tc_hotfix_approved_version','5.16.29-ux2-foundation');
             localStorage.setItem('tc_morozov_course_v1',JSON.stringify({
               enabled:true,level:4,goal:'quantity',pullMax:20,courseSeq:1,extraSeq:0,
               lastCourseDate:k,lastCourseTs:Date.now(),weeklySessions:3,cycleStartDate:k,
@@ -128,10 +129,10 @@ jobs:
       - name: Build isolated DEBUG preview APK
         run: |
           gradle --no-daemon :app:assembleDebug
-          cp app/build/outputs/apk/debug/app-debug.apk TurnikCoach-UX2-Foundation-Preview-v5.16.29.apk
+          cp app/build/outputs/apk/debug/app-debug.apk TurnikCoach-UX2-Settings-Preview-v5.16.30.apk
       - name: Enable KVM
         run: sudo chmod 666 /dev/kvm || true
-      - name: Verify 5.16.29 UX2 persistence and IA in real Android WebView
+      - name: Verify 5.16.30 UX2 progressive settings in real Android WebView
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 35
@@ -140,17 +141,17 @@ jobs:
           disable-animations: true
           emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim
           script: |
-            adb install -r TurnikCoach-UX2-Foundation-Preview-v5.16.29.apk
+            adb install -r TurnikCoach-UX2-Settings-Preview-v5.16.30.apk
             TC_TEST_PKG=ru.turnikcoach.v52tr.calendarpreview python3 scripts/course_undo_ui_smoke.py
-      - name: Upload UX2 foundation screenshots
+      - name: Upload UX2 settings screenshots
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: TurnikCoach-5.16.29-ux2-foundation-smoke-screenshots
+          name: TurnikCoach-5.16.30-ux2-settings-smoke-screenshots
           path: undo-ui-test-output
           if-no-files-found: warn
       - uses: actions/upload-artifact@v4
         with:
-          name: TurnikCoach-5.16.29-ux2-foundation-isolated-preview
-          path: TurnikCoach-UX2-Foundation-Preview-v5.16.29.apk
+          name: TurnikCoach-5.16.30-ux2-settings-isolated-preview
+          path: TurnikCoach-UX2-Settings-Preview-v5.16.30.apk
           if-no-files-found: error
