@@ -52,13 +52,13 @@ assert(course.includes('tcPreviewCourseCard(tcSelectedDate)'),
  'choosing another date must show a read-only plan');
 assert(course.includes('id="tcCycleStartDate"'),
  'settings must expose a cycle start date');
-assert(hotfix.includes("const VERSION='5.16.25-forms-feedback'"),
- 'release hotfix version must be 5.16.25');
-assert(course.includes("const COURSE_MODULE_VERSION='1.0.23-forms-feedback'"),
- 'course module version must be 1.0.23');
+assert(hotfix.includes("const VERSION='5.16.26-touch-targets'"),
+ 'release hotfix version must be 5.16.26');
+assert(course.includes("const COURSE_MODULE_VERSION='1.0.24-touch-targets'"),
+ 'course module version must be 1.0.24');
 assert(!course.includes('window.confirm('),'course module must not depend on unsupported WebView JS dialogs');
 assert(!hotfix.includes('window.confirm('),'hotfix navigation/discard must not depend on unsupported WebView JS dialogs');
-assert(!hotfix.includes('forceHandover'),'5.16.25 must use an explicit user-visible update prompt');
+assert(!hotfix.includes('forceHandover'),'5.16.26 must use an explicit user-visible update prompt');
 assert(hotfix.includes("showRuntimeNotice('TurnikCoach обновлён до '+LABEL)"),
  'successful activation must give visible feedback');
 assert(hotfix.includes("localStorage.setItem('tc_hotfix_active_version',VERSION)"),
@@ -286,6 +286,23 @@ assert.equal(invalidSettingsState.pullMax,20,'invalid maximum must not mutate st
 assert.equal(settingsError.textContent,'Текущий максимум должен быть целым положительным числом.');
 assert.equal(invalidMax.style.borderColor,'#ff7777');
 
+assert(course.includes('.tcWeekDay{min-width:0;min-height:64px'),
+ 'weekly day buttons must provide a comfortably large vertical touch target');
+assert(course.includes('.tcWeekNav button{border:1px solid #354351;border-radius:10px;background:#202b34;color:#fff;min-width:48px;min-height:48px'),
+ 'week navigation arrows must be at least 48 by 48 CSS px');
+assert(course.includes('.tcWeekNav button.tcWeekReset{min-width:72px'),
+ 'Today reset needs a wider 48dp-class touch target');
+assert(course.includes('.tcCheckRow{min-height:48px'),
+ 'course settings checkbox rows must provide at least a 48px row target');
+assert(course.includes('.tcAdvancedSelect{width:24px!important;height:24px!important'),
+ 'advanced exercise checkboxes must be enlarged from the 21px base control');
+assert(hotfix.includes('.tcInfoBtn{width:48px;height:48px;min-width:48px'),
+ 'training information control must be at least 48 by 48');
+assert(hotfix.includes('#workout .stageHeader .endBtn{min-height:48px!important;min-width:76px!important'),
+ 'packaged workout Finish control must have a 48px minimum height');
+assert(hotfix.includes('#workout .stageControls .btn,#rest .btn,#sheet .sheetbox .btn{min-height:48px!important'),
+ 'critical workout, rest and sheet buttons need 48px minimum height');
+
 const staleFormFeedback=[];
 new Function('TC_course','tcActionMessage','tcAdvancedChoicePool',formBodies.openAdvanced)(
   {level:6,advancedChoices:{},goal:'quantity'},
@@ -314,4 +331,4 @@ assert.equal(undoState.lastCourseTs,0);
 assert.equal(undoState.testAnchorDate,'');
 assert.equal(undoApi.tcUndoLatestTodayCourseRecord('2026-09-25'),false,
  'undo must not remove anything twice');
-console.log('PASS: syntax, bundle, critical actions and validate-before-commit form feedback');
+console.log('PASS: syntax, bundle, critical actions, form feedback and 48px touch-target rules');
