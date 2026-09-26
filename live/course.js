@@ -1,7 +1,7 @@
-/* TURNIKCOACH_COURSE 1.0.26-form-controls */
+/* TURNIKCOACH_COURSE 1.0.27-ux2-today */
 (function(){
   'use strict';
-  const COURSE_MODULE_VERSION='1.0.26-form-controls';
+  const COURSE_MODULE_VERSION='1.0.27-ux2-today';
   if(window.__TC_COURSE_MODULE_VERSION===COURSE_MODULE_VERSION)return;
   window.__TC_COURSE_MODULE_VERSION=COURSE_MODULE_VERSION;
   function tcClamp(v,a,b){return Math.max(a,Math.min(b,v))}
@@ -773,7 +773,7 @@
       st.textContent="#sheet.open{overflow:hidden!important}#sheet .sheetbox{max-height:calc(100vh - 22px)!important;max-height:min(88dvh,calc(100vh - 22px))!important;overflow-y:auto!important;overflow-x:hidden!important;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;touch-action:pan-y;padding-bottom:max(28px,calc(18px + env(safe-area-inset-bottom)))!important}#sheet .sheetbox::-webkit-scrollbar{width:4px}#sheet .sheetbox::-webkit-scrollbar-thumb{background:#475563;border-radius:999px}.tcExtrasDetails{margin:10px 0 16px;border:1px solid #2e3945;border-radius:16px;background:#111820;overflow:hidden}.tcExtrasSummary{list-style:none;display:flex;align-items:center;gap:9px;padding:14px;cursor:pointer;user-select:none;-webkit-tap-highlight-color:transparent}.tcExtrasSummary::-webkit-details-marker{display:none}.tcExtrasTri{display:inline-block;font-size:15px;color:#ffd84d;transition:transform .16s ease;transform:rotate(0deg)}.tcExtrasDetails[open] .tcExtrasTri{transform:rotate(90deg)}.tcExtrasSummaryText{flex:1;min-width:0}.tcExtrasSummaryTitle{font-weight:900;font-size:15px;color:#fff}.tcExtrasSummaryMeta{font-size:11px;color:#939eac;margin-top:2px}.tcExtrasBody{padding:0 10px 10px}.tcExtrasBody>.card,.tcExtrasBody>.catalogGroup{margin-top:8px}#workout #wplan.tcCoursePlan{min-width:0;max-width:58vw;text-align:right;line-height:1.2;flex-shrink:1}#workout #wplan.tcCoursePlan .tcPlanMain{display:block;color:#ffd84d;font-size:clamp(17px,5vw,23px);font-weight:950;white-space:pre-wrap;overflow-wrap:normal;letter-spacing:.02em}#workout #wplan.tcCoursePlan .tcPlanSub{display:block;color:#9aa6b2;font-size:11px;font-weight:700;margin-top:5px;white-space:nowrap}#workout #wplan.tcCoursePlan .tcPlanSide{display:block;color:#c9d1d9;font-size:10px;font-weight:700;margin-top:3px;white-space:nowrap}";
       st.textContent+='.tcWeekCalendar{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;margin:10px 0 12px}.tcWeekDay{min-width:0;min-height:64px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;border:1px solid #33414b;background:#151f28;border-radius:9px;padding:6px 1px;color:#c6d1db;font-size:10px;touch-action:manipulation}.tcWeekDay b{font-size:10px}.tcWeekDay span{font-size:13px;font-weight:850}.tcWeekDay small{font-size:8px;font-weight:800;color:#a5b4c1}.tcWeekToday{border-color:#ffd84d;background:#2a281b;color:#ffd84d}.tcWeekToday small{color:#ffd84d}';
       st.textContent+='.tcWeekNav{display:flex;align-items:center;gap:6px;margin-top:12px;color:#b9c4cf;font-size:11px}.tcWeekNav span{flex:1;min-width:0;text-align:center}.tcWeekNav button{border:1px solid #354351;border-radius:10px;background:#202b34;color:#fff;min-width:48px;min-height:48px;font-size:20px;cursor:pointer;touch-action:manipulation}.tcWeekNav button.tcWeekReset{min-width:72px;font-size:11px;padding:0 10px}.tcWeekDay{font-family:inherit;appearance:none;cursor:pointer}.tcWeekDay.tcWeekSelected{border:2px solid #ffd84d;box-shadow:inset 0 0 0 1px rgba(255,216,77,.35);background:#352f1e;color:#ffe18a}.tcWeekDay.tcWeekSelected small{color:#ffe18a}.tcCoursePreview .dateBig{overflow-wrap:break-word}.tcCheckRow{min-height:48px;box-sizing:border-box;touch-action:manipulation}.tcCheckRow input[type=checkbox],.tcAdvancedSelect{width:24px!important;height:24px!important;min-width:24px!important;flex:0 0 24px}.tcAdvancedSelect{touch-action:manipulation}.tcExerciseCheckTarget{width:48px;height:48px;min-width:48px;flex:0 0 48px;display:grid;place-items:center;cursor:pointer;touch-action:manipulation}.tcExerciseCheckTarget input[type=checkbox]{width:24px!important;height:24px!important;margin:0!important}.tcExerciseNumberTarget{min-height:48px!important;touch-action:manipulation}.tcExerciseMainTarget{width:48px!important;height:48px!important;min-width:48px!important;min-height:48px!important;padding:0!important;touch-action:manipulation}#sheet .sheetbox input:not([type=checkbox]),#sheet .sheetbox select{min-height:48px!important;box-sizing:border-box;touch-action:manipulation}#sheet .sheetbox input[type=checkbox]{width:24px!important;height:24px!important;min-width:24px!important;flex:0 0 24px}#sheet .sheetbox .tcCheckRow{min-height:48px!important;padding-top:6px;padding-bottom:6px;cursor:pointer}';
-      st.textContent+='.tcDoneStrip{margin:8px 0 12px;padding:13px 14px 14px;border:1px solid #3d5b46;border-radius:16px;background:#171d23;box-shadow:none}.tcDoneStripHead{display:flex;align-items:flex-start;gap:10px}.tcDoneStripHead>div{flex:1;min-width:0}.tcDoneStripTitle{font-size:17px;line-height:1.2;font-weight:900;color:#f6f7f9}.tcDoneStripText{margin-top:5px;font-size:12px;line-height:1.38;color:#aeb8c2}.tcDoneBadge{flex:0 0 auto;font-size:9px;font-weight:900;letter-spacing:.04em;color:#d9ffe2;border:1px solid #3d5b46;background:#17251b;border-radius:999px;padding:5px 7px}.tcUndoTodayCourseBtn,.tcAfterMainCard .btn{position:relative;z-index:4;pointer-events:auto!important;touch-action:manipulation;min-height:48px!important}.tcUndoTodayCourseBtn{margin-top:11px!important;border-radius:12px!important;font-size:13px!important}.tcAfterMainCard{margin-top:10px}';
+      st.textContent+='.tcTodayPlanDetails{margin-top:10px;border:1px solid #34414d;border-radius:12px;background:#111820;overflow:hidden}.tcTodayPlanDetails>summary{list-style:none;min-height:48px;display:flex;align-items:center;justify-content:center;padding:0 12px;cursor:pointer;font-size:13px;font-weight:850;color:#d8e0e8;touch-action:manipulation}.tcTodayPlanDetails>summary::-webkit-details-marker{display:none}.tcTodayPlanBody{padding:0 12px 10px}.tcTodayPrimaryMeta{margin-top:6px;color:#aeb8c2;font-size:12px;line-height:1.4}.tcWeekSection{margin-top:14px}.tcWeekSectionTitle{font-size:11px;font-weight:900;letter-spacing:.08em;color:#8f9aa6;margin:0 2px 6px}.tcDoneStrip{margin:8px 0 12px;padding:13px 14px 14px;border:1px solid #3d5b46;border-radius:16px;background:#171d23;box-shadow:none}.tcDoneStripHead{display:flex;align-items:flex-start;gap:10px}.tcDoneStripHead>div{flex:1;min-width:0}.tcDoneStripTitle{font-size:17px;line-height:1.2;font-weight:900;color:#f6f7f9}.tcDoneStripText{margin-top:5px;font-size:12px;line-height:1.38;color:#aeb8c2}.tcDoneBadge{flex:0 0 auto;font-size:9px;font-weight:900;letter-spacing:.04em;color:#d9ffe2;border:1px solid #3d5b46;background:#17251b;border-radius:999px;padding:5px 7px}.tcUndoTodayCourseBtn,.tcAfterMainCard .btn{position:relative;z-index:4;pointer-events:auto!important;touch-action:manipulation;min-height:48px!important}.tcUndoTodayCourseBtn{margin-top:11px!important;border-radius:12px!important;font-size:13px!important}.tcAfterMainCard{margin-top:10px}';
       document.head.appendChild(st);
     }
 
@@ -1025,66 +1025,86 @@
 
     function tcRenderToday(){
       const now=new Date(),due=tcCourseDue(),l=tcCourseLevel(),c=tcCourseComplex(),items=tcBuildCourseItems(),extras=tcBuildExtraItems();
+      const week=()=>'<div class="tcWeekSection"><div class="tcWeekSectionTitle">ПЛАН НЕДЕЛИ</div>'+tcWeeklyCalendarHtml()+'</div>';
       q('todayTitle').textContent=fmtDate(now);
       if(tcSelectedDate&&tcSelectedDate!==dateKey()){
         q('todayTitle').textContent=fmtDate(tcDateFromKey(tcSelectedDate));
-        q('todaySub').textContent='Курс Морозова · '+l.title+' · просмотр плана';
-        q('todayList').innerHTML=tcWeeklyCalendarHtml()+tcPreviewCourseCard(tcSelectedDate);
+        q('todaySub').textContent='Просмотр плана';
+        q('todayList').innerHTML=tcPreviewCourseCard(tcSelectedDate)+week();
         return;
       }
       if(tcTodayCourseRecord()){
-        q('todaySub').textContent='Основной комплекс выполнен · дополнительные упражнения доступны';
-        q('todayList').innerHTML=tcWeeklyCalendarHtml()+tcTodayCourseDoneHtml(extras);
+        q('todaySub').textContent='Основная тренировка выполнена';
+        q('todayList').innerHTML=tcTodayCourseDoneHtml(extras)+week();
         tcBindTodayDoneActions();
         tcQueueDecorate();
         return;
       }
       if(tcWeeklyMode()&&tcTestDue()){
-        q('todaySub').textContent='Контрольный день · курс Морозова';
-        q('todayList').innerHTML=tcWeeklyCalendarHtml()+tcCourseTestCard();
+        q('todaySub').textContent='Сегодня · контроль прогресса';
+        q('todayList').innerHTML=tcCourseTestCard()+week();
         return;
       }
       if(tcMasteryDue()){
-        q('todaySub').textContent='Контроль освоения уровня · курс Морозова';
-        q('todayList').innerHTML=tcWeeklyCalendarHtml()+tcPendingLevelHtml()+tcMasteryCardHtml();
+        q('todaySub').textContent='Сегодня · контроль уровня';
+        q('todayList').innerHTML=tcPendingLevelHtml()+tcMasteryCardHtml()+week();
         return;
       }
 
       if(due&&TC_course.level===7&&!tcAdvancedSelected()){
-        q('todaySub').textContent='Седьмой уровень · подготовка комплекса';
-        q('todayList').innerHTML=tcWeeklyCalendarHtml()+
+        q('todaySub').textContent='Сегодня · подготовка тренировки';
+        q('todayList').innerHTML=
           '<div class="todayCard"><div class="dateBig">Выберите два вспомогательных упражнения</div>'+
-          '<div class="meta">Седьмой уровень требует двух упражнений из предыдущего уровня. До выбора фиктивные подходы не назначаются.</div>'+
-          '<button class="btn yellow full" style="margin-top:12px" onclick="tcOpenAdvancedChoiceSheet()">Выбрать упражнения</button></div>';
+          '<div class="meta">Это нужно один раз для комплекса 7-го уровня.</div>'+
+          '<button class="btn yellow full" style="margin-top:12px" onclick="tcOpenAdvancedChoiceSheet()">Выбрать упражнения</button></div>'+week();
         return;
       }
       if(due&&!tcRunnableDefs(tcOriginalCourseDefs()).length){
-        q('todaySub').textContent='Курс Морозова · ограничение оборудования';
-        q('todayList').innerHTML=tcWeeklyCalendarHtml()+tcNoEquipmentCard(tcOriginalCourseDefs());
+        q('todaySub').textContent='Сегодня · требуется настройка оборудования';
+        q('todayList').innerHTML=tcNoEquipmentCard(tcOriginalCourseDefs())+week();
         return;
       }
       if(due&&tcCalibrationDefs('main').length){
-        q('todaySub').textContent='Курс Морозова · настройка нагрузки';
-        q('todayList').innerHTML=tcWeeklyCalendarHtml()+tcCalibrationCard('main');
+        q('todaySub').textContent='Сегодня · требуется контрольный максимум';
+        q('todayList').innerHTML=tcCalibrationCard('main')+week();
         return;
       }
       if(due&&tcNeedsWorkingWeight('main')){
-        q('todaySub').textContent='Курс Морозова · дополнительный вес';
-        q('todayList').innerHTML=tcWeeklyCalendarHtml()+tcWorkingWeightCard('main');
+        q('todaySub').textContent='Сегодня · требуется рабочий вес';
+        q('todayList').innerHTML=tcWorkingWeightCard('main')+week();
         return;
       }
       if(due){
-        q('todaySub').textContent=tcTestDue()?'Контроль прогресса · курс Морозова':'Курс Морозова · '+l.title+' · '+tcCourseGoalName(TC_course.goal);
-        q('todayList').innerHTML=tcWeeklyCalendarHtml()+tcPendingLevelHtml()+tcEquipmentMasteryNote()+'<div class="todayCard"><div class="row between"><div><div class="dateBig">'+(c.def?c.def.name:'Основной комплекс')+'</div><div class="sessionNo">'+l.frequency+'</div></div><span class="tag">КУРС</span></div>'+tcCourseRowsHtml(items)+tcAdaptationNote(tcOriginalCourseDefs())+'<button class="btn yellow full" style="margin-top:12px" onclick="tcStartCourseWorkout()">'+(tcUnavailableDefs(tcOriginalCourseDefs()).length?'Начать адаптированную тренировку':'Начать основной комплекс')+'</button><button class="btn ghost full" style="margin-top:8px" onclick="tcOpenCourseInfo()">ⓘ Советы автора</button></div>'+tcMasteryCardHtml();
+        const totalSets=items.reduce((sum,x)=>sum+(Array.isArray(x.plan)?x.plan.length:0),0);
+        q('todaySub').textContent='Сегодня · основная тренировка';
+        q('todayList').innerHTML=
+          tcPendingLevelHtml()+tcEquipmentMasteryNote()+
+          '<div class="todayCard tcTodayPrimaryCard"><div class="row between"><div class="grow"><div class="dateBig">'+
+          (c.def?c.def.name:'Основной комплекс')+'</div><div class="tcTodayPrimaryMeta">'+items.length+
+          ' упражн. · '+totalSets+' подходов · '+l.title+'</div></div><span class="tag">КУРС</span></div>'+
+          '<button class="btn yellow full" style="margin-top:14px;min-height:58px" onclick="tcStartCourseWorkout()">'+
+          (tcUnavailableDefs(tcOriginalCourseDefs()).length?'Начать адаптированную тренировку':'Начать тренировку')+
+          '</button><details class="tcTodayPlanDetails"><summary>Посмотреть план</summary><div class="tcTodayPlanBody">'+
+          tcCourseRowsHtml(items)+tcAdaptationNote(tcOriginalCourseDefs())+
+          '<button class="btn ghost full" style="margin-top:8px" onclick="tcOpenCourseInfo()">ⓘ Почему такой план</button></div></details></div>'+
+          tcMasteryCardHtml()+week();
       }else{
         const nextKey=tcWeeklyMode()?tcNextCourseDay():'';
         const next=new Date(TC_course.lastCourseDate+'T12:00:00');next.setDate(next.getDate()+2);
-        q('todaySub').textContent=tcAuxDue()?'Вспомогательный комплекс №2 · отдельная тренировка':tcWeeklyMode()?'День без основного комплекса · следующая тренировка по календарю':'День без основного комплекса · восстановление тяговой нагрузки';
-        let html='<div class="todayCard"><div class="row between"><div><div class="dateBig">Сегодня без основного комплекса</div><div class="sessionNo">Следующий основной комплекс — не раньше '+fmtKeyDate(nextKey||dateKey(next),false)+'</div></div><span class="tag stage4">ВОССТАНОВЛЕНИЕ</span></div>';
-        if(extras.length){html+='<div class="info" style="margin-top:10px">Основной тяговый комплекс сегодня не назначен. Можно выполнить выбранные дополнительные упражнения без дополнительной тяговой нагрузки.</div>'+tcExtraRowsHtml(extras)+'<button class="btn yellow full" style="margin-top:12px" onclick="tcStartExtraWorkout()">Начать дополнительную тренировку</button>'}
-        else html+='<div class="empty" style="margin-top:12px">Дополнительные упражнения не выбраны. Сегодня можно оставить полный отдых.</div><button class="btn ghost full" style="margin-top:10px" onclick="go(\'exercise\')">Выбрать пресс, ноги или отжимания</button>';
-        const conflicts=tcConflictExercises();if(conflicts.length)html+='<div class="info" style="margin-top:10px"><b>Не поставлены автоматически в восстановительный день:</b> '+conflicts.map(e=>e.name).join(', ')+'. Они продолжают нагружать тяговую систему или относятся к сложным элементам.</div>';
-        html+='<button class="btn ghost full" style="margin-top:8px" onclick="tcOpenCourseInfo()">ⓘ Советы автора</button>'+tcCourseControlStatusHtml()+'</div>'+tcSupplementHtml();q('todayList').innerHTML=tcWeeklyCalendarHtml()+tcPendingLevelHtml()+tcEquipmentMasteryNote()+tcAuxCardHtml()+html;
+        q('todaySub').textContent=tcAuxDue()?'Сегодня · вспомогательная тренировка':'Сегодня · восстановление';
+        let html='<div class="todayCard"><div class="row between"><div class="grow"><div class="dateBig">'+
+          (tcAuxDue()?'Основной комплекс не назначен':'Сегодня восстановление')+'</div><div class="sessionNo">Следующая основная тренировка — '+
+          fmtKeyDate(nextKey||dateKey(next),false)+'</div></div><span class="tag stage4">ВОССТАНОВЛЕНИЕ</span></div>';
+        if(extras.length){
+          html+='<div class="tcTodayPrimaryMeta">Можно выполнить выбранные дополнительные упражнения без дополнительной тяговой нагрузки.</div>'+
+            '<button class="btn yellow full" style="margin-top:14px;min-height:58px" onclick="tcStartExtraWorkout()">Начать дополнительную тренировку</button>'+
+            '<details class="tcTodayPlanDetails"><summary>Посмотреть дополнительный план</summary><div class="tcTodayPlanBody">'+tcExtraRowsHtml(extras)+'</div></details>';
+        }else{
+          html+='<div class="empty" style="margin-top:12px">Дополнительные упражнения не выбраны. Можно оставить полный отдых.</div>'+
+            '<button class="btn ghost full" style="margin-top:10px" onclick="go(\'exercise\')">Настроить дополнительный план</button>';
+        }
+        html+='</div>';
+        q('todayList').innerHTML=tcAuxCardHtml()+html+tcSupplementHtml()+tcCourseControlStatusHtml()+week();
       }
       tcQueueDecorate();
     }
