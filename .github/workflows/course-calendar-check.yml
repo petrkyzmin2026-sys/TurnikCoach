@@ -42,7 +42,7 @@ jobs:
           grep -q 'v5.13 — modern Android package' app/src/main/assets/index.html
       - name: Reproduce packaged 5.14 + cached 5.16.25 + tested 5.16.26
         run: |
-          PREV_COMMIT="f352802c35dfc78a8f677586be38bdf86f06d4c2"
+          PREV_COMMIT="b52438f2e36553656538daf379e3cc05622e0c88"
           grep -q 'TURNIKCOACH_HOTFIX 5.14.0-adaptive-rest' app/src/main/assets/hotfix.js
           curl -fsSL "https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/${PREV_COMMIT}/live/hotfix.js" > app/src/main/assets/hotfix-prev.js
           cp live/hotfix.js app/src/main/assets/hotfix-next.js
