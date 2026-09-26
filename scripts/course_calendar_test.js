@@ -54,10 +54,14 @@ assert(course.includes('id="tcCycleStartDate"'),
  'settings must expose a cycle start date');
 assert(hotfix.includes("const VERSION='5.16.23-group1-ux'"),
  'release hotfix version must be 5.16.23');
-assert(hotfix.includes("b.type='button';b.className='tcWorkoutExitBtn';b.textContent='Выйти'"),
- 'workout UI must expose a visible header exit control');
-assert(hotfix.includes("b.title='Выйти без сохранения'"),
- 'workout exit control must state its destructive meaning');
+assert(hotfix.includes('tcOpenWorkoutFinishMenu'),
+ 'modern workout Finish must open a safe action menu');
+assert(hotfix.includes('tcSaveAndFinishWorkoutBtn'),
+ 'safe Finish menu must separate save-and-finish');
+assert(hotfix.includes('tcDiscardFromFinishMenuBtn'),
+ 'safe Finish menu must expose discard without saving');
+assert(hotfix.includes('tcContinueWorkoutBtn'),
+ 'safe Finish menu must let the user continue training');
 assert(course.includes('tcUndoTodayCourseWorkout'),
  'today screen must expose undo for an accidentally saved course workout');
 assert(!course.includes('window.confirm('),'course module must not depend on unsupported WebView JS dialogs');
