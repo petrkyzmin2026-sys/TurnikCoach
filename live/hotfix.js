@@ -123,6 +123,8 @@
       try{history.pushState({tcNav:true,tcScreen:screen,tcSheet:!!sheet},'',routeUrl(screen,sheet))}catch(e){}
     }
 
+    function tcHasWorkout(){return typeof W!=='undefined'&&!!W}
+    function tcClearWorkout(){try{if(typeof rt!=='undefined'&&rt){clearInterval(rt);rt=null}}catch(e){}try{W=null}catch(e){}}
     const baseGo=window.go;
     window.go=function(id){
       const from=currentScreen();
@@ -130,8 +132,8 @@
       const r=baseGo(id);
       if(internal){restoreScroll(id);return r}
 
-      const trainingFlow=window.W&&(id==='workout'||id==='rest')&&(from==='workout'||from==='rest');
-      const finishedTraining=!window.W&&(from==='workout'||from==='rest')&&['today','exercise','historyScreen'].includes(id);
+      const trainingFlow=tcHasWorkout()&&(id==='workout'||id==='rest')&&(from==='workout'||from==='rest');
+      const finishedTraining=!tcHasWorkout()&&(from==='workout'||from==='rest')&&['today','exercise','historyScreen'].includes(id);
 
       if(trainingFlow||finishedTraining){
         replaceRoute(id,false);
@@ -153,8 +155,7 @@
       }catch(e){if(sheet)sheet.classList.remove('open')}
     }
     function abandonWorkoutAndGo(target){
-      if(window.rt){try{clearInterval(window.rt)}catch(e){}}
-      try{window.W=null}catch(e){}
+      tcClearWorkout();
       internal=true;
       try{baseGo(target||'today')}finally{internal=false}
       replaceRoute(target||'today',false);
@@ -162,13 +163,13 @@
     }
 
     function tcDiscardWorkoutNow(){
-      if(!window.W){showRuntimeNotice('Активная тренировка уже отсутствует.','danger');return;}
+      if(!tcHasWorkout()){showRuntimeNotice('Активная тренировка уже отсутствует.','danger');return;}
       if(sheet)sheet.classList.remove('open');
       abandonWorkoutAndGo('today');
       showRuntimeNotice('Текущая тренировка закрыта без сохранения.');
     }
     window.tcDiscardWorkout=function(){
-      if(!window.W){showRuntimeNotice('Нет активной тренировки для выхода без сохранения.','danger');return;}
+      if(!tcHasWorkout()){showRuntimeNotice('Нет активной тренировки для выхода без сохранения.','danger');return;}
       const box=document.getElementById('sheetbox');
       if(!box||!sheet){showRuntimeNotice('Не удалось открыть подтверждение выхода.','danger');return;}
       box.innerHTML='<div class="sheettitle">Выйти без сохранения?</div>'+
@@ -188,10 +189,10 @@
         if(history.state&&history.state.tcSheet){history.back();return}
         closeSheetNow();return;
       }
-      if(scr==='rest'&&window.W){
+      if(scr==='rest'&&tcHasWorkout()){
         history.back();return;
       }
-      if(scr==='workout'&&window.W){
+      if(scr==='workout'&&tcHasWorkout()){
         window.tcDiscardWorkout();return;
       }
       if(history.length>1){history.back();return}
@@ -211,7 +212,7 @@
         return;
       }
 
-      if(scr==='rest'&&window.W){
+      if(scr==='rest'&&tcHasWorkout()){
         internal=true;
         try{
           if(typeof window.finishRest==='function')window.finishRest();
@@ -223,7 +224,7 @@
       }
 
       const target=ev.state&&ev.state.tcScreen?ev.state.tcScreen:'today';
-      if(scr==='workout'&&window.W&&target!=='workout'){
+      if(scr==='workout'&&tcHasWorkout()&&target!=='workout'){
         pushRoute('workout',false);
         window.tcDiscardWorkout();
         return;
