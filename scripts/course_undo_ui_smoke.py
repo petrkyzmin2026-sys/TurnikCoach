@@ -64,8 +64,18 @@ def launch():
 
 launch()
 
-# Exact update path: old 5.16.22 asset is active first, remote 5.16.23 must be offered explicitly.
-wait_text("Доступно обновление TurnikCoach 5.16.23",timeout=20)
+# Exact update path: packaged 5.14 + cached 5.16.22 are active first; staged 5.16.23 must be offered explicitly.
+time.sleep(3)
+screenshot("00-before-update-assert")
+adb("shell","uiautomator","dump","/sdcard/uxb3-before-update.xml",check=False)
+adb("pull","/sdcard/uxb3-before-update.xml",OUT+"/00-before-update.xml",check=False)
+try:
+    wait_text("Доступно обновление TurnikCoach 5.16.23",timeout=20)
+except Exception:
+    log=adb("logcat","-d","-t","500",check=False)
+    with open(OUT+"/00-logcat.txt","w",encoding="utf-8") as fp:
+        fp.write((log.stdout or "")+"\n"+(log.stderr or ""))
+    raise
 wait_text("Обновить",contains=False)
 screenshot("01-update-offered")
 
