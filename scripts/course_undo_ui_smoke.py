@@ -53,6 +53,16 @@ def tap_text(text,contains=True):
     adb("shell","input","tap",str(pos[0]),str(pos[1]))
     time.sleep(.8)
 
+def tap_bottom_nav(slot):
+    size=adb("shell","wm","size").stdout
+    m=re.search(r"(\d+)x(\d+)",size)
+    if not m:
+        raise AssertionError("Cannot determine screen size")
+    w,h=map(int,m.groups())
+    xs={"workout":0.17,"today":0.50,"history":0.83}
+    adb("shell","input","tap",str(int(w*xs[slot])),str(int(h*0.91)))
+    time.sleep(1)
+
 def screenshot(name):
     remote="/sdcard/"+name+".png"
     adb("shell","screencap","-p",remote)
@@ -136,7 +146,12 @@ wait_text("Начать адаптированную тренировку",timeo
 screenshot("08-course-restored")
 
 # Forms/settings block: open course settings and save an unchanged valid form.
-tap_text("Тренировка",contains=False)
+pos,_=find_text("Тренировка",contains=False)
+if pos:
+    adb("shell","input","tap",str(pos[0]),str(pos[1]))
+    time.sleep(1)
+else:
+    tap_bottom_nav("workout")
 wait_text("Настройки курса",timeout=12,contains=False)
 tap_text("Настройки курса",contains=False)
 wait_text("Начало тренировочного цикла",timeout=12)
