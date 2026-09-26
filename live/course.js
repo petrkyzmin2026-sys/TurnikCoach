@@ -1,7 +1,7 @@
-/* TURNIKCOACH_COURSE 1.0.19-webview-confirm */
+/* TURNIKCOACH_COURSE 1.0.20-critical-path */
 (function(){
   'use strict';
-  const COURSE_MODULE_VERSION='1.0.19-webview-confirm';
+  const COURSE_MODULE_VERSION='1.0.20-critical-path';
   if(window.__TC_COURSE_MODULE_VERSION===COURSE_MODULE_VERSION)return;
   window.__TC_COURSE_MODULE_VERSION=COURSE_MODULE_VERSION;
   function tcClamp(v,a,b){return Math.max(a,Math.min(b,v))}
@@ -586,6 +586,19 @@
         (enabled?'<div class="tcInfoBlock"><h3>Оборудование: только турник</h3><p>В тренировочный план не включаются упражнения, требующие резины, отягощения, полотенца, стула или низкой перекладины.</p></div><div class="tcInfoBlock"><h3>'+l.title+'</h3><p><b>Цель:</b> '+tcCourseGoalName(TC_course.goal)+'<br><b>Следующий:</b> '+(c.def?c.def.name:'—')+'<br><b>Текущий максимум:</b> '+TC_course.pullMax+'<br><b>Частота по курсу:</b> '+l.frequency+'</p></div>':'<div class="sub" style="margin-top:10px">Отдельная система тренировок: уровни, комплексы, проценты, MAX, отдых и контрольные критерии берутся из курса. Остальные упражнения TurnikCoach можно использовать отдельно.</div>')+
         '<button class="btn yellow full" style="margin-top:12px" onclick="tcOpenCourseProgram()">Программа курса</button>'+ '<button class="btn ghost full" style="margin-top:8px" onclick="tcOpenCourseSettings()">'+(enabled?'Настройки курса':'Подключить курс')+'</button></div>';
     }
+    function tcActionMessage(title,text){
+      const box=q('sheetbox'),sheet=q('sheet');
+      if(!box||!sheet)return false;
+      box.innerHTML='<div class="sheettitle">'+title+'</div>'+
+        '<div class="sub" style="margin-top:7px;line-height:1.45">'+text+'</div>'+
+        '<button id="tcActionMessageClose" type="button" class="btn yellow full" style="margin-top:16px">Понятно</button>';
+      sheet.classList.add('open');
+      const close=document.getElementById('tcActionMessageClose');
+      if(close)close.onclick=function(ev){if(ev){ev.preventDefault();ev.stopPropagation()}closeSheet();return false};
+      return true;
+    }
+    window.tcActionMessage=tcActionMessage;
+
     window.tcOpenCourseSettings=function(){
       tcNormalizeGoal();const l=tcCourseLevel(),goals=tcGoalOptions(TC_course.level);
       const box=q('sheetbox');
@@ -605,6 +618,7 @@
             (l.supplement?'<div class="tcInfoBlock"><h3>Дополнительные подтягивания по курсу</h3><p><label style="display:flex;gap:9px;align-items:flex-start"><input id="tcCourseSupplement" type="checkbox" '+(TC_course.authorSupplement?'checked':'')+'><span>'+l.supplement+'</span></label></p></div>':'')+
       (TC_course.level===4&&TC_course.goal==='quantity'?'<div class="tcInfoBlock"><h3>Контроль максимума · TurnikCoach</h3><p>Цель: <input id="tcTargetMax" type="number" min="1" step="1" value="'+TC_course.targetMax+'" style="width:65px;background:#0c1218;color:#fff;border:1px solid #3a4653;border-radius:8px;padding:7px"> повторений.<br><br>Проверять каждые <select id="tcTestWeeks" style="background:#0c1218;color:#fff;border:1px solid #3a4653;border-radius:8px;padding:7px">'+[2,3,4].map(n=>'<option value="'+n+'" '+(TC_course.testPeriodWeeks===n?'selected':'')+'>'+n+' недели</option>').join('')+'</select><br><br>Контроль назначается после восстановления; результат сохраняется отдельно от основной тренировки.</p></div>':'')+
       (TC_course.level===7?'<button class="btn ghost full" style="margin-top:8px" onclick="tcOpenAdvancedChoiceSheet()">Выбрать два упражнения 7-го уровня</button>':'')+
+      '<div class="tcInfoBlock"><h3>Версия</h3><p>Hotfix: <b>'+(window.__TC_HOTFIX_LABEL||window.__TC_HOTFIX_VERSION||'не определён')+'</b><br>Модуль курса: <b>'+COURSE_MODULE_VERSION+'</b>'+(window.__TC_HOTFIX_INSTALLED_AT?'<br>Активирован: '+new Date(window.__TC_HOTFIX_INSTALLED_AT).toLocaleString('ru-RU'):'')+'</p></div>'+
       '<button class="btn yellow full" style="margin-top:14px" onclick="tcSaveCourseSettings()">Сохранить</button><button class="btn ghost full" style="margin-top:8px" onclick="closeSheet()">Отмена</button>';
       q('sheet').classList.add('open');
       const levelEl=document.getElementById('tcCourseLevel');
@@ -650,7 +664,7 @@
       st.textContent="#sheet.open{overflow:hidden!important}#sheet .sheetbox{max-height:calc(100vh - 22px)!important;max-height:min(88dvh,calc(100vh - 22px))!important;overflow-y:auto!important;overflow-x:hidden!important;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;touch-action:pan-y;padding-bottom:max(28px,calc(18px + env(safe-area-inset-bottom)))!important}#sheet .sheetbox::-webkit-scrollbar{width:4px}#sheet .sheetbox::-webkit-scrollbar-thumb{background:#475563;border-radius:999px}.tcExtrasDetails{margin:10px 0 16px;border:1px solid #2e3945;border-radius:16px;background:#111820;overflow:hidden}.tcExtrasSummary{list-style:none;display:flex;align-items:center;gap:9px;padding:14px;cursor:pointer;user-select:none;-webkit-tap-highlight-color:transparent}.tcExtrasSummary::-webkit-details-marker{display:none}.tcExtrasTri{display:inline-block;font-size:15px;color:#ffd84d;transition:transform .16s ease;transform:rotate(0deg)}.tcExtrasDetails[open] .tcExtrasTri{transform:rotate(90deg)}.tcExtrasSummaryText{flex:1;min-width:0}.tcExtrasSummaryTitle{font-weight:900;font-size:15px;color:#fff}.tcExtrasSummaryMeta{font-size:11px;color:#939eac;margin-top:2px}.tcExtrasBody{padding:0 10px 10px}.tcExtrasBody>.card,.tcExtrasBody>.catalogGroup{margin-top:8px}#workout #wplan.tcCoursePlan{min-width:0;max-width:58vw;text-align:right;line-height:1.2;flex-shrink:1}#workout #wplan.tcCoursePlan .tcPlanMain{display:block;color:#ffd84d;font-size:clamp(17px,5vw,23px);font-weight:950;white-space:pre-wrap;overflow-wrap:normal;letter-spacing:.02em}#workout #wplan.tcCoursePlan .tcPlanSub{display:block;color:#9aa6b2;font-size:11px;font-weight:700;margin-top:5px;white-space:nowrap}#workout #wplan.tcCoursePlan .tcPlanSide{display:block;color:#c9d1d9;font-size:10px;font-weight:700;margin-top:3px;white-space:nowrap}";
       st.textContent+='.tcWeekCalendar{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;margin:10px 0 12px}.tcWeekDay{min-width:0;display:flex;flex-direction:column;align-items:center;gap:3px;border:1px solid #33414b;background:#151f28;border-radius:9px;padding:6px 1px;color:#c6d1db;font-size:10px}.tcWeekDay b{font-size:10px}.tcWeekDay span{font-size:13px;font-weight:850}.tcWeekDay small{font-size:8px;font-weight:800;color:#a5b4c1}.tcWeekToday{border-color:#ffd84d;background:#2a281b;color:#ffd84d}.tcWeekToday small{color:#ffd84d}';
       st.textContent+='.tcWeekNav{display:flex;align-items:center;gap:6px;margin-top:12px;color:#b9c4cf;font-size:11px}.tcWeekNav span{flex:1;min-width:0;text-align:center}.tcWeekNav button{border:1px solid #354351;border-radius:8px;background:#202b34;color:#fff;min-width:30px;min-height:32px;font-size:18px;cursor:pointer}.tcWeekNav button.tcWeekReset{font-size:11px;padding:0 7px}.tcWeekDay{font-family:inherit;appearance:none;cursor:pointer;touch-action:manipulation}.tcWeekDay.tcWeekSelected{border:2px solid #ffd84d;box-shadow:inset 0 0 0 1px rgba(255,216,77,.35);background:#352f1e;color:#ffe18a}.tcWeekDay.tcWeekSelected small{color:#ffe18a}.tcCoursePreview .dateBig{overflow-wrap:break-word}';
-      st.textContent+='.tcUndoStrip{margin:8px 0 12px;padding:13px 14px 14px;border:1px solid #70424a;border-radius:16px;background:#171d23;box-shadow:none}.tcUndoStripHead{display:flex;align-items:flex-start;gap:10px}.tcUndoStripHead>div{flex:1;min-width:0}.tcUndoStripTitle{font-size:17px;line-height:1.2;font-weight:900;color:#f6f7f9}.tcUndoStripText{margin-top:5px;font-size:12px;line-height:1.38;color:#aeb8c2}.tcUndoBadge{flex:0 0 auto;font-size:9px;font-weight:900;letter-spacing:.04em;color:#ffd8db;border:1px solid #70424a;background:#2a181b;border-radius:999px;padding:5px 7px}.tcUndoTodayCourseBtn{position:relative;z-index:4;pointer-events:auto!important;touch-action:manipulation;margin-top:11px!important;min-height:46px!important;border-radius:12px!important;font-size:14px!important}.tcUndoTodayCourseBtn:active{transform:scale(.99)}';
+      st.textContent+='.tcDoneStrip{margin:8px 0 12px;padding:13px 14px 14px;border:1px solid #3d5b46;border-radius:16px;background:#171d23;box-shadow:none}.tcDoneStripHead{display:flex;align-items:flex-start;gap:10px}.tcDoneStripHead>div{flex:1;min-width:0}.tcDoneStripTitle{font-size:17px;line-height:1.2;font-weight:900;color:#f6f7f9}.tcDoneStripText{margin-top:5px;font-size:12px;line-height:1.38;color:#aeb8c2}.tcDoneBadge{flex:0 0 auto;font-size:9px;font-weight:900;letter-spacing:.04em;color:#d9ffe2;border:1px solid #3d5b46;background:#17251b;border-radius:999px;padding:5px 7px}.tcUndoTodayCourseBtn,.tcAfterMainCard .btn{position:relative;z-index:4;pointer-events:auto!important;touch-action:manipulation;min-height:48px!important}.tcUndoTodayCourseBtn{margin-top:11px!important;border-radius:12px!important;font-size:13px!important}.tcAfterMainCard{margin-top:10px}';
       document.head.appendChild(st);
     }
 
@@ -790,23 +804,58 @@
       const rec=TC_course.history.find(h=>h.courseMode==='course');
       return rec&&rec.date===dateKey()?rec:null;
     }
-    function tcTodayCourseUndoHtml(){
-      if(!tcTodayCourseRecord())return '';
-      return '<div class="tcUndoStrip" id="tcUndoTodayCourseStrip" role="status">'+
-        '<div class="tcUndoStripHead"><div><div class="tcUndoStripTitle">Сегодняшняя тренировка уже сохранена</div>'+
-        '<div class="tcUndoStripText">Если это был пробный запуск, отмените только сегодняшнюю запись — этот же день курса сразу станет доступен снова.</div></div>'+
-        '<span class="tcUndoBadge">СОХРАНЕНО</span></div>'+
-        '<button id="tcUndoTodayCourseBtn" type="button" class="btn danger full tcUndoTodayCourseBtn">Отменить запись и начать заново</button></div>';
+    function tcTodayExtraRecord(){
+      return state.history.find(h=>h&&h.type==='workout'&&h.session==='доп.'&&h.date===dateKey())||null;
     }
-    function tcBindTodayCourseUndo(){
-      const btn=document.getElementById('tcUndoTodayCourseBtn');
-      if(!btn||btn.dataset.tcUndoBound==='1')return;
-      btn.dataset.tcUndoBound='1';
-      btn.onclick=function(ev){
-        if(ev){ev.preventDefault();ev.stopPropagation()}
-        window.tcOpenUndoTodayCourseConfirm();
-        return false;
-      };
+    function tcTodayCourseDoneHtml(extras){
+      if(!tcTodayCourseRecord())return '';
+      let html='<div class="tcDoneStrip" id="tcTodayCourseDoneStrip" role="status">'+
+        '<div class="tcDoneStripHead"><div><div class="tcDoneStripTitle">Основной комплекс выполнен</div>'+
+        '<div class="tcDoneStripText">Результат сохранён. Дополнительные упражнения можно выполнить отдельно — последовательность курса второй раз не сдвинется.</div></div>'+
+        '<span class="tcDoneBadge">ГОТОВО</span></div>'+
+        '<button id="tcUndoTodayCourseBtn" type="button" class="btn ghost full tcUndoTodayCourseBtn">Ошибочно завершил — отменить запись</button></div>';
+      if(tcTodayExtraRecord()){
+        return html+'<div class="todayCard tcAfterMainCard"><div class="row between"><div><div class="dateBig">Дополнительная тренировка выполнена</div>'+
+          '<div class="meta">Запись сохранена отдельно от курса Морозова.</div></div><span class="tag stage4">ГОТОВО</span></div></div>';
+      }
+      if(extras&&extras.length){
+        return html+'<div class="todayCard tcAfterMainCard"><div class="row between"><div><div class="dateBig">Дополнительная тренировка</div>'+
+          '<div class="meta">Пресс, ноги, отжимания и другие выбранные нетяговые упражнения.</div></div><span class="tag">ДОП.</span></div>'+
+          tcExtraRowsHtml(extras)+
+          '<button id="tcStartExtraAfterCourseBtn" type="button" class="btn yellow full" style="margin-top:12px">Начать дополнительную тренировку</button></div>';
+      }
+      return html+'<div class="todayCard tcAfterMainCard"><div class="dateBig">Дополнительная тренировка</div>'+
+        '<div class="meta">Дополнительные упражнения не выбраны.</div>'+
+        '<button id="tcChooseExtrasAfterCourseBtn" type="button" class="btn ghost full" style="margin-top:10px">Выбрать упражнения</button></div>';
+    }
+    function tcBindTodayDoneActions(){
+      const undo=document.getElementById('tcUndoTodayCourseBtn');
+      if(undo&&undo.dataset.tcBound!=='1'){
+        undo.dataset.tcBound='1';
+        undo.onclick=function(ev){
+          if(ev){ev.preventDefault();ev.stopPropagation()}
+          window.tcOpenUndoTodayCourseConfirm();
+          return false;
+        };
+      }
+      const extra=document.getElementById('tcStartExtraAfterCourseBtn');
+      if(extra&&extra.dataset.tcBound!=='1'){
+        extra.dataset.tcBound='1';
+        extra.onclick=function(ev){
+          if(ev){ev.preventDefault();ev.stopPropagation()}
+          window.tcStartExtraWorkout();
+          return false;
+        };
+      }
+      const choose=document.getElementById('tcChooseExtrasAfterCourseBtn');
+      if(choose&&choose.dataset.tcBound!=='1'){
+        choose.dataset.tcBound='1';
+        choose.onclick=function(ev){
+          if(ev){ev.preventDefault();ev.stopPropagation()}
+          go('exercise');
+          return false;
+        };
+      }
     }
     function tcUndoLatestTodayCourseRecord(today){
       const rec=TC_course.history.find(h=>h.courseMode==='course');
@@ -853,9 +902,9 @@
         return;
       }
       if(tcTodayCourseRecord()){
-        q('todaySub').textContent='Курс Морозова · сегодняшняя тренировка сохранена';
-        q('todayList').innerHTML=tcWeeklyCalendarHtml()+tcTodayCourseUndoHtml();
-        tcBindTodayCourseUndo();
+        q('todaySub').textContent='Основной комплекс выполнен · дополнительные упражнения доступны';
+        q('todayList').innerHTML=tcWeeklyCalendarHtml()+tcTodayCourseDoneHtml(extras);
+        tcBindTodayDoneActions();
         tcQueueDecorate();
         return;
       }
@@ -1408,17 +1457,24 @@
     };
 
     window.tcStartCourseWorkout=function(){
-      if(!tcCourseDue()||W)return;
-      if(!tcRunnableDefs(tcOriginalCourseDefs()).length)return;
+      if(W){tcActionMessage('Тренировка уже запущена','Сначала завершите текущую тренировку или выйдите из неё без сохранения.');return;}
+      if(!tcCourseDue()){tcActionMessage('Сегодня основной комплекс не назначен','Откройте календарь курса, чтобы посмотреть ближайший тренировочный день.');return;}
+      if(!tcRunnableDefs(tcOriginalCourseDefs()).length){tcActionMessage('Нет доступных упражнений','Текущий комплекс требует оборудования, которого нет в выбранной конфигурации.');return;}
       if(tcCalibrationDefs('main').length){tcOpenCourseCalibration('main');return;}
       if(tcNeedsWorkingWeight('main')){tcOpenWorkingWeight('main');return;}
       if(TC_course.level===7&&!tcAdvancedSelected()){tcOpenAdvancedChoiceSheet();return;}
-      const items=tcBuildCourseItems();if(!items.length)return;unlockAudio();
+      const items=tcBuildCourseItems();
+      if(!items.length){tcActionMessage('Не удалось собрать тренировку','Проверьте выбранные упражнения и настройки курса.');return;}
+      unlockAudio();
       const c=tcCourseComplex();W={mode:'course',sessionIndex:0,exerciseIndex:0,setIndex:0,items,actual:tcSchemeTarget(items[0].def),early:false,courseLevel:TC_course.level,courseComplex:c.no,courseGoal:TC_course.goal,adapted:tcUnavailableDefs(tcOriginalCourseDefs()).length>0};go('workout');
     };
     window.tcStartExtraWorkout=function(){
-      if(W)return;
-      const items=tcBuildExtraItems();if(!items.length)return;unlockAudio();const idx=TC_course.extraSeq%3;W={mode:'extra',sessionIndex:idx,exerciseIndex:0,setIndex:0,items,actual:items[0].plan[0],early:false};go('workout');
+      if(W){tcActionMessage('Тренировка уже запущена','Сначала завершите текущую тренировку или выйдите из неё без сохранения.');return;}
+      if(tcTodayExtraRecord()){tcActionMessage('Дополнительная тренировка уже выполнена','Сегодняшняя дополнительная тренировка уже сохранена в истории.');return;}
+      const items=tcBuildExtraItems();
+      if(!items.length){tcActionMessage('Нет дополнительных упражнений','Выберите пресс, ноги, отжимания или другие дополнительные упражнения на экране «Упражнения».');return;}
+      unlockAudio();
+      const idx=TC_course.extraSeq%3;W={mode:'extra',sessionIndex:idx,exerciseIndex:0,setIndex:0,items,actual:items[0].plan[0],early:false};go('workout');
     };
     window.tcStartSupplementWorkout=function(){
       if(W||!TC_course.authorSupplement||!tcCourseLevel().supplement||tcCourseDue()||tcAuxDue()||tcTestDue()||tcMasteryDue()||tcSupplementBreak()||TC_course.history.some(h=>h.courseMode==='supplement'&&h.date===dateKey()))return;
