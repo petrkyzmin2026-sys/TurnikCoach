@@ -313,6 +313,12 @@ assert(course.includes(".tcExerciseNumberTarget{min-height:48px!important"),
  'exercise MAX number field must be at least 48px high');
 assert(course.includes(".tcExerciseMainTarget{width:48px!important;height:48px!important"),
  'exercise primary-star button must be at least 48 by 48');
+assert(course.includes("#sheet .sheetbox input:not([type=checkbox]),#sheet .sheetbox select{min-height:48px!important"),
+ 'all sheet text/number/date inputs and selects must have a 48px minimum height');
+assert(course.includes("#sheet .sheetbox input[type=checkbox]{width:24px!important;height:24px!important"),
+ 'sheet checkboxes must use enlarged 24px controls');
+assert(course.includes('f.check?\'<label class="tcCheckRow"'),
+ 'mastery checkbox rows must use the 48px checkbox-row target');
 
 const staleFormFeedback=[];
 new Function('TC_course','tcActionMessage','tcAdvancedChoicePool',formBodies.openAdvanced)(
@@ -342,4 +348,4 @@ assert.equal(undoState.lastCourseTs,0);
 assert.equal(undoState.testAnchorDate,'');
 assert.equal(undoApi.tcUndoLatestTodayCourseRecord('2026-09-25'),false,
  'undo must not remove anything twice');
-console.log('PASS: syntax, bundle, critical actions, form feedback and complete 48px touch-target rules');
+console.log('PASS: syntax, bundle, critical actions, form feedback and complete form and 48px touch-target rules');
