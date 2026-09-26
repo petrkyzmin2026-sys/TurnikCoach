@@ -85,11 +85,13 @@
     const style=document.createElement('style');
     style.id='tcNavFoundationStyle';
     style.textContent=
-      '.tcBackBtn{width:38px;height:38px;min-width:38px;border-radius:50%;border:1px solid rgba(255,255,255,.22);background:rgba(13,20,27,.88);color:#fff;font-size:23px;font-weight:900;display:grid;place-items:center;padding:0;z-index:30}'+
-      '.tcBackBtn:active{transform:scale(.96)}'+
-      '.tcRestBack{position:absolute;left:14px;top:14px}'+
-      '.tcSheetClose{position:sticky;float:right;top:0;margin:-4px -3px 6px 10px;width:36px;height:36px;border-radius:50%;border:1px solid #3a4653;background:#202a32;color:#fff;font-size:22px;font-weight:900;z-index:5}'+
-      '#workout .stageHeader .row.between{gap:8px}'+'.tcDiscardWorkoutBtn{margin-top:10px!important;border-color:#784047!important;color:#ffb8bd!important}.tcDiscardWorkoutBtn:active{transform:scale(.99)}';
+      '.tcBackBtn{width:48px;height:48px;min-width:48px;border-radius:50%;border:1px solid rgba(255,255,255,.22);background:rgba(13,20,27,.92);color:#fff;font-size:25px;font-weight:900;display:grid;place-items:center;padding:0;z-index:30;touch-action:manipulation}'+
+      '.tcBackBtn:active,.tcWorkoutExitBtn:active,.tcRestExitBtn:active{transform:scale(.96)}'+
+      '.tcRestBack{position:absolute;left:12px;top:12px}'+
+      '.tcSheetClose{position:sticky;float:right;top:0;margin:-4px -3px 6px 10px;width:48px;height:48px;min-width:48px;border-radius:50%;border:1px solid #3a4653;background:#202a32;color:#fff;font-size:24px;font-weight:900;z-index:5;touch-action:manipulation}'+
+      '#workout .wtop{padding-left:94px!important}'+
+      '.tcWorkoutExitBtn{position:absolute;left:12px;top:12px;z-index:30;min-width:70px;height:48px;border-radius:12px;border:1px solid #694047;background:#24171a;color:#ffb8bd;font-size:12px;font-weight:900;padding:0 10px;touch-action:manipulation}'+
+      '.tcRestExitBtn{position:absolute;right:12px;top:12px;z-index:30;min-width:70px;height:48px;border-radius:12px;border:1px solid #694047;background:#24171a;color:#ffb8bd;font-size:12px;font-weight:900;padding:0 10px;touch-action:manipulation}';
     document.head.appendChild(style);
 
     let internal=false;
@@ -232,21 +234,16 @@
     });
 
     function tcDecorateBackControls(){
-      const wh=document.querySelector('#workout.screen.on .stageHeader .row.between');
-      if(wh&&!wh.querySelector('.tcBackBtn')){
-        const b=document.createElement('button');
-        b.type='button';b.className='tcBackBtn';b.textContent='‹';b.title='Назад';
-        b.onclick=window.tcNavigateBack;
-        wh.insertBefore(b,wh.firstChild);
-      }
       const workout=document.querySelector('#workout.screen.on');
-      const controls=workout&&workout.querySelector('.controls');
-      if(controls&&!controls.querySelector('.tcDiscardWorkoutBtn')){
+      const wtop=workout&&workout.querySelector('.wtop');
+      if(wtop&&!wtop.querySelector('.tcWorkoutExitBtn')){
         const b=document.createElement('button');
-        b.type='button';b.className='btn ghost full tcDiscardWorkoutBtn';
-        b.textContent='Выйти без сохранения';
+        b.type='button';b.className='tcWorkoutExitBtn';b.textContent='Выйти';b.title='Выйти без сохранения';
         b.onclick=window.tcDiscardWorkout;
-        controls.appendChild(b);
+        wtop.appendChild(b);
+      }
+      if(workout){
+        workout.querySelectorAll('.tcDiscardWorkoutBtn').forEach(n=>n.remove());
       }
 
       const rest=document.querySelector('#rest.screen.on .rest');
@@ -256,12 +253,14 @@
         b.onclick=window.tcNavigateBack;
         rest.appendChild(b);
       }
-      if(rest&&!rest.querySelector('.tcDiscardWorkoutBtn')){
+      if(rest&&!rest.querySelector('.tcRestExitBtn')){
         const b=document.createElement('button');
-        b.type='button';b.className='btn ghost full tcDiscardWorkoutBtn';
-        b.textContent='Выйти без сохранения';
+        b.type='button';b.className='tcRestExitBtn';b.textContent='Выйти';b.title='Выйти без сохранения';
         b.onclick=window.tcDiscardWorkout;
         rest.appendChild(b);
+      }
+      if(rest){
+        rest.querySelectorAll('.tcDiscardWorkoutBtn').forEach(n=>n.remove());
       }
 
       if(sheet&&sheet.classList.contains('open')){
@@ -641,11 +640,10 @@
       if(today&&!today.querySelector('.tcInfoBtn')){
         const b=document.createElement('button');b.type='button';b.className='tcInfoBtn';b.textContent='ⓘ';b.title='О тренировке';b.onclick=window.tcOpenTrainingInfo;today.appendChild(b);
       }
-      const wh=document.querySelector('#workout.screen.on .stageHeader .row.between');
+      const wh=document.querySelector('#workout.screen.on .wtop .row.between');
       if(wh&&!wh.querySelector('.tcInfoBtn')){
-        const end=wh.querySelector('.endBtn');
         const b=document.createElement('button');b.type='button';b.className='tcInfoBtn';b.textContent='ⓘ';b.title='О тренировке';b.onclick=window.tcOpenTrainingInfo;
-        if(end)wh.insertBefore(b,end);else wh.appendChild(b);
+        wh.appendChild(b);
       }
       const rest=document.querySelector('#rest.screen.on .rest');
       if(rest&&!rest.querySelector('.tcInfoBtn')){
