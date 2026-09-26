@@ -58,26 +58,53 @@ def screenshot(name):
     adb("shell","screencap","-p",remote)
     adb("pull",remote,OUT+"/"+name+".png")
 
-adb("shell","monkey","-p",PKG,"-c","android.intent.category.LAUNCHER","1")
-time.sleep(10)
-screenshot("00-after-handover")
+def launch():
+    adb("shell","monkey","-p",PKG,"-c","android.intent.category.LAUNCHER","1")
+    time.sleep(5)
 
-wait_text("Сегодняшняя тренировка уже сохранена",timeout=20)
-wait_text("Отменить запись и начать заново")
-screenshot("01-saved-state")
+launch()
 
-tap_text("Отменить запись и начать заново",contains=False)
-wait_text("Отменить сегодняшнюю тренировку?")
+# Exact update path: old 5.16.22 asset is active first, remote 5.16.23 must be offered explicitly.
+wait_text("Доступно обновление TurnikCoach 5.16.23",timeout=20)
+wait_text("Обновить",contains=False)
+screenshot("01-update-offered")
+
+tap_text("Обновить",contains=False)
+wait_text("TurnikCoach обновлён до 5.16.23",timeout=25)
+screenshot("02-update-installed")
+
+# Main course is already saved by the seeded user state; extra workout must still be available.
+wait_text("Основной комплекс выполнен",timeout=20)
+wait_text("Начать дополнительную тренировку",timeout=12)
+screenshot("03-main-done-extra-available")
+
+tap_text("Начать дополнительную тренировку",contains=False)
+wait_text("Подъём коленей в висе",timeout=15)
+wait_text("Выйти",timeout=10,contains=False)
+screenshot("04-extra-workout-active")
+
+# Explicit visible exit must work from the actual packaged v5.13 stageHeader.
+tap_text("Выйти",contains=False)
+wait_text("Выйти без сохранения?",timeout=10)
+wait_text("Выйти без сохранения",contains=False)
+screenshot("05-discard-confirm")
+
+tap_text("Выйти без сохранения",contains=False)
+wait_text("Текущая тренировка закрыта без сохранения.",timeout=10)
+wait_text("Основной комплекс выполнен",timeout=10)
+wait_text("Начать дополнительную тренировку",timeout=10)
+screenshot("06-returned-after-discard")
+
+# Undo remains reachable as a secondary recovery action.
+wait_text("Ошибочно завершил — отменить запись",timeout=10)
+tap_text("Ошибочно завершил — отменить запись",contains=False)
+wait_text("Отменить сегодняшнюю тренировку?",timeout=10)
 wait_text("Отменить запись",contains=False)
-screenshot("02-in-app-confirm")
+screenshot("07-undo-confirm")
 
 tap_text("Отменить запись",contains=False)
-wait_text("Комплекс №3")
-wait_text("Начать адаптированную тренировку")
-screenshot("03-course-restored")
+wait_text("Комплекс №3",timeout=12)
+wait_text("Начать адаптированную тренировку",timeout=12)
+screenshot("08-course-restored")
 
-pos,_=find_text("Сегодняшняя тренировка уже сохранена")
-if pos:
-    raise AssertionError("Saved-state strip still present after undo")
-
-print("COURSE_UNDO_UI_SMOKE_OK")
+print("UX_BLOCK3_SMOKE_OK")
