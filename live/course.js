@@ -1,7 +1,7 @@
-/* TURNIKCOACH_COURSE 1.0.27-ux2-today */
+/* TURNIKCOACH_COURSE 1.0.28-progressive-settings */
 (function(){
   'use strict';
-  const COURSE_MODULE_VERSION='1.0.27-ux2-today';
+  const COURSE_MODULE_VERSION='1.0.28-progressive-settings';
   if(window.__TC_COURSE_MODULE_VERSION===COURSE_MODULE_VERSION)return;
   window.__TC_COURSE_MODULE_VERSION=COURSE_MODULE_VERSION;
   function tcClamp(v,a,b){return Math.max(a,Math.min(b,v))}
@@ -618,6 +618,43 @@
     }
     window.tcActionMessage=tcActionMessage;
 
+    function tcGroupCourseSettings(box){
+      if(!box||box.querySelector('.tcSettingsGroups'))return;
+      const error=box.querySelector('#tcSettingsError');
+      const save=[...box.querySelectorAll('button')].find(b=>(b.getAttribute('onclick')||'').includes('tcSaveCourseSettings'));
+      const cancel=[...box.querySelectorAll('button')].find(b=>(b.getAttribute('onclick')||'').includes('closeSheet'));
+      if(!error||!save||!cancel)return;
+      const title=box.querySelector('.sheettitle');
+      const intro=title&&title.nextElementSibling&&title.nextElementSibling.classList.contains('sub')?title.nextElementSibling:null;
+      const candidates=[...box.children].filter(n=>n!==title&&n!==intro&&n!==error&&n!==save&&n!==cancel);
+      const groups={main:[],schedule:[],extra:[],control:[],system:[]};
+      const has=(node,id)=>!!(node.id===id||(node.querySelector&&node.querySelector('#'+id)));
+      candidates.forEach(node=>{
+        const text=(node.textContent||'').trim();
+        if(['tcCourseEnabled','tcCourseLevel','tcCourseMax','tcCourseGoal'].some(id=>has(node,id)))groups.main.push(node);
+        else if(['tcWeeklySessions','tcCycleStartDate'].some(id=>has(node,id)))groups.schedule.push(node);
+        else if(['tcAuxEnabled','tcAuxInterval3','tcCourseSupplement'].some(id=>has(node,id))||
+          /Изменить максимумы|Выбрать два упражнения 7-го уровня/.test(text))groups.extra.push(node);
+        else if(['tcTargetMax','tcTestWeeks'].some(id=>has(node,id)))groups.control.push(node);
+        else groups.system.push(node);
+      });
+      const wrap=document.createElement('div');wrap.className='tcSettingsGroups';
+      const append=(key,label,open)=>{
+        if(!groups[key].length)return;
+        const details=document.createElement('details');details.className='tcSettingsGroup';details.dataset.group=key;details.open=!!open;
+        const summary=document.createElement('summary');summary.textContent=label;
+        const body=document.createElement('div');body.className='tcSettingsGroupBody';
+        groups[key].forEach(n=>body.appendChild(n));
+        details.appendChild(summary);details.appendChild(body);wrap.appendChild(details);
+      };
+      append('main','Основное',true);
+      append('schedule','Расписание',false);
+      append('extra','Дополнительная работа',false);
+      append('control','Контроль прогресса',false);
+      append('system','Система и оборудование',false);
+      box.insertBefore(wrap,error);
+    }
+
     window.tcOpenCourseSettings=function(){
       if(W){tcActionMessage('Настройки недоступны','Сначала завершите текущую тренировку или выйдите из неё без сохранения.');return;}
       tcNormalizeGoal();const l=tcCourseLevel(),goals=tcGoalOptions(TC_course.level);
@@ -642,6 +679,7 @@
       '<div class="tcInfoBlock"><h3>Версия</h3><p>Hotfix: <b>'+(window.__TC_HOTFIX_LABEL||window.__TC_HOTFIX_VERSION||'не определён')+'</b><br>Модуль курса: <b>'+COURSE_MODULE_VERSION+'</b>'+(window.__TC_HOTFIX_INSTALLED_AT?'<br>Активирован: '+new Date(window.__TC_HOTFIX_INSTALLED_AT).toLocaleString('ru-RU'):'')+'</p></div>'+
       '<div id="tcSettingsError" class="meta" style="color:#ff9b9b;margin-top:10px"></div>'+
       '<button class="btn yellow full" style="margin-top:14px" onclick="tcSaveCourseSettings()">Сохранить</button><button class="btn ghost full" style="margin-top:8px" onclick="closeSheet()">Отмена</button>';
+      tcGroupCourseSettings(box);
       sheet.classList.add('open');
       const levelEl=document.getElementById('tcCourseLevel');
       if(levelEl)levelEl.onchange=()=>{
@@ -655,7 +693,10 @@
     window.tcSaveCourseSettings=function(){
       const oldLevel=TC_course.level,oldGoal=TC_course.goal;
       const fail=(message,el)=>{
-        if(el){el.style.borderColor='#ff7777';if(typeof el.focus==='function')el.focus();}
+        if(el){
+          const group=el.closest&&el.closest('details.tcSettingsGroup');if(group)group.open=true;
+          el.style.borderColor='#ff7777';if(typeof el.focus==='function')el.focus();
+        }
         const error=document.getElementById('tcSettingsError');
         if(error){error.textContent=message;return false;}
         tcActionMessage('Настройки не сохранены',message);
@@ -773,7 +814,7 @@
       st.textContent="#sheet.open{overflow:hidden!important}#sheet .sheetbox{max-height:calc(100vh - 22px)!important;max-height:min(88dvh,calc(100vh - 22px))!important;overflow-y:auto!important;overflow-x:hidden!important;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;touch-action:pan-y;padding-bottom:max(28px,calc(18px + env(safe-area-inset-bottom)))!important}#sheet .sheetbox::-webkit-scrollbar{width:4px}#sheet .sheetbox::-webkit-scrollbar-thumb{background:#475563;border-radius:999px}.tcExtrasDetails{margin:10px 0 16px;border:1px solid #2e3945;border-radius:16px;background:#111820;overflow:hidden}.tcExtrasSummary{list-style:none;display:flex;align-items:center;gap:9px;padding:14px;cursor:pointer;user-select:none;-webkit-tap-highlight-color:transparent}.tcExtrasSummary::-webkit-details-marker{display:none}.tcExtrasTri{display:inline-block;font-size:15px;color:#ffd84d;transition:transform .16s ease;transform:rotate(0deg)}.tcExtrasDetails[open] .tcExtrasTri{transform:rotate(90deg)}.tcExtrasSummaryText{flex:1;min-width:0}.tcExtrasSummaryTitle{font-weight:900;font-size:15px;color:#fff}.tcExtrasSummaryMeta{font-size:11px;color:#939eac;margin-top:2px}.tcExtrasBody{padding:0 10px 10px}.tcExtrasBody>.card,.tcExtrasBody>.catalogGroup{margin-top:8px}#workout #wplan.tcCoursePlan{min-width:0;max-width:58vw;text-align:right;line-height:1.2;flex-shrink:1}#workout #wplan.tcCoursePlan .tcPlanMain{display:block;color:#ffd84d;font-size:clamp(17px,5vw,23px);font-weight:950;white-space:pre-wrap;overflow-wrap:normal;letter-spacing:.02em}#workout #wplan.tcCoursePlan .tcPlanSub{display:block;color:#9aa6b2;font-size:11px;font-weight:700;margin-top:5px;white-space:nowrap}#workout #wplan.tcCoursePlan .tcPlanSide{display:block;color:#c9d1d9;font-size:10px;font-weight:700;margin-top:3px;white-space:nowrap}";
       st.textContent+='.tcWeekCalendar{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;margin:10px 0 12px}.tcWeekDay{min-width:0;min-height:64px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;border:1px solid #33414b;background:#151f28;border-radius:9px;padding:6px 1px;color:#c6d1db;font-size:10px;touch-action:manipulation}.tcWeekDay b{font-size:10px}.tcWeekDay span{font-size:13px;font-weight:850}.tcWeekDay small{font-size:8px;font-weight:800;color:#a5b4c1}.tcWeekToday{border-color:#ffd84d;background:#2a281b;color:#ffd84d}.tcWeekToday small{color:#ffd84d}';
       st.textContent+='.tcWeekNav{display:flex;align-items:center;gap:6px;margin-top:12px;color:#b9c4cf;font-size:11px}.tcWeekNav span{flex:1;min-width:0;text-align:center}.tcWeekNav button{border:1px solid #354351;border-radius:10px;background:#202b34;color:#fff;min-width:48px;min-height:48px;font-size:20px;cursor:pointer;touch-action:manipulation}.tcWeekNav button.tcWeekReset{min-width:72px;font-size:11px;padding:0 10px}.tcWeekDay{font-family:inherit;appearance:none;cursor:pointer}.tcWeekDay.tcWeekSelected{border:2px solid #ffd84d;box-shadow:inset 0 0 0 1px rgba(255,216,77,.35);background:#352f1e;color:#ffe18a}.tcWeekDay.tcWeekSelected small{color:#ffe18a}.tcCoursePreview .dateBig{overflow-wrap:break-word}.tcCheckRow{min-height:48px;box-sizing:border-box;touch-action:manipulation}.tcCheckRow input[type=checkbox],.tcAdvancedSelect{width:24px!important;height:24px!important;min-width:24px!important;flex:0 0 24px}.tcAdvancedSelect{touch-action:manipulation}.tcExerciseCheckTarget{width:48px;height:48px;min-width:48px;flex:0 0 48px;display:grid;place-items:center;cursor:pointer;touch-action:manipulation}.tcExerciseCheckTarget input[type=checkbox]{width:24px!important;height:24px!important;margin:0!important}.tcExerciseNumberTarget{min-height:48px!important;touch-action:manipulation}.tcExerciseMainTarget{width:48px!important;height:48px!important;min-width:48px!important;min-height:48px!important;padding:0!important;touch-action:manipulation}#sheet .sheetbox input:not([type=checkbox]),#sheet .sheetbox select{min-height:48px!important;box-sizing:border-box;touch-action:manipulation}#sheet .sheetbox input[type=checkbox]{width:24px!important;height:24px!important;min-width:24px!important;flex:0 0 24px}#sheet .sheetbox .tcCheckRow{min-height:48px!important;padding-top:6px;padding-bottom:6px;cursor:pointer}';
-      st.textContent+='.tcTodayPlanDetails{margin-top:10px;border:1px solid #34414d;border-radius:12px;background:#111820;overflow:hidden}.tcTodayPlanDetails>summary{list-style:none;min-height:48px;display:flex;align-items:center;justify-content:center;padding:0 12px;cursor:pointer;font-size:13px;font-weight:850;color:#d8e0e8;touch-action:manipulation}.tcTodayPlanDetails>summary::-webkit-details-marker{display:none}.tcTodayPlanBody{padding:0 12px 10px}.tcTodayPrimaryMeta{margin-top:6px;color:#aeb8c2;font-size:12px;line-height:1.4}.tcWeekSection{margin-top:14px}.tcWeekSectionTitle{font-size:11px;font-weight:900;letter-spacing:.08em;color:#8f9aa6;margin:0 2px 6px}.tcDoneStrip{margin:8px 0 12px;padding:13px 14px 14px;border:1px solid #3d5b46;border-radius:16px;background:#171d23;box-shadow:none}.tcDoneStripHead{display:flex;align-items:flex-start;gap:10px}.tcDoneStripHead>div{flex:1;min-width:0}.tcDoneStripTitle{font-size:17px;line-height:1.2;font-weight:900;color:#f6f7f9}.tcDoneStripText{margin-top:5px;font-size:12px;line-height:1.38;color:#aeb8c2}.tcDoneBadge{flex:0 0 auto;font-size:9px;font-weight:900;letter-spacing:.04em;color:#d9ffe2;border:1px solid #3d5b46;background:#17251b;border-radius:999px;padding:5px 7px}.tcUndoTodayCourseBtn,.tcAfterMainCard .btn{position:relative;z-index:4;pointer-events:auto!important;touch-action:manipulation;min-height:48px!important}.tcUndoTodayCourseBtn{margin-top:11px!important;border-radius:12px!important;font-size:13px!important}.tcAfterMainCard{margin-top:10px}';
+      st.textContent+='.tcTodayPlanDetails{margin-top:10px;border:1px solid #34414d;border-radius:12px;background:#111820;overflow:hidden}.tcTodayPlanDetails>summary{list-style:none;min-height:48px;display:flex;align-items:center;justify-content:center;padding:0 12px;cursor:pointer;font-size:13px;font-weight:850;color:#d8e0e8;touch-action:manipulation}.tcTodayPlanDetails>summary::-webkit-details-marker{display:none}.tcTodayPlanBody{padding:0 12px 10px}.tcTodayPrimaryMeta{margin-top:6px;color:#aeb8c2;font-size:12px;line-height:1.4}.tcWeekSection{margin-top:14px}.tcWeekSectionTitle{font-size:11px;font-weight:900;letter-spacing:.08em;color:#8f9aa6;margin:0 2px 6px}.tcSettingsGroups{margin-top:12px}.tcSettingsGroup{border:1px solid #34414d;border-radius:14px;background:#10171d;margin:9px 0;overflow:hidden}.tcSettingsGroup>summary{list-style:none;min-height:54px;display:flex;align-items:center;padding:0 14px;font-size:14px;font-weight:900;color:#f3f6f8;cursor:pointer;touch-action:manipulation}.tcSettingsGroup>summary::-webkit-details-marker{display:none}.tcSettingsGroup>summary:after{content:'›';margin-left:auto;color:#ffd84d;font-size:22px;transform:rotate(90deg);transition:transform .15s ease}.tcSettingsGroup[open]>summary:after{transform:rotate(-90deg)}.tcSettingsGroupBody{padding:0 12px 12px}.tcSettingsGroupBody>.tcInfoBlock:first-child{margin-top:0}.tcDoneStrip{margin:8px 0 12px;padding:13px 14px 14px;border:1px solid #3d5b46;border-radius:16px;background:#171d23;box-shadow:none}.tcDoneStripHead{display:flex;align-items:flex-start;gap:10px}.tcDoneStripHead>div{flex:1;min-width:0}.tcDoneStripTitle{font-size:17px;line-height:1.2;font-weight:900;color:#f6f7f9}.tcDoneStripText{margin-top:5px;font-size:12px;line-height:1.38;color:#aeb8c2}.tcDoneBadge{flex:0 0 auto;font-size:9px;font-weight:900;letter-spacing:.04em;color:#d9ffe2;border:1px solid #3d5b46;background:#17251b;border-radius:999px;padding:5px 7px}.tcUndoTodayCourseBtn,.tcAfterMainCard .btn{position:relative;z-index:4;pointer-events:auto!important;touch-action:manipulation;min-height:48px!important}.tcUndoTodayCourseBtn{margin-top:11px!important;border-radius:12px!important;font-size:13px!important}.tcAfterMainCard{margin-top:10px}';
       document.head.appendChild(st);
     }
 
