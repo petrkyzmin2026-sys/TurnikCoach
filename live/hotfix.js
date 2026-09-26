@@ -1,8 +1,8 @@
-/* TURNIKCOACH_HOTFIX 5.16.28-form-controls */
+/* TURNIKCOACH_HOTFIX 5.16.29-ux2-foundation */
 (function(){
   'use strict';
-  const VERSION='5.16.28-form-controls';
-  const LABEL='5.16.28';
+  const VERSION='5.16.29-ux2-foundation';
+  const LABEL='5.16.29';
   const APPROVED_KEY='tc_hotfix_approved_version';
   const LEGACY_ASSET_VERSION='5.14.0-adaptive-rest';
   const stalePrompt=document.getElementById('tcUpdatePrompt');
@@ -496,6 +496,120 @@
   window.addEventListener('focus',tcResumeClock);
   window.addEventListener('pageshow',tcResumeClock);
 
+  // ---------- UX 2.0: durable active-workout state ----------
+  const TC_ACTIVE_WORKOUT_KEY='tc_active_workout_v2';
+  let tcWorkoutPersistenceInstalled=false;
+  function tcWorkoutScreen(){
+    const el=document.querySelector('.screen.on');
+    return el&&el.id?el.id:'workout';
+  }
+  function tcClearActiveWorkoutSnapshot(){
+    try{localStorage.removeItem(TC_ACTIVE_WORKOUT_KEY)}catch(e){}
+  }
+  function tcSaveActiveWorkoutSnapshot(){
+    try{
+      if(typeof W==='undefined'||!W){
+        tcClearActiveWorkoutSnapshot();
+        return false;
+      }
+      const payload={
+        schema:2,
+        savedAt:Date.now(),
+        screen:tcWorkoutScreen(),
+        workout:W,
+        rest:{
+          active:!!tcRestActive,
+          end:+tcRestEnd||0,
+          note:String(window.__tcLastRestNote||'')
+        },
+        manualRest:window.__tcManualCourseRest||null
+      };
+      localStorage.setItem(TC_ACTIVE_WORKOUT_KEY,JSON.stringify(payload));
+      return true;
+    }catch(e){
+      console.error('TurnikCoach active workout save',e);
+      return false;
+    }
+  }
+  function tcValidRestoredWorkout(w){
+    if(!w||typeof w!=='object'||!Array.isArray(w.items)||!w.items.length)return false;
+    if(!Number.isInteger(+w.exerciseIndex)||+w.exerciseIndex<0||+w.exerciseIndex>=w.items.length)return false;
+    const item=w.items[+w.exerciseIndex];
+    if(!item||!Array.isArray(item.plan)||!item.plan.length)return false;
+    if(!Number.isInteger(+w.setIndex)||+w.setIndex<0||+w.setIndex>=item.plan.length)return false;
+    return true;
+  }
+  function tcRestoreActiveWorkoutSnapshot(){
+    if(typeof W!=='undefined'&&W)return false;
+    let payload=null;
+    try{payload=JSON.parse(localStorage.getItem(TC_ACTIVE_WORKOUT_KEY)||'null')}catch(e){}
+    if(!payload||payload.schema!==2||!tcValidRestoredWorkout(payload.workout)){
+      if(payload)tcClearActiveWorkoutSnapshot();
+      return false;
+    }
+    const age=Date.now()-(+payload.savedAt||0);
+    if(age<0||age>24*60*60*1000){
+      tcClearActiveWorkoutSnapshot();
+      return false;
+    }
+    try{
+      W=payload.workout;
+      window.__tcManualCourseRest=payload.manualRest||null;
+      const rest=payload.rest||{};
+      tcRestActive=!!rest.active;
+      tcRestEnd=+rest.end||0;
+      window.__tcLastRestNote=String(rest.note||'');
+      if(tcRestActive&&tcRestEnd){
+        R=Math.max(0,Math.ceil((tcRestEnd-Date.now())/1000));
+        const ring=document.getElementById('restNum');
+        if(ring)ring.textContent=R;
+        go('rest');
+        if(rt)clearInterval(rt);
+        rt=setInterval(tcRenderRest,250);
+        tcRenderRest();
+      }else{
+        tcRestActive=false;
+        tcRestEnd=0;
+        go('workout');
+        if(typeof renderWork==='function')renderWork();
+      }
+      showRuntimeNotice('Незавершённая тренировка восстановлена.');
+      return true;
+    }catch(e){
+      console.error('TurnikCoach active workout restore',e);
+      try{W=null}catch(_){}
+      tcRestActive=false;tcRestEnd=0;
+      tcClearActiveWorkoutSnapshot();
+      return false;
+    }
+  }
+  function tcInstallWorkoutPersistence(){
+    if(tcWorkoutPersistenceInstalled)return;
+    tcWorkoutPersistenceInstalled=true;
+    const names=['adj','setDone','startRest','addRest','finishRest','finishWorkout',
+      'tcStartAuxWorkout','tcStartCourseTest','tcStartCourseWorkout','tcStartExtraWorkout','tcStartSupplementWorkout'];
+    names.forEach(name=>{
+      const fn=window[name];
+      if(typeof fn!=='function'||fn.__tcPersistenceWrapped)return;
+      const wrapped=function(){
+        const result=fn.apply(this,arguments);
+        setTimeout(tcSaveActiveWorkoutSnapshot,0);
+        return result;
+      };
+      wrapped.__tcPersistenceWrapped=true;
+      window[name]=wrapped;
+    });
+    document.addEventListener('input',()=>{if(typeof W!=='undefined'&&W)setTimeout(tcSaveActiveWorkoutSnapshot,0)},{passive:true});
+    document.addEventListener('change',()=>{if(typeof W!=='undefined'&&W)setTimeout(tcSaveActiveWorkoutSnapshot,0)},{passive:true});
+    document.addEventListener('visibilitychange',()=>{
+      if(document.visibilityState==='hidden')tcSaveActiveWorkoutSnapshot();
+    });
+    window.addEventListener('pagehide',tcSaveActiveWorkoutSnapshot);
+    window.tcSaveActiveWorkoutSnapshot=tcSaveActiveWorkoutSnapshot;
+    window.tcClearActiveWorkoutSnapshot=tcClearActiveWorkoutSnapshot;
+    setTimeout(tcRestoreActiveWorkoutSnapshot,0);
+  }
+
   window.setDone=function(skip){
     if(!W)return;
     tcPrimeAudio();
@@ -695,6 +809,7 @@
     restReasonEl();
     tcLoadCourseModule();
     tcInstallNavigationFoundation();
+    tcInstallWorkoutPersistence();
     if(previousVersion!==VERSION)showRuntimeNotice('TurnikCoach обновлён до '+LABEL);
     console.log('TurnikCoach hotfix active:',VERSION);
   }
