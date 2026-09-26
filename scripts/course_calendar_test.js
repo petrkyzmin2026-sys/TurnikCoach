@@ -187,6 +187,30 @@ for(const [name,body] of Object.entries(actionBodies)){
     name+' still contains a silent one-line guard');
 }
 
+const feedbackCalls=[];
+new Function('W','tcActionMessage',actionBodies.aux)(
+  {},(...args)=>feedbackCalls.push(['aux',...args])
+);
+new Function('W','tcActionMessage','TC_course','tcCourseLevel','tcCourseDue','tcAuxDue','tcTestDue','tcMasteryDue','tcSupplementBreak',
+  actionBodies.supplement)(
+    {},(...args)=>feedbackCalls.push(['supplement',...args]),
+    {authorSupplement:true,history:[]},()=>({supplement:'yes'}),()=>false,()=>false,()=>false,()=>false,()=>false
+  );
+new Function('W','tcActionMessage','tcRecoveredForTest',actionBodies.startTest)(
+  {},(...args)=>feedbackCalls.push(['test',...args]),()=>true
+);
+new Function('tcTestDue','tcActionMessage',actionBodies.deferTest)(
+  ()=>false,(...args)=>feedbackCalls.push(['deferTest',...args])
+);
+new Function('TC_course','tcActionMessage',actionBodies.advance)(
+  {level:4,pendingTransition:null,masteryTests:[]},(...args)=>feedbackCalls.push(['advance',...args])
+);
+assert(feedbackCalls.some(x=>x[0]==='aux'&&x[1]==='Тренировка уже запущена'));
+assert(feedbackCalls.some(x=>x[0]==='supplement'&&x[1]==='Тренировка уже запущена'));
+assert(feedbackCalls.some(x=>x[0]==='test'&&x[1]==='Тренировка уже запущена'));
+assert(feedbackCalls.some(x=>x[0]==='deferTest'&&x[1]==='Перенос не требуется'));
+assert(feedbackCalls.some(x=>x[0]==='advance'&&x[1]==='Переход недоступен'));
+
 const undoState={enabled:true,level:4,goal:'quantity',weeklySessions:3,cycleStartDate:'2026-09-25',
   courseSeq:1,lastCourseDate:'2026-09-25',lastCourseTs:123,testAnchorDate:'2026-09-25',
   lastTestDate:'',history:[{courseMode:'course',date:'2026-09-25',ts:123,courseComplex:3}]};
