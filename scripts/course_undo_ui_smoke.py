@@ -63,6 +63,22 @@ def tap_bottom_nav(slot):
     adb("shell","input","tap",str(int(w*xs[slot])),str(int(h*0.91)))
     time.sleep(1)
 
+def tap_visible_text(text,contains=True,attempts=8):
+    size=adb("shell","wm","size").stdout
+    m=re.search(r"(\d+)x(\d+)",size)
+    if not m:
+        raise AssertionError("Cannot determine screen size")
+    w,h=map(int,m.groups())
+    for _ in range(attempts):
+        pos,_=find_text(text,contains)
+        if pos and int(h*0.08) < pos[1] < int(h*0.86):
+            adb("shell","input","tap",str(pos[0]),str(pos[1]))
+            time.sleep(.8)
+            return
+        adb("shell","input","swipe",str(w//2),str(int(h*.76)),str(w//2),str(int(h*.32)),"300")
+        time.sleep(.6)
+    raise AssertionError("Visible text not reached: "+text)
+
 def screenshot(name):
     remote="/sdcard/"+name+".png"
     adb("shell","screencap","-p",remote)
@@ -159,7 +175,7 @@ wait_text("Версия",timeout=12,contains=False)
 wait_text("5.16.25",timeout=12)
 screenshot("09-course-settings")
 
-tap_text("Сохранить",contains=False)
+tap_visible_text("Сохранить",contains=False)
 wait_text("Настройки курса сохранены.",timeout=12,contains=False)
 screenshot("10-settings-saved")
 
