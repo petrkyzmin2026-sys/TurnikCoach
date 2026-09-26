@@ -37,15 +37,14 @@ jobs:
           done
           base64 --decode /tmp/v513.b64 | gzip -dc > app/src/main/assets/index.html
           grep -q 'v5.13 — modern Android package' app/src/main/assets/index.html
-      - name: Reproduce installed 5.16.22 and verify remote 5.16.23 source
+      - name: Reproduce installed 5.16.22 and stage tested 5.16.23 locally
         run: |
           OLD_COMMIT="c5624cb6f7d36b5c3598a71c7e4010cb8b859b5a"
-          NEW_COMMIT="de0438d75095364f4400f0044e42e859dea5e0cd"
           curl -fsSL "https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/${OLD_COMMIT}/live/hotfix.js" > app/src/main/assets/hotfix.js
+          cp live/hotfix.js app/src/main/assets/hotfix-next.js
           grep -q 'TURNIKCOACH_HOTFIX 5.16.22-forced-handover' app/src/main/assets/hotfix.js
-          curl -fsSL "https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/${NEW_COMMIT}/live/hotfix.js" > /tmp/new-hotfix.js
-          grep -q 'TURNIKCOACH_HOTFIX 5.16.23-critical-ux' /tmp/new-hotfix.js
-          grep -q 'TURNIKCOACH_COURSE 1.0.20-critical-path' /tmp/new-hotfix.js
+          grep -q 'TURNIKCOACH_HOTFIX 5.16.23-critical-ux' app/src/main/assets/hotfix-next.js
+          grep -q 'TURNIKCOACH_COURSE 1.0.21-critical-controls' app/src/main/assets/hotfix-next.js
       - name: Seed installed 5.16.22 approval and completed main-course state
         run: |
           python3 - <<'PY'
@@ -90,10 +89,27 @@ jobs:
 
           activity=Path('app/src/main/java/ru/turnikcoach/app/MainActivity.java')
           java=activity.read_text()
-          old='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/hotfix.js'
-          new='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/de0438d75095364f4400f0044e42e859dea5e0cd/live/hotfix.js'
-          assert java.count(old)==1
-          java=java.replace(old,new)
+          java=java.replace('        startHotfixUpdate();','        // deterministic test: staged hotfix is applied from assets')
+          onfinish='''                applyAssetHotfix();
+                applyCachedHotfix();'''
+          assert java.count(onfinish)==1
+          java=java.replace(onfinish,onfinish+'''
+                web.postDelayed(() -> applyTestNextHotfix(), 1200);''')
+          marker='''    private void applyAssetHotfix() {'''
+          assert java.count(marker)==1
+          helper='''    private void applyTestNextHotfix() {
+        try (InputStream in = getAssets().open("hotfix-next.js"); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            byte[] buf = new byte[8192];
+            int n;
+            while ((n = in.read(buf)) > 0) out.write(buf, 0, n);
+            String js = out.toString(StandardCharsets.UTF_8.name());
+            if (validHotfix(js)) applyScript(js);
+        } catch (Exception ignored) {
+        }
+    }
+
+'''
+          java=java.replace(marker,helper+marker)
           activity.write_text(java)
 
           manifest=Path('app/src/main/AndroidManifest.xml')
