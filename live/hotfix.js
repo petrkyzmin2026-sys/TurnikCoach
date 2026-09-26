@@ -544,7 +544,7 @@
         .tcInfoPlan{display:flex;gap:7px;flex-wrap:wrap;margin-top:8px}
         .tcInfoPlan span{padding:5px 8px;border-radius:9px;background:#202a32;border:1px solid #35434f;color:#f6f7f8;font-size:11px;font-weight:850}
         #rest .rest{position:relative}
-        #rest .tcInfoBtn{position:absolute;right:14px;top:12px}
+        #rest .tcInfoBtn{position:absolute;right:92px;top:12px}
       `;
       document.head.appendChild(st);
     }
