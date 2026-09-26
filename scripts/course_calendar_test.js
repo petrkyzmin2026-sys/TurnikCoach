@@ -305,6 +305,14 @@ assert(hotfix.includes('#workout .stageControls .btn,#rest .btn,#sheet .sheetbox
 
 assert(hotfix.includes('#rest .tcInfoBtn{position:absolute;right:92px;top:12px}'),
  'rest info button must not overlap the rest Exit control');
+assert(course.includes("function tcExpandExerciseTouchTargets(host)"),
+ 'exercise catalog needs a decorator for legacy controls rendered by packaged app');
+assert(course.includes(".tcExerciseCheckTarget{width:48px;height:48px;min-width:48px"),
+ 'exercise checkbox needs a real 48 by 48 label hit area');
+assert(course.includes(".tcExerciseNumberTarget{min-height:48px!important"),
+ 'exercise MAX number field must be at least 48px high');
+assert(course.includes(".tcExerciseMainTarget{width:48px!important;height:48px!important"),
+ 'exercise primary-star button must be at least 48 by 48');
 
 const staleFormFeedback=[];
 new Function('TC_course','tcActionMessage','tcAdvancedChoicePool',formBodies.openAdvanced)(
@@ -334,4 +342,4 @@ assert.equal(undoState.lastCourseTs,0);
 assert.equal(undoState.testAnchorDate,'');
 assert.equal(undoApi.tcUndoLatestTodayCourseRecord('2026-09-25'),false,
  'undo must not remove anything twice');
-console.log('PASS: syntax, bundle, critical actions, form feedback and 48px touch-target rules');
+console.log('PASS: syntax, bundle, critical actions, form feedback and complete 48px touch-target rules');
