@@ -254,6 +254,38 @@ assert(formBodies.saveSettings.indexOf("const parsed=")<formBodies.saveSettings.
 assert(formBodies.saveSettings.indexOf("const allowedGoals=")<formBodies.saveSettings.indexOf("TC_course.goal=nextGoal"),
  'settings must validate the goal before mutating course state');
 
+assert(course.includes('id="tcSettingsError"'),
+ 'settings form needs an inline error region so validation does not replace the form');
+assert(formBodies.saveSettings.includes("const fail=(message,el)=>"),
+ 'settings validation must report errors inline before falling back to a modal');
+
+const invalidSettingsState={
+  level:4,goal:'quantity',weeklySessions:3,targetMax:25,testPeriodWeeks:3,
+  auxInterval3:10,auxEnabled:{3:false,6:false},pullMax:20,enabled:true
+};
+const settingsError={textContent:''};
+const invalidMax={value:'abc',style:{},focus(){}};
+const settingsControls={
+  tcCourseEnabled:{checked:true},
+  tcCourseLevel:{value:'4',style:{},focus(){}},
+  tcCourseMax:invalidMax,
+  tcCourseGoal:{value:'quantity',style:{},focus(){}},
+  tcCycleStartDate:{value:'2026-09-26',style:{},focus(){}},
+  tcSettingsError:settingsError
+};
+new Function('TC_course','document','tcGoalOptions','tcDateFromKey','dateKey','tcActionMessage',
+  formBodies.saveSettings)(
+    invalidSettingsState,
+    {getElementById:id=>settingsControls[id]||null},
+    ()=>[['quantity','Количество']],
+    key=>new Date(key+'T12:00:00'),
+    d=>typeof d==='string'?d:(d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')),
+    ()=>{throw new Error('inline validation should not replace the settings form')}
+  );
+assert.equal(invalidSettingsState.pullMax,20,'invalid maximum must not mutate stored settings');
+assert.equal(settingsError.textContent,'Текущий максимум должен быть целым положительным числом.');
+assert.equal(invalidMax.style.borderColor,'#ff7777');
+
 const staleFormFeedback=[];
 new Function('TC_course','tcActionMessage','tcAdvancedChoicePool',formBodies.openAdvanced)(
   {level:6,advancedChoices:{},goal:'quantity'},
