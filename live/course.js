@@ -640,6 +640,7 @@
       (TC_course.level===4&&TC_course.goal==='quantity'?'<div class="tcInfoBlock"><h3>Контроль максимума · TurnikCoach</h3><p>Цель: <input id="tcTargetMax" type="number" min="1" step="1" value="'+TC_course.targetMax+'" style="width:65px;background:#0c1218;color:#fff;border:1px solid #3a4653;border-radius:8px;padding:7px"> повторений.<br><br>Проверять каждые <select id="tcTestWeeks" style="background:#0c1218;color:#fff;border:1px solid #3a4653;border-radius:8px;padding:7px">'+[2,3,4].map(n=>'<option value="'+n+'" '+(TC_course.testPeriodWeeks===n?'selected':'')+'>'+n+' недели</option>').join('')+'</select><br><br>Контроль назначается после восстановления; результат сохраняется отдельно от основной тренировки.</p></div>':'')+
       (TC_course.level===7?'<button class="btn ghost full" style="margin-top:8px" onclick="tcOpenAdvancedChoiceSheet()">Выбрать два упражнения 7-го уровня</button>':'')+
       '<div class="tcInfoBlock"><h3>Версия</h3><p>Hotfix: <b>'+(window.__TC_HOTFIX_LABEL||window.__TC_HOTFIX_VERSION||'не определён')+'</b><br>Модуль курса: <b>'+COURSE_MODULE_VERSION+'</b>'+(window.__TC_HOTFIX_INSTALLED_AT?'<br>Активирован: '+new Date(window.__TC_HOTFIX_INSTALLED_AT).toLocaleString('ru-RU'):'')+'</p></div>'+
+      '<div id="tcSettingsError" class="meta" style="color:#ff9b9b;margin-top:10px"></div>'+
       '<button class="btn yellow full" style="margin-top:14px" onclick="tcSaveCourseSettings()">Сохранить</button><button class="btn ghost full" style="margin-top:8px" onclick="closeSheet()">Отмена</button>';
       sheet.classList.add('open');
       const levelEl=document.getElementById('tcCourseLevel');
@@ -653,50 +654,59 @@
     };
     window.tcSaveCourseSettings=function(){
       const oldLevel=TC_course.level,oldGoal=TC_course.goal;
+      const fail=(message,el)=>{
+        if(el){el.style.borderColor='#ff7777';if(typeof el.focus==='function')el.focus();}
+        const error=document.getElementById('tcSettingsError');
+        if(error){error.textContent=message;return false;}
+        tcActionMessage('Настройки не сохранены',message);
+        return false;
+      };
       const enabled=document.getElementById('tcCourseEnabled');
       const level=document.getElementById('tcCourseLevel');
       const mx=document.getElementById('tcCourseMax');
       const goal=document.getElementById('tcCourseGoal');
       const startEl=document.getElementById('tcCycleStartDate');
       if(!enabled||!level||!mx||!goal||!startEl){
-        tcActionMessage('Настройки не сохранены','Форма настроек изменилась или загрузилась не полностью. Закройте её и откройте заново.');
+        fail('Форма настроек изменилась или загрузилась не полностью. Закройте её и откройте заново.');
         return;
       }
 
       const nextLevel=Number(level.value);
       if(!Number.isInteger(nextLevel)||nextLevel<1||nextLevel>7){
-        tcActionMessage('Настройки не сохранены','Выберите допустимый уровень курса от 1 до 7.');
+        fail('Выберите допустимый уровень курса от 1 до 7.',level);
         return;
       }
       const maxRaw=String(mx.value||'').trim(),nextMax=Number(maxRaw);
       if(!maxRaw||!Number.isSafeInteger(nextMax)||nextMax<1){
-        mx.style.borderColor='#ff7777';if(typeof mx.focus==='function')mx.focus();
-        tcActionMessage('Настройки не сохранены','Текущий максимум должен быть целым положительным числом.');
+        fail('Текущий максимум должен быть целым положительным числом.',mx);
         return;
       }
       const nextGoal=String(goal.value||'');
       const allowedGoals=tcGoalOptions(nextLevel).map(x=>x[0]);
       if(!allowedGoals.includes(nextGoal)){
-        tcActionMessage('Настройки не сохранены','Выбранная цель не подходит для указанного уровня. Выберите цель заново.');
+        fail('Выбранная цель не подходит для указанного уровня. Выберите цель заново.',goal);
         return;
       }
       const startRaw=String(startEl.value||'');
       const parsed=/^\d{4}-\d{2}-\d{2}$/.test(startRaw)?tcDateFromKey(startRaw):null;
       if(!parsed||!Number.isFinite(parsed.getTime())||dateKey(parsed)!==startRaw){
-        startEl.style.borderColor='#ff7777';if(typeof startEl.focus==='function')startEl.focus();
-        const error=document.getElementById('tcCycleDateError');
-        if(error)error.textContent='Укажите действительную дату начала цикла.';
+        const dateError=document.getElementById('tcCycleDateError');
+        if(dateError)dateError.textContent='Укажите действительную дату начала цикла.';
+        fail('Укажите действительную дату начала цикла.',startEl);
         return;
       }
 
       const weeklyEl=document.getElementById('tcWeeklySessions');
       let nextWeekly=TC_course.weeklySessions;
       if(weeklyEl){
-        nextWeekly=Number(weeklyEl.value);
-        const allowedWeekly=nextLevel===2?[2,3,4]:(nextLevel===4&&nextGoal==='quantity'?[3,4]:[3,4]);
-        if(!allowedWeekly.includes(nextWeekly)){
-          tcActionMessage('Настройки не сохранены','Выберите допустимое количество основных тренировок в неделю.');
-          return;
+        if(nextLevel===2){
+          nextWeekly=Number(weeklyEl.value);
+          if(![2,3,4].includes(nextWeekly)){fail('Выберите 2, 3 или 4 основные тренировки в неделю.',weeklyEl);return;}
+        }else if(nextLevel===4&&nextGoal==='quantity'){
+          nextWeekly=Number(weeklyEl.value);
+          if(![3,4].includes(nextWeekly)){fail('Для этой цели выберите 3 или 4 основные тренировки в неделю.',weeklyEl);return;}
+        }else{
+          nextWeekly=3;
         }
       }
 
@@ -705,8 +715,7 @@
       if(targetEl){
         const raw=String(targetEl.value||'').trim(),n=Number(raw);
         if(!raw||!Number.isSafeInteger(n)||n<1){
-          targetEl.style.borderColor='#ff7777';if(typeof targetEl.focus==='function')targetEl.focus();
-          tcActionMessage('Настройки не сохранены','Цель контрольного максимума должна быть целым положительным числом.');
+          fail('Цель контрольного максимума должна быть целым положительным числом.',targetEl);
           return;
         }
         nextTarget=n;
@@ -716,7 +725,7 @@
       if(weeksEl){
         nextWeeks=Number(weeksEl.value);
         if(![2,3,4].includes(nextWeeks)){
-          tcActionMessage('Настройки не сохранены','Интервал контрольного максимума должен составлять 2, 3 или 4 недели.');
+          fail('Интервал контрольного максимума должен составлять 2, 3 или 4 недели.',weeksEl);
           return;
         }
       }
@@ -726,7 +735,7 @@
       if(auxIntervalEl){
         nextAuxInterval=Number(auxIntervalEl.value);
         if(![7,10].includes(nextAuxInterval)){
-          tcActionMessage('Настройки не сохранены','Периодичность вспомогательного комплекса должна составлять 7 или 10 дней.');
+          fail('Периодичность вспомогательного комплекса должна составлять 7 или 10 дней.',auxIntervalEl);
           return;
         }
       }
