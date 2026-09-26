@@ -37,12 +37,13 @@ jobs:
           done
           base64 --decode /tmp/v513.b64 | gzip -dc > app/src/main/assets/index.html
           grep -q 'v5.13 — modern Android package' app/src/main/assets/index.html
-      - name: Reproduce installed 5.16.22 and stage tested 5.16.23 locally
+      - name: Reproduce packaged 5.14 + cached 5.16.22 + tested 5.16.23
         run: |
-          OLD_COMMIT="c5624cb6f7d36b5c3598a71c7e4010cb8b859b5a"
-          curl -fsSL "https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/${OLD_COMMIT}/live/hotfix.js" > app/src/main/assets/hotfix.js
+          PREV_COMMIT="c5624cb6f7d36b5c3598a71c7e4010cb8b859b5a"
+          grep -q 'TURNIKCOACH_HOTFIX 5.14.0-adaptive-rest' app/src/main/assets/hotfix.js
+          curl -fsSL "https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/${PREV_COMMIT}/live/hotfix.js" > app/src/main/assets/hotfix-prev.js
           cp live/hotfix.js app/src/main/assets/hotfix-next.js
-          grep -q 'TURNIKCOACH_HOTFIX 5.16.22-forced-handover' app/src/main/assets/hotfix.js
+          grep -q 'TURNIKCOACH_HOTFIX 5.16.22-forced-handover' app/src/main/assets/hotfix-prev.js
           grep -q 'TURNIKCOACH_HOTFIX 5.16.23-critical-ux' app/src/main/assets/hotfix-next.js
           grep -q 'TURNIKCOACH_COURSE 1.0.21-critical-controls' app/src/main/assets/hotfix-next.js
       - name: Seed installed 5.16.22 approval and completed main-course state
@@ -90,14 +91,17 @@ jobs:
           activity=Path('app/src/main/java/ru/turnikcoach/app/MainActivity.java')
           java=activity.read_text()
           java=java.replace('        startHotfixUpdate();','        // deterministic test: staged hotfix is applied from assets')
+          asset_line='                applyAssetHotfix();'
+          assert java.count(asset_line)==1
+          java=java.replace(asset_line,asset_line+'\n                applyTestAssetHotfix("hotfix-prev.js");')
           cached_line='                applyCachedHotfix();'
           assert java.count(cached_line)==1
-          java=java.replace(cached_line,cached_line+'\n                web.postDelayed(() -> applyTestNextHotfix(), 1200);')
+          java=java.replace(cached_line,cached_line+'\n                web.postDelayed(() -> applyTestAssetHotfix("hotfix-next.js"), 1200);')
           marker='''    private void applyAssetHotfix() {'''
           assert java.count(marker)==1
           helper=(
-              "    private void applyTestNextHotfix() {\n"
-              "        try (InputStream in = getAssets().open(\"hotfix-next.js\"); ByteArrayOutputStream out = new ByteArrayOutputStream()) {\n"
+              "    private void applyTestAssetHotfix(String name) {\n"
+              "        try (InputStream in = getAssets().open(name); ByteArrayOutputStream out = new ByteArrayOutputStream()) {\n"
               "            byte[] buf = new byte[8192];\n"
               "            int n;\n"
               "            while ((n = in.read(buf)) > 0) out.write(buf, 0, n);\n"
