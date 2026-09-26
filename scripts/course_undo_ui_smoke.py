@@ -152,13 +152,13 @@ def launch():
 launch()
 dismiss_system_anr()
 
-# Exact update path: packaged 5.14 + cached 5.16.26 are active first; staged 5.16.27 must be offered explicitly.
+# Exact update path: packaged 5.14 + cached 5.16.27 are active first; staged 5.16.28 must be offered explicitly.
 time.sleep(3)
 screenshot("00-before-update-assert")
 adb("shell","uiautomator","dump","/sdcard/uxb3-before-update.xml",check=False)
 adb("pull","/sdcard/uxb3-before-update.xml",OUT+"/00-before-update.xml",check=False)
 try:
-    wait_text("Доступно обновление TurnikCoach 5.16.27",timeout=20)
+    wait_text("Доступно обновление TurnikCoach 5.16.28",timeout=20)
 except Exception:
     log=adb("logcat","-d","-t","500",check=False)
     with open(OUT+"/00-logcat.txt","w",encoding="utf-8") as fp:
@@ -168,7 +168,7 @@ wait_text("Обновить",contains=False)
 screenshot("01-update-offered")
 
 tap_text("Обновить",contains=False)
-wait_text("TurnikCoach обновлён до 5.16.27",timeout=25)
+wait_text("TurnikCoach обновлён до 5.16.28",timeout=25)
 screenshot("02-update-installed")
 
 # Main course is already saved by the seeded user state; extra workout must still be available.
@@ -221,7 +221,9 @@ wait_text("Настройки курса",timeout=12,contains=False)
 tap_text("Настройки курса",contains=False)
 wait_text("Начало тренировочного цикла",timeout=12)
 wait_text("Версия",timeout=12,contains=False)
-wait_text("5.16.27",timeout=12)
+wait_text("5.16.28",timeout=12)
+# The long settings sheet exercises select, number and date controls before Save.
+# Static regression enforces their 48px CSS contract; the Android smoke verifies the form remains operable.
 screenshot("09-course-settings")
 
 tap_visible_text("Сохранить",contains=False)
@@ -242,4 +244,4 @@ assert_accessibility_target("Выбрать упражнение",48)
 assert_touch_target("★",48,contains=False)
 screenshot("12-exercise-touch-targets")
 
-print("UX_BLOCK5B_SMOKE_OK")
+print("UX_BLOCK5C_SMOKE_OK")
