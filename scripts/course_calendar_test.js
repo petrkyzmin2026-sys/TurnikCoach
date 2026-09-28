@@ -113,10 +113,16 @@ assert(doneHtml.includes('Начать дополнительную тренир
 assert(doneHtml.includes('id="tcUndoTodayCourseBtn"'),
  'same-day undo must remain available as a secondary action');
 assert(doneHtml.includes('onclick="tcStartExtraWorkout()"'),
- 'after-main extra CTA must carry its handler atomically with the rendered button');
+ 'after-main extra CTA keeps an inline fallback handler');
+assert(course.includes("const extra=document.getElementById('tcStartExtraAfterCourseBtn')")&&
+ course.includes("window.tcStartExtraWorkout();"),
+ 'after-main extra CTA must also receive an explicit WebView-safe handler after render');
 const emptyExtrasHtml=uiApi.tcTodayCourseDoneHtml([]);
 assert(emptyExtrasHtml.includes("onclick=\"go('exercise')\""),
- 'after-main choose-extras CTA must not depend on a later decorator pass');
+ 'after-main choose-extras CTA keeps an inline fallback handler');
+assert(course.includes("const choose=document.getElementById('tcChooseExtrasAfterCourseBtn')")&&
+ course.includes("go('exercise');"),
+ 'after-main choose-extras CTA must also receive an explicit WebView-safe handler after render');
 
 const doneExtraApi=new Function('TC_course','state','dateKey','tcExtraRowsHtml',
   extract('tcTodayCourseRecord')+'\n'+extract('tcTodayExtraRecord')+'\n'+extract('tcTodayCourseDoneHtml')+
