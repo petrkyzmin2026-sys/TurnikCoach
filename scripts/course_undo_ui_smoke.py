@@ -97,7 +97,7 @@ def press_clickable_text(text,timeout=12):
 def test_eval(js,label):
     encoded=base64.b64encode(js.encode("utf-8")).decode("ascii")
     adb("logcat","-c",check=False)
-    sent=adb("shell","am","broadcast","-p",PKG,"-a","ru.turnikcoach.TEST_EVAL","--es","js_b64",encoded,check=False)
+    sent=adb("shell","am","broadcast","--receiver-foreground","-a","ru.turnikcoach.TEST_EVAL","--es","js_b64",encoded,check=False)
     time.sleep(.8)
     log=adb("logcat","-d","-s","TurnikCoachJSResult:D","TurnikCoachJS:D","*:S",check=False)
     output=(log.stdout or "")+"\n"+(log.stderr or "")
