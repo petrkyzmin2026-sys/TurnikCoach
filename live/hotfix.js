@@ -312,6 +312,18 @@
     }
 
     function tcHasWorkout(){return typeof W!=='undefined'&&!!W}
+    function tcSyncScreenVisibility(id){
+      const screens=[...document.querySelectorAll('.screen')];
+      screens.forEach(screen=>{
+        const active=screen.id===id;
+        screen.classList.toggle('on',active);
+        screen.hidden=!active;
+        screen.setAttribute('aria-hidden',active?'false':'true');
+        screen.style.display=active?'flex':'none';
+      });
+      const target=document.getElementById(id);
+      if(target){void target.offsetHeight}
+    }
     function tcClearWorkout(){try{if(typeof rt!=='undefined'&&rt){clearInterval(rt);rt=null}}catch(e){}try{W=null}catch(e){}try{if(typeof window.tcClearActiveWorkoutSnapshot==='function')window.tcClearActiveWorkoutSnapshot()}catch(e){}}
     const baseGo=window.go;
     window.go=function(id){
@@ -319,6 +331,7 @@
       console.log('TC_NAV_TRACE',JSON.stringify({phase:'go-enter',from,id,hasW:tcHasWorkout(),state:history.state||null,active:activeScreens()}));
       scrollByScreen[from]=currentScroll(from);
       const r=baseGo(id);
+      tcSyncScreenVisibility(id);
       console.log('TC_NAV_TRACE',JSON.stringify({phase:'go-after-base',from,id,screen:currentScreen(),hasW:tcHasWorkout(),state:history.state||null,active:activeScreens()}));
       if(internal){restoreScroll(id);return r}
 
@@ -502,6 +515,7 @@
     });
 
     const start=currentScreen();
+    tcSyncScreenVisibility(start);
     replaceRoute(start,false);
     tcDecorateBackControls();
     const app=document.getElementById('app');
