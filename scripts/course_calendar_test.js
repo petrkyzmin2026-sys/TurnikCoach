@@ -54,7 +54,7 @@ assert(course.includes('id="tcCycleStartDate"'),
  'settings must expose a cycle start date');
 assert(hotfix.includes("const VERSION='5.16.32-completion-flow'"),
  'release hotfix version must be 5.16.32');
-assert(course.includes("const COURSE_MODULE_VERSION='1.0.31-webview-pointer-gesture'"),
+assert(course.includes("const COURSE_MODULE_VERSION='1.0.32-extra-start-trace'"),
  'course module version must be 1.0.27');
 assert(!course.includes('window.confirm('),'course module must not depend on unsupported WebView JS dialogs');
 assert(!hotfix.includes('window.confirm('),'hotfix navigation/discard must not depend on unsupported WebView JS dialogs');
