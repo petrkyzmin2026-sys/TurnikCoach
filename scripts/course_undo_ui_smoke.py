@@ -96,16 +96,24 @@ def press_clickable_text(text,timeout=12):
 
 def test_eval(js,label):
     encoded=base64.b64encode(js.encode("utf-8")).decode("ascii")
+    adb("shell","run-as",PKG,"rm","-f","files/tc-test-js-result.txt",check=False)
     adb("logcat","-c",check=False)
     component=PKG+"/ru.turnikcoach.app.MainActivity"
     sent=adb("shell","am","start","--activity-single-top","-n",component,"-a","ru.turnikcoach.TEST_EVAL","--es","js_b64",encoded,check=False)
-    time.sleep(.8)
+    result=""
+    deadline=time.time()+6
+    while time.time()<deadline:
+        rr=adb("shell","run-as",PKG,"cat","files/tc-test-js-result.txt",check=False)
+        if rr.returncode==0 and (rr.stdout or "").strip():
+            result=(rr.stdout or "").strip()
+            break
+        time.sleep(.25)
     log=adb("logcat","-d","-s","TurnikCoachJSResult:D","TurnikCoachJS:D","*:S",check=False)
     output=(log.stdout or "")+"\n"+(log.stderr or "")
-    print("TC_DIAG JS",label,"broadcast_rc",sent.returncode,output[-4000:],flush=True)
+    print("TC_DIAG JS",label,"start_rc",sent.returncode,"result",result,"log",output[-3000:],flush=True)
     with open(OUT+"/04b-js-"+label+".txt","w",encoding="utf-8") as fp:
-        fp.write("broadcast:\n"+(sent.stdout or "")+"\n"+(sent.stderr or "")+"\nlog:\n"+output)
-    return output
+        fp.write("start:\n"+(sent.stdout or "")+"\n"+(sent.stderr or "")+"\nresult:\n"+result+"\nlog:\n"+output)
+    return result
 
 def tap_bottom_nav(slot):
     size=adb("shell","wm","size").stdout
