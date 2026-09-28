@@ -1,7 +1,7 @@
-/* TURNIKCOACH_COURSE 1.0.28-progressive-settings */
+/* TURNIKCOACH_COURSE 1.0.29-webview-start-fix */
 (function(){
   'use strict';
-  const COURSE_MODULE_VERSION='1.0.28-progressive-settings';
+  const COURSE_MODULE_VERSION='1.0.29-webview-start-fix';
   if(window.__TC_COURSE_MODULE_VERSION===COURSE_MODULE_VERSION)return;
   window.__TC_COURSE_MODULE_VERSION=COURSE_MODULE_VERSION;
   function tcClamp(v,a,b){return Math.max(a,Math.min(b,v))}
@@ -960,7 +960,7 @@
       if(tcNeedsWorkingWeight('aux')){tcOpenWorkingWeight('aux');return;}
       const items=tcBuildAuxItems();
       if(!items.length){tcActionMessage('Нет доступных упражнений','Вспомогательный комплекс не удалось собрать для текущего оборудования и настроек курса.');return;}
-      unlockAudio();
+      tcPrimeAudio();
       W={mode:'auxCourse',sessionIndex:0,exerciseIndex:0,setIndex:0,items,
         actual:tcSchemeTarget(items[0].def),early:false,courseLevel:TC_course.level,
         courseComplex:2,courseGoal:TC_course.goal,adapted:tcUnavailableDefs(TC_COURSE[TC_course.level].complexes[2].items).length>0};
@@ -1435,7 +1435,7 @@
       const def={id:e.id,name:e.name,metric:'reps',sets:1,scheme:{type:'max'},
         rest:{type:'manual',label:'После испытания'}};
       const item={e,def,plan:[TC_course.pullMax],planLabels:['MAX'],actual:[]};
-      unlockAudio();
+      tcPrimeAudio();
       W={mode:'courseTest',sessionIndex:0,exerciseIndex:0,setIndex:0,items:[item],
         actual:0,early:false,courseLevel:TC_course.level,courseGoal:TC_course.goal};
       go('workout');
@@ -1682,7 +1682,7 @@
       if(TC_course.level===7&&!tcAdvancedSelected()){tcOpenAdvancedChoiceSheet();return;}
       const items=tcBuildCourseItems();
       if(!items.length){tcActionMessage('Не удалось собрать тренировку','Проверьте выбранные упражнения и настройки курса.');return;}
-      unlockAudio();
+      tcPrimeAudio();
       const c=tcCourseComplex();W={mode:'course',sessionIndex:0,exerciseIndex:0,setIndex:0,items,actual:tcSchemeTarget(items[0].def),early:false,courseLevel:TC_course.level,courseComplex:c.no,courseGoal:TC_course.goal,adapted:tcUnavailableDefs(tcOriginalCourseDefs()).length>0};go('workout');
     };
     window.tcStartExtraWorkout=function(){
@@ -1690,7 +1690,7 @@
       if(tcTodayExtraRecord()){tcActionMessage('Дополнительная тренировка уже выполнена','Сегодняшняя дополнительная тренировка уже сохранена в истории.');return;}
       const items=tcBuildExtraItems();
       if(!items.length){tcActionMessage('Нет дополнительных упражнений','Выберите пресс, ноги, отжимания или другие дополнительные упражнения на экране «Упражнения».');return;}
-      unlockAudio();
+      tcPrimeAudio();
       const idx=TC_course.extraSeq%3;W={mode:'extra',sessionIndex:idx,exerciseIndex:0,setIndex:0,items,actual:items[0].plan[0],early:false};go('workout');
     };
     window.tcStartSupplementWorkout=function(){
