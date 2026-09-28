@@ -332,7 +332,15 @@
       scrollByScreen[from]=currentScroll(from);
       const r=baseGo(id);
       tcSyncScreenVisibility(id);
-      console.log('TC_NAV_TRACE',JSON.stringify({phase:'go-after-base',from,id,screen:currentScreen(),hasW:tcHasWorkout(),state:history.state||null,active:activeScreens()}));
+      const diagIds=['today','workout'];
+      const layout={};
+      diagIds.forEach(key=>{
+        const el=document.getElementById(key);
+        if(!el)return;
+        const cs=getComputedStyle(el),rect=el.getBoundingClientRect();
+        layout[key]={className:el.className,hidden:!!el.hidden,styleDisplay:el.style.display,display:cs.display,visibility:cs.visibility,opacity:cs.opacity,w:Math.round(rect.width),h:Math.round(rect.height)};
+      });
+      console.log('TC_NAV_TRACE',JSON.stringify({phase:'go-after-base',from,id,screen:currentScreen(),hasW:tcHasWorkout(),state:history.state||null,active:activeScreens(),layout}));
       if(internal){restoreScroll(id);return r}
 
       const trainingFlow=tcHasWorkout()&&(id==='workout'||id==='rest')&&(from==='workout'||from==='rest');
