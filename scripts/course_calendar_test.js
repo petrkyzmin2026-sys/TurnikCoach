@@ -369,8 +369,11 @@ assert(hotfix.includes("const TC_COMPLETION_UNDO_KEY='tc_completion_undo_v1'"),
  'completion flow must keep a bounded undo transaction');
 assert(hotfix.includes('function tcInstallCompletionFlow()'),
  'completion summary must wrap the final save path');
-assert(hotfix.includes("state=tx.state")&&hotfix.includes("TC_course=tx.course"),
- 'completion undo must restore both generic and course state snapshots');
+assert(hotfix.includes("if(tx.state)state=tx.state")&&
+ hotfix.includes("window.tcRestoreCourseStateSnapshot(tx.course)")&&
+ course.includes("window.tcGetCourseStateSnapshot=function()")&&
+ course.includes("window.tcRestoreCourseStateSnapshot=function(snapshot)"),
+ 'completion undo must restore both generic state and the encapsulated course snapshot');
 assert(hotfix.includes('tcShowCompletionSummary(summary)'),
  'successful save must open a completion summary');
 assert(hotfix.includes("if(tcActiveWorkoutForUpdate()){")&&hotfix.includes('tcScheduleDeferredUpdate(activate)'),
