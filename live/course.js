@@ -1028,11 +1028,21 @@
       const extra=document.getElementById('tcStartExtraAfterCourseBtn');
       if(extra&&extra.dataset.tcBound!=='1'){
         extra.dataset.tcBound='1';
-        extra.onclick=function(ev){
+        let lastExtraStart=0;
+        const startExtra=function(ev){
+          const now=Date.now();
+          if(now-lastExtraStart<700){
+            if(ev){ev.preventDefault();ev.stopPropagation()}
+            return false;
+          }
+          lastExtraStart=now;
           if(ev){ev.preventDefault();ev.stopPropagation()}
           window.tcStartExtraWorkout();
           return false;
         };
+        extra.onclick=startExtra;
+        extra.addEventListener('pointerup',startExtra,{passive:false});
+        extra.addEventListener('touchend',startExtra,{passive:false});
       }
       const choose=document.getElementById('tcChooseExtrasAfterCourseBtn');
       if(choose&&choose.dataset.tcBound!=='1'){
