@@ -152,13 +152,13 @@ def launch():
 launch()
 dismiss_system_anr()
 
-# Exact update path: packaged 5.14 + cached 5.16.30 are active first; staged 5.16.31 must be offered explicitly.
+# Exact update path: packaged 5.14 + cached 5.16.31 are active first; staged 5.16.32 must be offered explicitly.
 time.sleep(3)
 screenshot("00-before-update-assert")
 adb("shell","uiautomator","dump","/sdcard/uxb3-before-update.xml",check=False)
 adb("pull","/sdcard/uxb3-before-update.xml",OUT+"/00-before-update.xml",check=False)
 try:
-    wait_text("Доступно обновление TurnikCoach 5.16.31",timeout=20)
+    wait_text("Доступно обновление TurnikCoach 5.16.32",timeout=20)
 except Exception:
     log=adb("logcat","-d","-t","500",check=False)
     with open(OUT+"/00-logcat.txt","w",encoding="utf-8") as fp:
@@ -168,7 +168,7 @@ wait_text("Обновить",contains=False)
 screenshot("01-update-offered")
 
 tap_text("Обновить",contains=False)
-wait_text("TurnikCoach обновлён до 5.16.31",timeout=25)
+wait_text("TurnikCoach обновлён до 5.16.32",timeout=25)
 assert_accessibility_target("План",48)
 assert_accessibility_target("Прогресс",48)
 screenshot("02-update-installed")
@@ -187,6 +187,10 @@ wait_text("Выйти",timeout=10,contains=False)
 assert_touch_target("Выйти",48,contains=False)
 wait_text("ⓘ",timeout=10,contains=False)
 assert_touch_target("ⓘ",48,contains=False)
+assert_touch_target("Сделано",58,contains=False)
+assert_touch_target("Пропустить",48,contains=True)
+assert_touch_target("−",48,contains=False)
+assert_touch_target("+",48,contains=False)
 
 # UX2 durability: kill the Android process and verify the same active workout returns.
 adb("shell","am","force-stop",PKG)
@@ -197,29 +201,63 @@ wait_text("Подъём коленей в висе",timeout=20)
 wait_text("Выйти",timeout=12,contains=False)
 screenshot("05-process-death-restored")
 
-# Explicit visible exit must still work after process restoration.
+# Complete the restored extra workout end-to-end.
+for _ in range(30):
+    pos,_=find_text("Как прошла тренировка?",contains=False)
+    if pos:
+        break
+    pos,_=find_text("Сделано",contains=False)
+    if pos:
+        adb("shell","input","tap",str(pos[0]),str(pos[1]))
+        time.sleep(.7)
+        continue
+    pos,_=find_text("Готов раньше",contains=False)
+    if pos:
+        adb("shell","input","tap",str(pos[0]),str(pos[1]))
+        time.sleep(.7)
+        continue
+    time.sleep(.5)
+else:
+    raise AssertionError("Workout did not reach feedback sheet")
+
+tap_text("Нормально",contains=False)
+wait_text("Дополнительная тренировка завершена",timeout=12,contains=False)
+wait_text("Отменить сохранение",timeout=12,contains=False)
+screenshot("06-completion-summary")
+
+# Immediate Undo must return to the pre-save state.
+tap_text("Отменить сохранение",contains=False)
+wait_text("Сохранение тренировки отменено.",timeout=10,contains=False)
+wait_text("Основной комплекс выполнен",timeout=10)
+wait_text("Начать дополнительную тренировку",timeout=10)
+screenshot("07-completion-undone")
+
+# Start the extra workout again and verify explicit discard still works.
+tap_text("Начать дополнительную тренировку",contains=False)
+wait_text("Подъём коленей в висе",timeout=15)
+wait_text("Выйти",timeout=10,contains=False)
 tap_text("Выйти",contains=False)
 wait_text("Выйти без сохранения?",timeout=10)
 wait_text("Выйти без сохранения",contains=False)
-screenshot("06-discard-confirm")
+screenshot("08-discard-confirm")
 
 tap_text("Выйти без сохранения",contains=False)
 wait_text("Текущая тренировка закрыта без сохранения.",timeout=10)
 wait_text("Основной комплекс выполнен",timeout=10)
 wait_text("Начать дополнительную тренировку",timeout=10)
-screenshot("07-returned-after-discard")
+screenshot("09-returned-after-discard")
 
 # Undo remains reachable as a secondary recovery action.
 wait_text("Ошибочно завершил — отменить запись",timeout=10)
 tap_text("Ошибочно завершил — отменить запись",contains=False)
 wait_text("Отменить сегодняшнюю тренировку?",timeout=10)
 wait_text("Отменить запись",contains=False)
-screenshot("08-undo-confirm")
+screenshot("10-undo-confirm")
 
 tap_text("Отменить запись",contains=False)
 wait_text("Комплекс №3",timeout=12)
 wait_text("Начать адаптированную тренировку",timeout=12)
-screenshot("09-course-restored")
+screenshot("11-course-restored")
 
 # Forms/settings block: open course settings and save an unchanged valid form.
 pos,_=find_text("Тренировка",contains=False)
@@ -239,20 +277,20 @@ tap_text("Расписание",contains=False)
 wait_text("Начало тренировочного цикла",timeout=12)
 tap_text("Система и оборудование",contains=False)
 wait_text("Версия",timeout=12,contains=False)
-wait_text("5.16.31",timeout=12)
+wait_text("5.16.32",timeout=12)
 # The long settings sheet exercises select, number and date controls before Save.
 # Static regression enforces their 48px CSS contract; the Android smoke verifies the form remains operable.
-screenshot("10-course-settings")
+screenshot("12-course-settings")
 
 tap_visible_text("Сохранить",contains=False)
 wait_text("Настройки курса сохранены.",timeout=12,contains=False)
-screenshot("11-settings-saved")
+screenshot("13-settings-saved")
 
 # Calendar navigation must remain usable after increasing its touch targets.
 tap_bottom_nav("today")
 wait_text("Сегодня",timeout=10)
 assert_touch_target("Сегодня",48,contains=False)
-screenshot("12-touch-targets-today")
+screenshot("14-touch-targets-today")
 
 # Legacy exercise catalog controls must also expose usable touch targets.
 tap_bottom_nav("workout")
@@ -260,6 +298,6 @@ wait_text("План",timeout=10,contains=False)
 wait_text("Подтягивания классические",timeout=10,contains=False)
 assert_accessibility_target("Выбрать упражнение",48)
 assert_touch_target("★",48,contains=False)
-screenshot("13-plan-touch-targets")
+screenshot("15-plan-touch-targets")
 
-print("UX2_WORKOUT_FLOW_SMOKE_OK")
+print("UX2_COMPLETION_FLOW_SMOKE_OK")
