@@ -273,11 +273,16 @@ after_tap_log=adb("logcat","-d","-t","400",check=False)
 with open(OUT+"/04a-after-extra-start-logcat.txt","w",encoding="utf-8") as fp:
     fp.write((after_tap_log.stdout or "")+"\n"+(after_tap_log.stderr or ""))
 
-try:
-    wait_text("Сделано",timeout=8,contains=False)
-except Exception:
-    capture_debug("extra-start-failed")
-    raise
+# Let the WebView finish go('workout') + render() before asserting controls.
+time.sleep(1)
+screenshot("04b-extra-start-settled")
+adb("shell","uiautomator","dump","/sdcard/ux2-extra-start-settled.xml",check=False)
+adb("pull","/sdcard/ux2-extra-start-settled.xml",OUT+"/04b-extra-start-settled.xml",check=False)
+settled_log=adb("logcat","-d","-t","600",check=False)
+with open(OUT+"/04b-extra-start-settled-logcat.txt","w",encoding="utf-8") as fp:
+    fp.write((settled_log.stdout or "")+"\n"+(settled_log.stderr or ""))
+
+wait_text("Сделано",timeout=8,contains=False)
 
 wait_text("Подъём коленей в висе",timeout=15,contains=False)
 wait_text("Выйти",timeout=15,contains=False)
