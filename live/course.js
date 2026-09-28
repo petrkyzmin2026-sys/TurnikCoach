@@ -1,7 +1,7 @@
-/* TURNIKCOACH_COURSE 1.0.32-extra-start-trace */
+/* TURNIKCOACH_COURSE 1.0.33-single-action-router */
 (function(){
   'use strict';
-  const COURSE_MODULE_VERSION='1.0.32-extra-start-trace';
+  const COURSE_MODULE_VERSION='1.0.33-single-action-router';
   if(window.__TC_COURSE_MODULE_VERSION===COURSE_MODULE_VERSION)return;
   window.__TC_COURSE_MODULE_VERSION=COURSE_MODULE_VERSION;
   function tcClamp(v,a,b){return Math.max(a,Math.min(b,v))}
@@ -1009,54 +1009,19 @@
         return html+'<div class="todayCard tcAfterMainCard"><div class="row between"><div><div class="dateBig">Дополнительная тренировка</div>'+
           '<div class="meta">Пресс, ноги, отжимания и другие выбранные нетяговые упражнения.</div></div><span class="tag">ДОП.</span></div>'+
           tcExtraRowsHtml(extras)+
-          '<button id="tcStartExtraAfterCourseBtn" type="button" class="btn yellow full" style="margin-top:12px" onclick="tcStartExtraWorkout()">Начать дополнительную тренировку</button></div>';
+          '<button id="tcStartExtraAfterCourseBtn" type="button" class="btn yellow full" style="margin-top:12px">Начать дополнительную тренировку</button></div>';
       }
       return html+'<div class="todayCard tcAfterMainCard"><div class="dateBig">Дополнительная тренировка</div>'+
         '<div class="meta">Дополнительные упражнения не выбраны.</div>'+
-        '<button id="tcChooseExtrasAfterCourseBtn" type="button" class="btn ghost full" style="margin-top:10px" onclick="go(\'exercise\')">Выбрать упражнения</button></div>';
+        '<button id="tcChooseExtrasAfterCourseBtn" type="button" class="btn ghost full" style="margin-top:10px">Выбрать упражнения</button></div>';
     }
     function tcBindTodayDoneActions(){
-      const undo=document.getElementById('tcUndoTodayCourseBtn');
-      if(undo&&undo.dataset.tcBound!=='1'){
-        undo.dataset.tcBound='1';
-        undo.onclick=function(ev){
-          if(ev){ev.preventDefault();ev.stopPropagation()}
-          window.tcOpenUndoTodayCourseConfirm();
-          return false;
-        };
-      }
-      const extra=document.getElementById('tcStartExtraAfterCourseBtn');
-      if(extra&&extra.dataset.tcBound!=='1'){
-        extra.dataset.tcBound='1';
-        let lastExtraStart=0;
-        const startExtra=function(ev){
-          const now=Date.now();
-          if(now-lastExtraStart<700){
-            if(ev){ev.preventDefault();ev.stopPropagation()}
-            return false;
-          }
-          lastExtraStart=now;
-          if(ev){ev.preventDefault();ev.stopPropagation()}
-          window.tcStartExtraWorkout();
-          return false;
-        };
-        extra.onclick=startExtra;
-        extra.addEventListener('pointerup',startExtra,{passive:false});
-        extra.addEventListener('touchend',startExtra,{passive:false});
-      }
-      const choose=document.getElementById('tcChooseExtrasAfterCourseBtn');
-      if(choose&&choose.dataset.tcBound!=='1'){
-        choose.dataset.tcBound='1';
-        choose.onclick=function(ev){
-          if(ev){ev.preventDefault();ev.stopPropagation()}
-          go('exercise');
-          return false;
-        };
-      }
+      const ids=['tcUndoTodayCourseBtn','tcStartExtraAfterCourseBtn','tcChooseExtrasAfterCourseBtn'];
+      ids.forEach(id=>{const el=document.getElementById(id);if(el)el.dataset.tcBound='delegated-v2'});
     }
-    function tcInstallTodayActionDelegation(){
-      if(window.__TC_TODAY_ACTION_DELEGATION_V1)return;
-      window.__TC_TODAY_ACTION_DELEGATION_V1=true;
+        function tcInstallTodayActionDelegation(){
+      if(window.__TC_TODAY_ACTION_DELEGATION_V2)return;
+      window.__TC_TODAY_ACTION_DELEGATION_V2=true;
       let gesture=null,lastActionAt=0;
       const actionFor=(target)=>{
         const el=target&&target.closest?target.closest('#tcStartExtraAfterCourseBtn,#tcChooseExtrasAfterCourseBtn,#tcUndoTodayCourseBtn'):null;
