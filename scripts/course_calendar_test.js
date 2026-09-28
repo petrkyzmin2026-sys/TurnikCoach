@@ -54,7 +54,7 @@ assert(course.includes('id="tcCycleStartDate"'),
  'settings must expose a cycle start date');
 assert(hotfix.includes("const VERSION='5.16.32-completion-flow'"),
  'release hotfix version must be 5.16.32');
-assert(course.includes("const COURSE_MODULE_VERSION='1.0.30-webview-action-delegation'"),
+assert(course.includes("const COURSE_MODULE_VERSION='1.0.31-webview-pointer-gesture'"),
  'course module version must be 1.0.27');
 assert(!course.includes('window.confirm('),'course module must not depend on unsupported WebView JS dialogs');
 assert(!hotfix.includes('window.confirm('),'hotfix navigation/discard must not depend on unsupported WebView JS dialogs');
@@ -123,6 +123,12 @@ assert(course.includes('function tcInstallTodayActionDelegation()')&&
  course.includes("document.addEventListener('click',ev=>{const el=actionFor(ev.target);if(el)run(el,ev)},true)")&&
  course.includes("document.addEventListener('touchend',ev=>"),
  'Today actions must also have stable delegated click/touch activation across rerenders');
+assert(course.includes("document.addEventListener('pointerdown',ev=>")&&
+ course.includes("document.addEventListener('pointerup',ev=>")&&
+ course.includes("pointerGesture===g&&!g.moved&&!g.ran"),
+ 'Today actions must survive WebView click cancellation while cancelling real scroll gestures');
+assert(course.includes(".tcAfterMainCard{position:relative;z-index:40"),
+ 'after-main CTA card must stay above sibling content in the Today stacking context');
 assert(course.includes("tcActionMessage('Не удалось начать тренировку',message)"),
  'extra-workout startup errors must never fail silently');
 const emptyExtrasHtml=uiApi.tcTodayCourseDoneHtml([]);
