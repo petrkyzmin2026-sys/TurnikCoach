@@ -157,6 +157,21 @@
     }
     let TC_course=tcLoadCourse();
     function tcSaveCourse(){try{localStorage.setItem(TC_COURSE_KEY,JSON.stringify(TC_course));return true}catch(e){console.error('course save',e);return false}}
+    window.tcGetCourseStateSnapshot=function(){
+      try{return JSON.parse(JSON.stringify(TC_course))}catch(e){return null}
+    };
+    window.tcRestoreCourseStateSnapshot=function(snapshot){
+      if(!snapshot||typeof snapshot!=='object'||Array.isArray(snapshot))return false;
+      try{
+        localStorage.setItem(TC_COURSE_KEY,JSON.stringify(snapshot));
+        TC_course=tcLoadCourse();
+        tcSaveCourse();
+        return true;
+      }catch(e){
+        console.error('course state restore',e);
+        return false;
+      }
+    };
 
     function tcNextTestDate(){
       const start=TC_course.lastTestDate||TC_course.testAnchorDate;
