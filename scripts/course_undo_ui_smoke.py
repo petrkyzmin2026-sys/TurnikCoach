@@ -113,6 +113,10 @@ def test_eval(js,label):
     print("TC_DIAG JS",label,"start_rc",sent.returncode,"result",result,"log",output[-3000:],flush=True)
     with open(OUT+"/04b-js-"+label+".txt","w",encoding="utf-8") as fp:
         fp.write("start:\n"+(sent.stdout or "")+"\n"+(sent.stderr or "")+"\nresult:\n"+result+"\nlog:\n"+output)
+    if sent.returncode!=0:
+        raise AssertionError("TEST_EVAL intent failed for "+label+": "+(sent.stderr or sent.stdout or ""))
+    if not result:
+        raise AssertionError("TEST_EVAL returned no WebView result for "+label)
     return result
 
 def tap_bottom_nav(slot):
@@ -276,7 +280,11 @@ if not pos:
       var on=document.querySelector('.screen.on');
       if(!b)return {button:false,screen:on&&on.id,hasW:typeof W!=='undefined'&&!!W};
       var r=b.getBoundingClientRect(),x=r.left+r.width/2,y=r.top+r.height/2,top=document.elementFromPoint(x,y),s=getComputedStyle(b);
+      var extraCount=-1,extraDone=null;
+      try{extraCount=typeof tcBuildExtraItems==='function'?tcBuildExtraItems().length:-2}catch(e){extraCount=-3}
+      try{extraDone=typeof tcTodayExtraRecord==='function'?!!tcTodayExtraRecord():null}catch(e){}
       return {button:true,screen:on&&on.id,hasW:typeof W!=='undefined'&&!!W,
+        courseVersion:window.__TC_COURSE_MODULE_VERSION||'',extraCount:extraCount,extraDone:extraDone,
         rect:{left:r.left,top:r.top,width:r.width,height:r.height},topId:top&&top.id,topTag:top&&top.tagName,
         pointer:s.pointerEvents,display:s.display,visibility:s.visibility,disabled:!!b.disabled,bound:b.dataset.tcBound||''};
     })())""","state-before-dom-click")
