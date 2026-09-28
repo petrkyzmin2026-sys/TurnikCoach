@@ -76,6 +76,23 @@ def tap_clickable_text(text,timeout=12):
         time.sleep(.5)
     raise AssertionError("Clickable text not found: "+text)
 
+def press_clickable_text(text,timeout=12):
+    target=text.lower()
+    end=time.time()+timeout
+    while time.time()<end:
+        dismiss_system_anr()
+        for n in dump().iter("node"):
+            value=(n.attrib.get("text") or "")
+            if value.lower()!=target or n.attrib.get("clickable")!="true" or not n.attrib.get("bounds"):
+                continue
+            pos=center(n.attrib["bounds"])
+            print("TC_DIAG press_clickable_text",text,"bounds",n.attrib.get("bounds"),"center",pos,flush=True)
+            adb("shell","input","touchscreen","swipe",str(pos[0]),str(pos[1]),str(pos[0]),str(pos[1]),"120")
+            time.sleep(.8)
+            return pos
+        time.sleep(.5)
+    raise AssertionError("Clickable text not found for press: "+text)
+
 def tap_bottom_nav(slot):
     size=adb("shell","wm","size").stdout
     m=re.search(r"(\d+)x(\d+)",size)
@@ -202,7 +219,7 @@ wait_text("Начать дополнительную тренировку",timeo
 screenshot("03-main-done-extra-available")
 
 adb("logcat","-c",check=False)
-tap_clickable_text("Начать дополнительную тренировку")
+press_clickable_text("Начать дополнительную тренировку")
 screenshot("04a-after-extra-start-tap")
 adb("shell","uiautomator","dump","/sdcard/ux2-after-start-tap.xml",check=False)
 adb("pull","/sdcard/ux2-after-start-tap.xml",OUT+"/04a-after-extra-start-tap.xml",check=False)
