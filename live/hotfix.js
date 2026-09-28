@@ -315,8 +315,10 @@
     const baseGo=window.go;
     window.go=function(id){
       const from=currentScreen();
+      console.log('TC_NAV_TRACE',JSON.stringify({phase:'go-enter',from,id,hasW:tcHasWorkout(),state:history.state||null}));
       scrollByScreen[from]=currentScroll(from);
       const r=baseGo(id);
+      console.log('TC_NAV_TRACE',JSON.stringify({phase:'go-after-base',from,id,screen:currentScreen(),hasW:tcHasWorkout(),state:history.state||null}));
       if(internal){restoreScroll(id);return r}
 
       const trainingFlow=tcHasWorkout()&&(id==='workout'||id==='rest')&&(from==='workout'||from==='rest');
@@ -391,6 +393,7 @@
 
     window.addEventListener('popstate',function(ev){
       const scr=currentScreen();
+      console.log('TC_NAV_TRACE',JSON.stringify({phase:'popstate',screen:scr,target:ev.state&&ev.state.tcScreen||'today',hasW:tcHasWorkout(),state:ev.state||null}));
 
       if(sheet&&sheet.classList.contains('open')){
         internal=true;
@@ -502,7 +505,15 @@
     tcDecorateBackControls();
     const app=document.getElementById('app');
     if(app){
-      const mo=new MutationObserver(tcDecorateBackControls);
+      let lastTraceScreen=currentScreen();
+      const mo=new MutationObserver(()=>{
+        const nowScreen=currentScreen();
+        if(nowScreen!==lastTraceScreen){
+          console.log('TC_NAV_TRACE',JSON.stringify({phase:'dom-screen-change',from:lastTraceScreen,to:nowScreen,hasW:tcHasWorkout(),state:history.state||null}));
+          lastTraceScreen=nowScreen;
+        }
+        tcDecorateBackControls();
+      });
       mo.observe(app,{childList:true,subtree:true,attributes:true,attributeFilter:['class']});
       window.__tcBackControlObserver=mo;
     }
