@@ -98,8 +98,7 @@ def test_eval(js,label):
     encoded=base64.b64encode(js.encode("utf-8")).decode("ascii")
     adb("shell","run-as",PKG,"rm","-f","files/tc-test-js-result.txt",check=False)
     adb("logcat","-c",check=False)
-    component=PKG+"/ru.turnikcoach.app.MainActivity"
-    sent=adb("shell","am","start","--activity-single-top","-n",component,"-a","ru.turnikcoach.TEST_EVAL","--es","js_b64",encoded,check=False)
+    sent=adb("shell","am","broadcast","-a","ru.turnikcoach.TEST_EVAL","-p",PKG,"--es","js_b64",encoded,check=False)
     result=""
     deadline=time.time()+6
     while time.time()<deadline:
