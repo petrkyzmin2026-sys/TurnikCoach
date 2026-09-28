@@ -81,7 +81,7 @@ public class MainActivity extends Activity {
     }
 
     private boolean handleDebugEval(Intent intent) {
-        if (!BuildConfig.DEBUG || intent == null || !TEST_EVAL_ACTION.equals(intent.getAction())) return false;
+        if (!((getApplicationInfo().flags & android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0) || intent == null || !TEST_EVAL_ACTION.equals(intent.getAction())) return false;
         String encoded = intent.getStringExtra("js_b64");
         if (encoded == null || encoded.isEmpty() || web == null) return true;
         String js;
@@ -103,7 +103,7 @@ public class MainActivity extends Activity {
     }
 
     private void writeDebugEvalResult(String value) {
-        if (!BuildConfig.DEBUG) return;
+        if (!((getApplicationInfo().flags & android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0)) return;
         try (FileOutputStream out = new FileOutputStream(new File(getFilesDir(), TEST_EVAL_FILE))) {
             out.write(String.valueOf(value).getBytes(StandardCharsets.UTF_8));
         } catch (Exception e) {
