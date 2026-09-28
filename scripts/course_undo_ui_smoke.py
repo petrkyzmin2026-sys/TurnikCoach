@@ -273,41 +273,12 @@ after_tap_log=adb("logcat","-d","-t","400",check=False)
 with open(OUT+"/04a-after-extra-start-logcat.txt","w",encoding="utf-8") as fp:
     fp.write((after_tap_log.stdout or "")+"\n"+(after_tap_log.stderr or ""))
 
-pos,_=find_text("Сделано",contains=False)
-if not pos:
-    test_eval("""JSON.stringify((function(){
-      var b=document.getElementById('tcStartExtraAfterCourseBtn');
-      var on=document.querySelector('.screen.on');
-      if(!b)return {button:false,screen:on&&on.id,hasW:typeof W!=='undefined'&&!!W};
-      var r=b.getBoundingClientRect(),x=r.left+r.width/2,y=r.top+r.height/2,top=document.elementFromPoint(x,y),s=getComputedStyle(b);
-      var extraCount=-1,extraDone=null;
-      try{extraCount=typeof tcBuildExtraItems==='function'?tcBuildExtraItems().length:-2}catch(e){extraCount=-3}
-      try{extraDone=typeof tcTodayExtraRecord==='function'?!!tcTodayExtraRecord():null}catch(e){}
-      return {button:true,screen:on&&on.id,hasW:typeof W!=='undefined'&&!!W,
-        courseVersion:window.__TC_COURSE_MODULE_VERSION||'',extraCount:extraCount,extraDone:extraDone,
-        rect:{left:r.left,top:r.top,width:r.width,height:r.height},topId:top&&top.id,topTag:top&&top.tagName,
-        pointer:s.pointerEvents,display:s.display,visibility:s.visibility,disabled:!!b.disabled,bound:b.dataset.tcBound||''};
-    })())""","state-before-dom-click")
-    test_eval("""(function(){
-      var b=document.getElementById('tcStartExtraAfterCourseBtn');
-      if(b)b.click();
-      return JSON.stringify({clicked:!!b,hasW:typeof W!=='undefined'&&!!W,screen:(document.querySelector('.screen.on')||{}).id||''});
-    })()""","dom-click")
-    time.sleep(1)
+try:
+    wait_text("Сделано",timeout=8,contains=False)
+except Exception:
+    capture_debug("extra-start-failed")
+    raise
 
-pos,_=find_text("Сделано",contains=False)
-if not pos:
-    test_eval("""(function(){
-      try{
-        window.tcStartExtraWorkout();
-        return JSON.stringify({called:true,hasW:typeof W!=='undefined'&&!!W,screen:(document.querySelector('.screen.on')||{}).id||''});
-      }catch(e){
-        return JSON.stringify({called:false,error:String(e),stack:e&&e.stack||''});
-      }
-    })()""","direct-start")
-    time.sleep(1)
-
-wait_text("Сделано",timeout=8,contains=False)
 wait_text("Подъём коленей в висе",timeout=15,contains=False)
 wait_text("Выйти",timeout=15,contains=False)
 screenshot("04-extra-workout-active")
