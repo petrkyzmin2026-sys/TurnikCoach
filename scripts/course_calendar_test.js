@@ -115,8 +115,10 @@ assert(doneHtml.includes('id="tcUndoTodayCourseBtn"'),
 assert(doneHtml.includes('onclick="tcStartExtraWorkout()"'),
  'after-main extra CTA keeps an inline fallback handler');
 assert(course.includes("const extra=document.getElementById('tcStartExtraAfterCourseBtn')")&&
- course.includes("window.tcStartExtraWorkout();"),
- 'after-main extra CTA must also receive an explicit WebView-safe handler after render');
+ course.includes("window.tcStartExtraWorkout();")&&
+ course.includes("extra.addEventListener('pointerup',startExtra,{passive:false})")&&
+ course.includes("extra.addEventListener('touchend',startExtra,{passive:false})"),
+ 'after-main extra CTA must receive click, pointer and touch WebView-safe handlers after render');
 const emptyExtrasHtml=uiApi.tcTodayCourseDoneHtml([]);
 assert(emptyExtrasHtml.includes("onclick=\"go('exercise')\""),
  'after-main choose-extras CTA keeps an inline fallback handler');
