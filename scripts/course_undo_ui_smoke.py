@@ -219,7 +219,7 @@ wait_text("Начать дополнительную тренировку",timeo
 screenshot("03-main-done-extra-available")
 
 adb("logcat","-c",check=False)
-press_clickable_text("Начать дополнительную тренировку")
+tap_clickable_text("Начать дополнительную тренировку")
 screenshot("04a-after-extra-start-tap")
 adb("shell","uiautomator","dump","/sdcard/ux2-after-start-tap.xml",check=False)
 adb("pull","/sdcard/ux2-after-start-tap.xml",OUT+"/04a-after-extra-start-tap.xml",check=False)
