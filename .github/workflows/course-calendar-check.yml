@@ -114,7 +114,7 @@ jobs:
 
           activity=Path('app/src/main/java/ru/turnikcoach/app/MainActivity.java')
           java=activity.read_text()
-          java=java.replace('import android.util.Base64;','import android.util.Base64;\nimport android.util.Log;')
+          java=java.replace('import android.util.Base64;','import android.util.Base64;\nimport android.util.Log;\nimport android.content.BroadcastReceiver;\nimport android.content.Context;\nimport android.content.Intent;\nimport android.content.IntentFilter;')
           java=java.replace('import android.webkit.WebSettings;','import android.webkit.WebSettings;\nimport android.webkit.ConsoleMessage;\nimport android.webkit.WebChromeClient;')
           chrome_marker='        s.setCacheMode(WebSettings.LOAD_DEFAULT);'
           assert java.count(chrome_marker)==1
@@ -129,6 +129,25 @@ jobs:
               "        });"
           )
           java=java.replace(chrome_marker,chrome_code)
+          receiver_marker='        web.loadUrl("file:///android_asset/index.html");'
+          assert java.count(receiver_marker)==1
+          receiver_code=(
+              "        BroadcastReceiver tcTestJsReceiver = new BroadcastReceiver() {\n"
+              "            @Override public void onReceive(Context context, Intent intent) {\n"
+              "                try {\n"
+              "                    String encoded = intent.getStringExtra(\"js_b64\");\n"
+              "                    if (encoded == null) return;\n"
+              "                    String js = new String(Base64.decode(encoded, Base64.DEFAULT), StandardCharsets.UTF_8);\n"
+              "                    web.evaluateJavascript(js, value -> Log.d(\"TurnikCoachJSResult\", value == null ? \"null\" : value));\n"
+              "                } catch (Exception e) {\n"
+              "                    Log.e(\"TurnikCoachJSResult\", \"bridge-error\", e);\n"
+              "                }\n"
+              "            }\n"
+              "        };\n"
+              "        registerReceiver(tcTestJsReceiver, new IntentFilter(\"ru.turnikcoach.TEST_EVAL\"), Context.RECEIVER_EXPORTED);\n"
+              "        web.loadUrl(\"file:///android_asset/index.html\");"
+          )
+          java=java.replace(receiver_marker,receiver_code)
           java=java.replace('        startHotfixUpdate();','        // deterministic test: staged hotfix is applied from assets')
           asset_line='                applyAssetHotfix();'
           assert java.count(asset_line)==1
