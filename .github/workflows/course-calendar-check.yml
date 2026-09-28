@@ -118,14 +118,16 @@ jobs:
           java=java.replace('import android.webkit.WebSettings;','import android.webkit.WebSettings;\nimport android.webkit.ConsoleMessage;\nimport android.webkit.WebChromeClient;')
           chrome_marker='        s.setCacheMode(WebSettings.LOAD_DEFAULT);'
           assert java.count(chrome_marker)==1
-          chrome_code='''        s.setCacheMode(WebSettings.LOAD_DEFAULT);
-        WebView.setWebContentsDebuggingEnabled(true);
-        web.setWebChromeClient(new WebChromeClient() {
-            @Override public boolean onConsoleMessage(ConsoleMessage message) {
-                Log.d("TurnikCoachJS", message.message() + " @ " + message.sourceId() + ":" + message.lineNumber());
-                return true;
-            }
-        });'''
+          chrome_code=(
+              "        s.setCacheMode(WebSettings.LOAD_DEFAULT);\n"
+              "        WebView.setWebContentsDebuggingEnabled(true);\n"
+              "        web.setWebChromeClient(new WebChromeClient() {\n"
+              "            @Override public boolean onConsoleMessage(ConsoleMessage message) {\n"
+              "                Log.d(\"TurnikCoachJS\", message.message() + \" @ \" + message.sourceId() + \":\" + message.lineNumber());\n"
+              "                return true;\n"
+              "            }\n"
+              "        });"
+          )
           java=java.replace(chrome_marker,chrome_code)
           java=java.replace('        startHotfixUpdate();','        // deterministic test: staged hotfix is applied from assets')
           asset_line='                applyAssetHotfix();'
