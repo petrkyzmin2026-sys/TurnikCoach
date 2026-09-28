@@ -1,9 +1,11 @@
 package ru.turnikcoach.app;
 
 import android.app.Activity;
+import android.content.Intent;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.util.Base64;
+import android.util.Log;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
 import android.webkit.WebSettings;
@@ -26,6 +28,9 @@ public class MainActivity extends Activity {
     private static final String HOTFIX_URL = "https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/hotfix.js";
     private static final String HOTFIX_MARKER = "TURNIKCOACH_HOTFIX";
     private static final String HOTFIX_CACHE = "turnikcoach-hotfix.js";
+
+    private static final String TEST_EVAL_ACTION = "ru.turnikcoach.TEST_EVAL";
+    private static final String TEST_EVAL_FILE = "tc-test-js-result.txt";
 
     private WebView web;
     private volatile boolean pageReady = false;
@@ -67,6 +72,43 @@ public class MainActivity extends Activity {
         web.loadUrl("file:///android_asset/index.html");
         setContentView(web);
         startHotfixUpdate();
+    }
+
+    @Override protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        handleDebugEval(intent);
+    }
+
+    private boolean handleDebugEval(Intent intent) {
+        if (!BuildConfig.DEBUG || intent == null || !TEST_EVAL_ACTION.equals(intent.getAction())) return false;
+        String encoded = intent.getStringExtra("js_b64");
+        if (encoded == null || encoded.isEmpty() || web == null) return true;
+        String js;
+        try {
+            js = new String(Base64.decode(encoded, Base64.DEFAULT), StandardCharsets.UTF_8);
+        } catch (Exception e) {
+            writeDebugEvalResult("decode-error: " + e);
+            return true;
+        }
+        runOnUiThread(() -> web.evaluateJavascript(
+                "(function(){try{return (" + js + ");}catch(e){return JSON.stringify({__tcEvalError:String(e),stack:e&&e.stack||''});}})();",
+                value -> {
+                    String out = value == null ? "null" : value;
+                    writeDebugEvalResult(out);
+                    Log.d("TurnikCoachJSResult", out);
+                }
+        ));
+        return true;
+    }
+
+    private void writeDebugEvalResult(String value) {
+        if (!BuildConfig.DEBUG) return;
+        try (FileOutputStream out = new FileOutputStream(new File(getFilesDir(), TEST_EVAL_FILE))) {
+            out.write(String.valueOf(value).getBytes(StandardCharsets.UTF_8));
+        } catch (Exception e) {
+            Log.d("TurnikCoachJS", "debug eval result write failed: " + e);
+        }
     }
 
     private void startHotfixUpdate() {
