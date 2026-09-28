@@ -994,11 +994,11 @@
         return html+'<div class="todayCard tcAfterMainCard"><div class="row between"><div><div class="dateBig">Дополнительная тренировка</div>'+
           '<div class="meta">Пресс, ноги, отжимания и другие выбранные нетяговые упражнения.</div></div><span class="tag">ДОП.</span></div>'+
           tcExtraRowsHtml(extras)+
-          '<button id="tcStartExtraAfterCourseBtn" type="button" class="btn yellow full" style="margin-top:12px">Начать дополнительную тренировку</button></div>';
+          '<button id="tcStartExtraAfterCourseBtn" type="button" class="btn yellow full" style="margin-top:12px" onclick="tcStartExtraWorkout()">Начать дополнительную тренировку</button></div>';
       }
       return html+'<div class="todayCard tcAfterMainCard"><div class="dateBig">Дополнительная тренировка</div>'+
         '<div class="meta">Дополнительные упражнения не выбраны.</div>'+
-        '<button id="tcChooseExtrasAfterCourseBtn" type="button" class="btn ghost full" style="margin-top:10px">Выбрать упражнения</button></div>';
+        '<button id="tcChooseExtrasAfterCourseBtn" type="button" class="btn ghost full" style="margin-top:10px" onclick="go(\'exercise\')">Выбрать упражнения</button></div>';
     }
     function tcBindTodayDoneActions(){
       const undo=document.getElementById('tcUndoTodayCourseBtn');
@@ -1007,24 +1007,6 @@
         undo.onclick=function(ev){
           if(ev){ev.preventDefault();ev.stopPropagation()}
           window.tcOpenUndoTodayCourseConfirm();
-          return false;
-        };
-      }
-      const extra=document.getElementById('tcStartExtraAfterCourseBtn');
-      if(extra&&extra.dataset.tcBound!=='1'){
-        extra.dataset.tcBound='1';
-        extra.onclick=function(ev){
-          if(ev){ev.preventDefault();ev.stopPropagation()}
-          window.tcStartExtraWorkout();
-          return false;
-        };
-      }
-      const choose=document.getElementById('tcChooseExtrasAfterCourseBtn');
-      if(choose&&choose.dataset.tcBound!=='1'){
-        choose.dataset.tcBound='1';
-        choose.onclick=function(ev){
-          if(ev){ev.preventDefault();ev.stopPropagation()}
-          go('exercise');
           return false;
         };
       }
