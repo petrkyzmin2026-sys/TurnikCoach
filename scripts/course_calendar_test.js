@@ -377,6 +377,9 @@ assert(hotfix.includes("#workout .stageControls .btn.green,#rest .btn.green{min-
  'primary repeated workout actions must be larger than the generic 48px minimum');
 assert(hotfix.includes("#workout .controls{height:246px!important"),
  'active workout must reserve a stable bottom control zone');
+assert(hotfix.includes('function tcSyncScreenVisibility(id)')&&
+ hotfix.includes('tcSyncScreenVisibility(id);'),
+ 'WebView navigation must explicitly synchronize screen visibility after go()');
 assert(hotfix.includes("#workout .stageHeader .row.between,#workout .wtop .row.between{gap:8px}"),
  'workout controls must support both stageHeader and legacy wtop DOMs');
 assert(hotfix.includes("#workout.screen.on .stageHeader .row.between, #workout.screen.on .wtop .row.between"),
