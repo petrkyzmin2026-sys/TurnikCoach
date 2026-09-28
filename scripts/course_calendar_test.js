@@ -54,7 +54,7 @@ assert(course.includes('id="tcCycleStartDate"'),
  'settings must expose a cycle start date');
 assert(hotfix.includes("const VERSION='5.16.32-completion-flow'"),
  'release hotfix version must be 5.16.32');
-assert(course.includes("const COURSE_MODULE_VERSION='1.0.29-webview-start-fix'"),
+assert(course.includes("const COURSE_MODULE_VERSION='1.0.30-webview-action-delegation'"),
  'course module version must be 1.0.27');
 assert(!course.includes('window.confirm('),'course module must not depend on unsupported WebView JS dialogs');
 assert(!hotfix.includes('window.confirm('),'hotfix navigation/discard must not depend on unsupported WebView JS dialogs');
@@ -118,7 +118,13 @@ assert(course.includes("const extra=document.getElementById('tcStartExtraAfterCo
  course.includes("window.tcStartExtraWorkout();")&&
  course.includes("extra.addEventListener('pointerup',startExtra,{passive:false})")&&
  course.includes("extra.addEventListener('touchend',startExtra,{passive:false})"),
- 'after-main extra CTA must receive click, pointer and touch WebView-safe handlers after render');
+ 'after-main extra CTA keeps direct WebView-safe handlers after render');
+assert(course.includes('function tcInstallTodayActionDelegation()')&&
+ course.includes("document.addEventListener('click',ev=>{const el=actionFor(ev.target);if(el)run(el,ev)},true)")&&
+ course.includes("document.addEventListener('touchend',ev=>"),
+ 'Today actions must also have stable delegated click/touch activation across rerenders');
+assert(course.includes("tcActionMessage('Не удалось начать тренировку',message)"),
+ 'extra-workout startup errors must never fail silently');
 const emptyExtrasHtml=uiApi.tcTodayCourseDoneHtml([]);
 assert(emptyExtrasHtml.includes("onclick=\"go('exercise')\""),
  'after-main choose-extras CTA keeps an inline fallback handler');
