@@ -69,6 +69,7 @@ def tap_clickable_text(text,timeout=12):
             if value.lower()!=target or n.attrib.get("clickable")!="true" or not n.attrib.get("bounds"):
                 continue
             pos=center(n.attrib["bounds"])
+            print("TC_DIAG tap_clickable_text",text,"bounds",n.attrib.get("bounds"),"center",pos,flush=True)
             adb("shell","input","tap",str(pos[0]),str(pos[1]))
             time.sleep(.8)
             return pos
