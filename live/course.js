@@ -1025,6 +1025,24 @@
           return false;
         };
       }
+      const extra=document.getElementById('tcStartExtraAfterCourseBtn');
+      if(extra&&extra.dataset.tcBound!=='1'){
+        extra.dataset.tcBound='1';
+        extra.onclick=function(ev){
+          if(ev){ev.preventDefault();ev.stopPropagation()}
+          window.tcStartExtraWorkout();
+          return false;
+        };
+      }
+      const choose=document.getElementById('tcChooseExtrasAfterCourseBtn');
+      if(choose&&choose.dataset.tcBound!=='1'){
+        choose.dataset.tcBound='1';
+        choose.onclick=function(ev){
+          if(ev){ev.preventDefault();ev.stopPropagation()}
+          go('exercise');
+          return false;
+        };
+      }
     }
     function tcUndoLatestTodayCourseRecord(today){
       const rec=TC_course.history.find(h=>h.courseMode==='course');
