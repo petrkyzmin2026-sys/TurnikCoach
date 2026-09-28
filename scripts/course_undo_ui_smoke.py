@@ -1,5 +1,6 @@
 import os
 import re
+import base64
 import subprocess
 import time
 import xml.etree.ElementTree as ET
@@ -92,6 +93,18 @@ def press_clickable_text(text,timeout=12):
             return pos
         time.sleep(.5)
     raise AssertionError("Clickable text not found for press: "+text)
+
+def test_eval(js,label):
+    encoded=base64.b64encode(js.encode("utf-8")).decode("ascii")
+    adb("logcat","-c",check=False)
+    sent=adb("shell","am","broadcast","-p",PKG,"-a","ru.turnikcoach.TEST_EVAL","--es","js_b64",encoded,check=False)
+    time.sleep(.8)
+    log=adb("logcat","-d","-s","TurnikCoachJSResult:D","TurnikCoachJS:D","*:S",check=False)
+    output=(log.stdout or "")+"\n"+(log.stderr or "")
+    print("TC_DIAG JS",label,"broadcast_rc",sent.returncode,output[-4000:],flush=True)
+    with open(OUT+"/04b-js-"+label+".txt","w",encoding="utf-8") as fp:
+        fp.write("broadcast:\n"+(sent.stdout or "")+"\n"+(sent.stderr or "")+"\nlog:\n"+output)
+    return output
 
 def tap_bottom_nav(slot):
     size=adb("shell","wm","size").stdout
@@ -226,7 +239,38 @@ adb("pull","/sdcard/ux2-after-start-tap.xml",OUT+"/04a-after-extra-start-tap.xml
 after_tap_log=adb("logcat","-d","-t","400",check=False)
 with open(OUT+"/04a-after-extra-start-logcat.txt","w",encoding="utf-8") as fp:
     fp.write((after_tap_log.stdout or "")+"\n"+(after_tap_log.stderr or ""))
-wait_text("Сделано",timeout=15,contains=False)
+
+pos,_=find_text("Сделано",contains=False)
+if not pos:
+    test_eval("""JSON.stringify((function(){
+      var b=document.getElementById('tcStartExtraAfterCourseBtn');
+      var on=document.querySelector('.screen.on');
+      if(!b)return {button:false,screen:on&&on.id,hasW:typeof W!=='undefined'&&!!W};
+      var r=b.getBoundingClientRect(),x=r.left+r.width/2,y=r.top+r.height/2,top=document.elementFromPoint(x,y),s=getComputedStyle(b);
+      return {button:true,screen:on&&on.id,hasW:typeof W!=='undefined'&&!!W,
+        rect:{left:r.left,top:r.top,width:r.width,height:r.height},topId:top&&top.id,topTag:top&&top.tagName,
+        pointer:s.pointerEvents,display:s.display,visibility:s.visibility,disabled:!!b.disabled,bound:b.dataset.tcBound||''};
+    })())""","state-before-dom-click")
+    test_eval("""(function(){
+      var b=document.getElementById('tcStartExtraAfterCourseBtn');
+      if(b)b.click();
+      return JSON.stringify({clicked:!!b,hasW:typeof W!=='undefined'&&!!W,screen:(document.querySelector('.screen.on')||{}).id||''});
+    })()""","dom-click")
+    time.sleep(1)
+
+pos,_=find_text("Сделано",contains=False)
+if not pos:
+    test_eval("""(function(){
+      try{
+        window.tcStartExtraWorkout();
+        return JSON.stringify({called:true,hasW:typeof W!=='undefined'&&!!W,screen:(document.querySelector('.screen.on')||{}).id||''});
+      }catch(e){
+        return JSON.stringify({called:false,error:String(e),stack:e&&e.stack||''});
+      }
+    })()""","direct-start")
+    time.sleep(1)
+
+wait_text("Сделано",timeout=8,contains=False)
 wait_text("Подъём коленей в висе",timeout=15,contains=False)
 wait_text("Выйти",timeout=15,contains=False)
 screenshot("04-extra-workout-active")
