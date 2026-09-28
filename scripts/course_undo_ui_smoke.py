@@ -185,18 +185,38 @@ def assert_accessibility_target(label,min_dp=48):
 
 def dismiss_system_anr():
     # Android emulator can transiently show a launcher/Quickstep ANR over the tested app.
-    # It is unrelated to the WebView and blocks UIAutomator from seeing underlying app text.
-    for _ in range(4):
-        _,value=find_text("isn't responding")
-        if value:
-            pos,_=find_text("Wait",contains=False)
-            if pos:
-                adb("shell","input","tap",str(pos[0]),str(pos[1]))
-                time.sleep(2)
+    # Close only the emulator launcher ANR; never hide a TurnikCoach ANR.
+    for _ in range(8):
+        root=dump()
+        title=None
+        for n in root.iter("node"):
+            value=n.attrib.get("text") or ""
+            if "isn't responding" in value.lower():
+                title=value
+                break
+        if not title:
+            return
+        if "quickstep" in title.lower():
+            close=None
+            for n in root.iter("node"):
+                if n.attrib.get("resource-id")=="android:id/aerr_close" and n.attrib.get("bounds"):
+                    close=center(n.attrib["bounds"])
+                    break
+            if close:
+                adb("shell","input","tap",str(close[0]),str(close[1]))
+                time.sleep(1.5)
                 continue
-            adb("shell","input","keyevent","4")
-            time.sleep(1)
-        break
+        wait=None
+        for n in root.iter("node"):
+            if n.attrib.get("resource-id")=="android:id/aerr_wait" and n.attrib.get("bounds"):
+                wait=center(n.attrib["bounds"])
+                break
+        if wait:
+            adb("shell","input","tap",str(wait[0]),str(wait[1]))
+            time.sleep(1.5)
+            continue
+        adb("shell","input","keyevent","4")
+        time.sleep(1)
 
 def launch():
     adb("shell","monkey","-p",PKG,"-c","android.intent.category.LAUNCHER","1")
