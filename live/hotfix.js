@@ -286,6 +286,7 @@
     let sheetWasOpen=false;
     const scrollByScreen={};
 
+    function activeScreens(){return [...document.querySelectorAll('.screen.on')].map(el=>el.id||'?')}
     function currentScreen(){
       const el=document.querySelector('.screen.on');
       return el&&el.id?el.id:'today';
@@ -315,10 +316,10 @@
     const baseGo=window.go;
     window.go=function(id){
       const from=currentScreen();
-      console.log('TC_NAV_TRACE',JSON.stringify({phase:'go-enter',from,id,hasW:tcHasWorkout(),state:history.state||null}));
+      console.log('TC_NAV_TRACE',JSON.stringify({phase:'go-enter',from,id,hasW:tcHasWorkout(),state:history.state||null,active:activeScreens()}));
       scrollByScreen[from]=currentScroll(from);
       const r=baseGo(id);
-      console.log('TC_NAV_TRACE',JSON.stringify({phase:'go-after-base',from,id,screen:currentScreen(),hasW:tcHasWorkout(),state:history.state||null}));
+      console.log('TC_NAV_TRACE',JSON.stringify({phase:'go-after-base',from,id,screen:currentScreen(),hasW:tcHasWorkout(),state:history.state||null,active:activeScreens()}));
       if(internal){restoreScroll(id);return r}
 
       const trainingFlow=tcHasWorkout()&&(id==='workout'||id==='rest')&&(from==='workout'||from==='rest');
@@ -505,12 +506,13 @@
     tcDecorateBackControls();
     const app=document.getElementById('app');
     if(app){
-      let lastTraceScreen=currentScreen();
+      let lastTraceScreens=activeScreens().join(',');
       const mo=new MutationObserver(()=>{
-        const nowScreen=currentScreen();
-        if(nowScreen!==lastTraceScreen){
-          console.log('TC_NAV_TRACE',JSON.stringify({phase:'dom-screen-change',from:lastTraceScreen,to:nowScreen,hasW:tcHasWorkout(),state:history.state||null}));
-          lastTraceScreen=nowScreen;
+        const nowScreens=activeScreens();
+        const key=nowScreens.join(',');
+        if(key!==lastTraceScreens){
+          console.log('TC_NAV_TRACE',JSON.stringify({phase:'dom-active-screens',from:lastTraceScreens,to:key,active:nowScreens,hasW:tcHasWorkout(),state:history.state||null}));
+          lastTraceScreens=key;
         }
         tcDecorateBackControls();
       });
