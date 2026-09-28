@@ -54,7 +54,7 @@ assert(course.includes('id="tcCycleStartDate"'),
  'settings must expose a cycle start date');
 assert(hotfix.includes("const VERSION='5.16.32-completion-flow'"),
  'release hotfix version must be 5.16.32');
-assert(course.includes("const COURSE_MODULE_VERSION='1.0.28-progressive-settings'"),
+assert(course.includes("const COURSE_MODULE_VERSION='1.0.29-webview-start-fix'"),
  'course module version must be 1.0.27');
 assert(!course.includes('window.confirm('),'course module must not depend on unsupported WebView JS dialogs');
 assert(!hotfix.includes('window.confirm('),'hotfix navigation/discard must not depend on unsupported WebView JS dialogs');
@@ -142,6 +142,10 @@ assert(startExtraBody.includes("tcActionMessage('Тренировка уже з�
  'active workout must not cause a silent extra-start return');
 assert(startExtraBody.includes("tcActionMessage('Нет дополнительных упражнений'"),
  'empty extra selection must explain why the action cannot start');
+assert.equal((course.match(/\\bunlockAudio\\s*\\(\\s*\\)\\s*;/g)||[]).length,0,
+ 'course start actions must not call an undefined global unlockAudio()');
+assert(course.includes('tcPrimeAudio();'),
+ 'course start actions must use the safe audio priming wrapper');
 
 function windowFunctionBody(name){
   const start=course.indexOf('window.'+name+'=function(');
