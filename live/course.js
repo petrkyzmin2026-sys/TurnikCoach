@@ -1,7 +1,7 @@
-/* TURNIKCOACH_COURSE 1.0.29-webview-start-fix */
+/* TURNIKCOACH_COURSE 1.0.30-webview-action-delegation */
 (function(){
   'use strict';
-  const COURSE_MODULE_VERSION='1.0.29-webview-start-fix';
+  const COURSE_MODULE_VERSION='1.0.30-webview-action-delegation';
   if(window.__TC_COURSE_MODULE_VERSION===COURSE_MODULE_VERSION)return;
   window.__TC_COURSE_MODULE_VERSION=COURSE_MODULE_VERSION;
   function tcClamp(v,a,b){return Math.max(a,Math.min(b,v))}
@@ -1054,6 +1054,45 @@
         };
       }
     }
+    function tcInstallTodayActionDelegation(){
+      if(window.__TC_TODAY_ACTION_DELEGATION_V1)return;
+      window.__TC_TODAY_ACTION_DELEGATION_V1=true;
+      let gesture=null,lastActionAt=0;
+      const actionFor=(target)=>{
+        const el=target&&target.closest?target.closest('#tcStartExtraAfterCourseBtn,#tcChooseExtrasAfterCourseBtn,#tcUndoTodayCourseBtn'):null;
+        return el||null;
+      };
+      const run=(el,ev)=>{
+        if(!el)return false;
+        const now=Date.now();
+        if(now-lastActionAt<650){if(ev){ev.preventDefault();ev.stopPropagation()}return true}
+        lastActionAt=now;
+        if(ev){ev.preventDefault();ev.stopPropagation()}
+        if(el.id==='tcStartExtraAfterCourseBtn')window.tcStartExtraWorkout();
+        else if(el.id==='tcChooseExtrasAfterCourseBtn')go('exercise');
+        else if(el.id==='tcUndoTodayCourseBtn')window.tcOpenUndoTodayCourseConfirm();
+        return true;
+      };
+      document.addEventListener('click',ev=>{const el=actionFor(ev.target);if(el)run(el,ev)},true);
+      document.addEventListener('touchstart',ev=>{
+        const el=actionFor(ev.target),t=ev.touches&&ev.touches[0];
+        if(el&&t)gesture={el,x:t.clientX,y:t.clientY,moved:false,at:Date.now()};
+      },{capture:true,passive:true});
+      document.addEventListener('touchmove',ev=>{
+        if(!gesture)return;
+        const t=ev.touches&&ev.touches[0];if(!t)return;
+        if(Math.abs(t.clientX-gesture.x)>14||Math.abs(t.clientY-gesture.y)>14)gesture.moved=true;
+      },{capture:true,passive:true});
+      document.addEventListener('touchend',ev=>{
+        if(!gesture)return;
+        const g=gesture;gesture=null;
+        if(!g.moved&&Date.now()-g.at<900)run(g.el,ev);
+      },{capture:true,passive:false});
+      document.addEventListener('touchcancel',()=>{gesture=null},{capture:true,passive:true});
+    }
+
+    tcInstallTodayActionDelegation();
+
     function tcUndoLatestTodayCourseRecord(today){
       const rec=TC_course.history.find(h=>h.courseMode==='course');
       if(!rec||rec.date!==today)return false;
@@ -1696,12 +1735,22 @@
       const c=tcCourseComplex();W={mode:'course',sessionIndex:0,exerciseIndex:0,setIndex:0,items,actual:tcSchemeTarget(items[0].def),early:false,courseLevel:TC_course.level,courseComplex:c.no,courseGoal:TC_course.goal,adapted:tcUnavailableDefs(tcOriginalCourseDefs()).length>0};go('workout');
     };
     window.tcStartExtraWorkout=function(){
-      if(W){tcActionMessage('Тренировка уже запущена','Сначала завершите текущую тренировку или выйдите из неё без сохранения.');return;}
-      if(tcTodayExtraRecord()){tcActionMessage('Дополнительная тренировка уже выполнена','Сегодняшняя дополнительная тренировка уже сохранена в истории.');return;}
-      const items=tcBuildExtraItems();
-      if(!items.length){tcActionMessage('Нет дополнительных упражнений','Выберите пресс, ноги, отжимания или другие дополнительные упражнения на экране «Упражнения».');return;}
-      tcPrimeAudio();
-      const idx=TC_course.extraSeq%3;W={mode:'extra',sessionIndex:idx,exerciseIndex:0,setIndex:0,items,actual:items[0].plan[0],early:false};go('workout');
+      try{
+        if(W){tcActionMessage('Тренировка уже запущена','Сначала завершите текущую тренировку или выйдите из неё без сохранения.');return false;}
+        if(tcTodayExtraRecord()){tcActionMessage('Дополнительная тренировка уже выполнена','Сегодняшняя дополнительная тренировка уже сохранена в истории.');return false;}
+        const items=tcBuildExtraItems();
+        if(!items.length){tcActionMessage('Нет дополнительных упражнений','Выберите пресс, ноги, отжимания или другие дополнительные упражнения на экране «План».');return false;}
+        tcPrimeAudio();
+        const idx=TC_course.extraSeq%3;
+        W={mode:'extra',sessionIndex:idx,exerciseIndex:0,setIndex:0,items,actual:items[0].plan[0],early:false};
+        go('workout');
+        return true;
+      }catch(e){
+        try{W=null}catch(_){}
+        const message=e&&e.message?e.message:String(e||'Неизвестная ошибка');
+        tcActionMessage('Не удалось начать тренировку',message);
+        return false;
+      }
     };
     window.tcStartSupplementWorkout=function(){
       if(W){tcActionMessage('Тренировка уже запущена','Сначала завершите текущую тренировку или выйдите из неё без сохранения.');return;}
