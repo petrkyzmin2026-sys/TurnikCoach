@@ -79,6 +79,19 @@ jobs:
               tests:[],masteryTests:[],exerciseMax:{}
             }));
             localStorage.setItem('__tcForcedHandoverSmokeSeeded','1');
+            window.addEventListener('error',function(e){console.error('TC_DIAG window-error',e.message,e.filename,e.lineno,e.colno);});
+            document.addEventListener('pointerup',function(e){
+              var b=e.target&&e.target.closest&&e.target.closest('#tcStartExtraAfterCourseBtn');
+              if(b)console.log('TC_DIAG pointerup extra',b.id);
+            },true);
+            document.addEventListener('touchend',function(e){
+              var b=e.target&&e.target.closest&&e.target.closest('#tcStartExtraAfterCourseBtn');
+              if(b)console.log('TC_DIAG touchend extra',b.id);
+            },true);
+            document.addEventListener('click',function(e){
+              var b=e.target&&e.target.closest&&e.target.closest('#tcStartExtraAfterCourseBtn');
+              if(b)console.log('TC_DIAG click extra',b.id);
+            },true);
           })();
           </script>'''
           p.write_text(html.replace(marker,seed+marker))
@@ -101,6 +114,19 @@ jobs:
 
           activity=Path('app/src/main/java/ru/turnikcoach/app/MainActivity.java')
           java=activity.read_text()
+          java=java.replace('import android.util.Base64;','import android.util.Base64;\nimport android.util.Log;')
+          java=java.replace('import android.webkit.WebSettings;','import android.webkit.WebSettings;\nimport android.webkit.ConsoleMessage;\nimport android.webkit.WebChromeClient;')
+          chrome_marker='        s.setCacheMode(WebSettings.LOAD_DEFAULT);'
+          assert java.count(chrome_marker)==1
+          chrome_code='''        s.setCacheMode(WebSettings.LOAD_DEFAULT);
+        WebView.setWebContentsDebuggingEnabled(true);
+        web.setWebChromeClient(new WebChromeClient() {
+            @Override public boolean onConsoleMessage(ConsoleMessage message) {
+                Log.d("TurnikCoachJS", message.message() + " @ " + message.sourceId() + ":" + message.lineNumber());
+                return true;
+            }
+        });'''
+          java=java.replace(chrome_marker,chrome_code)
           java=java.replace('        startHotfixUpdate();','        // deterministic test: staged hotfix is applied from assets')
           asset_line='                applyAssetHotfix();'
           assert java.count(asset_line)==1
