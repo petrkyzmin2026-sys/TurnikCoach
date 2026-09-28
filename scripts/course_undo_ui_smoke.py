@@ -53,6 +53,21 @@ def tap_text(text,contains=True):
     adb("shell","input","tap",str(pos[0]),str(pos[1]))
     time.sleep(.8)
 
+def tap_clickable_text(text,timeout=12):
+    target=text.lower()
+    end=time.time()+timeout
+    while time.time()<end:
+        for n in dump().iter("node"):
+            value=(n.attrib.get("text") or "")
+            if value.lower()!=target or n.attrib.get("clickable")!="true" or not n.attrib.get("bounds"):
+                continue
+            pos=center(n.attrib["bounds"])
+            adb("shell","input","tap",str(pos[0]),str(pos[1]))
+            time.sleep(.8)
+            return pos
+        time.sleep(.5)
+    raise AssertionError("Clickable text not found: "+text)
+
 def tap_bottom_nav(slot):
     size=adb("shell","wm","size").stdout
     m=re.search(r"(\d+)x(\d+)",size)
@@ -178,7 +193,10 @@ wait_text("Основной комплекс выполнен",timeout=20)
 wait_text("Начать дополнительную тренировку",timeout=12)
 screenshot("03-main-done-extra-available")
 
-tap_text("Начать дополнительную тренировку",contains=False)
+tap_clickable_text("Начать дополнительную тренировку")
+screenshot("04a-after-extra-start-tap")
+adb("shell","uiautomator","dump","/sdcard/ux2-after-start-tap.xml",check=False)
+adb("pull","/sdcard/ux2-after-start-tap.xml",OUT+"/04a-after-extra-start-tap.xml",check=False)
 wait_text("Сделано",timeout=15,contains=False)
 wait_text("Подъём коленей в висе",timeout=15,contains=False)
 wait_text("Выйти",timeout=15,contains=False)
@@ -234,8 +252,9 @@ wait_text("Начать дополнительную тренировку",timeo
 screenshot("07-completion-undone")
 
 # Start the extra workout again and verify explicit discard still works.
-tap_text("Начать дополнительную тренировку",contains=False)
-wait_text("Подъём коленей в висе",timeout=15)
+tap_clickable_text("Начать дополнительную тренировку")
+wait_text("Сделано",timeout=15,contains=False)
+wait_text("Подъём коленей в висе",timeout=15,contains=False)
 wait_text("Выйти",timeout=10,contains=False)
 tap_text("Выйти",contains=False)
 wait_text("Выйти без сохранения?",timeout=10)
