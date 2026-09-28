@@ -52,13 +52,13 @@ assert(course.includes('tcPreviewCourseCard(tcSelectedDate)'),
  'choosing another date must show a read-only plan');
 assert(course.includes('id="tcCycleStartDate"'),
  'settings must expose a cycle start date');
-assert(hotfix.includes("const VERSION='5.16.31-workout-flow'"),
- 'release hotfix version must be 5.16.31');
+assert(hotfix.includes("const VERSION='5.16.32-completion-flow'"),
+ 'release hotfix version must be 5.16.32');
 assert(course.includes("const COURSE_MODULE_VERSION='1.0.28-progressive-settings'"),
  'course module version must be 1.0.27');
 assert(!course.includes('window.confirm('),'course module must not depend on unsupported WebView JS dialogs');
 assert(!hotfix.includes('window.confirm('),'hotfix navigation/discard must not depend on unsupported WebView JS dialogs');
-assert(!hotfix.includes('forceHandover'),'5.16.31 must use an explicit user-visible update prompt');
+assert(!hotfix.includes('forceHandover'),'5.16.32 must use an explicit user-visible update prompt');
 assert(hotfix.includes("showRuntimeNotice('TurnikCoach обновлён до '+LABEL)"),
  'successful activation must give visible feedback');
 assert(hotfix.includes("localStorage.setItem('tc_hotfix_active_version',VERSION)"),
@@ -112,8 +112,10 @@ assert(doneHtml.includes('Начать дополнительную тренир
  'after-main extra workout must remain visibly available');
 assert(doneHtml.includes('id="tcUndoTodayCourseBtn"'),
  'same-day undo must remain available as a secondary action');
-assert(!doneHtml.includes('onclick='),
- 'critical after-main actions must not depend on inline handlers');
+assert(doneHtml.includes('onclick="tcStartExtraWorkout()"'),
+ 'after-main extra CTA must carry its handler atomically with the rendered button');
+assert(doneHtml.includes('onclick="go(\\'exercise\\')"'),
+ 'after-main choose-extras CTA must not depend on a later decorator pass');
 
 const doneExtraApi=new Function('TC_course','state','dateKey','tcExtraRowsHtml',
   extract('tcTodayCourseRecord')+'\n'+extract('tcTodayExtraRecord')+'\n'+extract('tcTodayCourseDoneHtml')+
@@ -352,6 +354,26 @@ assert(hotfix.includes("return 'Следующий подход · '+e.name"),
  'rest screen must expose the next task instead of a generic message');
 assert(hotfix.includes("#workout .stageControls .btn.green,#rest .btn.green{min-height:58px!important"),
  'primary repeated workout actions must be larger than the generic 48px minimum');
+assert(hotfix.includes("#workout .controls{height:246px!important"),
+ 'active workout must reserve a stable bottom control zone');
+assert(hotfix.includes('function tcStabilizeWorkoutControls()'),
+ 'packaged and current workout DOM must be normalized at runtime');
+assert(hotfix.includes("done.parentElement.classList.add('tcWorkoutActions')"),
+ 'Done and Skip must share a stable vertical motor container');
+assert(hotfix.includes("#workout .tcWorkoutActions{display:grid!important;grid-template-columns:1fr!important"),
+ 'runtime workout action container must stack Done and Skip vertically');
+assert(hotfix.includes("#workout .tcWorkoutDoneAction{min-height:60px!important"),
+ 'Done must remain the dominant repeated action');
+assert(hotfix.includes("const TC_COMPLETION_UNDO_KEY='tc_completion_undo_v1'"),
+ 'completion flow must keep a bounded undo transaction');
+assert(hotfix.includes('function tcInstallCompletionFlow()'),
+ 'completion summary must wrap the final save path');
+assert(hotfix.includes("state=tx.state")&&hotfix.includes("TC_course=tx.course"),
+ 'completion undo must restore both generic and course state snapshots');
+assert(hotfix.includes('tcShowCompletionSummary(summary)'),
+ 'successful save must open a completion summary');
+assert(hotfix.includes("if(tcActiveWorkoutForUpdate()){")&&hotfix.includes('tcScheduleDeferredUpdate(activate)'),
+ 'update prompt must defer while a workout or durable workout snapshot is active');
 
 const staleFormFeedback=[];
 new Function('TC_course','tcActionMessage','tcAdvancedChoicePool',formBodies.openAdvanced)(
@@ -381,4 +403,4 @@ assert.equal(undoState.lastCourseTs,0);
 assert.equal(undoState.testAnchorDate,'');
 assert.equal(undoApi.tcUndoLatestTodayCourseRecord('2026-09-25'),false,
  'undo must not remove anything twice');
-console.log('PASS: syntax, bundle, UX2 persistence/IA, critical actions, forms and touch targets');
+console.log('PASS: syntax, bundle, UX2 persistence/IA/completion, critical actions, forms and touch targets');
