@@ -56,7 +56,7 @@ jobs:
           cp live/hotfix.js app/src/main/assets/hotfix-next.js
           grep -q 'TURNIKCOACH_HOTFIX 5.16.31-workout-flow' app/src/main/assets/hotfix-prev.js
           grep -q 'TURNIKCOACH_HOTFIX 5.16.32-completion-flow' app/src/main/assets/hotfix-next.js
-          grep -q 'TURNIKCOACH_COURSE 1.0.28-progressive-settings' app/src/main/assets/hotfix-next.js
+          grep -q 'TURNIKCOACH_COURSE 1.0.29-webview-start-fix' app/src/main/assets/hotfix-next.js
       - name: Seed installed 5.16.31 approval and completed main-course state
         run: |
           python3 - <<'PY'
