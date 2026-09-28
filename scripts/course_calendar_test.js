@@ -367,6 +367,10 @@ assert(hotfix.includes("#workout .stageControls .btn.green,#rest .btn.green{min-
  'primary repeated workout actions must be larger than the generic 48px minimum');
 assert(hotfix.includes("#workout .controls{height:246px!important"),
  'active workout must reserve a stable bottom control zone');
+assert(hotfix.includes("#workout .stageHeader .row.between,#workout .wtop .row.between{gap:8px}"),
+ 'workout controls must support both stageHeader and legacy wtop DOMs');
+assert(hotfix.includes("#workout.screen.on .stageHeader .row.between, #workout.screen.on .wtop .row.between"),
+ 'exit/info decorators must target both workout header variants');
 assert(hotfix.includes('function tcStabilizeWorkoutControls()'),
  'packaged and current workout DOM must be normalized at runtime');
 assert(hotfix.includes("done.parentElement.classList.add('tcWorkoutActions')"),
