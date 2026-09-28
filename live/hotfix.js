@@ -255,7 +255,9 @@
       '.tcRestBack{position:absolute;left:12px;top:12px}'+
       '.tcRestExitBtn{position:absolute;right:12px;top:12px;height:48px;min-width:68px;border-radius:12px;border:1px solid #70424a;background:#2a181b;color:#ffb8bd;font-size:12px;font-weight:900;padding:0 10px;z-index:30;touch-action:manipulation}'+
       '.tcSheetClose{position:sticky;float:right;top:0;margin:-4px -3px 6px 10px;width:48px;height:48px;min-width:48px;border-radius:50%;border:1px solid #3a4653;background:#202a32;color:#fff;font-size:24px;font-weight:900;z-index:5;touch-action:manipulation}'+
-      '#workout .stageHeader .row.between{gap:8px}'+
+      '#workout .stageHeader .row.between,#workout .wtop .row.between{gap:8px}'+
+      '#workout .wtop .row.between{position:relative;padding-left:78px;min-height:48px}'+
+      '#workout .wtop .tcWorkoutExitBtn{position:absolute;left:0;top:0}'+
       '#workout .stageHeader .endBtn{min-height:48px!important;min-width:76px!important;padding:0 12px!important;touch-action:manipulation}'+
       '#workout .stageControls .btn,#rest .btn,#sheet .sheetbox .btn{min-height:48px!important;touch-action:manipulation}'+
       '#workout .stageControls .btn.green,#rest .btn.green{min-height:58px!important;font-size:16px!important}'+
@@ -441,7 +443,7 @@
 
     function tcDecorateBackControls(){
       tcStabilizeWorkoutControls();
-      const wh=document.querySelector('#workout.screen.on .stageHeader .row.between');
+      const wh=document.querySelector('#workout.screen.on .stageHeader .row.between, #workout.screen.on .wtop .row.between');
       if(wh&&!wh.querySelector('.tcWorkoutExitBtn')){
         const b=document.createElement('button');
         b.type='button';b.className='tcWorkoutExitBtn';b.textContent='Выйти';b.title='Выйти без сохранения';
@@ -984,7 +986,7 @@
       if(today&&!today.querySelector('.tcInfoBtn')){
         const b=document.createElement('button');b.type='button';b.className='tcInfoBtn';b.textContent='ⓘ';b.title='О тренировке';b.onclick=window.tcOpenTrainingInfo;today.appendChild(b);
       }
-      const wh=document.querySelector('#workout.screen.on .stageHeader .row.between');
+      const wh=document.querySelector('#workout.screen.on .stageHeader .row.between, #workout.screen.on .wtop .row.between');
       if(wh&&!wh.querySelector('.tcInfoBtn')){
         const end=wh.querySelector('.endBtn');
         const b=document.createElement('button');b.type='button';b.className='tcInfoBtn';b.textContent='ⓘ';b.title='О тренировке';b.onclick=window.tcOpenTrainingInfo;
