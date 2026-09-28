@@ -43,6 +43,12 @@ def find_text(text,contains=True):
 def wait_text(text,timeout=12,contains=True):
     end=time.time()+timeout
     while time.time()<end:
+        # Emulator Quickstep can raise a transient ANR over the WebView at any point,
+        # not only immediately after launch. Dismiss it before evaluating app UI.
+        try:
+            dismiss_system_anr()
+        except NameError:
+            pass
         pos,value=find_text(text,contains)
         if pos:return pos,value
         time.sleep(.5)
@@ -57,6 +63,7 @@ def tap_clickable_text(text,timeout=12):
     target=text.lower()
     end=time.time()+timeout
     while time.time()<end:
+        dismiss_system_anr()
         for n in dump().iter("node"):
             value=(n.attrib.get("text") or "")
             if value.lower()!=target or n.attrib.get("clickable")!="true" or not n.attrib.get("bounds"):
