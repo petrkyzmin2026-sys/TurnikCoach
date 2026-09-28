@@ -324,6 +324,20 @@
       const target=document.getElementById(id);
       if(target){void target.offsetHeight}
     }
+    function tcForceWebViewRepaint(){
+      const app=document.getElementById('app');
+      if(!app)return;
+      const previous=app.style.display;
+      app.style.display='none';
+      void app.offsetHeight;
+      app.style.display=previous||'block';
+      void app.offsetHeight;
+      requestAnimationFrame(()=>{
+        app.style.transform='translateZ(0)';
+        void app.offsetHeight;
+        app.style.transform='';
+      });
+    }
     function tcClearWorkout(){try{if(typeof rt!=='undefined'&&rt){clearInterval(rt);rt=null}}catch(e){}try{W=null}catch(e){}try{if(typeof window.tcClearActiveWorkoutSnapshot==='function')window.tcClearActiveWorkoutSnapshot()}catch(e){}}
     const baseGo=window.go;
     window.go=function(id){
@@ -332,6 +346,7 @@
       scrollByScreen[from]=currentScroll(from);
       const r=baseGo(id);
       tcSyncScreenVisibility(id);
+      tcForceWebViewRepaint();
       const diagIds=['today','workout'];
       const layout={};
       diagIds.forEach(key=>{
