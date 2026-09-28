@@ -54,7 +54,7 @@ assert(course.includes('id="tcCycleStartDate"'),
  'settings must expose a cycle start date');
 assert(hotfix.includes("const VERSION='5.16.32-completion-flow'"),
  'release hotfix version must be 5.16.32');
-assert(course.includes("const COURSE_MODULE_VERSION='1.0.32-extra-start-trace'"),
+assert(course.includes("const COURSE_MODULE_VERSION='1.0.33-single-action-router'"),
  'course module version must be 1.0.27');
 assert(!course.includes('window.confirm('),'course module must not depend on unsupported WebView JS dialogs');
 assert(!hotfix.includes('window.confirm('),'hotfix navigation/discard must not depend on unsupported WebView JS dialogs');
@@ -112,13 +112,10 @@ assert(doneHtml.includes('Начать дополнительную тренир
  'after-main extra workout must remain visibly available');
 assert(doneHtml.includes('id="tcUndoTodayCourseBtn"'),
  'same-day undo must remain available as a secondary action');
-assert(doneHtml.includes('onclick="tcStartExtraWorkout()"'),
- 'after-main extra CTA keeps an inline fallback handler');
-assert(course.includes("const extra=document.getElementById('tcStartExtraAfterCourseBtn')")&&
- course.includes("window.tcStartExtraWorkout();")&&
- course.includes("extra.addEventListener('pointerup',startExtra,{passive:false})")&&
- course.includes("extra.addEventListener('touchend',startExtra,{passive:false})"),
- 'after-main extra CTA keeps direct WebView-safe handlers after render');
+assert(!doneHtml.includes('onclick="tcStartExtraWorkout()"'),
+ 'after-main extra CTA must not keep a second inline action path');
+assert(course.includes("el.dataset.tcBound='delegated-v2'"),
+ 'after-main actions must be marked for one delegated WebView-safe router');
 assert(course.includes('function tcInstallTodayActionDelegation()')&&
  course.includes("document.addEventListener('click',ev=>{const el=actionFor(ev.target);if(el)run(el,ev)},true)")&&
  course.includes("document.addEventListener('touchend',ev=>"),
@@ -132,11 +129,10 @@ assert(course.includes(".tcAfterMainCard{position:relative;z-index:40"),
 assert(course.includes("tcActionMessage('Не удалось начать тренировку',message)"),
  'extra-workout startup errors must never fail silently');
 const emptyExtrasHtml=uiApi.tcTodayCourseDoneHtml([]);
-assert(emptyExtrasHtml.includes("onclick=\"go('exercise')\""),
- 'after-main choose-extras CTA keeps an inline fallback handler');
-assert(course.includes("const choose=document.getElementById('tcChooseExtrasAfterCourseBtn')")&&
- course.includes("go('exercise');"),
- 'after-main choose-extras CTA must also receive an explicit WebView-safe handler after render');
+assert(!emptyExtrasHtml.includes("onclick=\"go('exercise')\""),
+ 'after-main choose-extras CTA must not keep a competing inline action path');
+assert(course.includes("window.__TC_TODAY_ACTION_DELEGATION_V2"),
+ 'Today actions must install the versioned delegated router V2');
 
 const doneExtraApi=new Function('TC_course','state','dateKey','tcExtraRowsHtml',
   extract('tcTodayCourseRecord')+'\n'+extract('tcTodayExtraRecord')+'\n'+extract('tcTodayCourseDoneHtml')+
