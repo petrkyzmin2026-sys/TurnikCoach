@@ -179,11 +179,11 @@ wait_text("Начать дополнительную тренировку",timeo
 screenshot("03-main-done-extra-available")
 
 tap_text("Начать дополнительную тренировку",contains=False)
-wait_text("Подъём коленей в висе",timeout=15)
+wait_text("Выйти",timeout=15,contains=False)
+wait_text("Подъём коленей в висе",timeout=15,contains=False)
 screenshot("04-extra-workout-active")
 adb("shell","uiautomator","dump","/sdcard/uxb3-active.xml",check=False)
 adb("pull","/sdcard/uxb3-active.xml",OUT+"/04-extra-workout-active.xml",check=False)
-wait_text("Выйти",timeout=10,contains=False)
 assert_touch_target("Выйти",48,contains=False)
 wait_text("ⓘ",timeout=10,contains=False)
 assert_touch_target("ⓘ",48,contains=False)
