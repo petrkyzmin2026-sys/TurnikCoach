@@ -366,6 +366,7 @@
       try{
         if(target==='workout'&&typeof renderWork==='function')renderWork();
         if(target==='rest'&&typeof tcRenderRest==='function')tcRenderRest();
+        if(target==='workout'&&typeof tcInstallAdaptiveWorkoutGeometry==='function')tcInstallAdaptiveWorkoutGeometry();
       }catch(e){}
       tcForceWebViewRepaint();
       try{
@@ -373,6 +374,33 @@
       }catch(e){}
       return true;
     };
+    function tcEnforceRestoreSurfaceGuard(){
+      const guard=window.__tcRestoreSurfaceGuard;
+      if(!guard)return false;
+      if(Date.now()>guard.until||!tcHasWorkout()){
+        window.__tcRestoreSurfaceGuard=null;
+        return false;
+      }
+      return window.tcRefreshActiveTrainingSurface(guard.surface);
+    }
+    window.tcArmRestoreSurfaceGuard=function(surface){
+      window.__tcRestoreSurfaceGuard={
+        surface:surface==='rest'?'rest':'workout',
+        until:Date.now()+5000
+      };
+      const enforce=()=>{try{tcEnforceRestoreSurfaceGuard()}catch(e){}};
+      enforce();
+      if(typeof requestAnimationFrame==='function'){
+        requestAnimationFrame(()=>{enforce();requestAnimationFrame(enforce)});
+      }
+      [250,750,1500,3000].forEach(delay=>setTimeout(enforce,delay));
+      return true;
+    };
+    window.addEventListener('focus',tcEnforceRestoreSurfaceGuard);
+    window.addEventListener('pageshow',tcEnforceRestoreSurfaceGuard);
+    document.addEventListener('visibilitychange',()=>{
+      if(document.visibilityState==='visible')tcEnforceRestoreSurfaceGuard();
+    });
     function tcClearWorkout(){try{if(typeof rt!=='undefined'&&rt){clearInterval(rt);rt=null}}catch(e){}try{W=null}catch(e){}try{if(typeof window.tcClearActiveWorkoutSnapshot==='function')window.tcClearActiveWorkoutSnapshot()}catch(e){}}
     const baseGo=window.go;
     window.go=function(id){
@@ -873,34 +901,10 @@
         if(typeof renderWork==='function')renderWork();
       }
       const restoredSurface=tcRestActive&&tcRestEnd?'rest':'workout';
-      [50,250,750].forEach(delay=>setTimeout(()=>{
-        if(typeof W==='undefined'||!W)return;
-        try{
-          if(typeof window.tcRefreshActiveTrainingSurface==='function')window.tcRefreshActiveTrainingSurface(restoredSurface);
-        }catch(e){}
-      },delay));
-      setTimeout(()=>{
-        try{
-          const today=document.getElementById('today');
-          const workout=document.getElementById('workout');
-          const active=[...document.querySelectorAll('.screen.on')].map(el=>el.id||'?');
-          const done=!![...document.querySelectorAll('#workout button')].find(b=>(b.textContent||'').trim()==='Сделано');
-          const exit=!!document.querySelector('#workout .tcWorkoutExitBtn');
-          console.log('TC_WORKOUT_STATE',JSON.stringify({
-            phase:'restore-surface-check',
-            active,
-            todayDisplay:today?getComputedStyle(today).display:'',
-            workoutDisplay:workout?getComputedStyle(workout).display:'',
-            todayHidden:today?!!today.hidden:null,
-            workoutHidden:workout?!!workout.hidden:null,
-            hasW:typeof W!=='undefined'&&!!W,
-            mode:typeof W!=='undefined'&&W?String(W.mode||''):'',
-            done,exit
-          }));
-        }catch(e){
-          console.error('TC_WORKOUT_STATE restore-surface-check failed',e);
-        }
-      },1200);
+      try{
+        if(typeof window.tcArmRestoreSurfaceGuard==='function')window.tcArmRestoreSurfaceGuard(restoredSurface);
+        else if(typeof window.tcRefreshActiveTrainingSurface==='function')window.tcRefreshActiveTrainingSurface(restoredSurface);
+      }catch(e){}
       showRuntimeNotice('Незавершённая тренировка восстановлена.');
       try{
         const item=W.items&&W.items[W.exerciseIndex];
