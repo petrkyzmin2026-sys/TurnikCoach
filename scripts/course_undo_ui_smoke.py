@@ -102,27 +102,31 @@ def press_clickable_text(text,timeout=12):
     raise AssertionError("Clickable text not found for press: "+text)
 
 def test_eval(js,label):
-    encoded=base64.b64encode(js.encode("utf-8")).decode("ascii")
+    marker="TC_TEST_EVAL_RESULT:"
+    wrapped="(function(){try{var __tcv=("+js+");console.log('"+marker+"'+JSON.stringify(__tcv));return __tcv;}catch(e){console.error('TC_TEST_EVAL_ERROR:'+(e&&e.stack||e));throw e;}})()"
+    encoded=base64.b64encode(wrapped.encode("utf-8")).decode("ascii")
     adb("shell","run-as",PKG,"rm","-f","files/tc-test-js-result.txt",check=False)
     adb("logcat","-c",check=False)
     sent=adb("shell","am","broadcast","-a","ru.turnikcoach.TEST_EVAL","-p",PKG,"--es","js_b64",encoded,check=False)
     result=""
     deadline=time.time()+6
+    output=""
     while time.time()<deadline:
-        rr=adb("shell","run-as",PKG,"cat","files/tc-test-js-result.txt",check=False)
-        if rr.returncode==0 and (rr.stdout or "").strip():
-            result=(rr.stdout or "").strip()
+        log=adb("logcat","-d","-s","TurnikCoachBridge:D","TurnikCoachJSResult:D","TurnikCoachJS:D","*:S",check=False)
+        output=(log.stdout or "")+"\n"+(log.stderr or "")
+        for line in output.splitlines():
+            if marker in line:
+                result=line.split(marker,1)[1].split(" @ ",1)[0].strip()
+        if result:
             break
         time.sleep(.25)
-    log=adb("logcat","-d","-s","TurnikCoachBridge:D","TurnikCoachJSResult:D","TurnikCoachJS:D","*:S",check=False)
-    output=(log.stdout or "")+"\n"+(log.stderr or "")
     print("TC_DIAG JS",label,"start_rc",sent.returncode,"result",result,"log",output[-3000:],flush=True)
     with open(OUT+"/04b-js-"+label+".txt","w",encoding="utf-8") as fp:
         fp.write("start:\n"+(sent.stdout or "")+"\n"+(sent.stderr or "")+"\nresult:\n"+result+"\nlog:\n"+output)
     if sent.returncode!=0:
         raise AssertionError("TEST_EVAL intent failed for "+label+": "+(sent.stderr or sent.stdout or ""))
     if not result:
-        raise AssertionError("TEST_EVAL returned no WebView result for "+label)
+        raise AssertionError("TEST_EVAL returned no WebView console result for "+label)
     return result
 
 def test_eval_json(js,label):
