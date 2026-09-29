@@ -879,6 +879,28 @@
           if(typeof window.tcRefreshActiveTrainingSurface==='function')window.tcRefreshActiveTrainingSurface(restoredSurface);
         }catch(e){}
       },delay));
+      setTimeout(()=>{
+        try{
+          const today=document.getElementById('today');
+          const workout=document.getElementById('workout');
+          const active=[...document.querySelectorAll('.screen.on')].map(el=>el.id||'?');
+          const done=!![...document.querySelectorAll('#workout button')].find(b=>(b.textContent||'').trim()==='Сделано');
+          const exit=!!document.querySelector('#workout .tcWorkoutExitBtn');
+          console.log('TC_WORKOUT_STATE',JSON.stringify({
+            phase:'restore-surface-check',
+            active,
+            todayDisplay:today?getComputedStyle(today).display:'',
+            workoutDisplay:workout?getComputedStyle(workout).display:'',
+            todayHidden:today?!!today.hidden:null,
+            workoutHidden:workout?!!workout.hidden:null,
+            hasW:typeof W!=='undefined'&&!!W,
+            mode:typeof W!=='undefined'&&W?String(W.mode||''):'',
+            done,exit
+          }));
+        }catch(e){
+          console.error('TC_WORKOUT_STATE restore-surface-check failed',e);
+        }
+      },1200);
       showRuntimeNotice('Незавершённая тренировка восстановлена.');
       try{
         const item=W.items&&W.items[W.exerciseIndex];
