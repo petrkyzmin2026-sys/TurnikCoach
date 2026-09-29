@@ -815,7 +815,7 @@
     return true;
   }
   function tcRestoreActiveWorkoutSnapshot(){
-    if(typeof W!=='undefined'&&W)return false;
+    const hadActiveWorkout=typeof W!=='undefined'&&!!W;
     let payload=null;
     try{payload=JSON.parse(localStorage.getItem(TC_ACTIVE_WORKOUT_KEY)||'null')}catch(e){}
     if(!payload||payload.schema!==2||!tcValidRestoredWorkout(payload.workout)){
@@ -828,7 +828,10 @@
       return false;
     }
     try{
-      W=payload.workout;
+      // During hotfix handover an older hotfix may already have restored W.
+      // Keep the live in-memory workout, but re-apply the durable navigation/rest state
+      // so the newly installed hotfix cannot leave the user visually on Today.
+      if(!hadActiveWorkout)W=payload.workout;
       window.__tcManualCourseRest=payload.manualRest||null;
       const rest=payload.rest||{};
       tcRestActive=!!rest.active;
@@ -859,7 +862,7 @@
       showRuntimeNotice('Незавершённая тренировка восстановлена.');
       try{
         const item=W.items&&W.items[W.exerciseIndex];
-        console.log('TC_WORKOUT_STATE',JSON.stringify({phase:'restored',screen:tcWorkoutScreen(),mode:String(W.mode||''),exerciseIndex:+W.exerciseIndex||0,setIndex:+W.setIndex||0,name:item&&item.e&&item.e.name||'',restActive:!!tcRestActive}));
+        console.log('TC_WORKOUT_STATE',JSON.stringify({phase:hadActiveWorkout?'handover-restored':'restored',screen:tcWorkoutScreen(),mode:String(W.mode||''),exerciseIndex:+W.exerciseIndex||0,setIndex:+W.setIndex||0,name:item&&item.e&&item.e.name||'',restActive:!!tcRestActive}));
       }catch(_){}
       return true;
     }catch(e){
