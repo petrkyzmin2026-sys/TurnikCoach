@@ -67,51 +67,33 @@ public class MainActivity extends Activity {
                 if (web == null) return;
                 final int previousLayer = web.getLayerType();
                 Log.d(NATIVE_TAG, "commitVisualRefresh start layer=" + previousLayer);
-                final Runnable refresh = () -> {
+                web.setLayerType(View.LAYER_TYPE_SOFTWARE, null);
+                web.requestLayout();
+                web.invalidate();
+                web.postInvalidateOnAnimation();
+                web.post(() -> {
                     if (web == null) return;
-                    web.setLayerType(View.LAYER_TYPE_SOFTWARE, null);
-                    Log.d(NATIVE_TAG, "commitVisualRefresh software-layer");
                     web.requestLayout();
                     web.invalidate();
-                    web.postInvalidate();
-                    web.postDelayed(() -> {
-                        if (web == null) return;
-                        web.setLayerType(previousLayer, null);
-                        Log.d(NATIVE_TAG, "commitVisualRefresh delayed restore-layer=" + previousLayer + " hide");
-                        web.setVisibility(View.INVISIBLE);
-                        web.requestLayout();
-                        web.invalidate();
-                        web.post(() -> {
-                            if (web == null) return;
-                            web.setVisibility(View.VISIBLE);
-                            Log.d(NATIVE_TAG, "commitVisualRefresh visible");
-                            web.requestLayout();
-                            web.invalidate();
-                            web.postInvalidate();
-                        });
-                    }, 24);
-                };
-
-                // Do not gate the forced refresh on a compositor callback: after process
-                // restore that callback may wait on the very stale frame we are trying to replace.
-                refresh.run();
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                    web.postVisualStateCallback(SystemClock.uptimeMillis(), new WebView.VisualStateCallback() {
-                        @Override public void onComplete(long requestId) {
-                            if (web == null) return;
-                            Log.d(NATIVE_TAG, "visualState complete id=" + requestId);
-                            web.requestLayout();
-                            web.invalidate();
-                            web.postInvalidate();
-                        }
-                    });
-                }
+                    web.postInvalidateOnAnimation();
+                });
+                web.postDelayed(() -> {
+                    if (web == null) return;
+                    web.setLayerType(previousLayer, null);
+                    web.requestLayout();
+                    web.invalidate();
+                    web.postInvalidateOnAnimation();
+                    Log.d(NATIVE_TAG, "commitVisualRefresh settled layer=" + previousLayer);
+                }, 48);
             }
 
             @JavascriptInterface public void refreshSurface() {
                 runOnUiThread(() -> {
                     if (web == null) return;
-                    web.evaluateJavascript("void document.documentElement.offsetHeight", value -> commitVisualRefresh());
+                    web.post(() -> {
+                        if (web == null) return;
+                        commitVisualRefresh();
+                    });
                 });
             }
 
@@ -121,23 +103,14 @@ public class MainActivity extends Activity {
                     if (web == null) return;
                     final String target = "rest".equals(requested) ? "rest" : "workout";
                     Log.d(NATIVE_TAG, "showSurface ui target=" + target);
-                    final String js =
-                            "(function(){var t='" + target + "';" +
-                            "document.querySelectorAll('.screen').forEach(function(s){" +
-                            "var a=s.id===t;s.classList.toggle('on',a);s.hidden=!a;" +
-                            "s.setAttribute('aria-hidden',a?'false':'true');s.style.display=a?'flex':'none';" +
-                            "});var e=document.getElementById(t);if(e)void e.offsetHeight;return t;})()";
-                    web.evaluateJavascript(js, value -> {
+                    // DOM selection is already performed by the JS restore path before this
+                    // bridge call. Do not call evaluateJavascript from inside the bridge: that
+                    // re-enters the renderer while it is completing restore and can wedge WebView.
+                    web.post(() -> {
                         if (web == null) return;
-                        Log.d(NATIVE_TAG, "showSurface eval callback=" + value);
-                        web.requestLayout();
-                        web.invalidate();
-                        web.postInvalidate();
+                        Log.d(NATIVE_TAG, "showSurface native-refresh target=" + target);
+                        commitVisualRefresh();
                     });
-                    // The JS caller has already selected the target DOM surface. Force the
-                    // native WebView surface immediately; do not wait for evaluateJavascript's
-                    // callback, which can be delayed while the compositor still exposes an old frame.
-                    commitVisualRefresh();
                 });
             }
         }, "TurnikNative");
