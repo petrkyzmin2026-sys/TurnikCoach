@@ -348,6 +348,11 @@ launch()
 dismiss_system_anr()
 restore_line=wait_log_tokens(["TC_WORKOUT_STATE",'"phase":"restored"','"name":"Подъём коленей в висе"','"mode":"extra"'],timeout=20)
 print("TC_DIAG restore",restore_line,flush=True)
+time.sleep(1.2)
+wait_text("Сделано",timeout=12,contains=False)
+wait_text("Выйти",timeout=12,contains=False)
+assert_touch_target("Сделано",48,contains=False)
+assert_touch_target("Выйти",48,contains=False)
 screenshot("05-process-death-restored")
 
 # Accessibility regression: Android font scale 200% must not clip the critical workout controls.
