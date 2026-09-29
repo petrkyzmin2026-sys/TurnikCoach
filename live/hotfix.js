@@ -349,6 +349,9 @@
         if(target==='rest'&&typeof tcRenderRest==='function')tcRenderRest();
       }catch(e){}
       tcForceWebViewRepaint();
+      try{
+        if(window.TurnikNative&&typeof window.TurnikNative.refreshSurface==='function')window.TurnikNative.refreshSurface();
+      }catch(e){}
       return true;
     };
     function tcClearWorkout(){try{if(typeof rt!=='undefined'&&rt){clearInterval(rt);rt=null}}catch(e){}try{W=null}catch(e){}try{if(typeof window.tcClearActiveWorkoutSnapshot==='function')window.tcClearActiveWorkoutSnapshot()}catch(e){}}
