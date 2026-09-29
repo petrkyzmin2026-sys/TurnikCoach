@@ -243,6 +243,7 @@
   }
 
   function tcInstallNavigationUpgrades(){
+    console.log('TC_NAV_UPGRADE',JSON.stringify({phase:'install',version:VERSION}));
     // The navigation core is intentionally one-time. Hotfix upgrades live here so a
     // newer hotfix can change rendering/restore behavior without stacking go/popstate wrappers.
     const oldStyle=document.getElementById('tcNavUpgradeStyle');
@@ -341,6 +342,7 @@
     }
     window.tcArmRestoreSurfaceGuard=function(surface){
       window.__tcRestoreSurfaceGuard={surface:surface==='rest'?'rest':'workout',until:Date.now()+5000};
+      console.log('TC_NAV_UPGRADE',JSON.stringify({phase:'arm-restore-guard',version:VERSION,surface:window.__tcRestoreSurfaceGuard.surface}));
       const enforce=()=>{try{enforceRestoreGuard()}catch(e){}};
       enforce();
       if(typeof requestAnimationFrame==='function'){
