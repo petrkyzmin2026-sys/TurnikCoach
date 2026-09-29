@@ -10,6 +10,7 @@ import android.webkit.WebResourceResponse;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.view.View;
 
 import org.json.JSONObject;
 
@@ -55,6 +56,23 @@ public class MainActivity extends Activity {
                     web.invalidate();
                     web.requestLayout();
                     web.postInvalidate();
+                });
+            }
+
+            @JavascriptInterface public void refreshSurface() {
+                runOnUiThread(() -> {
+                    if (web == null) return;
+                    final int previousLayer = web.getLayerType();
+                    web.setLayerType(View.LAYER_TYPE_SOFTWARE, null);
+                    web.requestLayout();
+                    web.invalidate();
+                    web.postDelayed(() -> {
+                        if (web == null) return;
+                        web.setLayerType(previousLayer, null);
+                        web.requestLayout();
+                        web.invalidate();
+                        web.postInvalidate();
+                    }, 24);
                 });
             }
         }, "TurnikNative");
