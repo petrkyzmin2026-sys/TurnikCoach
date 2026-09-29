@@ -331,9 +331,7 @@ with open(OUT+"/04b-extra-start-settled-logcat.txt","w",encoding="utf-8") as fp:
 
 # Headless Android WebView can expose a stale accessibility/surface frame after a dynamic screen switch.
 # Verify the actual application state using runtime markers emitted by the same WebView execution path.
-start_line=wait_log_tokens(["TC_EXTRA_START",'"phase":"after-go"','"screen":"workout"'],timeout=10)
-snapshot_line=wait_log_tokens(["TC_WORKOUT_STATE",'"phase":"snapshot-saved"','"name":"Подъём коленей в висе"'],timeout=10)
-print("TC_DIAG workout-start",start_line,flush=True)
+snapshot_line=wait_log_tokens(["TC_WORKOUT_STATE",'"phase":"snapshot-saved"','"screen":"workout"','"mode":"extra"','"name":"Подъём коленей в висе"'],timeout=10)
 print("TC_DIAG snapshot",snapshot_line,flush=True)
 
 # Android-specific durability check: process death must restore the same active workout.
