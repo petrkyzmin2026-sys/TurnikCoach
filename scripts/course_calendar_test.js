@@ -80,8 +80,8 @@ assert(course.includes('tcPreviewCourseCard(tcSelectedDate)'),
  'choosing another date must show a read-only plan');
 assert(course.includes('id="tcCycleStartDate"'),
  'settings must expose a cycle start date');
-assert(hotfix.includes("const VERSION='5.16.34-haptic-feedback'"),
- 'release hotfix version must be 5.16.34');
+assert(hotfix.includes("const VERSION='5.16.35-progress-summary'"),
+ 'release hotfix version must be 5.16.35');
 assert(course.includes("const COURSE_MODULE_VERSION='1.0.34-diagnostics-cleanup'"),
  'course module version must be 1.0.34');
 assert(!course.includes('TC_EXTRA_START'),
@@ -477,6 +477,33 @@ const hapticHarness=new Function(
 )();
 assert.deepEqual(hapticHarness,[45],
  'one newly recorded set must produce exactly one short confirmation pulse');
+
+assert(hotfix.includes('function tcProgressMetrics(genericHistory,courseHistory,pullMax,nowTs)'),
+ 'Progress must derive summary metrics from existing history without mutating it');
+assert(hotfix.includes("host.id='tcProgressSummary'")&&
+ hotfix.includes('За 7 дней')&&hotfix.includes('Всего тренировок')&&hotfix.includes('MAX подтяг.'),
+ 'Progress screen must render the three at-a-glance summary metrics');
+
+const progressMetrics=new Function(
+  extractFrom(hotfix,'tcProgressMetrics')+'\nreturn tcProgressMetrics;'
+)();
+const now=Date.parse('2026-09-29T12:00:00');
+const duplicateTs=Date.parse('2026-09-28T12:00:00');
+const progressSample=progressMetrics(
+  [
+    {type:'workout',date:'2026-09-28',ts:duplicateTs,total:50,courseMode:'extra'},
+    {type:'workout',date:'2026-09-10',ts:Date.parse('2026-09-10T12:00:00'),total:40},
+    {type:'skip',date:'2026-09-29',ts:now}
+  ],
+  [
+    {type:'workout',date:'2026-09-29',ts:now-3600000,total:70,courseMode:'course'},
+    {type:'workout',date:'2026-09-28',ts:duplicateTs,total:50,courseMode:'extra'}
+  ],
+  21,
+  now
+);
+assert.deepEqual(progressSample,{week:2,total:3,pullMax:21},
+ 'Progress summary must deduplicate shared records, ignore skips, and count only the last 7 days');
 assert(hotfix.includes("if(tcActiveWorkoutForUpdate()){")&&hotfix.includes('tcScheduleDeferredUpdate(activate)'),
  'update prompt must defer while a workout or durable workout snapshot is active');
 
@@ -628,4 +655,4 @@ assert.equal(undoState.lastCourseTs,0);
 assert.equal(undoState.testAnchorDate,'');
 assert.equal(undoApi.tcUndoLatestTodayCourseRecord('2026-09-25'),false,
  'undo must not remove anything twice');
-console.log('PASS: syntax, bundle, UX2 persistence/IA/completion/accessibility/haptics, critical actions, forms and touch targets');
+console.log('PASS: syntax, bundle, UX2 persistence/IA/completion/accessibility/haptics/progress, critical actions, forms and touch targets');
