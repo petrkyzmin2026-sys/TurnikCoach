@@ -361,6 +361,17 @@ restore_200=wait_log_tokens(["TC_WORKOUT_STATE",'"phase":"restored"','"mode":"ex
 print("TC_DIAG restore-200",restore_200,flush=True)
 time.sleep(1)
 
+# Capture the 200% surface before assertions so failures stay diagnosable.
+screenshot("06-font-scale-200-preassert")
+adb("shell","uiautomator","dump","/sdcard/ux2-font200-preassert.xml",check=False)
+adb("pull","/sdcard/ux2-font200-preassert.xml",OUT+"/06-font-scale-200-preassert.xml",check=False)
+try:
+    tree200=ET.parse(OUT+"/06-font-scale-200-preassert.xml")
+    texts200=[n.attrib.get("text","") for n in tree200.getroot().iter("node") if n.attrib.get("text")]
+    print("TC_DIAG font-scale-200-texts",texts200,flush=True)
+except Exception as e:
+    print("TC_DIAG font-scale-200-xml-error",repr(e),flush=True)
+
 # At cold restore Android accessibility reflects the actual rendered workout surface.
 wait_text("Сделано",timeout=15,contains=False)
 wait_text("Пропустить",timeout=15,contains=False)
