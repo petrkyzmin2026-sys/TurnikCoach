@@ -9,6 +9,33 @@ new vm.Script(hotfix,{filename:'live/hotfix.js'});
 const bundled=hotfix.match(/const COURSE_MODULE_BUNDLED=("(?:\\.|[^"\\])*");\n  function tcValidCourseModule/);
 assert(bundled,'embedded course module must exist');
 assert.equal(JSON.parse(bundled[1]),course,'APK update must use the same course module');
+function extractFrom(source,name){
+  const start=source.indexOf('function '+name+'(');
+  assert(start>=0,'function missing: '+name);
+  const begin=source.indexOf('{',start);
+  let depth=1,end=begin+1;
+  while(depth&&end<source.length){
+    if(source[end]==='{')depth++;
+    if(source[end]==='}')depth--;
+    end++;
+  }
+  assert.equal(depth,0,'function not closed: '+name);
+  return source.slice(start,end);
+}
+function extractAssignment(source,prefix){
+  const start=source.indexOf(prefix);
+  assert(start>=0,'assignment missing: '+prefix);
+  const begin=source.indexOf('{',start);
+  let depth=1,end=begin+1;
+  while(depth&&end<source.length){
+    if(source[end]==='{')depth++;
+    if(source[end]==='}')depth--;
+    end++;
+  }
+  assert.equal(depth,0,'assignment function not closed: '+prefix);
+  while(end<source.length&&/[;\s]/.test(source[end]))end++;
+  return source.slice(start,end);
+}
 function extract(name){
   const start=course.indexOf('function '+name+'(');
   assert(start>=0,'function missing: '+name);
@@ -411,6 +438,124 @@ assert(hotfix.includes('tcShowCompletionSummary(summary)'),
  'successful save must open a completion summary');
 assert(hotfix.includes("if(tcActiveWorkoutForUpdate()){")&&hotfix.includes('tcScheduleDeferredUpdate(activate)'),
  'update prompt must defer while a workout or durable workout snapshot is active');
+
+// Behavioral completion-flow regression: execute the shipped wrapper and shipped Undo transaction.
+const completionHarness=new Function(
+  extractFrom(hotfix,'tcWorkoutSummary')+'\n'+
+  extractFrom(hotfix,'tcReadCompletionUndo')+'\n'+
+  extractFrom(hotfix,'tcClearCompletionUndo')+'\n'+
+  extractAssignment(hotfix,'window.tcUndoLastCompletion=function')+'\n'+
+  extractFrom(hotfix,'tcInstallCompletionFlow')+'\n'+
+  `
+  const TC_COMPLETION_UNDO_KEY='tc_completion_undo_v1';
+  let tcCompletionFlowInstalled=false;
+  let W={
+    mode:'extra',exerciseIndex:0,setIndex:1,actual:8,
+    items:[
+      {e:{name:'Подъём коленей в висе'},plan:[10,10],actual:[10,8]},
+      {e:{name:'Отжимания от пола'},plan:[20],actual:[20]}
+    ]
+  };
+  let state={history:[{id:'before'}],counter:7};
+  let courseState={courseSeq:4,lastCourseDate:'2026-09-29'};
+  let summarySeen=null,lastGo='',saveCount=0,activeSnapshotClears=0;
+  const notices=[];
+  const store=new Map();
+  const localStorage={
+    setItem:(k,v)=>store.set(k,String(v)),
+    getItem:k=>store.has(k)?store.get(k):null,
+    removeItem:k=>store.delete(k)
+  };
+  const sheet={open:true,classList:{remove:n=>{if(n==='open')sheet.open=false}}};
+  const document={getElementById:id=>id==='sheet'?sheet:null};
+  const window={
+    finishWorkout:function(){
+      state.history.push({id:'saved-extra'});
+      state.counter=99;
+      courseState.courseSeq=5;
+      W=null;
+      return 'saved';
+    },
+    tcGetCourseStateSnapshot:()=>JSON.parse(JSON.stringify(courseState)),
+    tcRestoreCourseStateSnapshot:s=>{courseState=JSON.parse(JSON.stringify(s))},
+    tcClearActiveWorkoutSnapshot:()=>{activeSnapshotClears++}
+  };
+  function tcJsonClone(v){return JSON.parse(JSON.stringify(v))}
+  function tcShowCompletionSummary(v){summarySeen=JSON.parse(JSON.stringify(v))}
+  function save(){saveCount++}
+  function render(){}
+  function go(id){lastGo=id}
+  function showRuntimeNotice(message,type){notices.push([message,type||''])}
+  const setTimeout=fn=>{fn();return 1};
+
+  tcInstallCompletionFlow();
+  const finishResult=window.finishWorkout('Нормально');
+  const afterFinish={
+    finishResult,
+    state:JSON.parse(JSON.stringify(state)),
+    course:JSON.parse(JSON.stringify(courseState)),
+    W,
+    tx:JSON.parse(localStorage.getItem(TC_COMPLETION_UNDO_KEY)||'null'),
+    summary:summarySeen,
+    activeSnapshotClears
+  };
+  const undoResult=window.tcUndoLastCompletion();
+  return {
+    afterFinish,
+    undoResult,
+    state:JSON.parse(JSON.stringify(state)),
+    course:JSON.parse(JSON.stringify(courseState)),
+    lastGo,saveCount,activeSnapshotClears,
+    txAfterUndo:localStorage.getItem(TC_COMPLETION_UNDO_KEY),
+    notices
+  };
+  `
+)();
+
+assert.equal(completionHarness.afterFinish.finishResult,'saved');
+assert.equal(completionHarness.afterFinish.W,null,'finish wrapper must leave no active workout after base save');
+assert.equal(completionHarness.afterFinish.state.counter,99,'base save mutation must occur before Undo');
+assert.equal(completionHarness.afterFinish.course.courseSeq,5,'base course mutation must occur before Undo');
+assert.equal(completionHarness.afterFinish.tx.state.counter,7,'Undo transaction must capture pre-save generic state');
+assert.equal(completionHarness.afterFinish.tx.course.courseSeq,4,'Undo transaction must capture pre-save course state');
+assert.equal(completionHarness.afterFinish.summary.mode,'extra');
+assert.equal(completionHarness.afterFinish.summary.exercises,2);
+assert.equal(completionHarness.afterFinish.summary.sets,3);
+assert.equal(completionHarness.afterFinish.summary.total,38);
+assert.equal(completionHarness.afterFinish.summary.feel,'Нормально');
+assert.equal(completionHarness.undoResult,true,'completion Undo must succeed inside its validity window');
+assert.equal(completionHarness.state.counter,7,'Undo must restore generic state exactly');
+assert.equal(completionHarness.state.history.length,1,'Undo must remove the newly saved workout by restoring pre-save state');
+assert.equal(completionHarness.course.courseSeq,4,'Undo must restore course sequence exactly');
+assert.equal(completionHarness.lastGo,'today','Undo must return to Today');
+assert.equal(completionHarness.txAfterUndo,null,'successful Undo must clear the one-shot transaction');
+assert(completionHarness.activeSnapshotClears>=2,'finish and Undo must clear durable active-workout snapshots');
+assert(completionHarness.notices.some(x=>x[0]==='Сохранение тренировки отменено.'),
+ 'Undo must give visible success feedback');
+
+// Behavioral completion-summary rendering regression.
+const summaryRender=new Function(
+  extractFrom(hotfix,'tcShowCompletionSummary')+'\n'+
+  `
+  const sheet={open:false,classList:{add:n=>{if(n==='open')sheet.open=true},remove:n=>{if(n==='open')sheet.open=false}}};
+  const box={innerHTML:''};
+  const done={onclick:null},undo={onclick:null};
+  const window={tcUndoLastCompletion:function(){return true}};
+  const document={getElementById:id=>({sheet,sheetbox:box,tcCompletionDoneBtn:done,tcCompletionUndoBtn:undo}[id]||null)};
+  function closeSheet(){sheet.open=false}
+  const summary={mode:'extra',exercises:2,sets:3,total:38,feel:'Нормально',rows:[
+    {name:'Подъём коленей в висе',values:'10 · 8'},
+    {name:'Отжимания от пола',values:'20'}
+  ]};
+  tcShowCompletionSummary(summary);
+  return {html:box.innerHTML,open:sheet.open,doneBound:typeof done.onclick==='function',undoBound:undo.onclick===window.tcUndoLastCompletion};
+  `
+)();
+assert(summaryRender.open,'completion summary sheet must open');
+assert(summaryRender.html.includes('Дополнительная тренировка завершена'));
+assert(summaryRender.html.includes('Отменить сохранение'));
+assert(summaryRender.html.includes('Подъём коленей в висе'));
+assert(summaryRender.doneBound&&summaryRender.undoBound,'completion summary actions must be bound');
 
 const staleFormFeedback=[];
 new Function('TC_course','tcActionMessage','tcAdvancedChoicePool',formBodies.openAdvanced)(
