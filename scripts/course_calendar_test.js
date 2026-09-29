@@ -381,6 +381,9 @@ assert(hotfix.includes('function tcSaveActiveWorkoutSnapshot()'),
  'UX2 must provide durable active-workout snapshots');
 assert(hotfix.includes('function tcRestoreActiveWorkoutSnapshot()'),
  'UX2 must restore an interrupted workout after process recreation');
+assert(hotfix.includes('window.tcRefreshActiveTrainingSurface=function(id)')&&
+ hotfix.includes('[50,250,750].forEach(delay=>setTimeout(()=>'),
+ 'cold restore must repaint the active training surface after initial WebView startup');
 assert(hotfix.includes("window.tcClearActiveWorkoutSnapshot=tcClearActiveWorkoutSnapshot"),
  'discard flow must be able to remove a durable workout snapshot');
 assert(hotfix.includes("setNav('n1','◫','План')")&&hotfix.includes("setNav('n3','⌁','Прогресс')"),
