@@ -350,6 +350,16 @@ time.sleep(1.2)
 screenshot("05a-process-death-restore-preassert")
 adb("shell","uiautomator","dump","/sdcard/ux2-restore-preassert.xml",check=False)
 adb("pull","/sdcard/ux2-restore-preassert.xml",OUT+"/05a-process-death-restore-preassert.xml",check=False)
+# Preserve the 1.2 s user-visible screenshot, then wait long enough to collect all
+# runtime restore snapshots (0/250/750/1500/3000 ms) before the UI assertion.
+time.sleep(2.1)
+restore_diag=adb("logcat","-d","-s","TurnikCoachJS:D","*:S",check=False)
+restore_diag_text=(restore_diag.stdout or "")+"\n"+(restore_diag.stderr or "")
+with open(OUT+"/05a-process-death-restore-logcat.txt","w",encoding="utf-8") as fp:
+    fp.write(restore_diag_text)
+for line in restore_diag_text.splitlines():
+    if "TC_RESTORE_SURFACE" in line:
+        print("TC_DIAG restore-surface",line,flush=True)
 wait_text("Сделано",timeout=12,contains=False)
 wait_text("Выйти",timeout=12,contains=False)
 assert_touch_target("Сделано",48,contains=False)
