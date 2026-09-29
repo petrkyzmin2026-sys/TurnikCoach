@@ -118,7 +118,16 @@ public class MainActivity extends Activity {
                             "var a=s.id===t;s.classList.toggle('on',a);s.hidden=!a;" +
                             "s.setAttribute('aria-hidden',a?'false':'true');s.style.display=a?'flex':'none';" +
                             "});var e=document.getElementById(t);if(e)void e.offsetHeight;return t;})()";
-                    web.evaluateJavascript(js, value -> commitVisualRefresh());
+                    web.evaluateJavascript(js, value -> {
+                        if (web == null) return;
+                        web.requestLayout();
+                        web.invalidate();
+                        web.postInvalidate();
+                    });
+                    // The JS caller has already selected the target DOM surface. Force the
+                    // native WebView surface immediately; do not wait for evaluateJavascript's
+                    // callback, which can be delayed while the compositor still exposes an old frame.
+                    commitVisualRefresh();
                 });
             }
         }, "TurnikNative");
