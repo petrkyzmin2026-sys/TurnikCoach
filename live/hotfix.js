@@ -340,6 +340,17 @@
         }catch(e){}
       });
     }
+    window.tcRefreshActiveTrainingSurface=function(id){
+      if(typeof W==='undefined'||!W)return false;
+      const target=id==='rest'?'rest':'workout';
+      tcSyncScreenVisibility(target);
+      try{
+        if(target==='workout'&&typeof renderWork==='function')renderWork();
+        if(target==='rest'&&typeof tcRenderRest==='function')tcRenderRest();
+      }catch(e){}
+      tcForceWebViewRepaint();
+      return true;
+    };
     function tcClearWorkout(){try{if(typeof rt!=='undefined'&&rt){clearInterval(rt);rt=null}}catch(e){}try{W=null}catch(e){}try{if(typeof window.tcClearActiveWorkoutSnapshot==='function')window.tcClearActiveWorkoutSnapshot()}catch(e){}}
     const baseGo=window.go;
     window.go=function(id){
@@ -835,6 +846,13 @@
         go('workout');
         if(typeof renderWork==='function')renderWork();
       }
+      const restoredSurface=tcRestActive&&tcRestEnd?'rest':'workout';
+      [50,250,750].forEach(delay=>setTimeout(()=>{
+        if(typeof W==='undefined'||!W)return;
+        try{
+          if(typeof window.tcRefreshActiveTrainingSurface==='function')window.tcRefreshActiveTrainingSurface(restoredSurface);
+        }catch(e){}
+      },delay));
       showRuntimeNotice('Незавершённая тренировка восстановлена.');
       try{
         const item=W.items&&W.items[W.exerciseIndex];
