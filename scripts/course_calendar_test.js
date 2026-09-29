@@ -81,8 +81,10 @@ assert(course.includes('id="tcCycleStartDate"'),
  'settings must expose a cycle start date');
 assert(hotfix.includes("const VERSION='5.16.32-completion-flow'"),
  'release hotfix version must be 5.16.32');
-assert(course.includes("const COURSE_MODULE_VERSION='1.0.33-single-action-router'"),
- 'course module version must be 1.0.27');
+assert(course.includes("const COURSE_MODULE_VERSION='1.0.34-diagnostics-cleanup'"),
+ 'course module version must be 1.0.34');
+assert(!course.includes('TC_EXTRA_START'),
+ 'temporary extra-workout trace logging must not ship');
 assert(!course.includes('window.confirm('),'course module must not depend on unsupported WebView JS dialogs');
 assert(!hotfix.includes('window.confirm('),'hotfix navigation/discard must not depend on unsupported WebView JS dialogs');
 assert(!hotfix.includes('forceHandover'),'5.16.32 must use an explicit user-visible update prompt');
