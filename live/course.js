@@ -1,7 +1,7 @@
-/* TURNIKCOACH_COURSE 1.0.33-single-action-router */
+/* TURNIKCOACH_COURSE 1.0.34-diagnostics-cleanup */
 (function(){
   'use strict';
-  const COURSE_MODULE_VERSION='1.0.33-single-action-router';
+  const COURSE_MODULE_VERSION='1.0.34-diagnostics-cleanup';
   if(window.__TC_COURSE_MODULE_VERSION===COURSE_MODULE_VERSION)return;
   window.__TC_COURSE_MODULE_VERSION=COURSE_MODULE_VERSION;
   function tcClamp(v,a,b){return Math.max(a,Math.min(b,v))}
@@ -1727,23 +1727,19 @@
     };
     window.tcStartExtraWorkout=function(){
       try{
-        console.log('TC_EXTRA_START',JSON.stringify({phase:'enter',hasW:!!W,extraDone:!!tcTodayExtraRecord(),courseVersion:COURSE_MODULE_VERSION}));
-        if(W){console.log('TC_EXTRA_START',JSON.stringify({phase:'blocked',reason:'active-workout'}));tcActionMessage('Тренировка уже запущена','Сначала завершите текущую тренировку или выйдите из неё без сохранения.');return false;}
-        if(tcTodayExtraRecord()){console.log('TC_EXTRA_START',JSON.stringify({phase:'blocked',reason:'already-done'}));tcActionMessage('Дополнительная тренировка уже выполнена','Сегодняшняя дополнительная тренировка уже сохранена в истории.');return false;}
+        if(W){tcActionMessage('Тренировка уже запущена','Сначала завершите текущую тренировку или выйдите из неё без сохранения.');return false;}
+        if(tcTodayExtraRecord()){tcActionMessage('Дополнительная тренировка уже выполнена','Сегодняшняя дополнительная тренировка уже сохранена в истории.');return false;}
         const items=tcBuildExtraItems();
-        console.log('TC_EXTRA_START',JSON.stringify({phase:'items',count:items.length,names:items.map(x=>x&&x.e&&x.e.name||'')}));
-        if(!items.length){console.log('TC_EXTRA_START',JSON.stringify({phase:'blocked',reason:'no-items'}));tcActionMessage('Нет дополнительных упражнений','Выберите пресс, ноги, отжимания или другие дополнительные упражнения на экране «План».');return false;}
+        if(!items.length){tcActionMessage('Нет дополнительных упражнений','Выберите пресс, ноги, отжимания или другие дополнительные упражнения на экране «План».');return false;}
         tcPrimeAudio();
         const idx=TC_course.extraSeq%3;
         W={mode:'extra',sessionIndex:idx,exerciseIndex:0,setIndex:0,items,actual:items[0].plan[0],early:false};
-        console.log('TC_EXTRA_START',JSON.stringify({phase:'before-go',hasW:!!W,first:items[0]&&items[0].e&&items[0].e.name||''}));
         go('workout');
-        console.log('TC_EXTRA_START',JSON.stringify({phase:'after-go',screen:(document.querySelector('.screen.on')||{}).id||'',hasW:!!W}));
         return true;
       }catch(e){
         try{W=null}catch(_){}
         const message=e&&e.message?e.message:String(e||'Неизвестная ошибка');
-        console.error('TC_EXTRA_START',JSON.stringify({phase:'error',message,stack:e&&e.stack||''}));
+        console.error('TurnikCoach extra workout start',e);
         tcActionMessage('Не удалось начать тренировку',message);
         return false;
       }
