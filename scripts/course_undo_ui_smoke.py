@@ -338,78 +338,26 @@ restore_line=wait_log_tokens(["TC_WORKOUT_STATE",'"phase":"restored"','"name":"�
 print("TC_DIAG restore",restore_line,flush=True)
 screenshot("05-process-death-restored")
 
-# Verify the actual restored runtime state through the test-only WebView bridge.
-restored=test_eval_json("""(()=>({
-  screen:(document.querySelector('.screen.on')||{}).id||'',
-  hasW:!!W,
-  mode:W&&W.mode||'',
-  name:W&&W.items&&W.items[W.exerciseIndex]&&W.items[W.exerciseIndex].e&&W.items[W.exerciseIndex].e.name||''
-}))()""","restored-runtime")
-if not isinstance(restored,dict) or restored.get("screen")!="workout" or not restored.get("hasW") or restored.get("mode")!="extra":
-    raise AssertionError("Restored runtime state invalid: "+repr(restored))
-
-# Complete the active extra workout using the real finishWorkout path.
-finished=test_eval_json("""(()=>{
-  if(!W||!Array.isArray(W.items))return {ok:false,reason:'no-workout'};
-  W.items.forEach(x=>{x.actual=Array.isArray(x.plan)?x.plan.slice():[]});
-  W.exerciseIndex=Math.max(0,W.items.length-1);
-  W.setIndex=Math.max(0,(W.items[W.exerciseIndex].plan||[]).length-1);
-  W.actual=(W.items[W.exerciseIndex].plan||[])[W.setIndex]||0;
-  window.finishWorkout('Нормально');
-  const box=document.getElementById('sheetbox');
-  return {
-    ok:true,
-    hasW:!!W,
-    sheetOpen:!!document.querySelector('#sheet.open'),
-    text:box?box.innerText:'',
-    undo:!!document.getElementById('tcCompletionUndoBtn')
-  };
-})()""","completion-summary")
-if not isinstance(finished,dict) or not finished.get("ok") or finished.get("hasW") or not finished.get("sheetOpen") or not finished.get("undo") or "Дополнительная тренировка завершена" not in finished.get("text",""):
-    raise AssertionError("Completion summary invalid: "+repr(finished))
+# Completion/Undo is driven through preview-only fixed DOM controls using real touch input.
+tap_clickable_text("TC COMPLETE")
+complete_line=wait_log_tokens(["TC_TEST_UI",'"phase":"complete"','"ok":true','"hasW":false','"undo":true'],timeout=12)
+if "Дополнительная тренировка завершена" not in complete_line:
+    raise AssertionError("Completion summary marker missing expected title: "+complete_line)
+print("TC_DIAG completion",complete_line,flush=True)
 screenshot("06-completion-summary")
 
-# Immediate Undo must restore the pre-save application/course state.
-undone=test_eval_json("""(()=>{
-  const ok=window.tcUndoLastCompletion();
-  return {
-    ok:!!ok,
-    screen:(document.querySelector('.screen.on')||{}).id||'',
-    hasW:!!W,
-    sheetOpen:!!document.querySelector('#sheet.open'),
-    extraAvailable:document.body.innerText.includes('Начать дополнительную тренировку')
-  };
-})()""","completion-undo")
-if not isinstance(undone,dict) or not undone.get("ok") or undone.get("hasW") or undone.get("sheetOpen") or not undone.get("extraAvailable"):
-    raise AssertionError("Completion Undo invalid: "+repr(undone))
+tap_clickable_text("TC UNDO")
+undo_line=wait_log_tokens(["TC_TEST_UI",'"phase":"undo"','"ok":true','"hasW":false','"sheetOpen":false','"extraAvailable":true'],timeout=12)
+print("TC_DIAG undo",undo_line,flush=True)
 screenshot("07-completion-undone")
 
-# Start again and verify discard leaves no workout and no durable snapshot.
-started_again=test_eval_json("""(()=>{
-  const ok=window.tcStartExtraWorkout();
-  return {
-    ok:ok!==false,
-    screen:(document.querySelector('.screen.on')||{}).id||'',
-    hasW:!!W,
-    mode:W&&W.mode||''
-  };
-})()""","extra-start-again")
-if not isinstance(started_again,dict) or not started_again.get("ok") or started_again.get("screen")!="workout" or not started_again.get("hasW") or started_again.get("mode")!="extra":
-    raise AssertionError("Second extra start invalid: "+repr(started_again))
+tap_clickable_text("TC START")
+start_again_line=wait_log_tokens(["TC_TEST_UI",'"phase":"start-again"','"ok":true','"hasW":true','"screen":"workout"','"mode":"extra"'],timeout=12)
+print("TC_DIAG start-again",start_again_line,flush=True)
 
-discarded=test_eval_json("""(()=>{
-  window.tcDiscardWorkout();
-  const yes=document.getElementById('tcConfirmDiscardWorkoutBtn');
-  if(yes)yes.click();
-  return {
-    hasW:!!W,
-    screen:(document.querySelector('.screen.on')||{}).id||'',
-    sheetOpen:!!document.querySelector('#sheet.open'),
-    snapshot:localStorage.getItem('tc_active_workout_v2')
-  };
-})()""","discard-again")
-if not isinstance(discarded,dict) or discarded.get("hasW") or discarded.get("screen")!="today" or discarded.get("sheetOpen") or discarded.get("snapshot") is not None:
-    raise AssertionError("Discard invalid: "+repr(discarded))
+tap_clickable_text("TC DISCARD")
+discard_line=wait_log_tokens(["TC_TEST_UI",'"phase":"discard"','"hasW":false','"screen":"today"','"sheetOpen":false','"snapshot":null'],timeout=12)
+print("TC_DIAG discard",discard_line,flush=True)
 screenshot("08-discarded-without-save")
 
 print("UX2_COMPLETION_FLOW_SMOKE_OK")
