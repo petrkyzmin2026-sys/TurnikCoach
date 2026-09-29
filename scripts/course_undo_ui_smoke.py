@@ -285,13 +285,13 @@ def launch():
 launch()
 dismiss_system_anr()
 
-# Exact update path: packaged 5.14 + cached 5.16.31 are active first; staged 5.16.32 must be offered explicitly.
+# Exact update path: packaged 5.14 + cached 5.16.32 are active first; staged 5.16.33 must be offered explicitly.
 time.sleep(3)
 screenshot("00-before-update-assert")
 adb("shell","uiautomator","dump","/sdcard/uxb3-before-update.xml",check=False)
 adb("pull","/sdcard/uxb3-before-update.xml",OUT+"/00-before-update.xml",check=False)
 try:
-    wait_text("Доступно обновление TurnikCoach 5.16.32",timeout=20)
+    wait_text("Доступно обновление TurnikCoach 5.16.33",timeout=20)
 except Exception:
     log=adb("logcat","-d","-t","500",check=False)
     with open(OUT+"/00-logcat.txt","w",encoding="utf-8") as fp:
@@ -301,7 +301,7 @@ wait_text("Обновить",contains=False)
 screenshot("01-update-offered")
 
 tap_clickable_text("Обновить")
-wait_text("TurnikCoach обновлён до 5.16.32",timeout=25)
+wait_text("TurnikCoach обновлён до 5.16.33",timeout=25)
 assert_accessibility_target("План",48)
 assert_accessibility_target("Прогресс",48)
 screenshot("02-update-installed")
@@ -354,4 +354,4 @@ assert_touch_target("Сделано",48,contains=False)
 assert_touch_target("Выйти",48,contains=False)
 screenshot("05-process-death-restored")
 
-print("UX2_COMPLETION_FLOW_SMOKE_OK")
+print("UX2_ACCESSIBILITY_SCALE_BASELINE_OK")
