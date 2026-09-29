@@ -133,6 +133,14 @@ def test_eval(js,label):
         raise AssertionError("TEST_EVAL returned no WebView console result for "+label)
     return result
 
+def test_exec(js,label):
+    encoded=base64.b64encode(("(function(){"+js+"})()").encode("utf-8")).decode("ascii")
+    sent=adb("shell","am","broadcast","-a","ru.turnikcoach.TEST_EVAL","-p",PKG,"--es","js_b64",encoded,check=False)
+    print("TC_DIAG EXEC",label,"start_rc",sent.returncode,flush=True)
+    if sent.returncode!=0:
+        raise AssertionError("TEST_EXEC broadcast failed for "+label+": "+(sent.stderr or sent.stdout or ""))
+    return True
+
 def test_eval_json(js,label):
     raw=test_eval(js,label)
     try:
@@ -339,71 +347,31 @@ print("TC_DIAG restore",restore_line,flush=True)
 screenshot("05-process-death-restored")
 
 # Completion/Undo is verified through the preview-only WebView bridge.
-# UIAutomator can expose a stale accessibility tree after WebView screen changes,
-# so the state assertions below execute inside the same live JS runtime.
-finished=test_eval_json("""(()=> {
-  if(!W||!Array.isArray(W.items))return {ok:false,reason:'no-workout'};
-  W.items.forEach(x=>{x.actual=Array.isArray(x.plan)?x.plan.slice():[]});
-  W.exerciseIndex=Math.max(0,W.items.length-1);
-  W.setIndex=Math.max(0,(W.items[W.exerciseIndex].plan||[]).length-1);
-  W.actual=(W.items[W.exerciseIndex].plan||[])[W.setIndex]||0;
-  window.finishWorkout('Нормально');
-  const box=document.getElementById('sheetbox');
-  return {
-    ok:true,
-    hasW:!!W,
-    sheetOpen:!!document.querySelector('#sheet.open'),
-    undo:!!document.getElementById('tcCompletionUndoBtn'),
-    text:box?box.innerText:''
-  };
-})()""","completion-summary")
-if not isinstance(finished,dict) or not finished.get("ok") or finished.get("hasW") or not finished.get("sheetOpen") or not finished.get("undo") or "Дополнительная тренировка завершена" not in finished.get("text",""):
-    raise AssertionError("Completion summary invalid: "+repr(finished))
-print("TC_DIAG completion",finished,flush=True)
+# The test command does not wait for evaluateJavascript's return callback:
+# each fixed preview control logs its own TC_TEST_UI result from the real app runtime.
+adb("logcat","-c",check=False)
+test_exec("var b=document.getElementById('tcTestComplete');if(b)b.click();else console.log('TC_TEST_UI',JSON.stringify({phase:'complete',ok:false,reason:'driver-missing'}));","completion-trigger")
+complete_line=wait_log_tokens(["TC_TEST_UI",'"phase":"complete"','"ok":true','"hasW":false','"undo":true'],timeout=12)
+if "Дополнительная тренировка завершена" not in complete_line:
+    raise AssertionError("Completion summary marker missing expected title: "+complete_line)
+print("TC_DIAG completion",complete_line,flush=True)
 screenshot("06-completion-summary")
 
-undone=test_eval_json("""(()=> {
-  const ok=window.tcUndoLastCompletion();
-  return {
-    ok:!!ok,
-    hasW:!!W,
-    sheetOpen:!!document.querySelector('#sheet.open'),
-    screen:(document.querySelector('.screen.on')||{}).id||'',
-    extraAvailable:document.body.innerText.includes('Начать дополнительную тренировку')
-  };
-})()""","completion-undo")
-if not isinstance(undone,dict) or not undone.get("ok") or undone.get("hasW") or undone.get("sheetOpen") or not undone.get("extraAvailable"):
-    raise AssertionError("Completion undo invalid: "+repr(undone))
-print("TC_DIAG undo",undone,flush=True)
+adb("logcat","-c",check=False)
+test_exec("var b=document.getElementById('tcTestUndo');if(b)b.click();else console.log('TC_TEST_UI',JSON.stringify({phase:'undo',ok:false,reason:'driver-missing'}));","undo-trigger")
+undo_line=wait_log_tokens(["TC_TEST_UI",'"phase":"undo"','"ok":true','"hasW":false','"sheetOpen":false','"extraAvailable":true'],timeout=12)
+print("TC_DIAG undo",undo_line,flush=True)
 screenshot("07-completion-undone")
 
-started_again=test_eval_json("""(()=> {
-  const result=window.tcStartExtraWorkout();
-  return {
-    ok:result!==false,
-    hasW:!!W,
-    screen:(document.querySelector('.screen.on')||{}).id||'',
-    mode:W&&W.mode||''
-  };
-})()""","start-again")
-if not isinstance(started_again,dict) or not started_again.get("ok") or not started_again.get("hasW") or started_again.get("screen")!="workout" or started_again.get("mode")!="extra":
-    raise AssertionError("Start again invalid: "+repr(started_again))
-print("TC_DIAG start-again",started_again,flush=True)
+adb("logcat","-c",check=False)
+test_exec("var b=document.getElementById('tcTestStart');if(b)b.click();else console.log('TC_TEST_UI',JSON.stringify({phase:'start-again',ok:false,reason:'driver-missing'}));","start-again-trigger")
+start_again_line=wait_log_tokens(["TC_TEST_UI",'"phase":"start-again"','"ok":true','"hasW":true','"screen":"workout"','"mode":"extra"'],timeout=12)
+print("TC_DIAG start-again",start_again_line,flush=True)
 
-discarded=test_eval_json("""(()=> {
-  window.tcDiscardWorkout();
-  const yes=document.getElementById('tcConfirmDiscardWorkoutBtn');
-  if(yes)yes.click();
-  return new Promise(resolve=>setTimeout(()=>resolve({
-    hasW:!!W,
-    screen:(document.querySelector('.screen.on')||{}).id||'',
-    sheetOpen:!!document.querySelector('#sheet.open'),
-    snapshot:localStorage.getItem('tc_active_workout_v2')
-  }),120));
-})()""","discard")
-if not isinstance(discarded,dict) or discarded.get("hasW") or discarded.get("screen")!="today" or discarded.get("sheetOpen") or discarded.get("snapshot") is not None:
-    raise AssertionError("Discard invalid: "+repr(discarded))
-print("TC_DIAG discard",discarded,flush=True)
+adb("logcat","-c",check=False)
+test_exec("var b=document.getElementById('tcTestDiscard');if(b)b.click();else console.log('TC_TEST_UI',JSON.stringify({phase:'discard',ok:false,reason:'driver-missing'}));","discard-trigger")
+discard_line=wait_log_tokens(["TC_TEST_UI",'"phase":"discard"','"hasW":false','"screen":"today"','"sheetOpen":false','"snapshot":null'],timeout=12)
+print("TC_DIAG discard",discard_line,flush=True)
 screenshot("08-discarded-without-save")
 
 print("UX2_COMPLETION_FLOW_SMOKE_OK")
