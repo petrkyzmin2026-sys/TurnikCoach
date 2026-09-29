@@ -107,7 +107,7 @@ def test_eval(js,label):
     encoded=base64.b64encode(wrapped.encode("utf-8")).decode("ascii")
     adb("shell","run-as",PKG,"rm","-f","files/tc-test-js-result.txt",check=False)
     adb("logcat","-c",check=False)
-    sent=adb("shell","am","broadcast","-a","ru.turnikcoach.TEST_EVAL","-p",PKG,"--es","js_b64",encoded,check=False)
+    sent=adb("shell","am","start","-n",PKG+"/.MainActivity","-a","ru.turnikcoach.TEST_EVAL","--es","js_b64",encoded,check=False)
     result=""
     deadline=time.time()+6
     output=""
@@ -124,7 +124,7 @@ def test_eval(js,label):
     with open(OUT+"/04b-js-"+label+".txt","w",encoding="utf-8") as fp:
         fp.write("start:\n"+(sent.stdout or "")+"\n"+(sent.stderr or "")+"\nresult:\n"+result+"\nlog:\n"+output)
     if sent.returncode!=0:
-        raise AssertionError("TEST_EVAL intent failed for "+label+": "+(sent.stderr or sent.stdout or ""))
+        raise AssertionError("TEST_EVAL activity intent failed for "+label+": "+(sent.stderr or sent.stdout or ""))
     if not result:
         raise AssertionError("TEST_EVAL returned no WebView console result for "+label)
     return result
