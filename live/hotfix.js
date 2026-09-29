@@ -1,8 +1,8 @@
-/* TURNIKCOACH_HOTFIX 5.16.32-completion-flow */
+/* TURNIKCOACH_HOTFIX 5.16.33-accessibility-scale */
 (function(){
   'use strict';
-  const VERSION='5.16.32-completion-flow';
-  const LABEL='5.16.32';
+  const VERSION='5.16.33-accessibility-scale';
+  const LABEL='5.16.33';
   const APPROVED_KEY='tc_hotfix_approved_version';
   const LEGACY_ASSET_VERSION='5.14.0-adaptive-rest';
   const stalePrompt=document.getElementById('tcUpdatePrompt');
@@ -261,30 +261,49 @@
       '#workout .stageHeader .endBtn{min-height:48px!important;min-width:76px!important;padding:0 12px!important;touch-action:manipulation}'+
       '#workout .stageControls .btn,#rest .btn,#sheet .sheetbox .btn{min-height:48px!important;touch-action:manipulation}'+
       '#workout .stageControls .btn.green,#rest .btn.green{min-height:58px!important;font-size:16px!important}'+
-      '#workout .controls{height:246px!important;padding:12px!important;display:flex!important;flex-direction:column!important;gap:6px!important}'+
-      '#workout .wmedia{bottom:260px!important}'+
-      '#workout .controls .chips{height:30px!important;min-height:30px!important;flex:0 0 30px!important}'+
-      '#workout .controls .counter{grid-template-columns:64px 1fr 64px!important;height:72px!important;min-height:72px!important;gap:10px!important;flex:0 0 72px!important}'+
+      '#workout .controls{height:auto!important;min-height:246px!important;max-height:45vh!important;overflow-y:auto!important;padding:12px!important;display:flex!important;flex-direction:column!important;gap:6px!important;box-sizing:border-box!important}'+
+      '#workout .wmedia{bottom:var(--tc-workout-controls-bottom,260px)!important}'+
+      '#workout .controls .chips{height:auto!important;min-height:30px!important;flex:0 0 auto!important;flex-wrap:wrap!important}'+
+      '#workout .controls .counter{grid-template-columns:minmax(56px,64px) minmax(0,1fr) minmax(56px,64px)!important;height:auto!important;min-height:72px!important;gap:10px!important;flex:0 0 auto!important}'+
       '#workout .controls .pm{height:60px!important;min-height:60px!important;min-width:60px!important;font-size:30px!important;touch-action:manipulation}'+
       '#workout .controls .fact b{font-size:42px!important}'+
       '#workout .controls .actions{display:grid!important;grid-template-columns:1fr!important;gap:6px!important;margin-top:auto!important}'+
       '#workout .controls .actions .btn.green{min-height:60px!important;font-size:17px!important;font-weight:900!important;order:1}'+
       '#workout .controls .actions .btn.ghost{min-height:48px!important;order:2}'+
-      '#workout .tcStableWorkoutControls{height:246px!important;min-height:246px!important;padding:12px!important;box-sizing:border-box!important}'+
+      '#workout .tcStableWorkoutControls{height:auto!important;min-height:246px!important;max-height:45vh!important;overflow-y:auto!important;padding:12px!important;box-sizing:border-box!important}'+
       '#workout .tcWorkoutActions{display:grid!important;grid-template-columns:1fr!important;gap:6px!important}'+
       '#workout .tcWorkoutDoneAction{min-height:60px!important;font-size:17px!important;font-weight:900!important;width:100%!important}'+
       '#workout .tcWorkoutSkipAction{min-height:48px!important;width:100%!important}'+
       '#workout .tcWorkoutMinus,#workout .tcWorkoutPlus{min-width:60px!important;min-height:60px!important;touch-action:manipulation}'+
-      '.nav button{min-height:48px!important;touch-action:manipulation}';
+      '.nav button{min-height:48px!important;touch-action:manipulation;white-space:normal!important;line-height:1.15!important;padding:4px 2px!important;overflow-wrap:anywhere}'+
+      '#sheet .sheetbox{max-height:92vh!important;overflow-y:auto!important;overscroll-behavior:contain}'+
+      '.sheettitle,.dateBig{overflow-wrap:anywhere;word-break:normal}';
     document.head.appendChild(style);
     const completionStyle=document.createElement('style');
     completionStyle.id='tcCompletionFlowStyle';
-    completionStyle.textContent='.tcCompletionStats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:16px 0}.tcCompletionStats div{background:#10171d;border:1px solid #34414d;border-radius:12px;padding:10px 6px;text-align:center}.tcCompletionStats b{display:block;font-size:22px;color:#ffd84d}.tcCompletionStats span{display:block;margin-top:3px;font-size:10px;color:#9ba6b2}.tcCompletionRows{max-height:180px;overflow:auto}.tcCompletionRow{display:flex;justify-content:space-between;gap:12px;padding:8px 2px;border-bottom:1px solid #27313b;font-size:12px}.tcCompletionRow span{color:#c8d0d8}.tcCompletionRow b{text-align:right;color:#fff}';
+    completionStyle.textContent='.tcCompletionStats{display:grid;grid-template-columns:repeat(auto-fit,minmax(92px,1fr));gap:8px;margin:16px 0}.tcCompletionStats div{background:#10171d;border:1px solid #34414d;border-radius:12px;padding:10px 6px;text-align:center;min-width:0}.tcCompletionStats b{display:block;font-size:22px;color:#ffd84d;overflow-wrap:anywhere}.tcCompletionStats span{display:block;margin-top:3px;font-size:10px;color:#9ba6b2;overflow-wrap:anywhere}.tcCompletionRows{max-height:min(38vh,260px);overflow:auto}.tcCompletionRow{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px 12px;padding:8px 2px;border-bottom:1px solid #27313b;font-size:12px}.tcCompletionRow span,.tcCompletionRow b{min-width:0;flex:1 1 140px;overflow-wrap:anywhere}.tcCompletionRow span{color:#c8d0d8}.tcCompletionRow b{text-align:right;color:#fff}';
     document.head.appendChild(completionStyle);
 
     let internal=false;
     let sheetWasOpen=false;
     const scrollByScreen={};
+    let tcWorkoutGeometryObserver=null;
+    function tcInstallAdaptiveWorkoutGeometry(){
+      const workout=document.getElementById('workout');
+      const controls=workout&&workout.querySelector('.controls,.tcStableWorkoutControls');
+      if(!workout||!controls)return;
+      const apply=()=>{
+        const h=Math.ceil(controls.getBoundingClientRect().height||0);
+        if(h>0)workout.style.setProperty('--tc-workout-controls-bottom',(h+22)+'px');
+      };
+      if(tcWorkoutGeometryObserver)try{tcWorkoutGeometryObserver.disconnect()}catch(e){}
+      if(typeof ResizeObserver==='function'){
+        tcWorkoutGeometryObserver=new ResizeObserver(apply);
+        tcWorkoutGeometryObserver.observe(controls);
+      }
+      apply();
+      setTimeout(apply,0);
+    }
 
     function currentScreen(){
       const el=document.querySelector('.screen.on');
@@ -361,6 +380,7 @@
       scrollByScreen[from]=currentScroll(from);
       const r=baseGo(id);
       tcSyncScreenVisibility(id);
+      if(id==='workout')tcInstallAdaptiveWorkoutGeometry();
       tcForceWebViewRepaint();
       if(id==='workout'&&tcHasWorkout()){
         const saveFn=window.tcSaveActiveWorkoutSnapshot;
