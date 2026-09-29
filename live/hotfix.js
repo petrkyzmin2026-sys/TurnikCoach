@@ -350,7 +350,9 @@
       const r=baseGo(id);
       tcSyncScreenVisibility(id);
       tcForceWebViewRepaint();
-      if(id==='workout'&&tcHasWorkout())setTimeout(tcSaveActiveWorkoutSnapshot,0);
+      if(id==='workout'&&tcHasWorkout()&&typeof window.tcSaveActiveWorkoutSnapshot==='function'){
+        setTimeout(()=>window.tcSaveActiveWorkoutSnapshot(),0);
+      }
       const diagIds=['today','workout'];
       const layout={};
       diagIds.forEach(key=>{
