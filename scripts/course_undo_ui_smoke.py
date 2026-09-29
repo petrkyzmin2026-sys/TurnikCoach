@@ -346,6 +346,18 @@ time.sleep(1.2)
 screenshot("05a-process-death-restore-preassert")
 adb("shell","uiautomator","dump","/sdcard/ux2-restore-preassert.xml",check=False)
 adb("pull","/sdcard/ux2-restore-preassert.xml",OUT+"/05a-process-death-restore-preassert.xml",check=False)
+post_restore=test_eval_json("""({
+  active:[...document.querySelectorAll('.screen.on')].map(function(el){return el.id}),
+  todayDisplay:getComputedStyle(document.getElementById('today')).display,
+  workoutDisplay:getComputedStyle(document.getElementById('workout')).display,
+  todayHidden:document.getElementById('today').hidden,
+  workoutHidden:document.getElementById('workout').hidden,
+  hasW:(typeof W!=='undefined'&&!!W),
+  mode:(typeof W!=='undefined'&&W)?String(W.mode||''):'',
+  done:!![...document.querySelectorAll('#workout button')].find(function(b){return (b.textContent||'').trim()==='Сделано'}),
+  exit:!!document.querySelector('#workout .tcWorkoutExitBtn')
+})""","post-restore-dom")
+print("TC_DIAG post-restore-dom",post_restore,flush=True)
 wait_text("Сделано",timeout=12,contains=False)
 wait_text("Выйти",timeout=12,contains=False)
 assert_touch_target("Сделано",48,contains=False)
