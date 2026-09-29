@@ -385,12 +385,19 @@ assert(hotfix.includes('function tcRestoreActiveWorkoutSnapshot()'),
 assert(hotfix.includes("const hadActiveWorkout=typeof W!=='undefined'&&!!W")&&
  hotfix.includes("phase:hadActiveWorkout?'handover-restored':'restored'"),
  'new hotfix must reassert durable workout state when an older hotfix already restored W');
+assert(hotfix.includes('function tcInstallNavigationUpgrades()')&&
+ hotfix.includes('window.__TC_NAV_UPGRADE_VERSION=VERSION')&&
+ hotfix.includes('tcInstallNavigationFoundation();\n    tcInstallNavigationUpgrades();\n    tcInstallCompletionFlow();\n    tcInstallWorkoutPersistence();'),
+ 'hotfix upgrades must run after the one-time navigation core and before persistence restore');
 assert(hotfix.includes('window.tcRefreshActiveTrainingSurface=function(id)')&&
  hotfix.includes('window.tcArmRestoreSurfaceGuard=function(surface)')&&
  hotfix.includes('until:Date.now()+5000')&&
- hotfix.includes("window.addEventListener('pageshow',tcEnforceRestoreSurfaceGuard)")&&
+ hotfix.includes("window.__tcRestoreGuardPageshowHandler=enforceRestoreGuard")&&
  hotfix.includes("document.visibilityState==='visible'"),
  'cold restore must keep the active training surface asserted through the startup handover window');
+assert(hotfix.includes("if(window.__TC_NAV_FOUNDATION)return;")&&
+ hotfix.includes("if(window.__tcRestoreGuardFocusHandler)window.removeEventListener('focus'"),
+ 'navigation core must remain one-time while hotfix-specific listeners are replaceable');
 assert(hotfix.includes("TurnikNative.showSurface")&&
  mainActivity.includes("@JavascriptInterface public void showSurface(String requested)")&&
  mainActivity.includes("postVisualStateCallback")&&
