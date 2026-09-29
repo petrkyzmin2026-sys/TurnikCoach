@@ -85,14 +85,19 @@ public class MainActivity extends Activity {
                         });
                     }, 24);
                 };
+
+                // Do not gate the forced refresh on a compositor callback: after process
+                // restore that callback may wait on the very stale frame we are trying to replace.
+                refresh.run();
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                     web.postVisualStateCallback(SystemClock.uptimeMillis(), new WebView.VisualStateCallback() {
                         @Override public void onComplete(long requestId) {
-                            refresh.run();
+                            if (web == null) return;
+                            web.requestLayout();
+                            web.invalidate();
+                            web.postInvalidate();
                         }
                     });
-                } else {
-                    refresh.run();
                 }
             }
 
