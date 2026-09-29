@@ -103,6 +103,60 @@ jobs:
               var b=e.target&&e.target.closest&&e.target.closest('#tcStartExtraAfterCourseBtn');
               if(b)console.log('TC_DIAG click extra',b.id);
             },true);
+
+            function tcTestLog(payload){console.log('TC_TEST_UI',JSON.stringify(payload));}
+            function tcInstallTestDriver(){
+              if(document.getElementById('tcTestDriver'))return;
+              var host=document.createElement('div');
+              host.id='tcTestDriver';
+              host.style.cssText='position:fixed;left:4px;top:4px;z-index:2147483647;display:grid;gap:3px;width:122px;pointer-events:auto';
+              host.innerHTML=
+                '<button id="tcTestComplete" type="button" style="min-height:48px">TC COMPLETE</button>'+
+                '<button id="tcTestUndo" type="button" style="min-height:48px">TC UNDO</button>'+
+                '<button id="tcTestStart" type="button" style="min-height:48px">TC START</button>'+
+                '<button id="tcTestDiscard" type="button" style="min-height:48px">TC DISCARD</button>';
+              document.body.appendChild(host);
+
+              document.getElementById('tcTestComplete').onclick=function(){
+                try{
+                  if(!W||!Array.isArray(W.items)){tcTestLog({phase:'complete',ok:false,reason:'no-workout'});return;}
+                  W.items.forEach(function(x){x.actual=Array.isArray(x.plan)?x.plan.slice():[];});
+                  W.exerciseIndex=Math.max(0,W.items.length-1);
+                  W.setIndex=Math.max(0,(W.items[W.exerciseIndex].plan||[]).length-1);
+                  W.actual=(W.items[W.exerciseIndex].plan||[])[W.setIndex]||0;
+                  window.finishWorkout('Нормально');
+                  setTimeout(function(){
+                    var box=document.getElementById('sheetbox');
+                    tcTestLog({phase:'complete',ok:true,hasW:!!W,sheetOpen:!!document.querySelector('#sheet.open'),undo:!!document.getElementById('tcCompletionUndoBtn'),text:box?box.innerText:''});
+                  },80);
+                }catch(e){tcTestLog({phase:'complete',ok:false,error:String(e&&e.message||e)});}
+              };
+              document.getElementById('tcTestUndo').onclick=function(){
+                try{
+                  var ok=window.tcUndoLastCompletion();
+                  setTimeout(function(){
+                    tcTestLog({phase:'undo',ok:!!ok,hasW:!!W,sheetOpen:!!document.querySelector('#sheet.open'),screen:(document.querySelector('.screen.on')||{}).id||'',extraAvailable:document.body.innerText.includes('Начать дополнительную тренировку')});
+                  },80);
+                }catch(e){tcTestLog({phase:'undo',ok:false,error:String(e&&e.message||e)});}
+              };
+              document.getElementById('tcTestStart').onclick=function(){
+                try{
+                  var ok=window.tcStartExtraWorkout();
+                  setTimeout(function(){tcTestLog({phase:'start-again',ok:ok!==false,hasW:!!W,screen:(document.querySelector('.screen.on')||{}).id||'',mode:W&&W.mode||''});},80);
+                }catch(e){tcTestLog({phase:'start-again',ok:false,error:String(e&&e.message||e)});}
+              };
+              document.getElementById('tcTestDiscard').onclick=function(){
+                try{
+                  window.tcDiscardWorkout();
+                  setTimeout(function(){
+                    var yes=document.getElementById('tcConfirmDiscardWorkoutBtn');if(yes)yes.click();
+                    setTimeout(function(){tcTestLog({phase:'discard',hasW:!!W,screen:(document.querySelector('.screen.on')||{}).id||'',sheetOpen:!!document.querySelector('#sheet.open'),snapshot:localStorage.getItem('tc_active_workout_v2')});},100);
+                  },30);
+                }catch(e){tcTestLog({phase:'discard',error:String(e&&e.message||e)});}
+              };
+            }
+            if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',tcInstallTestDriver,{once:true});
+            else tcInstallTestDriver();
           })();
           </script>'''
           p.write_text(html.replace(marker,seed+marker))
