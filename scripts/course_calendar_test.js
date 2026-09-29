@@ -382,6 +382,9 @@ assert(hotfix.includes('function tcSaveActiveWorkoutSnapshot()'),
  'UX2 must provide durable active-workout snapshots');
 assert(hotfix.includes('function tcRestoreActiveWorkoutSnapshot()'),
  'UX2 must restore an interrupted workout after process recreation');
+assert(hotfix.includes("const hadActiveWorkout=typeof W!=='undefined'&&!!W")&&
+ hotfix.includes("phase:hadActiveWorkout?'handover-restored':'restored'"),
+ 'new hotfix must reassert durable workout state when an older hotfix already restored W');
 assert(hotfix.includes('window.tcRefreshActiveTrainingSurface=function(id)')&&
  hotfix.includes('[50,250,750].forEach(delay=>setTimeout(()=>'),
  'cold restore must repaint the active training surface after initial WebView startup');
