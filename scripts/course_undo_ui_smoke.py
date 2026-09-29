@@ -285,13 +285,13 @@ def launch():
 launch()
 dismiss_system_anr()
 
-# Exact update path: packaged 5.14 + cached 5.16.33 are active first; staged 5.16.34 must be offered explicitly.
+# Exact update path: packaged 5.14 + cached 5.16.34 are active first; staged 5.16.35 must be offered explicitly.
 time.sleep(3)
 screenshot("00-before-update-assert")
 adb("shell","uiautomator","dump","/sdcard/uxb3-before-update.xml",check=False)
 adb("pull","/sdcard/uxb3-before-update.xml",OUT+"/00-before-update.xml",check=False)
 try:
-    wait_text("Доступно обновление TurnikCoach 5.16.34",timeout=20)
+    wait_text("Доступно обновление TurnikCoach 5.16.35",timeout=20)
 except Exception:
     log=adb("logcat","-d","-t","500",check=False)
     with open(OUT+"/00-logcat.txt","w",encoding="utf-8") as fp:
@@ -301,10 +301,19 @@ wait_text("Обновить",contains=False)
 screenshot("01-update-offered")
 
 tap_clickable_text("Обновить")
-wait_text("TurnikCoach обновлён до 5.16.34",timeout=25)
+wait_text("TurnikCoach обновлён до 5.16.35",timeout=25)
 assert_accessibility_target("План",48)
 assert_accessibility_target("Прогресс",48)
 screenshot("02-update-installed")
+
+# Progress must be useful at a glance before the long history and charts.
+tap_bottom_nav("history")
+wait_text("За 7 дней",timeout=12,contains=False)
+wait_text("Всего тренировок",timeout=12,contains=False)
+wait_text("MAX подтяг.",timeout=12,contains=False)
+screenshot("02b-progress-summary")
+tap_bottom_nav("today")
+wait_text("Основной комплекс выполнен",timeout=12)
 
 # Main course is already saved by the seeded user state; extra workout must still be available.
 wait_text("Основной комплекс выполнен",timeout=20)
@@ -365,4 +374,4 @@ for n in root.iter("node"):
         raise AssertionError("System error dialog shown at 200% font scale: "+value)
 adb("shell","settings","put","system","font_scale","1.0",check=False)
 
-print("UX2_HAPTIC_FEEDBACK_SMOKE_OK")
+print("UX2_PROGRESS_SUMMARY_SMOKE_OK")
