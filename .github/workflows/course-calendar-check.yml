@@ -19,6 +19,7 @@ on:
       - feature/ux2-progressive-settings-20260926
       - feature/ux2-workout-flow-20260926
       - feature/ux2-completion-flow-20260926
+      - feature/ux2-accessibility-200-20260929
   pull_request:
   workflow_dispatch:
 
