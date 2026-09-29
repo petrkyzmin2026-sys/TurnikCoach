@@ -1,8 +1,8 @@
-/* TURNIKCOACH_HOTFIX 5.16.32-completion-flow */
+/* TURNIKCOACH_HOTFIX 5.16.33-accessibility-scale */
 (function(){
   'use strict';
-  const VERSION='5.16.32-completion-flow';
-  const LABEL='5.16.32';
+  const VERSION='5.16.33-accessibility-scale';
+  const LABEL='5.16.33';
   const APPROVED_KEY='tc_hotfix_approved_version';
   const LEGACY_ASSET_VERSION='5.14.0-adaptive-rest';
   const stalePrompt=document.getElementById('tcUpdatePrompt');
@@ -70,7 +70,7 @@
     title.textContent='Доступно обновление TurnikCoach '+LABEL;
     const text=document.createElement('div');
     text.style.cssText='font-size:15px;line-height:1.45;color:#cfd8e3;margin-bottom:18px';
-    text.innerHTML="UX 2.0: активная тренировка получила стабильную схему управления — корректировка результата, «Сделано» и «Пропустить» больше не меняют своё место. После сохранения показывается итог тренировки с возможностью немедленно отменить сохранение.<br><br>Обновления больше не перекрывают активную или восстанавливаемую тренировку: предложение появится после её завершения или выхода без сохранения.<br><br>Алгоритм курса и история не изменяются.<br><br>Установить обновление сейчас?";
+    text.innerHTML="UX 2.0: интерфейс лучше переносит крупный системный шрифт и масштабирование. Длинные заголовки и строки теперь переносятся, итог тренировки перестраивается под доступную ширину, нижняя навигация получила больше вертикального резерва, а модальные окна остаются прокручиваемыми.<br><br>Логика тренировок, история и расчёт курса не изменяются.<br><br>Установить обновление сейчас?";
     const row=document.createElement('div');
     row.style.cssText='display:flex;gap:10px';
     const later=document.createElement('button');
@@ -275,11 +275,17 @@
       '#workout .tcWorkoutDoneAction{min-height:60px!important;font-size:17px!important;font-weight:900!important;width:100%!important}'+
       '#workout .tcWorkoutSkipAction{min-height:48px!important;width:100%!important}'+
       '#workout .tcWorkoutMinus,#workout .tcWorkoutPlus{min-width:60px!important;min-height:60px!important;touch-action:manipulation}'+
-      '.nav button{min-height:48px!important;touch-action:manipulation}';
+      '.nav{height:80px!important}'+
+      '.nav button{min-height:56px!important;touch-action:manipulation;white-space:normal!important;line-height:1.2!important;padding:4px 2px!important}'+
+      '.nav span{line-height:1!important}'+
+      '#sheet .sheetbox{max-height:min(90dvh,calc(100vh - 16px))!important;overflow-y:auto!important;overflow-x:hidden!important;overscroll-behavior:contain}'+
+      '.sheettitle,.dateBig,.tcDoneStripTitle,.tcSettingsGroup>summary{overflow-wrap:anywhere;word-break:break-word;white-space:normal!important}'+
+      '.tcSettingsGroup>summary{line-height:1.25!important;padding-top:8px!important;padding-bottom:8px!important}'+
+      '#workout .tcWorkoutDoneAction,#workout .tcWorkoutSkipAction{white-space:normal!important;line-height:1.15!important;padding-top:8px!important;padding-bottom:8px!important}';
     document.head.appendChild(style);
     const completionStyle=document.createElement('style');
     completionStyle.id='tcCompletionFlowStyle';
-    completionStyle.textContent='.tcCompletionStats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:16px 0}.tcCompletionStats div{background:#10171d;border:1px solid #34414d;border-radius:12px;padding:10px 6px;text-align:center}.tcCompletionStats b{display:block;font-size:22px;color:#ffd84d}.tcCompletionStats span{display:block;margin-top:3px;font-size:10px;color:#9ba6b2}.tcCompletionRows{max-height:180px;overflow:auto}.tcCompletionRow{display:flex;justify-content:space-between;gap:12px;padding:8px 2px;border-bottom:1px solid #27313b;font-size:12px}.tcCompletionRow span{color:#c8d0d8}.tcCompletionRow b{text-align:right;color:#fff}';
+    completionStyle.textContent='.tcCompletionStats{display:grid;grid-template-columns:repeat(auto-fit,minmax(92px,1fr));gap:8px;margin:16px 0}.tcCompletionStats div{background:#10171d;border:1px solid #34414d;border-radius:12px;padding:10px 6px;text-align:center;min-width:0}.tcCompletionStats b{display:block;font-size:22px;color:#ffd84d;overflow-wrap:anywhere}.tcCompletionStats span{display:block;margin-top:3px;font-size:10px;color:#9ba6b2;overflow-wrap:anywhere}.tcCompletionRows{max-height:38vh;overflow:auto}.tcCompletionRow{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:6px 12px;padding:9px 2px;border-bottom:1px solid #27313b;font-size:12px}.tcCompletionRow span{color:#c8d0d8;min-width:0;flex:1 1 150px;overflow-wrap:anywhere}.tcCompletionRow b{text-align:right;color:#fff;min-width:0;max-width:100%;overflow-wrap:anywhere;flex:0 1 auto}';
     document.head.appendChild(completionStyle);
 
     let internal=false;
