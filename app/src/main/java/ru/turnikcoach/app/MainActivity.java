@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.util.Base64;
+import android.webkit.JavascriptInterface;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
 import android.webkit.WebSettings;
@@ -46,6 +47,17 @@ public class MainActivity extends Activity {
         s.setBuiltInZoomControls(false);
         s.setDisplayZoomControls(false);
         s.setCacheMode(WebSettings.LOAD_DEFAULT);
+
+        web.addJavascriptInterface(new Object() {
+            @JavascriptInterface public void invalidate() {
+                runOnUiThread(() -> {
+                    if (web == null) return;
+                    web.invalidate();
+                    web.requestLayout();
+                    web.postInvalidate();
+                });
+            }
+        }, "TurnikNative");
 
         web.setWebViewClient(new WebViewClient() {
             @Override public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
