@@ -391,9 +391,14 @@ assert(hotfix.includes('window.tcRefreshActiveTrainingSurface=function(id)')&&
  hotfix.includes("window.addEventListener('pageshow',tcEnforceRestoreSurfaceGuard)")&&
  hotfix.includes("document.visibilityState==='visible'"),
  'cold restore must keep the active training surface asserted through the startup handover window');
+assert(hotfix.includes("TurnikNative.showSurface")&&
+ mainActivity.includes("@JavascriptInterface public void showSurface(String requested)")&&
+ mainActivity.includes("postVisualStateCallback")&&
+ mainActivity.includes("setVisibility(View.INVISIBLE)"),
+ 'cold restore must commit the requested training surface through the Android WebView compositor');
 assert(hotfix.includes("TurnikNative.refreshSurface")&&
  mainActivity.includes("@JavascriptInterface public void refreshSurface()"),
- 'cold restore native surface refresh bridge must exist on both JS and Android sides');
+ 'legacy native surface refresh fallback must remain available');
 assert(hotfix.includes("window.tcClearActiveWorkoutSnapshot=tcClearActiveWorkoutSnapshot"),
  'discard flow must be able to remove a durable workout snapshot');
 assert(hotfix.includes("setNav('n1','◫','План')")&&hotfix.includes("setNav('n3','⌁','Прогресс')"),
