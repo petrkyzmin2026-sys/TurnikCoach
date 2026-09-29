@@ -345,6 +345,8 @@ assert(course.includes('f.check?\'<label class="tcCheckRow"'),
 
 assert(hotfix.includes("const TC_ACTIVE_WORKOUT_KEY='tc_active_workout_v2'"),
  'UX2 must persist an active workout independently of completed history');
+assert(hotfix.includes("if(id==='workout'&&tcHasWorkout())setTimeout(tcSaveActiveWorkoutSnapshot,0)"),
+ 'entering workout with active W must persist immediately at the navigation boundary');
 assert(hotfix.includes('function tcSaveActiveWorkoutSnapshot()'),
  'UX2 must provide durable active-workout snapshots');
 assert(hotfix.includes('function tcRestoreActiveWorkoutSnapshot()'),
