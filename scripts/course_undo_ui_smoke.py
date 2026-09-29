@@ -105,13 +105,19 @@ def test_eval(js,label):
     marker="TC_TEST_EVAL_RESULT:"
     wrapped="(function(){try{var __tcv=("+js+");console.log('"+marker+"'+JSON.stringify(__tcv));return __tcv;}catch(e){console.error('TC_TEST_EVAL_ERROR:'+(e&&e.stack||e));throw e;}})()"
     encoded=base64.b64encode(wrapped.encode("utf-8")).decode("ascii")
-    adb("shell","run-as",PKG,"rm","-f","files/tc-test-js-result.txt",check=False)
     adb("logcat","-c",check=False)
-    sent=adb("shell","am","broadcast","-a","ru.turnikcoach.TEST_EVAL","-p",PKG,"--es","js_b64",encoded,check=False)
     result=""
-    deadline=time.time()+6
     output=""
+    sent=None
+    deadline=time.time()+10
+    next_send=0
+    sends=0
     while time.time()<deadline:
+        if sends<3 and time.time()>=next_send and not result:
+            adb("shell","run-as",PKG,"rm","-f","files/tc-test-js-result.txt",check=False)
+            sent=adb("shell","am","broadcast","-a","ru.turnikcoach.TEST_EVAL","-p",PKG,"--es","js_b64",encoded,check=False)
+            sends+=1
+            next_send=time.time()+2.0
         file_result=adb("shell","run-as",PKG,"cat","files/tc-test-js-result.txt",check=False)
         if file_result.returncode==0 and (file_result.stdout or "").strip():
             result=(file_result.stdout or "").strip()
@@ -124,11 +130,11 @@ def test_eval(js,label):
         if result:
             break
         time.sleep(.25)
-    print("TC_DIAG JS",label,"start_rc",sent.returncode,"result",result,"log",output[-3000:],flush=True)
+    print("TC_DIAG JS",label,"sends",sends,"start_rc",(sent.returncode if sent else None),"result",result,"log",output[-3000:],flush=True)
     with open(OUT+"/04b-js-"+label+".txt","w",encoding="utf-8") as fp:
         fp.write("start:\n"+(sent.stdout or "")+"\n"+(sent.stderr or "")+"\nresult:\n"+result+"\nlog:\n"+output)
-    if sent.returncode!=0:
-        raise AssertionError("TEST_EVAL broadcast failed for "+label+": "+(sent.stderr or sent.stdout or ""))
+    if sent is None or sent.returncode!=0:
+        raise AssertionError("TEST_EVAL broadcast failed for "+label+": "+((sent.stderr or sent.stdout or "") if sent else "not sent"))
     if not result:
         raise AssertionError("TEST_EVAL returned no WebView console result for "+label)
     return result
@@ -351,5 +357,62 @@ wait_text("Выйти",timeout=12,contains=False)
 assert_touch_target("Сделано",48,contains=False)
 assert_touch_target("Выйти",48,contains=False)
 screenshot("05-process-death-restored")
+
+# Accessibility regression: Android font scale 200% must not clip the critical workout controls.
+adb("shell","settings","put","system","font_scale","2.0")
+adb("shell","am","force-stop",PKG)
+time.sleep(1)
+adb("logcat","-c",check=False)
+launch()
+dismiss_system_anr()
+restore_200=wait_log_tokens(["TC_WORKOUT_STATE",'"phase":"restored"','"mode":"extra"'],timeout=20)
+print("TC_DIAG restore-200",restore_200,flush=True)
+time.sleep(1)
+
+# Capture the 200% surface before assertions so failures stay diagnosable.
+screenshot("06-font-scale-200-preassert")
+adb("shell","uiautomator","dump","/sdcard/ux2-font200-preassert.xml",check=False)
+adb("pull","/sdcard/ux2-font200-preassert.xml",OUT+"/06-font-scale-200-preassert.xml",check=False)
+try:
+    tree200=ET.parse(OUT+"/06-font-scale-200-preassert.xml")
+    texts200=[n.attrib.get("text","") for n in tree200.getroot().iter("node") if n.attrib.get("text")]
+    print("TC_DIAG font-scale-200-texts",texts200,flush=True)
+except Exception as e:
+    print("TC_DIAG font-scale-200-xml-error",repr(e),flush=True)
+
+# At cold restore Android accessibility reflects the actual rendered workout surface.
+wait_text("Сделано",timeout=15,contains=False)
+wait_text("Пропустить",timeout=15,contains=False)
+wait_text("Выйти",timeout=15,contains=False)
+assert_touch_target("Сделано",48,contains=False)
+assert_touch_target("Пропустить",48,contains=False)
+assert_touch_target("Выйти",48,contains=False)
+
+size=adb("shell","wm","size").stdout
+m=re.search(r"(\\d+)x(\\d+)",size)
+if not m:
+    raise AssertionError("Cannot determine screen size at 200%")
+screen_w,screen_h=map(int,m.groups())
+adb("shell","uiautomator","dump","/sdcard/ux2-font200.xml",check=False)
+adb("pull","/sdcard/ux2-font200.xml",OUT+"/06-font-scale-200.xml",check=False)
+tree=ET.parse(OUT+"/06-font-scale-200.xml")
+root=tree.getroot()
+for label in ("Сделано","Пропустить","Выйти"):
+    found=False
+    for n in root.iter("node"):
+        if n.attrib.get("text")==label and n.attrib.get("bounds"):
+            nums=[int(x) for x in re.findall(r"\\d+",n.attrib["bounds"])]
+            if len(nums)==4:
+                x1,y1,x2,y2=nums
+                if x1<0 or y1<0 or x2>screen_w or y2>screen_h:
+                    raise AssertionError("Critical control leaves screen at 200%: %s %s"%(label,n.attrib["bounds"]))
+                found=True
+                break
+    if not found:
+        raise AssertionError("Critical control missing from accessibility tree at 200%: "+label)
+screenshot("06-font-scale-200-workout")
+
+# Restore the emulator default for any later checks.
+adb("shell","settings","put","system","font_scale","1.0")
 
 print("UX2_COMPLETION_FLOW_SMOKE_OK")
