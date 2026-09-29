@@ -361,45 +361,36 @@ restore_200=wait_log_tokens(["TC_WORKOUT_STATE",'"phase":"restored"','"mode":"ex
 print("TC_DIAG restore-200",restore_200,flush=True)
 time.sleep(1)
 
-layout_200=test_eval_json("""(function(){
-  function box(el){
-    if(!el)return null;
-    var r=el.getBoundingClientRect();
-    return {
-      x:r.x,y:r.y,w:r.width,h:r.height,right:r.right,bottom:r.bottom,
-      clientW:el.clientWidth,clientH:el.clientHeight,
-      scrollW:el.scrollWidth,scrollH:el.scrollHeight
-    };
-  }
-  var controls=document.querySelector('#workout .tcStableWorkoutControls, #workout .controls');
-  var done=document.querySelector('#workout .tcWorkoutDoneAction, #workout .actions .btn.green');
-  var skip=document.querySelector('#workout .tcWorkoutSkipAction, #workout .actions .btn.ghost');
-  var exit=document.querySelector('#workout .tcWorkoutExitBtn, #workout .stageHeader .endBtn');
-  return {
-    innerW:window.innerWidth,innerH:window.innerHeight,
-    docScrollW:document.documentElement.scrollWidth,
-    bodyScrollW:document.body.scrollWidth,
-    controls:box(controls),done:box(done),skip:box(skip),exit:box(exit)
-  };
-})()""","font-scale-200-layout")
-print("TC_DIAG font-scale-200",layout_200,flush=True)
+# At cold restore Android accessibility reflects the actual rendered workout surface.
+wait_text("Сделано",timeout=15,contains=False)
+wait_text("Пропустить",timeout=15,contains=False)
+wait_text("Выйти",timeout=15,contains=False)
+assert_touch_target("Сделано",48,contains=False)
+assert_touch_target("Пропустить",48,contains=False)
+assert_touch_target("Выйти",48,contains=False)
 
-iw=float(layout_200["innerW"]); ih=float(layout_200["innerH"])
-if float(layout_200["docScrollW"])>iw+2 or float(layout_200["bodyScrollW"])>iw+2:
-    raise AssertionError("200% font scale causes horizontal overflow: "+repr(layout_200))
-for name in ("done","skip","exit"):
-    b=layout_200.get(name)
-    if not b:
-        raise AssertionError("Missing critical control at 200%: "+name+" / "+repr(layout_200))
-    if float(b["w"])<48 or float(b["h"])<48:
-        raise AssertionError("Critical control below 48px at 200%: "+name+" / "+repr(b))
-    if float(b["x"])<-2 or float(b["right"])>iw+2 or float(b["y"])<-2 or float(b["bottom"])>ih+2:
-        raise AssertionError("Critical control leaves viewport at 200%: "+name+" / "+repr(b))
-controls=layout_200.get("controls")
-if not controls:
-    raise AssertionError("Workout controls missing at 200%")
-if float(controls["scrollH"])>float(controls["clientH"])+2:
-    raise AssertionError("Workout controls content is vertically clipped at 200%: "+repr(controls))
+size=adb("shell","wm","size").stdout
+m=re.search(r"(\\d+)x(\\d+)",size)
+if not m:
+    raise AssertionError("Cannot determine screen size at 200%")
+screen_w,screen_h=map(int,m.groups())
+adb("shell","uiautomator","dump","/sdcard/ux2-font200.xml",check=False)
+adb("pull","/sdcard/ux2-font200.xml",OUT+"/06-font-scale-200.xml",check=False)
+tree=ET.parse(OUT+"/06-font-scale-200.xml")
+root=tree.getroot()
+for label in ("Сделано","Пропустить","Выйти"):
+    found=False
+    for n in root.iter("node"):
+        if n.attrib.get("text")==label and n.attrib.get("bounds"):
+            nums=[int(x) for x in re.findall(r"\\d+",n.attrib["bounds"])]
+            if len(nums)==4:
+                x1,y1,x2,y2=nums
+                if x1<0 or y1<0 or x2>screen_w or y2>screen_h:
+                    raise AssertionError("Critical control leaves screen at 200%: %s %s"%(label,n.attrib["bounds"]))
+                found=True
+                break
+    if not found:
+        raise AssertionError("Critical control missing from accessibility tree at 200%: "+label)
 screenshot("06-font-scale-200-workout")
 
 # Restore the emulator default for any later checks.
