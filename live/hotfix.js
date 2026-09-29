@@ -286,7 +286,6 @@
     let sheetWasOpen=false;
     const scrollByScreen={};
 
-    function activeScreens(){return [...document.querySelectorAll('.screen.on')].map(el=>el.id||'?')}
     function currentScreen(){
       const el=document.querySelector('.screen.on');
       return el&&el.id?el.id:'today';
@@ -345,7 +344,6 @@
     const baseGo=window.go;
     window.go=function(id){
       const from=currentScreen();
-      console.log('TC_NAV_TRACE',JSON.stringify({phase:'go-enter',from,id,hasW:tcHasWorkout(),state:history.state||null,active:activeScreens()}));
       scrollByScreen[from]=currentScroll(from);
       const r=baseGo(id);
       tcSyncScreenVisibility(id);
@@ -354,26 +352,6 @@
         const saveFn=window.tcSaveActiveWorkoutSnapshot;
         const saved=typeof saveFn==='function'?saveFn():false;
         console.log('TC_WORKOUT_STATE',JSON.stringify({phase:'boundary-save',available:typeof saveFn==='function',saved:!!saved,hasW:tcHasWorkout()}));
-      }
-      const diagIds=['today','workout'];
-      const layout={};
-      diagIds.forEach(key=>{
-        const el=document.getElementById(key);
-        if(!el)return;
-        const cs=getComputedStyle(el),rect=el.getBoundingClientRect();
-        layout[key]={className:el.className,hidden:!!el.hidden,styleDisplay:el.style.display,display:cs.display,visibility:cs.visibility,opacity:cs.opacity,w:Math.round(rect.width),h:Math.round(rect.height)};
-      });
-      console.log('TC_NAV_TRACE',JSON.stringify({phase:'go-after-base',from,id,screen:currentScreen(),hasW:tcHasWorkout(),state:history.state||null,active:activeScreens(),layout}));
-      if(id==='workout'){
-        [500,1500].forEach(delay=>setTimeout(()=>{
-          const delayed={};
-          ['today','workout'].forEach(key=>{
-            const el=document.getElementById(key);if(!el)return;
-            const cs=getComputedStyle(el),rect=el.getBoundingClientRect();
-            delayed[key]={className:el.className,hidden:!!el.hidden,styleDisplay:el.style.display,display:cs.display,visibility:cs.visibility,opacity:cs.opacity,w:Math.round(rect.width),h:Math.round(rect.height)};
-          });
-          console.log('TC_NAV_TRACE',JSON.stringify({phase:'delayed-layout',delay,screen:currentScreen(),hasW:tcHasWorkout(),active:activeScreens(),layout:delayed}));
-        },delay));
       }
       if(internal){restoreScroll(id);return r}
 
@@ -449,8 +427,6 @@
 
     window.addEventListener('popstate',function(ev){
       const scr=currentScreen();
-      console.log('TC_NAV_TRACE',JSON.stringify({phase:'popstate',screen:scr,target:ev.state&&ev.state.tcScreen||'today',hasW:tcHasWorkout(),state:ev.state||null}));
-
       if(sheet&&sheet.classList.contains('open')){
         internal=true;
         try{closeSheetNow()}finally{internal=false}
@@ -562,16 +538,7 @@
     tcDecorateBackControls();
     const app=document.getElementById('app');
     if(app){
-      let lastTraceScreens=activeScreens().join(',');
-      const mo=new MutationObserver(()=>{
-        const nowScreens=activeScreens();
-        const key=nowScreens.join(',');
-        if(key!==lastTraceScreens){
-          console.log('TC_NAV_TRACE',JSON.stringify({phase:'dom-active-screens',from:lastTraceScreens,to:key,active:nowScreens,hasW:tcHasWorkout(),state:history.state||null}));
-          lastTraceScreens=key;
-        }
-        tcDecorateBackControls();
-      });
+      const mo=new MutationObserver(tcDecorateBackControls);
       mo.observe(app,{childList:true,subtree:true,attributes:true,attributeFilter:['class']});
       window.__tcBackControlObserver=mo;
     }
