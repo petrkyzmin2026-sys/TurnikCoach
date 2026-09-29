@@ -400,9 +400,10 @@ assert(hotfix.includes("if(window.__TC_NAV_FOUNDATION)return;")&&
  'navigation core must remain one-time while hotfix-specific listeners are replaceable');
 assert(hotfix.includes("TurnikNative.showSurface")&&
  mainActivity.includes("@JavascriptInterface public void showSurface(String requested)")&&
- mainActivity.includes("postVisualStateCallback")&&
- mainActivity.includes("setVisibility(View.INVISIBLE)"),
- 'cold restore must commit the requested training surface through the Android WebView compositor');
+ mainActivity.includes("web.setLayerType(View.LAYER_TYPE_SOFTWARE, null)")&&
+ mainActivity.includes("web.postInvalidateOnAnimation()")&&
+ !mainActivity.includes("web.evaluateJavascript(js, value ->"),
+ 'cold restore must repaint the requested training surface natively without re-entering WebView JS');
 assert(hotfix.includes("TurnikNative.refreshSurface")&&
  mainActivity.includes("@JavascriptInterface public void refreshSurface()"),
  'legacy native surface refresh fallback must remain available');
