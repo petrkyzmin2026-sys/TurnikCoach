@@ -80,15 +80,15 @@ assert(course.includes('tcPreviewCourseCard(tcSelectedDate)'),
  'choosing another date must show a read-only plan');
 assert(course.includes('id="tcCycleStartDate"'),
  'settings must expose a cycle start date');
-assert(hotfix.includes("const VERSION='5.16.32-completion-flow'"),
- 'release hotfix version must be 5.16.32');
+assert(hotfix.includes("const VERSION='5.16.33-accessibility-scale'"),
+ 'release hotfix version must be 5.16.33');
 assert(course.includes("const COURSE_MODULE_VERSION='1.0.34-diagnostics-cleanup'"),
  'course module version must be 1.0.34');
 assert(!course.includes('TC_EXTRA_START'),
  'temporary extra-workout trace logging must not ship');
 assert(!course.includes('window.confirm('),'course module must not depend on unsupported WebView JS dialogs');
 assert(!hotfix.includes('window.confirm('),'hotfix navigation/discard must not depend on unsupported WebView JS dialogs');
-assert(!hotfix.includes('forceHandover'),'5.16.32 must use an explicit user-visible update prompt');
+assert(!hotfix.includes('forceHandover'),'5.16.33 must use an explicit user-visible update prompt');
 assert(hotfix.includes("showRuntimeNotice('TurnikCoach обновлён до '+LABEL)"),
  'successful activation must give visible feedback');
 assert(hotfix.includes("localStorage.setItem('tc_hotfix_active_version',VERSION)"),
@@ -417,6 +417,20 @@ assert(hotfix.includes("return 'Следующий подход · '+e.name"),
  'rest screen must expose the next task instead of a generic message');
 assert(hotfix.includes("#workout .stageControls .btn.green,#rest .btn.green{min-height:58px!important"),
  'primary repeated workout actions must be larger than the generic 48px minimum');
+assert(hotfix.includes("#workout .controls{height:auto!important;min-height:246px!important;max-height:45vh!important"),
+ 'large-text mode must allow workout controls to grow instead of clipping content');
+assert(hotfix.includes("#workout .wmedia{bottom:var(--tc-workout-controls-bottom,260px)!important}"),
+ 'workout media must reserve the measured control height');
+assert(hotfix.includes("function tcInstallAdaptiveWorkoutGeometry()")&&
+ hotfix.includes("new ResizeObserver(apply)")&&
+ hotfix.includes("workout.style.setProperty('--tc-workout-controls-bottom'"),
+ 'workout geometry must follow the actual rendered control height');
+assert(hotfix.includes("#sheet .sheetbox{max-height:92vh!important;overflow-y:auto!important"),
+ 'sheets must remain scrollable when text scaling reduces available vertical space');
+assert(hotfix.includes("grid-template-columns:repeat(auto-fit,minmax(92px,1fr))"),
+ 'completion summary stats must reflow instead of forcing three fixed columns');
+assert(hotfix.includes(".tcCompletionRow span,.tcCompletionRow b{min-width:0;flex:1 1 140px;overflow-wrap:anywhere}"),
+ 'completion rows must wrap long scaled text instead of clipping');
 assert(hotfix.includes("#workout .controls{height:246px!important"),
  'active workout must reserve a stable bottom control zone');
 assert(hotfix.includes('function tcSyncScreenVisibility(id)')&&
