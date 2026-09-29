@@ -112,6 +112,10 @@ def test_eval(js,label):
     deadline=time.time()+6
     output=""
     while time.time()<deadline:
+        file_result=adb("shell","run-as",PKG,"cat","files/tc-test-js-result.txt",check=False)
+        if file_result.returncode==0 and (file_result.stdout or "").strip():
+            result=(file_result.stdout or "").strip()
+            break
         log=adb("logcat","-d","-s","TurnikCoachBridge:D","TurnikCoachJSResult:D","TurnikCoachJS:D","*:S",check=False)
         output=(log.stdout or "")+"\n"+(log.stderr or "")
         for line in output.splitlines():
