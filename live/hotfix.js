@@ -356,6 +356,17 @@
         layout[key]={className:el.className,hidden:!!el.hidden,styleDisplay:el.style.display,display:cs.display,visibility:cs.visibility,opacity:cs.opacity,w:Math.round(rect.width),h:Math.round(rect.height)};
       });
       console.log('TC_NAV_TRACE',JSON.stringify({phase:'go-after-base',from,id,screen:currentScreen(),hasW:tcHasWorkout(),state:history.state||null,active:activeScreens(),layout}));
+      if(id==='workout'){
+        [500,1500].forEach(delay=>setTimeout(()=>{
+          const delayed={};
+          ['today','workout'].forEach(key=>{
+            const el=document.getElementById(key);if(!el)return;
+            const cs=getComputedStyle(el),rect=el.getBoundingClientRect();
+            delayed[key]={className:el.className,hidden:!!el.hidden,styleDisplay:el.style.display,display:cs.display,visibility:cs.visibility,opacity:cs.opacity,w:Math.round(rect.width),h:Math.round(rect.height)};
+          });
+          console.log('TC_NAV_TRACE',JSON.stringify({phase:'delayed-layout',delay,screen:currentScreen(),hasW:tcHasWorkout(),active:activeScreens(),layout:delayed}));
+        },delay));
+      }
       if(internal){restoreScroll(id);return r}
 
       const trainingFlow=tcHasWorkout()&&(id==='workout'||id==='rest')&&(from==='workout'||from==='rest');
