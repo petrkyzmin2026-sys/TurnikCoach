@@ -346,6 +346,16 @@ restore_line=wait_log_tokens(["TC_WORKOUT_STATE",'"phase":"restored"','"name":"Ð
 print("TC_DIAG restore",restore_line,flush=True)
 screenshot("05-process-death-restored")
 
+driver_state=test_eval_json("""(()=>({
+  driver:!!document.getElementById('tcTestDriver'),
+  complete:!!document.getElementById('tcTestComplete'),
+  hasW:!!W,
+  screen:(document.querySelector('.screen.on')||{}).id||''
+}))()""","driver-state")
+print("TC_DIAG driver-state",driver_state,flush=True)
+if not isinstance(driver_state,dict) or not driver_state.get("driver") or not driver_state.get("complete") or not driver_state.get("hasW") or driver_state.get("screen")!="workout":
+    raise AssertionError("Preview driver/restored runtime invalid: "+repr(driver_state))
+
 # Completion/Undo is verified through the preview-only WebView bridge.
 # The test command does not wait for evaluateJavascript's return callback:
 # each fixed preview control logs its own TC_TEST_UI result from the real app runtime.
