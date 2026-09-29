@@ -336,6 +336,9 @@
         app.style.transform='translateZ(0)';
         void app.offsetHeight;
         app.style.transform='';
+        try{
+          if(window.TurnikNative&&typeof window.TurnikNative.invalidate==='function')window.TurnikNative.invalidate();
+        }catch(e){}
       });
     }
     function tcClearWorkout(){try{if(typeof rt!=='undefined'&&rt){clearInterval(rt);rt=null}}catch(e){}try{W=null}catch(e){}try{if(typeof window.tcClearActiveWorkoutSnapshot==='function')window.tcClearActiveWorkoutSnapshot()}catch(e){}}
