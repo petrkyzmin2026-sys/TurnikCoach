@@ -350,8 +350,10 @@
       const r=baseGo(id);
       tcSyncScreenVisibility(id);
       tcForceWebViewRepaint();
-      if(id==='workout'&&tcHasWorkout()&&typeof window.tcSaveActiveWorkoutSnapshot==='function'){
-        setTimeout(()=>window.tcSaveActiveWorkoutSnapshot(),0);
+      if(id==='workout'&&tcHasWorkout()){
+        const saveFn=window.tcSaveActiveWorkoutSnapshot;
+        const saved=typeof saveFn==='function'?saveFn():false;
+        console.log('TC_WORKOUT_STATE',JSON.stringify({phase:'boundary-save',available:typeof saveFn==='function',saved:!!saved,hasW:tcHasWorkout()}));
       }
       const diagIds=['today','workout'];
       const layout={};
