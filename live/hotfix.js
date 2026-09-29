@@ -810,6 +810,10 @@
         manualRest:window.__tcManualCourseRest||null
       };
       localStorage.setItem(TC_ACTIVE_WORKOUT_KEY,JSON.stringify(payload));
+      try{
+        const item=W.items&&W.items[W.exerciseIndex];
+        console.log('TC_WORKOUT_STATE',JSON.stringify({phase:'snapshot-saved',screen:payload.screen,mode:String(W.mode||''),exerciseIndex:+W.exerciseIndex||0,setIndex:+W.setIndex||0,name:item&&item.e&&item.e.name||''}));
+      }catch(_){}
       return true;
     }catch(e){
       console.error('TurnikCoach active workout save',e);
@@ -860,6 +864,10 @@
         if(typeof renderWork==='function')renderWork();
       }
       showRuntimeNotice('Незавершённая тренировка восстановлена.');
+      try{
+        const item=W.items&&W.items[W.exerciseIndex];
+        console.log('TC_WORKOUT_STATE',JSON.stringify({phase:'restored',screen:tcWorkoutScreen(),mode:String(W.mode||''),exerciseIndex:+W.exerciseIndex||0,setIndex:+W.setIndex||0,name:item&&item.e&&item.e.name||'',restActive:!!tcRestActive}));
+      }catch(_){}
       return true;
     }catch(e){
       console.error('TurnikCoach active workout restore',e);
