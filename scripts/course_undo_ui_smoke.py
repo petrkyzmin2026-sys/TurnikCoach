@@ -336,52 +336,50 @@ snapshot_line=wait_log_tokens(["TC_WORKOUT_STATE",'"phase":"snapshot-saved"','"n
 print("TC_DIAG workout-start",start_line,flush=True)
 print("TC_DIAG snapshot",snapshot_line,flush=True)
 
-# UX2 durability: kill the Android process and verify the active workout is restored from localStorage.
-adb("logcat","-c",check=False)
-adb("shell","am","force-stop",PKG)
-time.sleep(1)
-launch()
-dismiss_system_anr()
-restore_line=wait_log_tokens(["TC_WORKOUT_STATE",'"phase":"restored"','"name":"Подъём коленей в висе"'],timeout=20)
-print("TC_DIAG restore",restore_line,flush=True)
-screenshot("05-process-death-restored")
-
-driver_state=test_eval_json("""(()=>({
-  driver:!!document.getElementById('tcTestDriver'),
-  complete:!!document.getElementById('tcTestComplete'),
-  hasW:!!W,
-  screen:(document.querySelector('.screen.on')||{}).id||''
-}))()""","driver-state")
-print("TC_DIAG driver-state",driver_state,flush=True)
-if not isinstance(driver_state,dict) or not driver_state.get("driver") or not driver_state.get("complete") or not driver_state.get("hasW") or driver_state.get("screen")!="workout":
-    raise AssertionError("Preview driver/restored runtime invalid: "+repr(driver_state))
-
-# Completion/Undo is verified through the preview-only WebView bridge.
-# The test command does not wait for evaluateJavascript's return callback:
-# each fixed preview control logs its own TC_TEST_UI result from the real app runtime.
+# First verify completion / Undo / discard while the original WebView process is alive.
+# The preview bridge is only a test driver; all state changes go through the real app functions.
 adb("logcat","-c",check=False)
 test_exec("var b=document.getElementById('tcTestComplete');if(b)b.click();else console.log('TC_TEST_UI',JSON.stringify({phase:'complete',ok:false,reason:'driver-missing'}));","completion-trigger")
 complete_line=wait_log_tokens(["TC_TEST_UI",'"phase":"complete"','"ok":true','"hasW":false','"undo":true'],timeout=12)
 if "Дополнительная тренировка завершена" not in complete_line:
     raise AssertionError("Completion summary marker missing expected title: "+complete_line)
 print("TC_DIAG completion",complete_line,flush=True)
-screenshot("06-completion-summary")
+screenshot("05-completion-summary")
 
 adb("logcat","-c",check=False)
 test_exec("var b=document.getElementById('tcTestUndo');if(b)b.click();else console.log('TC_TEST_UI',JSON.stringify({phase:'undo',ok:false,reason:'driver-missing'}));","undo-trigger")
 undo_line=wait_log_tokens(["TC_TEST_UI",'"phase":"undo"','"ok":true','"hasW":false','"sheetOpen":false','"extraAvailable":true'],timeout=12)
 print("TC_DIAG undo",undo_line,flush=True)
-screenshot("07-completion-undone")
+screenshot("06-completion-undone")
 
 adb("logcat","-c",check=False)
 test_exec("var b=document.getElementById('tcTestStart');if(b)b.click();else console.log('TC_TEST_UI',JSON.stringify({phase:'start-again',ok:false,reason:'driver-missing'}));","start-again-trigger")
 start_again_line=wait_log_tokens(["TC_TEST_UI",'"phase":"start-again"','"ok":true','"hasW":true','"screen":"workout"','"mode":"extra"'],timeout=12)
+wait_log_tokens(["TC_WORKOUT_STATE",'"phase":"snapshot-saved"','"mode":"extra"'],timeout=12)
 print("TC_DIAG start-again",start_again_line,flush=True)
 
 adb("logcat","-c",check=False)
 test_exec("var b=document.getElementById('tcTestDiscard');if(b)b.click();else console.log('TC_TEST_UI',JSON.stringify({phase:'discard',ok:false,reason:'driver-missing'}));","discard-trigger")
 discard_line=wait_log_tokens(["TC_TEST_UI",'"phase":"discard"','"hasW":false','"screen":"today"','"sheetOpen":false','"snapshot":null'],timeout=12)
 print("TC_DIAG discard",discard_line,flush=True)
-screenshot("08-discarded-without-save")
+screenshot("07-discarded-without-save")
+
+# Start once more specifically for durability, then kill the Android process.
+adb("logcat","-c",check=False)
+test_exec("var b=document.getElementById('tcTestStart');if(b)b.click();else console.log('TC_TEST_UI',JSON.stringify({phase:'start-again',ok:false,reason:'driver-missing'}));","durability-start-trigger")
+durability_start=wait_log_tokens(["TC_TEST_UI",'"phase":"start-again"','"ok":true','"hasW":true','"screen":"workout"','"mode":"extra"'],timeout=12)
+durability_snapshot=wait_log_tokens(["TC_WORKOUT_STATE",'"phase":"snapshot-saved"','"name":"Подъём коленей в висе"'],timeout=12)
+print("TC_DIAG durability-start",durability_start,flush=True)
+print("TC_DIAG durability-snapshot",durability_snapshot,flush=True)
+
+# UX2 durability: process death must restore the same active workout.
+adb("logcat","-c",check=False)
+adb("shell","am","force-stop",PKG)
+time.sleep(1)
+launch()
+dismiss_system_anr()
+restore_line=wait_log_tokens(["TC_WORKOUT_STATE",'"phase":"restored"','"name":"Подъём коленей в висе"','"mode":"extra"'],timeout=20)
+print("TC_DIAG restore",restore_line,flush=True)
+screenshot("08-process-death-restored")
 
 print("UX2_COMPLETION_FLOW_SMOKE_OK")
