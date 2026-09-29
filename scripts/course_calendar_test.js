@@ -4,6 +4,7 @@
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
 const course=fs.readFileSync('live/course.js','utf8');
 const hotfix=fs.readFileSync('live/hotfix.js','utf8');
+const mainActivity=fs.readFileSync('app/src/main/java/ru/turnikcoach/app/MainActivity.java','utf8');
 new vm.Script(course,{filename:'live/course.js'});
 new vm.Script(hotfix,{filename:'live/hotfix.js'});
 const bundled=hotfix.match(/const COURSE_MODULE_BUNDLED=("(?:\\.|[^"\\])*");\n  function tcValidCourseModule/);
@@ -384,6 +385,9 @@ assert(hotfix.includes('function tcRestoreActiveWorkoutSnapshot()'),
 assert(hotfix.includes('window.tcRefreshActiveTrainingSurface=function(id)')&&
  hotfix.includes('[50,250,750].forEach(delay=>setTimeout(()=>'),
  'cold restore must repaint the active training surface after initial WebView startup');
+assert(hotfix.includes("TurnikNative.refreshSurface")&&
+ mainActivity.includes("@JavascriptInterface public void refreshSurface()"),
+ 'cold restore native surface refresh bridge must exist on both JS and Android sides');
 assert(hotfix.includes("window.tcClearActiveWorkoutSnapshot=tcClearActiveWorkoutSnapshot"),
  'discard flow must be able to remove a durable workout snapshot');
 assert(hotfix.includes("setNav('n1','◫','План')")&&hotfix.includes("setNav('n3','⌁','Прогресс')"),
