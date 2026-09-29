@@ -337,37 +337,81 @@ print("TC_DIAG workout-start",start_line,flush=True)
 print("TC_DIAG snapshot",snapshot_line,flush=True)
 
 # First verify completion / Undo / discard while the original WebView process is alive.
-# The preview bridge is only a test driver; all state changes go through the real app functions.
-adb("logcat","-c",check=False)
-test_exec("var b=document.getElementById('tcTestComplete');if(b)b.click();else console.log('TC_TEST_UI',JSON.stringify({phase:'complete',ok:false,reason:'driver-missing'}));","completion-trigger")
-complete_line=wait_log_tokens(["TC_TEST_UI",'"phase":"complete"','"ok":true','"hasW":false','"undo":true'],timeout=12)
-if "Дополнительная тренировка завершена" not in complete_line:
-    raise AssertionError("Completion summary marker missing expected title: "+complete_line)
-print("TC_DIAG completion",complete_line,flush=True)
+# Drive the real app functions through TEST_EVAL and inspect state directly; do not depend on hidden driver buttons.
+
+test_exec("""
+if(!W||!Array.isArray(W.items))throw new Error('no-workout');
+W.items.forEach(function(x){x.actual=Array.isArray(x.plan)?x.plan.slice():[];});
+W.exerciseIndex=Math.max(0,W.items.length-1);
+W.setIndex=Math.max(0,(W.items[W.exerciseIndex].plan||[]).length-1);
+W.actual=(W.items[W.exerciseIndex].plan||[])[W.setIndex]||0;
+window.finishWorkout('Нормально');
+""","completion-trigger")
+time.sleep(.5)
+completion=test_eval_json("""({
+  hasW:!!W,
+  sheetOpen:!!document.querySelector('#sheet.open'),
+  undo:!!document.getElementById('tcCompletionUndoBtn'),
+  text:(document.getElementById('sheetbox')||{}).innerText||''
+})""","completion-state")
+print("TC_DIAG completion-state",completion,flush=True)
+if completion.get("hasW") is not False:
+    raise AssertionError("Completion must clear active W: "+repr(completion))
+if not completion.get("sheetOpen") or not completion.get("undo"):
+    raise AssertionError("Completion summary / Undo not visible: "+repr(completion))
+if "Дополнительная тренировка завершена" not in (completion.get("text") or ""):
+    raise AssertionError("Completion summary missing expected title: "+repr(completion))
 screenshot("05-completion-summary")
 
-adb("logcat","-c",check=False)
-test_exec("var b=document.getElementById('tcTestUndo');if(b)b.click();else console.log('TC_TEST_UI',JSON.stringify({phase:'undo',ok:false,reason:'driver-missing'}));","undo-trigger")
-undo_line=wait_log_tokens(["TC_TEST_UI",'"phase":"undo"','"ok":true','"hasW":false','"sheetOpen":false','"extraAvailable":true'],timeout=12)
-print("TC_DIAG undo",undo_line,flush=True)
+undo_result=test_eval_json("""({
+  ok:window.tcUndoLastCompletion(),
+  hasW:!!W
+})""","undo-action")
+time.sleep(.4)
+undo=test_eval_json("""({
+  hasW:!!W,
+  sheetOpen:!!document.querySelector('#sheet.open'),
+  screen:(document.querySelector('.screen.on')||{}).id||'',
+  extraAvailable:document.body.innerText.includes('Начать дополнительную тренировку')
+})""","undo-state")
+print("TC_DIAG undo",undo_result,undo,flush=True)
+if not undo_result.get("ok"):
+    raise AssertionError("Completion Undo returned false: "+repr(undo_result))
+if undo.get("hasW") is not False or undo.get("sheetOpen") or not undo.get("extraAvailable"):
+    raise AssertionError("Undo did not restore Today extra-workout state: "+repr(undo))
 screenshot("06-completion-undone")
 
-adb("logcat","-c",check=False)
-test_exec("var b=document.getElementById('tcTestStart');if(b)b.click();else console.log('TC_TEST_UI',JSON.stringify({phase:'start-again',ok:false,reason:'driver-missing'}));","start-again-trigger")
-start_again_line=wait_log_tokens(["TC_TEST_UI",'"phase":"start-again"','"ok":true','"hasW":true','"screen":"workout"','"mode":"extra"'],timeout=12)
+start_again=test_eval_json("""(function(){
+  var ok=window.tcStartExtraWorkout();
+  return {ok:ok!==false,hasW:!!W,screen:(document.querySelector('.screen.on')||{}).id||'',mode:W&&W.mode||''};
+})()""","start-again")
+print("TC_DIAG start-again",start_again,flush=True)
+if not start_again.get("ok") or not start_again.get("hasW") or start_again.get("screen")!="workout" or start_again.get("mode")!="extra":
+    raise AssertionError("Extra workout did not restart after Undo: "+repr(start_again))
 wait_log_tokens(["TC_WORKOUT_STATE",'"phase":"snapshot-saved"','"mode":"extra"'],timeout=12)
-print("TC_DIAG start-again",start_again_line,flush=True)
 
-adb("logcat","-c",check=False)
-test_exec("var b=document.getElementById('tcTestDiscard');if(b)b.click();else console.log('TC_TEST_UI',JSON.stringify({phase:'discard',ok:false,reason:'driver-missing'}));","discard-trigger")
-discard_line=wait_log_tokens(["TC_TEST_UI",'"phase":"discard"','"hasW":false','"screen":"today"','"sheetOpen":false','"snapshot":null'],timeout=12)
-print("TC_DIAG discard",discard_line,flush=True)
+test_exec("window.tcDiscardWorkout();","discard-open")
+time.sleep(.15)
+test_exec("var yes=document.getElementById('tcConfirmDiscardWorkoutBtn');if(!yes)throw new Error('discard-confirm-missing');yes.click();","discard-confirm")
+time.sleep(.4)
+discard=test_eval_json("""({
+  hasW:!!W,
+  screen:(document.querySelector('.screen.on')||{}).id||'',
+  sheetOpen:!!document.querySelector('#sheet.open'),
+  snapshot:localStorage.getItem('tc_active_workout_v2')
+})""","discard-state")
+print("TC_DIAG discard",discard,flush=True)
+if discard.get("hasW") is not False or discard.get("screen")!="today" or discard.get("sheetOpen") or discard.get("snapshot") is not None:
+    raise AssertionError("Discard did not fully clear active workout: "+repr(discard))
 screenshot("07-discarded-without-save")
 
 # Start once more specifically for durability, then kill the Android process.
-adb("logcat","-c",check=False)
-test_exec("var b=document.getElementById('tcTestStart');if(b)b.click();else console.log('TC_TEST_UI',JSON.stringify({phase:'start-again',ok:false,reason:'driver-missing'}));","durability-start-trigger")
-durability_start=wait_log_tokens(["TC_TEST_UI",'"phase":"start-again"','"ok":true','"hasW":true','"screen":"workout"','"mode":"extra"'],timeout=12)
+durability_start=test_eval_json("""(function(){
+  var ok=window.tcStartExtraWorkout();
+  return {ok:ok!==false,hasW:!!W,screen:(document.querySelector('.screen.on')||{}).id||'',mode:W&&W.mode||''};
+})()""","durability-start")
+if not durability_start.get("ok") or not durability_start.get("hasW") or durability_start.get("screen")!="workout" or durability_start.get("mode")!="extra":
+    raise AssertionError("Durability restart failed: "+repr(durability_start))
 durability_snapshot=wait_log_tokens(["TC_WORKOUT_STATE",'"phase":"snapshot-saved"','"name":"Подъём коленей в висе"'],timeout=12)
 print("TC_DIAG durability-start",durability_start,flush=True)
 print("TC_DIAG durability-snapshot",durability_snapshot,flush=True)
