@@ -296,9 +296,18 @@ after_tap_log=adb("logcat","-d","-t","400",check=False)
 with open(OUT+"/04a-after-extra-start-logcat.txt","w",encoding="utf-8") as fp:
     fp.write((after_tap_log.stdout or "")+"\n"+(after_tap_log.stderr or ""))
 
+# Capture the actual Android surface after the WebView has had time to composite the new screen.
+time.sleep(2)
+screenshot("04b-extra-start-settled")
+adb("shell","uiautomator","dump","/sdcard/ux2-after-start-settled.xml",check=False)
+adb("pull","/sdcard/ux2-after-start-settled.xml",OUT+"/04b-extra-start-settled.xml",check=False)
+settled_log=adb("logcat","-d","-t","700",check=False)
+with open(OUT+"/04b-extra-start-settled-logcat.txt","w",encoding="utf-8") as fp:
+    fp.write((settled_log.stdout or "")+"\n"+(settled_log.stderr or ""))
+
 # UIAutomator/screencap can lag behind the actual WebView DOM on the headless emulator.
 # Verify the active workout directly through the test-only JS bridge.
-time.sleep(1)
+
 workout_dom=test_eval_json(r'''(function(){
   function btn(text){
     const b=[...document.querySelectorAll('#workout button')].find(x=>(x.textContent||'').trim()===text);
