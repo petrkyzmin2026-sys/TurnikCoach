@@ -344,4 +344,59 @@ restore_line=wait_log_tokens(["TC_WORKOUT_STATE",'"phase":"restored"','"name":"Ð
 print("TC_DIAG restore",restore_line,flush=True)
 screenshot("05-process-death-restored")
 
+# Accessibility regression: Android font scale 200% must not clip the critical workout controls.
+adb("shell","settings","put","system","font_scale","2.0")
+adb("shell","am","force-stop",PKG)
+time.sleep(1)
+adb("logcat","-c",check=False)
+launch()
+dismiss_system_anr()
+restore_200=wait_log_tokens(["TC_WORKOUT_STATE",'"phase":"restored"','"mode":"extra"'],timeout=20)
+print("TC_DIAG restore-200",restore_200,flush=True)
+time.sleep(1)
+
+layout_200=test_eval_json("""(function(){
+  function box(el){
+    if(!el)return null;
+    var r=el.getBoundingClientRect();
+    return {
+      x:r.x,y:r.y,w:r.width,h:r.height,right:r.right,bottom:r.bottom,
+      clientW:el.clientWidth,clientH:el.clientHeight,
+      scrollW:el.scrollWidth,scrollH:el.scrollHeight
+    };
+  }
+  var controls=document.querySelector('#workout .tcStableWorkoutControls, #workout .controls');
+  var done=document.querySelector('#workout .tcWorkoutDoneAction, #workout .actions .btn.green');
+  var skip=document.querySelector('#workout .tcWorkoutSkipAction, #workout .actions .btn.ghost');
+  var exit=document.querySelector('#workout .tcWorkoutExitBtn, #workout .stageHeader .endBtn');
+  return {
+    innerW:window.innerWidth,innerH:window.innerHeight,
+    docScrollW:document.documentElement.scrollWidth,
+    bodyScrollW:document.body.scrollWidth,
+    controls:box(controls),done:box(done),skip:box(skip),exit:box(exit)
+  };
+})()""","font-scale-200-layout")
+print("TC_DIAG font-scale-200",layout_200,flush=True)
+
+iw=float(layout_200["innerW"]); ih=float(layout_200["innerH"])
+if float(layout_200["docScrollW"])>iw+2 or float(layout_200["bodyScrollW"])>iw+2:
+    raise AssertionError("200% font scale causes horizontal overflow: "+repr(layout_200))
+for name in ("done","skip","exit"):
+    b=layout_200.get(name)
+    if not b:
+        raise AssertionError("Missing critical control at 200%: "+name+" / "+repr(layout_200))
+    if float(b["w"])<48 or float(b["h"])<48:
+        raise AssertionError("Critical control below 48px at 200%: "+name+" / "+repr(b))
+    if float(b["x"])<-2 or float(b["right"])>iw+2 or float(b["y"])<-2 or float(b["bottom"])>ih+2:
+        raise AssertionError("Critical control leaves viewport at 200%: "+name+" / "+repr(b))
+controls=layout_200.get("controls")
+if not controls:
+    raise AssertionError("Workout controls missing at 200%")
+if float(controls["scrollH"])>float(controls["clientH"])+2:
+    raise AssertionError("Workout controls content is vertically clipped at 200%: "+repr(controls))
+screenshot("06-font-scale-200-workout")
+
+# Restore the emulator default for any later checks.
+adb("shell","settings","put","system","font_scale","1.0")
+
 print("UX2_COMPLETION_FLOW_SMOKE_OK")
