@@ -242,6 +242,141 @@
     };
   }
 
+  function tcInstallNavigationUpgrades(){
+    // The navigation core is intentionally one-time. Hotfix upgrades live here so a
+    // newer hotfix can change rendering/restore behavior without stacking go/popstate wrappers.
+    const oldStyle=document.getElementById('tcNavUpgradeStyle');
+    if(oldStyle)oldStyle.remove();
+    const style=document.createElement('style');
+    style.id='tcNavUpgradeStyle';
+    style.textContent=
+      '#workout .controls{height:auto!important;min-height:246px!important;max-height:45vh!important;overflow-y:auto!important;box-sizing:border-box!important}'+
+      '#workout .wmedia{bottom:var(--tc-workout-controls-bottom,260px)!important}'+
+      '#workout .controls .chips{height:auto!important;min-height:30px!important;flex:0 0 auto!important;flex-wrap:wrap!important}'+
+      '#workout .controls .counter{grid-template-columns:minmax(56px,64px) minmax(0,1fr) minmax(56px,64px)!important;height:auto!important;min-height:72px!important;flex:0 0 auto!important}'+
+      '#workout .tcStableWorkoutControls{height:auto!important;min-height:246px!important;max-height:45vh!important;overflow-y:auto!important;box-sizing:border-box!important}'+
+      '.nav button{white-space:normal!important;line-height:1.15!important;padding:4px 2px!important;overflow-wrap:anywhere}'+
+      '#sheet .sheetbox{max-height:92vh!important;overflow-y:auto!important;overscroll-behavior:contain}'+
+      '.sheettitle,.dateBig{overflow-wrap:anywhere;word-break:normal}'+
+      '.tcCompletionStats{grid-template-columns:repeat(auto-fit,minmax(92px,1fr))!important}'+
+      '.tcCompletionRow{flex-wrap:wrap!important;align-items:flex-start!important}'+
+      '.tcCompletionRow span,.tcCompletionRow b{min-width:0!important;flex:1 1 140px!important;overflow-wrap:anywhere!important}';
+    document.head.appendChild(style);
+
+    function hasWorkout(){return typeof W!=='undefined'&&!!W}
+    function syncScreenVisibility(id){
+      document.querySelectorAll('.screen').forEach(screen=>{
+        const active=screen.id===id;
+        screen.classList.toggle('on',active);
+        screen.hidden=!active;
+        screen.setAttribute('aria-hidden',active?'false':'true');
+        screen.style.display=active?'flex':'none';
+      });
+      const target=document.getElementById(id);
+      if(target)void target.offsetHeight;
+    }
+    function forceRepaint(){
+      const app=document.getElementById('app');
+      if(!app)return;
+      const previous=app.style.display;
+      app.style.display='none';
+      void app.offsetHeight;
+      app.style.display=previous||'block';
+      void app.offsetHeight;
+      if(typeof requestAnimationFrame==='function')requestAnimationFrame(()=>{
+        app.style.transform='translateZ(0)';
+        void app.offsetHeight;
+        app.style.transform='';
+        try{
+          if(window.TurnikNative&&typeof window.TurnikNative.invalidate==='function')window.TurnikNative.invalidate();
+        }catch(e){}
+      });
+    }
+    function installAdaptiveGeometry(){
+      const workout=document.getElementById('workout');
+      const controls=workout&&workout.querySelector('.controls,.tcStableWorkoutControls');
+      if(!workout||!controls)return;
+      const apply=()=>{
+        const h=Math.ceil(controls.getBoundingClientRect().height||0);
+        if(h>0)workout.style.setProperty('--tc-workout-controls-bottom',(h+22)+'px');
+      };
+      if(window.__tcWorkoutGeometryUpgradeObserver){
+        try{window.__tcWorkoutGeometryUpgradeObserver.disconnect()}catch(e){}
+      }
+      if(typeof ResizeObserver==='function'){
+        const ro=new ResizeObserver(apply);
+        ro.observe(controls);
+        window.__tcWorkoutGeometryUpgradeObserver=ro;
+      }
+      apply();
+      setTimeout(apply,0);
+    }
+    window.tcInstallAdaptiveWorkoutGeometry=installAdaptiveGeometry;
+
+    window.tcRefreshActiveTrainingSurface=function(id){
+      if(!hasWorkout())return false;
+      const target=id==='rest'?'rest':'workout';
+      syncScreenVisibility(target);
+      try{
+        if(target==='workout'&&typeof renderWork==='function')renderWork();
+        if(target==='rest'&&typeof tcRenderRest==='function')tcRenderRest();
+        if(target==='workout')installAdaptiveGeometry();
+      }catch(e){}
+      forceRepaint();
+      try{
+        if(window.TurnikNative&&typeof window.TurnikNative.showSurface==='function')window.TurnikNative.showSurface(target);
+        else if(window.TurnikNative&&typeof window.TurnikNative.refreshSurface==='function')window.TurnikNative.refreshSurface();
+      }catch(e){}
+      return true;
+    };
+
+    function enforceRestoreGuard(){
+      const guard=window.__tcRestoreSurfaceGuard;
+      if(!guard)return false;
+      if(Date.now()>guard.until||!hasWorkout()){
+        window.__tcRestoreSurfaceGuard=null;
+        return false;
+      }
+      return window.tcRefreshActiveTrainingSurface(guard.surface);
+    }
+    window.tcArmRestoreSurfaceGuard=function(surface){
+      window.__tcRestoreSurfaceGuard={surface:surface==='rest'?'rest':'workout',until:Date.now()+5000};
+      const enforce=()=>{try{enforceRestoreGuard()}catch(e){}};
+      enforce();
+      if(typeof requestAnimationFrame==='function'){
+        requestAnimationFrame(()=>{enforce();requestAnimationFrame(enforce)});
+      }
+      [250,750,1500,3000].forEach(delay=>setTimeout(enforce,delay));
+      return true;
+    };
+
+    if(window.__tcRestoreGuardFocusHandler)window.removeEventListener('focus',window.__tcRestoreGuardFocusHandler);
+    if(window.__tcRestoreGuardPageshowHandler)window.removeEventListener('pageshow',window.__tcRestoreGuardPageshowHandler);
+    if(window.__tcRestoreGuardVisibilityHandler)document.removeEventListener('visibilitychange',window.__tcRestoreGuardVisibilityHandler);
+    window.__tcRestoreGuardFocusHandler=enforceRestoreGuard;
+    window.__tcRestoreGuardPageshowHandler=enforceRestoreGuard;
+    window.__tcRestoreGuardVisibilityHandler=()=>{if(document.visibilityState==='visible')enforceRestoreGuard()};
+    window.addEventListener('focus',window.__tcRestoreGuardFocusHandler);
+    window.addEventListener('pageshow',window.__tcRestoreGuardPageshowHandler);
+    document.addEventListener('visibilitychange',window.__tcRestoreGuardVisibilityHandler);
+
+    if(window.__tcAdaptiveSurfaceObserver){
+      try{window.__tcAdaptiveSurfaceObserver.disconnect()}catch(e){}
+    }
+    const app=document.getElementById('app');
+    if(app){
+      const mo=new MutationObserver(()=>{
+        const workout=document.getElementById('workout');
+        if(workout&&workout.classList.contains('on'))installAdaptiveGeometry();
+      });
+      mo.observe(app,{childList:true,subtree:true,attributes:true,attributeFilter:['class']});
+      window.__tcAdaptiveSurfaceObserver=mo;
+    }
+    const workout=document.getElementById('workout');
+    if(workout&&workout.classList.contains('on'))installAdaptiveGeometry();
+    window.__TC_NAV_UPGRADE_VERSION=VERSION;
+  }
+
   function tcInstallNavigationFoundation(){
     if(window.__TC_NAV_FOUNDATION)return;
     window.__TC_NAV_FOUNDATION=true;
@@ -1147,6 +1282,7 @@
     tcLoadCourseModule();
     tcInstallUx2InformationArchitecture();
     tcInstallNavigationFoundation();
+    tcInstallNavigationUpgrades();
     tcInstallCompletionFlow();
     tcInstallWorkoutPersistence();
     if(previousVersion!==VERSION)showRuntimeNotice('TurnikCoach обновлён до '+LABEL);
