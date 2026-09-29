@@ -2,10 +2,8 @@ package ru.turnikcoach.app;
 
 import android.app.Activity;
 import android.graphics.Color;
-import android.content.Intent;
 import android.os.Bundle;
 import android.util.Base64;
-import android.util.Log;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
@@ -81,39 +79,6 @@ public class MainActivity extends Activity {
         web.loadUrl("file:///android_asset/index.html");
         setContentView(web);
         startHotfixUpdate();
-        if (BuildConfig.DEBUG) handleTestEvalIntent(getIntent());
-    }
-
-    @Override protected void onNewIntent(Intent intent) {
-        super.onNewIntent(intent);
-        setIntent(intent);
-        if (BuildConfig.DEBUG) handleTestEvalIntent(intent);
-    }
-
-    private void handleTestEvalIntent(Intent intent) {
-        if (!BuildConfig.DEBUG || intent == null || !"ru.turnikcoach.TEST_EVAL".equals(intent.getAction())) return;
-        String encoded = intent.getStringExtra("js_b64");
-        if (encoded == null || encoded.isEmpty()) return;
-        String js;
-        try {
-            js = new String(Base64.decode(encoded, Base64.DEFAULT), StandardCharsets.UTF_8);
-        } catch (Exception e) {
-            Log.e("TurnikCoachJSResult", "TC_TEST_EVAL_ERROR:decode", e);
-            return;
-        }
-        final String script = js;
-        Runnable eval = new Runnable() {
-            @Override public void run() {
-                if (!pageReady || web == null) {
-                    if (web != null) web.postDelayed(this, 100);
-                    return;
-                }
-                web.evaluateJavascript(script, value ->
-                        Log.d("TurnikCoachJSResult", "TC_TEST_EVAL_RESULT:" + (value == null ? "null" : value))
-                );
-            }
-        };
-        runOnUiThread(eval);
     }
 
     private void startHotfixUpdate() {
