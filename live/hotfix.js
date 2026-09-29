@@ -370,7 +370,8 @@
       }catch(e){}
       tcForceWebViewRepaint();
       try{
-        if(window.TurnikNative&&typeof window.TurnikNative.refreshSurface==='function')window.TurnikNative.refreshSurface();
+        if(window.TurnikNative&&typeof window.TurnikNative.showSurface==='function')window.TurnikNative.showSurface(target);
+        else if(window.TurnikNative&&typeof window.TurnikNative.refreshSurface==='function')window.TurnikNative.refreshSurface();
       }catch(e){}
       return true;
     };
