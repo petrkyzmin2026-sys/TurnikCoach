@@ -55,6 +55,15 @@ jobs:
           grep -q 'TURNIKCOACH_HOTFIX 5.14.0-adaptive-rest' app/src/main/assets/hotfix.js
           curl -fsSL "https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/${PREV_COMMIT}/live/hotfix.js" > app/src/main/assets/hotfix-prev.js
           cp live/hotfix.js app/src/main/assets/hotfix-next.js
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('app/src/main/assets/hotfix-next.js')
+          s=p.read_text()
+          needle="  function tcAudio(){\n    try{"
+          assert needle in s
+          s=s.replace(needle,"  function tcAudio(){\n    if(window.__TC_DISABLE_AUDIO_FOR_SMOKE)return null;\n    try{",1)
+          p.write_text(s)
+          PY
           grep -q 'TURNIKCOACH_HOTFIX 5.16.31-workout-flow' app/src/main/assets/hotfix-prev.js
           grep -q 'TURNIKCOACH_HOTFIX 5.16.32-completion-flow' app/src/main/assets/hotfix-next.js
           grep -q 'TURNIKCOACH_COURSE 1.0.33-single-action-router' app/src/main/assets/hotfix-next.js
@@ -68,6 +77,7 @@ jobs:
           assert html.count(marker)==1
           seed=r'''<script>
           (function(){
+            window.__TC_DISABLE_AUDIO_FOR_SMOKE=true;
             if(localStorage.getItem('__tcForcedHandoverSmokeSeeded')) return;
             var d=new Date(),k=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
             localStorage.setItem('tc_hotfix_approved_version','5.16.31-workout-flow');
