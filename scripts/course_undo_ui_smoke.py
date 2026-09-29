@@ -9,13 +9,19 @@ PKG=os.environ.get("TC_TEST_PKG","ru.turnikcoach.app.calendarpreview")
 OUT=os.environ.get("GITHUB_WORKSPACE",".")+"/undo-ui-test-output"
 os.makedirs(OUT,exist_ok=True)
 
-def adb(*args,check=True):
-    return subprocess.run(["adb",*args],check=check,text=True,capture_output=True)
+def adb(*args,check=True,timeout=20):
+    cmd=["adb",*args]
+    try:
+        return subprocess.run(cmd,check=check,text=True,capture_output=True,timeout=timeout)
+    except subprocess.TimeoutExpired as e:
+        if check:
+            raise
+        return subprocess.CompletedProcess(cmd,124,e.stdout or "",e.stderr or "ADB command timed out")
 
 def dump():
     last=None
     for _ in range(6):
-        r=adb("shell","uiautomator","dump","/sdcard/window.xml",check=False)
+        r=adb("shell","uiautomator","dump","/sdcard/window.xml",check=False,timeout=8)
         if r.returncode==0:
             p=adb("pull","/sdcard/window.xml","/tmp/window.xml",check=False)
             if p.returncode==0:
