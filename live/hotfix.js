@@ -340,15 +340,59 @@
       }
       return window.tcRefreshActiveTrainingSurface(guard.surface);
     }
+    function logRestoreSurface(delay){
+      try{
+        const readScreen=id=>{
+          const el=document.getElementById(id);
+          if(!el)return null;
+          const r=el.getBoundingClientRect();
+          return {
+            on:el.classList.contains('on'),
+            hidden:!!el.hidden,
+            display:getComputedStyle(el).display,
+            width:Math.round(r.width),
+            height:Math.round(r.height),
+            top:Math.round(r.top),
+            left:Math.round(r.left)
+          };
+        };
+        const screens=[...document.querySelectorAll('.screen')].map(el=>({
+          id:el.id,
+          on:el.classList.contains('on'),
+          hidden:!!el.hidden,
+          display:getComputedStyle(el).display
+        }));
+        const buttons=[...document.querySelectorAll('button')];
+        const hasButton=text=>buttons.some(btn=>(btn.textContent||'').trim().includes(text));
+        console.log('TC_RESTORE_SURFACE',JSON.stringify({
+          phase:'snapshot',
+          delay,
+          version:VERSION,
+          activeScreens:screens.filter(s=>s.on).map(s=>s.id),
+          screens,
+          today:readScreen('today'),
+          workout:readScreen('workout'),
+          rest:readScreen('rest'),
+          hasDone:hasButton('Сделано'),
+          hasExit:hasButton('Выйти'),
+          historyState:history.state||null,
+          hasW:hasWorkout(),
+          mode:hasWorkout()&&W&&W.mode?W.mode:null
+        }));
+      }catch(e){
+        console.log('TC_RESTORE_SURFACE',JSON.stringify({phase:'snapshot-error',delay,version:VERSION,error:String(e&&e.message||e)}));
+      }
+    }
     window.tcArmRestoreSurfaceGuard=function(surface){
       window.__tcRestoreSurfaceGuard={surface:surface==='rest'?'rest':'workout',until:Date.now()+5000};
       console.log('TC_NAV_UPGRADE',JSON.stringify({phase:'arm-restore-guard',version:VERSION,surface:window.__tcRestoreSurfaceGuard.surface}));
       const enforce=()=>{try{enforceRestoreGuard()}catch(e){}};
-      enforce();
+      const enforceAndLog=delay=>{enforce();logRestoreSurface(delay)};
+      enforceAndLog(0);
       if(typeof requestAnimationFrame==='function'){
         requestAnimationFrame(()=>{enforce();requestAnimationFrame(enforce)});
       }
-      [250,750,1500,3000].forEach(delay=>setTimeout(enforce,delay));
+      [250,750,1500,3000].forEach(delay=>setTimeout(()=>enforceAndLog(delay),delay));
       return true;
     };
 
