@@ -308,10 +308,17 @@ screenshot("02-update-installed")
 
 # Progress must be useful at a glance before the long history and charts.
 tap_bottom_nav("history")
+time.sleep(1)
+screenshot("02b-progress-summary-before-assert")
+adb("shell","uiautomator","dump","/sdcard/ux2-progress-summary.xml",check=False)
+adb("pull","/sdcard/ux2-progress-summary.xml",OUT+"/02b-progress-summary.xml",check=False)
+progress_log=adb("logcat","-d","-t","500",check=False)
+with open(OUT+"/02b-progress-logcat.txt","w",encoding="utf-8") as fp:
+    fp.write((progress_log.stdout or "")+"\n"+(progress_log.stderr or ""))
 wait_text("За 7 дней",timeout=12,contains=False)
 wait_text("Всего тренировок",timeout=12,contains=False)
 wait_text("MAX подтяг.",timeout=12,contains=False)
-screenshot("02b-progress-summary")
+screenshot("02c-progress-summary")
 tap_bottom_nav("today")
 wait_text("Основной комплекс выполнен",timeout=12)
 
