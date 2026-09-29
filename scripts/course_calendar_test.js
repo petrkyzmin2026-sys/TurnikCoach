@@ -444,7 +444,6 @@ const completionHarness=new Function(
   extractFrom(hotfix,'tcWorkoutSummary')+'\n'+
   extractFrom(hotfix,'tcReadCompletionUndo')+'\n'+
   extractFrom(hotfix,'tcClearCompletionUndo')+'\n'+
-  extractAssignment(hotfix,'window.tcUndoLastCompletion=function')+'\n'+
   extractFrom(hotfix,'tcInstallCompletionFlow')+'\n'+
   `
   const TC_COMPLETION_UNDO_KEY='tc_completion_undo_v1';
@@ -480,6 +479,9 @@ const completionHarness=new Function(
     tcRestoreCourseStateSnapshot:s=>{courseState=JSON.parse(JSON.stringify(s))},
     tcClearActiveWorkoutSnapshot:()=>{activeSnapshotClears++}
   };
+  `+
+  extractAssignment(hotfix,'window.tcUndoLastCompletion=function')+'\n'+
+  `
   function tcJsonClone(v){return JSON.parse(JSON.stringify(v))}
   function tcShowCompletionSummary(v){summarySeen=JSON.parse(JSON.stringify(v))}
   function save(){saveCount++}
