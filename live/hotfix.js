@@ -1,8 +1,8 @@
-/* TURNIKCOACH_HOTFIX 5.16.33-accessibility-scale */
+/* TURNIKCOACH_HOTFIX 5.16.34-haptic-feedback */
 (function(){
   'use strict';
-  const VERSION='5.16.33-accessibility-scale';
-  const LABEL='5.16.33';
+  const VERSION='5.16.34-haptic-feedback';
+  const LABEL='5.16.34';
   const APPROVED_KEY='tc_hotfix_approved_version';
   const LEGACY_ASSET_VERSION='5.14.0-adaptive-rest';
   const stalePrompt=document.getElementById('tcUpdatePrompt');
@@ -24,6 +24,7 @@
       ';color:'+(danger?'#ffd8db':'#e8ffed')+';font:700 13px/1.35 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;box-shadow:0 10px 30px rgba(0,0,0,.35)';
     note.textContent=message;
     document.body.appendChild(note);
+    if(danger)try{if(navigator.vibrate)navigator.vibrate([70,45,70])}catch(e){};
     setTimeout(()=>{if(note&&note.parentNode)note.parentNode.removeChild(note)},4200);
   }
   window.tcShowRuntimeNotice=showRuntimeNotice;
@@ -70,7 +71,7 @@
     title.textContent='Доступно обновление TurnikCoach '+LABEL;
     const text=document.createElement('div');
     text.style.cssText='font-size:15px;line-height:1.45;color:#cfd8e3;margin-bottom:18px';
-    text.innerHTML="UX 2.0: интерфейс лучше переносит крупный системный шрифт и масштабирование. Длинные заголовки и строки теперь переносятся, итог тренировки перестраивается под доступную ширину, нижняя навигация получила больше вертикального резерва, а модальные окна остаются прокручиваемыми.<br><br>Логика тренировок, история и расчёт курса не изменяются.<br><br>Установить обновление сейчас?";
+    text.innerHTML="UX 2.0: добавлена осмысленная тактильная обратная связь. Сохранённый подход подтверждается коротким импульсом, ошибка или запрещённое действие — отдельным reject-паттерном, а завершение отдыха сохраняет усиленный двойной сигнал.<br><br>Логика тренировок, история и расчёт курса не изменяются.<br><br>Установить обновление сейчас?";
     const row=document.createElement('div');
     row.style.cssText='display:flex;gap:10px';
     const later=document.createElement('button');
@@ -855,6 +856,30 @@
       return false;
     }
   }
+  function tcRecordedSetCount(){
+    try{
+      if(typeof W==='undefined'||!W||!Array.isArray(W.items))return 0;
+      return W.items.reduce((sum,x)=>sum+(Array.isArray(x.actual)?x.actual.filter(v=>v!==undefined).length:0),0);
+    }catch(e){return 0}
+  }
+  function tcHapticConfirm(){
+    try{if(navigator.vibrate)navigator.vibrate(45)}catch(e){}
+  }
+  function tcInstallHapticFeedback(){
+    if(window.__TC_HAPTIC_FEEDBACK_V1)return;
+    window.__TC_HAPTIC_FEEDBACK_V1=true;
+    const baseSetDone=window.setDone;
+    if(typeof baseSetDone==='function'){
+      window.setDone=function(){
+        const before=tcRecordedSetCount();
+        const result=baseSetDone.apply(this,arguments);
+        const after=tcRecordedSetCount();
+        if(after>before)tcHapticConfirm();
+        return result;
+      };
+    }
+  }
+
   function tcInstallWorkoutPersistence(){
     if(tcWorkoutPersistenceInstalled)return;
     tcWorkoutPersistenceInstalled=true;
@@ -1083,6 +1108,7 @@
     tcInstallUx2InformationArchitecture();
     tcInstallNavigationFoundation();
     tcInstallCompletionFlow();
+    tcInstallHapticFeedback();
     tcInstallWorkoutPersistence();
     if(previousVersion!==VERSION)showRuntimeNotice('TurnikCoach обновлён до '+LABEL);
     console.log('TurnikCoach hotfix active:',VERSION);
