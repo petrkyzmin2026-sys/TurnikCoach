@@ -386,8 +386,11 @@ assert(hotfix.includes("const hadActiveWorkout=typeof W!=='undefined'&&!!W")&&
  hotfix.includes("phase:hadActiveWorkout?'handover-restored':'restored'"),
  'new hotfix must reassert durable workout state when an older hotfix already restored W');
 assert(hotfix.includes('window.tcRefreshActiveTrainingSurface=function(id)')&&
- hotfix.includes('[50,250,750].forEach(delay=>setTimeout(()=>'),
- 'cold restore must repaint the active training surface after initial WebView startup');
+ hotfix.includes('window.tcArmRestoreSurfaceGuard=function(surface)')&&
+ hotfix.includes('until:Date.now()+5000')&&
+ hotfix.includes("window.addEventListener('pageshow',tcEnforceRestoreSurfaceGuard)")&&
+ hotfix.includes("document.visibilityState==='visible'"),
+ 'cold restore must keep the active training surface asserted through the startup handover window');
 assert(hotfix.includes("TurnikNative.refreshSurface")&&
  mainActivity.includes("@JavascriptInterface public void refreshSurface()"),
  'cold restore native surface refresh bridge must exist on both JS and Android sides');
