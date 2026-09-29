@@ -1,8 +1,8 @@
-/* TURNIKCOACH_HOTFIX 5.16.34-haptic-feedback */
+/* TURNIKCOACH_HOTFIX 5.16.35-progress-summary */
 (function(){
   'use strict';
-  const VERSION='5.16.34-haptic-feedback';
-  const LABEL='5.16.34';
+  const VERSION='5.16.35-progress-summary';
+  const LABEL='5.16.35';
   const APPROVED_KEY='tc_hotfix_approved_version';
   const LEGACY_ASSET_VERSION='5.14.0-adaptive-rest';
   const stalePrompt=document.getElementById('tcUpdatePrompt');
@@ -71,7 +71,7 @@
     title.textContent='Доступно обновление TurnikCoach '+LABEL;
     const text=document.createElement('div');
     text.style.cssText='font-size:15px;line-height:1.45;color:#cfd8e3;margin-bottom:18px';
-    text.innerHTML="UX 2.0: добавлена осмысленная тактильная обратная связь. Сохранённый подход подтверждается коротким импульсом, ошибка или запрещённое действие — отдельным reject-паттерном, а завершение отдыха сохраняет усиленный двойной сигнал.<br><br>Логика тренировок, история и расчёт курса не изменяются.<br><br>Установить обновление сейчас?";
+    text.innerHTML="UX 2.0: раздел «Прогресс» теперь начинается с короткой сводки — сколько тренировок выполнено за 7 дней, сколько завершено всего и какой текущий максимум подтягиваний. Графики и полная история остаются ниже без изменений.<br><br>Формат сохранённых данных и логика тренировок не изменяются.<br><br>Установить обновление сейчас?";
     const row=document.createElement('div');
     row.style.cssText='display:flex;gap:10px';
     const later=document.createElement('button');
@@ -142,6 +142,69 @@
     if(viewport)viewport.setAttribute('content','width=device-width,initial-scale=1');
   }
 
+
+  function tcProgressMetrics(genericHistory,courseHistory,pullMax,nowTs){
+    const all=[...(Array.isArray(genericHistory)?genericHistory:[]),...(Array.isArray(courseHistory)?courseHistory:[])];
+    const seen=new Set(),workouts=[];
+    all.forEach(rec=>{
+      if(!rec||rec.type!=='workout')return;
+      const key=[rec.ts||'',rec.date||'',rec.courseMode||'',rec.session||'',rec.total||''].join('|');
+      if(seen.has(key))return;
+      seen.add(key);
+      let ts=Number(rec.ts)||0;
+      if(!ts&&/^\d{4}-\d{2}-\d{2}$/.test(rec.date||''))ts=Date.parse(rec.date+'T12:00:00')||0;
+      workouts.push({rec,ts});
+    });
+    const now=Number(nowTs)||Date.now(),weekStart=now-7*24*60*60*1000;
+    return{
+      week:workouts.filter(x=>x.ts>=weekStart&&x.ts<=now).length,
+      total:workouts.length,
+      pullMax:Number.isFinite(+pullMax)&&+pullMax>0?Math.floor(+pullMax):0
+    };
+  }
+  function tcInstallProgressSummary(){
+    if(window.__TC_PROGRESS_SUMMARY_V1)return;
+    window.__TC_PROGRESS_SUMMARY_V1=true;
+    const style=document.createElement('style');
+    style.id='tcProgressSummaryStyle';
+    style.textContent='.tcProgressSummary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:2px 0 12px}.tcProgressMetric{min-width:0;background:#151d24;border:1px solid #34414d;border-radius:14px;padding:12px 8px;text-align:center}.tcProgressMetric b{display:block;color:#ffd84d;font-size:24px;line-height:1.05;overflow-wrap:anywhere}.tcProgressMetric span{display:block;margin-top:5px;color:#9ca8b4;font-size:10px;font-weight:850;line-height:1.2;text-transform:uppercase;letter-spacing:.04em;overflow-wrap:anywhere}@media(max-width:350px){.tcProgressSummary{grid-template-columns:1fr}.tcProgressMetric{display:flex;align-items:center;justify-content:space-between;text-align:left;gap:12px}.tcProgressMetric span{margin-top:0;text-align:right}}';
+    document.head.appendChild(style);
+    const renderSummary=()=>{
+      const screen=document.getElementById('historyScreen');
+      const scroll=screen&&screen.querySelector('.scroll');
+      if(!scroll)return;
+      const course=typeof window.tcGetCourseStateSnapshot==='function'?window.tcGetCourseStateSnapshot():null;
+      const pull=course&&course.pullMax>0?course.pullMax:
+        (typeof state!=='undefined'&&Array.isArray(state.ex)&&state.ex.find(e=>e.id==='pull')||{}).max;
+      const metrics=tcProgressMetrics(
+        typeof state!=='undefined'&&Array.isArray(state.history)?state.history:[],
+        course&&Array.isArray(course.history)?course.history:[],
+        pull,
+        Date.now()
+      );
+      let host=document.getElementById('tcProgressSummary');
+      if(!host){
+        host=document.createElement('div');
+        host.id='tcProgressSummary';
+        host.className='tcProgressSummary';
+        scroll.insertBefore(host,scroll.firstElementChild||null);
+      }
+      host.innerHTML=
+        '<div class="tcProgressMetric"><b>'+metrics.week+'</b><span>За 7 дней</span></div>'+
+        '<div class="tcProgressMetric"><b>'+metrics.total+'</b><span>Всего тренировок</span></div>'+
+        '<div class="tcProgressMetric"><b>'+(metrics.pullMax||'—')+'</b><span>MAX подтяг.</span></div>';
+    };
+    const baseRenderHistory=window.renderHistory;
+    if(typeof baseRenderHistory==='function'){
+      window.renderHistory=function(){
+        const result=baseRenderHistory.apply(this,arguments);
+        renderSummary();
+        return result;
+      };
+    }
+    window.tcRenderProgressSummary=renderSummary;
+    renderSummary();
+  }
 
   const TC_COMPLETION_UNDO_KEY='tc_completion_undo_v1';
   let tcCompletionFlowInstalled=false;
@@ -1106,6 +1169,7 @@
     restReasonEl();
     tcLoadCourseModule();
     tcInstallUx2InformationArchitecture();
+    tcInstallProgressSummary();
     tcInstallNavigationFoundation();
     tcInstallCompletionFlow();
     tcInstallHapticFeedback();
