@@ -4,6 +4,7 @@
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
 const course=fs.readFileSync('live/course.js','utf8');
 const hotfix=fs.readFileSync('live/hotfix.js','utf8');
+const manifest=fs.readFileSync('app/src/main/AndroidManifest.xml','utf8');
 new vm.Script(course,{filename:'live/course.js'});
 new vm.Script(hotfix,{filename:'live/hotfix.js'});
 const bundled=hotfix.match(/const COURSE_MODULE_BUNDLED=("(?:\\.|[^"\\])*");\n  function tcValidCourseModule/);
@@ -79,8 +80,8 @@ assert(course.includes('tcPreviewCourseCard(tcSelectedDate)'),
  'choosing another date must show a read-only plan');
 assert(course.includes('id="tcCycleStartDate"'),
  'settings must expose a cycle start date');
-assert(hotfix.includes("const VERSION='5.16.33-accessibility-scale'"),
- 'release hotfix version must be 5.16.33');
+assert(hotfix.includes("const VERSION='5.16.34-haptic-feedback'"),
+ 'release hotfix version must be 5.16.34');
 assert(course.includes("const COURSE_MODULE_VERSION='1.0.34-diagnostics-cleanup'"),
  'course module version must be 1.0.34');
 assert(!course.includes('TC_EXTRA_START'),
@@ -449,6 +450,33 @@ assert(hotfix.includes(".tcCompletionRow{display:flex;justify-content:space-betw
  'completion rows must wrap long exercise names and values');
 assert(hotfix.includes(".sheettitle,.dateBig,.tcDoneStripTitle,.tcSettingsGroup>summary{overflow-wrap:anywhere"),
  'important headings must allow wrapping under text scaling');
+assert(manifest.includes('android.permission.VIBRATE'),
+ 'Android package must request VIBRATE permission for semantic haptics');
+assert(hotfix.includes('function tcInstallHapticFeedback()')&&
+ hotfix.includes('if(after>before)tcHapticConfirm()'),
+ 'saved-set haptic must fire only when the recorded-set count actually increases');
+assert(hotfix.includes('navigator.vibrate(45)'),
+ 'saved-set confirmation must use a short single haptic pulse');
+assert(hotfix.includes('navigator.vibrate([70,45,70])'),
+ 'danger feedback must use a distinct reject haptic pattern');
+
+const hapticHarness=new Function(
+  extractFrom(hotfix,'tcRecordedSetCount')+'\n'+
+  extractFrom(hotfix,'tcHapticConfirm')+'\n'+
+  extractFrom(hotfix,'tcInstallHapticFeedback')+'\n'+
+  `
+  let W={items:[{actual:[]}]};
+  const pulses=[];
+  const navigator={vibrate:v=>{pulses.push(v);return true}};
+  const window={setDone:function(){W.items[0].actual[0]=8}};
+  tcInstallHapticFeedback();
+  window.setDone(false);
+  window.setDone(false);
+  return pulses;
+  `
+)();
+assert.deepEqual(hapticHarness,[45],
+ 'one newly recorded set must produce exactly one short confirmation pulse');
 assert(hotfix.includes("if(tcActiveWorkoutForUpdate()){")&&hotfix.includes('tcScheduleDeferredUpdate(activate)'),
  'update prompt must defer while a workout or durable workout snapshot is active');
 
@@ -600,4 +628,4 @@ assert.equal(undoState.lastCourseTs,0);
 assert.equal(undoState.testAnchorDate,'');
 assert.equal(undoApi.tcUndoLatestTodayCourseRecord('2026-09-25'),false,
  'undo must not remove anything twice');
-console.log('PASS: syntax, bundle, UX2 persistence/IA/completion/accessibility, critical actions, forms and touch targets');
+console.log('PASS: syntax, bundle, UX2 persistence/IA/completion/accessibility/haptics, critical actions, forms and touch targets');
