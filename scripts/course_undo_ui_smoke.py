@@ -114,7 +114,7 @@ def test_eval(js,label):
             result=(rr.stdout or "").strip()
             break
         time.sleep(.25)
-    log=adb("logcat","-d","-s","TurnikCoachJSResult:D","TurnikCoachJS:D","*:S",check=False)
+    log=adb("logcat","-d","-s","TurnikCoachBridge:D","TurnikCoachJSResult:D","TurnikCoachJS:D","*:S",check=False)
     output=(log.stdout or "")+"\n"+(log.stderr or "")
     print("TC_DIAG JS",label,"start_rc",sent.returncode,"result",result,"log",output[-3000:],flush=True)
     with open(OUT+"/04b-js-"+label+".txt","w",encoding="utf-8") as fp:
