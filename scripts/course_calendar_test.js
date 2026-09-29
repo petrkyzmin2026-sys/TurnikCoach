@@ -431,8 +431,8 @@ assert(hotfix.includes("grid-template-columns:repeat(auto-fit,minmax(92px,1fr))"
  'completion summary stats must reflow instead of forcing three fixed columns');
 assert(hotfix.includes(".tcCompletionRow span,.tcCompletionRow b{min-width:0;flex:1 1 140px;overflow-wrap:anywhere}"),
  'completion rows must wrap long scaled text instead of clipping');
-assert(hotfix.includes("#workout .controls{height:246px!important"),
- 'active workout must reserve a stable bottom control zone');
+assert(hotfix.includes("#workout .controls{height:auto!important;min-height:246px!important"),
+ 'active workout must preserve the 246px baseline while allowing large-text growth');
 assert(hotfix.includes('function tcSyncScreenVisibility(id)')&&
  hotfix.includes('tcSyncScreenVisibility(id);'),
  'WebView navigation must explicitly synchronize screen visibility after go()');
