@@ -3,6 +3,8 @@ package ru.turnikcoach.app;
 import android.app.Activity;
 import android.graphics.Color;
 import android.os.Bundle;
+import android.os.Build;
+import android.os.SystemClock;
 import android.util.Base64;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebResourceRequest;
@@ -59,20 +61,59 @@ public class MainActivity extends Activity {
                 });
             }
 
-            @JavascriptInterface public void refreshSurface() {
-                runOnUiThread(() -> {
+            private void commitVisualRefresh() {
+                if (web == null) return;
+                final int previousLayer = web.getLayerType();
+                final Runnable refresh = () -> {
                     if (web == null) return;
-                    final int previousLayer = web.getLayerType();
                     web.setLayerType(View.LAYER_TYPE_SOFTWARE, null);
                     web.requestLayout();
                     web.invalidate();
+                    web.postInvalidate();
                     web.postDelayed(() -> {
                         if (web == null) return;
                         web.setLayerType(previousLayer, null);
+                        web.setVisibility(View.INVISIBLE);
                         web.requestLayout();
                         web.invalidate();
-                        web.postInvalidate();
+                        web.post(() -> {
+                            if (web == null) return;
+                            web.setVisibility(View.VISIBLE);
+                            web.requestLayout();
+                            web.invalidate();
+                            web.postInvalidate();
+                        });
                     }, 24);
+                };
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    web.postVisualStateCallback(SystemClock.uptimeMillis(), new WebView.VisualStateCallback() {
+                        @Override public void onComplete(long requestId) {
+                            refresh.run();
+                        }
+                    });
+                } else {
+                    refresh.run();
+                }
+            }
+
+            @JavascriptInterface public void refreshSurface() {
+                runOnUiThread(() -> {
+                    if (web == null) return;
+                    web.evaluateJavascript("void document.documentElement.offsetHeight", value -> commitVisualRefresh());
+                });
+            }
+
+            @JavascriptInterface public void showSurface(String requested) {
+                runOnUiThread(() -> {
+                    if (web == null) return;
+                    final String target = "rest".equals(requested) ? "rest" : "workout";
+                    final String js =
+                            "(function(){var t='" + target + "';" +
+                            "document.querySelectorAll('.screen').forEach(function(s){" +
+                            "var a=s.id===t;s.classList.toggle('on',a);s.hidden=!a;" +
+                            "s.setAttribute('aria-hidden',a?'false':'true');s.style.display=a?'flex':'none';" +
+                            "});var e=document.getElementById(t);if(e)void e.offsetHeight;return t;})()";
+                    web.evaluateJavascript(js, value -> commitVisualRefresh());
                 });
             }
         }, "TurnikNative");
