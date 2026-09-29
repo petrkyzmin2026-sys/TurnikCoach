@@ -107,7 +107,7 @@ def test_eval(js,label):
     encoded=base64.b64encode(wrapped.encode("utf-8")).decode("ascii")
     adb("shell","run-as",PKG,"rm","-f","files/tc-test-js-result.txt",check=False)
     adb("logcat","-c",check=False)
-    sent=adb("shell","am","broadcast","-a","ru.turnikcoach.TEST_EVAL","-p",PKG,"--es","js_b64",encoded,check=False)
+    sent=adb("shell","am","start","-n",PKG+"/ru.turnikcoach.app.MainActivity","-a","ru.turnikcoach.TEST_EVAL","--es","js_b64",encoded,check=False)
     result=""
     deadline=time.time()+6
     output=""
@@ -135,7 +135,7 @@ def test_eval(js,label):
 
 def test_exec(js,label):
     encoded=base64.b64encode(("(function(){"+js+"})()").encode("utf-8")).decode("ascii")
-    sent=adb("shell","am","broadcast","-a","ru.turnikcoach.TEST_EVAL","-p",PKG,"--es","js_b64",encoded,check=False)
+    sent=adb("shell","am","start","-n",PKG+"/ru.turnikcoach.app.MainActivity","-a","ru.turnikcoach.TEST_EVAL","--es","js_b64",encoded,check=False)
     print("TC_DIAG EXEC",label,"start_rc",sent.returncode,flush=True)
     if sent.returncode!=0:
         raise AssertionError("TEST_EXEC broadcast failed for "+label+": "+(sent.stderr or sent.stdout or ""))
