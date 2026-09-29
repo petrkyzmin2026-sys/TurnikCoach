@@ -6,6 +6,7 @@ import android.os.Bundle;
 import android.os.Build;
 import android.os.SystemClock;
 import android.util.Base64;
+import android.util.Log;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
@@ -30,6 +31,7 @@ public class MainActivity extends Activity {
     private static final String HOTFIX_URL = "https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/hotfix.js";
     private static final String HOTFIX_MARKER = "TURNIKCOACH_HOTFIX";
     private static final String HOTFIX_CACHE = "turnikcoach-hotfix.js";
+    private static final String NATIVE_TAG = "TurnikCoachNative";
 
     private WebView web;
     private volatile boolean pageReady = false;
@@ -64,21 +66,25 @@ public class MainActivity extends Activity {
             private void commitVisualRefresh() {
                 if (web == null) return;
                 final int previousLayer = web.getLayerType();
+                Log.d(NATIVE_TAG, "commitVisualRefresh start layer=" + previousLayer);
                 final Runnable refresh = () -> {
                     if (web == null) return;
                     web.setLayerType(View.LAYER_TYPE_SOFTWARE, null);
+                    Log.d(NATIVE_TAG, "commitVisualRefresh software-layer");
                     web.requestLayout();
                     web.invalidate();
                     web.postInvalidate();
                     web.postDelayed(() -> {
                         if (web == null) return;
                         web.setLayerType(previousLayer, null);
+                        Log.d(NATIVE_TAG, "commitVisualRefresh delayed restore-layer=" + previousLayer + " hide");
                         web.setVisibility(View.INVISIBLE);
                         web.requestLayout();
                         web.invalidate();
                         web.post(() -> {
                             if (web == null) return;
                             web.setVisibility(View.VISIBLE);
+                            Log.d(NATIVE_TAG, "commitVisualRefresh visible");
                             web.requestLayout();
                             web.invalidate();
                             web.postInvalidate();
@@ -93,6 +99,7 @@ public class MainActivity extends Activity {
                     web.postVisualStateCallback(SystemClock.uptimeMillis(), new WebView.VisualStateCallback() {
                         @Override public void onComplete(long requestId) {
                             if (web == null) return;
+                            Log.d(NATIVE_TAG, "visualState complete id=" + requestId);
                             web.requestLayout();
                             web.invalidate();
                             web.postInvalidate();
@@ -109,9 +116,11 @@ public class MainActivity extends Activity {
             }
 
             @JavascriptInterface public void showSurface(String requested) {
+                Log.d(NATIVE_TAG, "showSurface requested=" + requested);
                 runOnUiThread(() -> {
                     if (web == null) return;
                     final String target = "rest".equals(requested) ? "rest" : "workout";
+                    Log.d(NATIVE_TAG, "showSurface ui target=" + target);
                     final String js =
                             "(function(){var t='" + target + "';" +
                             "document.querySelectorAll('.screen').forEach(function(s){" +
@@ -120,6 +129,7 @@ public class MainActivity extends Activity {
                             "});var e=document.getElementById(t);if(e)void e.offsetHeight;return t;})()";
                     web.evaluateJavascript(js, value -> {
                         if (web == null) return;
+                        Log.d(NATIVE_TAG, "showSurface eval callback=" + value);
                         web.requestLayout();
                         web.invalidate();
                         web.postInvalidate();
