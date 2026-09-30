@@ -80,15 +80,15 @@ assert(course.includes('tcPreviewCourseCard(tcSelectedDate)'),
  'choosing another date must show a read-only plan');
 assert(course.includes('id="tcCycleStartDate"'),
  'settings must expose a cycle start date');
-assert(hotfix.includes("const VERSION='5.16.32-completion-flow'"),
- 'release hotfix version must be 5.16.32');
+assert(hotfix.includes("const VERSION='5.16.33-accessibility-scale'"),
+ 'release hotfix version must be 5.16.33');
 assert(course.includes("const COURSE_MODULE_VERSION='1.0.34-diagnostics-cleanup'"),
  'course module version must be 1.0.34');
 assert(!course.includes('TC_EXTRA_START'),
  'temporary extra-workout trace logging must not ship');
 assert(!course.includes('window.confirm('),'course module must not depend on unsupported WebView JS dialogs');
 assert(!hotfix.includes('window.confirm('),'hotfix navigation/discard must not depend on unsupported WebView JS dialogs');
-assert(!hotfix.includes('forceHandover'),'5.16.32 must use an explicit user-visible update prompt');
+assert(!hotfix.includes('forceHandover'),'5.16.33 must use an explicit user-visible update prompt');
 assert(hotfix.includes("showRuntimeNotice('TurnikCoach обновлён до '+LABEL)"),
  'successful activation must give visible feedback');
 assert(hotfix.includes("localStorage.setItem('tc_hotfix_active_version',VERSION)"),
@@ -385,12 +385,28 @@ assert(hotfix.includes('function tcRestoreActiveWorkoutSnapshot()'),
 assert(hotfix.includes("const hadActiveWorkout=typeof W!=='undefined'&&!!W")&&
  hotfix.includes("phase:hadActiveWorkout?'handover-restored':'restored'"),
  'new hotfix must reassert durable workout state when an older hotfix already restored W');
+assert(hotfix.includes('function tcInstallNavigationUpgrades()')&&
+ hotfix.includes('window.__TC_NAV_UPGRADE_VERSION=VERSION')&&
+ hotfix.includes('tcInstallNavigationFoundation();\n    tcInstallNavigationUpgrades();\n    tcInstallCompletionFlow();\n    tcInstallWorkoutPersistence();'),
+ 'hotfix upgrades must run after the one-time navigation core and before persistence restore');
 assert(hotfix.includes('window.tcRefreshActiveTrainingSurface=function(id)')&&
- hotfix.includes('[50,250,750].forEach(delay=>setTimeout(()=>'),
- 'cold restore must repaint the active training surface after initial WebView startup');
+ hotfix.includes('window.tcArmRestoreSurfaceGuard=function(surface)')&&
+ hotfix.includes('until:Date.now()+5000')&&
+ hotfix.includes("window.__tcRestoreGuardPageshowHandler=enforceRestoreGuard")&&
+ hotfix.includes("document.visibilityState==='visible'"),
+ 'cold restore must keep the active training surface asserted through the startup handover window');
+assert(hotfix.includes("if(window.__TC_NAV_FOUNDATION)return;")&&
+ hotfix.includes("if(window.__tcRestoreGuardFocusHandler)window.removeEventListener('focus'"),
+ 'navigation core must remain one-time while hotfix-specific listeners are replaceable');
+assert(hotfix.includes("TurnikNative.showSurface")&&
+ mainActivity.includes("@JavascriptInterface public void showSurface(String requested)")&&
+ mainActivity.includes("web.setLayerType(View.LAYER_TYPE_SOFTWARE, null)")&&
+ mainActivity.includes("web.postInvalidateOnAnimation()")&&
+ !mainActivity.includes("web.evaluateJavascript(js, value ->"),
+ 'cold restore must repaint the requested training surface natively without re-entering WebView JS');
 assert(hotfix.includes("TurnikNative.refreshSurface")&&
  mainActivity.includes("@JavascriptInterface public void refreshSurface()"),
- 'cold restore native surface refresh bridge must exist on both JS and Android sides');
+ 'legacy native surface refresh fallback must remain available');
 assert(hotfix.includes("window.tcClearActiveWorkoutSnapshot=tcClearActiveWorkoutSnapshot"),
  'discard flow must be able to remove a durable workout snapshot');
 assert(hotfix.includes("setNav('n1','◫','План')")&&hotfix.includes("setNav('n3','⌁','Прогресс')"),
@@ -417,8 +433,22 @@ assert(hotfix.includes("return 'Следующий подход · '+e.name"),
  'rest screen must expose the next task instead of a generic message');
 assert(hotfix.includes("#workout .stageControls .btn.green,#rest .btn.green{min-height:58px!important"),
  'primary repeated workout actions must be larger than the generic 48px minimum');
-assert(hotfix.includes("#workout .controls{height:246px!important"),
- 'active workout must reserve a stable bottom control zone');
+assert(hotfix.includes("#workout .controls{height:auto!important;min-height:246px!important;max-height:45vh!important"),
+ 'large-text mode must allow workout controls to grow instead of clipping content');
+assert(hotfix.includes("#workout .wmedia{bottom:var(--tc-workout-controls-bottom,260px)!important}"),
+ 'workout media must reserve the measured control height');
+assert(hotfix.includes("function tcInstallAdaptiveWorkoutGeometry()")&&
+ hotfix.includes("new ResizeObserver(apply)")&&
+ hotfix.includes("workout.style.setProperty('--tc-workout-controls-bottom'"),
+ 'workout geometry must follow the actual rendered control height');
+assert(hotfix.includes("#sheet .sheetbox{max-height:92vh!important;overflow-y:auto!important"),
+ 'sheets must remain scrollable when text scaling reduces available vertical space');
+assert(hotfix.includes("grid-template-columns:repeat(auto-fit,minmax(92px,1fr))"),
+ 'completion summary stats must reflow instead of forcing three fixed columns');
+assert(hotfix.includes(".tcCompletionRow span,.tcCompletionRow b{min-width:0;flex:1 1 140px;overflow-wrap:anywhere}"),
+ 'completion rows must wrap long scaled text instead of clipping');
+assert(hotfix.includes("#workout .controls{height:auto!important;min-height:246px!important"),
+ 'active workout must preserve the 246px baseline while allowing large-text growth');
 assert(hotfix.includes('function tcSyncScreenVisibility(id)')&&
  hotfix.includes('tcSyncScreenVisibility(id);'),
  'WebView navigation must explicitly synchronize screen visibility after go()');

@@ -3,7 +3,10 @@ package ru.turnikcoach.app;
 import android.app.Activity;
 import android.graphics.Color;
 import android.os.Bundle;
+import android.os.Build;
+import android.os.SystemClock;
 import android.util.Base64;
+import android.util.Log;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
@@ -28,6 +31,7 @@ public class MainActivity extends Activity {
     private static final String HOTFIX_URL = "https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/hotfix.js";
     private static final String HOTFIX_MARKER = "TURNIKCOACH_HOTFIX";
     private static final String HOTFIX_CACHE = "turnikcoach-hotfix.js";
+    private static final String NATIVE_TAG = "TurnikCoachNative";
 
     private WebView web;
     private volatile boolean pageReady = false;
@@ -59,20 +63,54 @@ public class MainActivity extends Activity {
                 });
             }
 
+            private void commitVisualRefresh() {
+                if (web == null) return;
+                final int previousLayer = web.getLayerType();
+                Log.d(NATIVE_TAG, "commitVisualRefresh start layer=" + previousLayer);
+                web.setLayerType(View.LAYER_TYPE_SOFTWARE, null);
+                web.requestLayout();
+                web.invalidate();
+                web.postInvalidateOnAnimation();
+                web.post(() -> {
+                    if (web == null) return;
+                    web.requestLayout();
+                    web.invalidate();
+                    web.postInvalidateOnAnimation();
+                });
+                web.postDelayed(() -> {
+                    if (web == null) return;
+                    web.setLayerType(previousLayer, null);
+                    web.requestLayout();
+                    web.invalidate();
+                    web.postInvalidateOnAnimation();
+                    Log.d(NATIVE_TAG, "commitVisualRefresh settled layer=" + previousLayer);
+                }, 48);
+            }
+
             @JavascriptInterface public void refreshSurface() {
                 runOnUiThread(() -> {
                     if (web == null) return;
-                    final int previousLayer = web.getLayerType();
-                    web.setLayerType(View.LAYER_TYPE_SOFTWARE, null);
-                    web.requestLayout();
-                    web.invalidate();
-                    web.postDelayed(() -> {
+                    web.post(() -> {
                         if (web == null) return;
-                        web.setLayerType(previousLayer, null);
-                        web.requestLayout();
-                        web.invalidate();
-                        web.postInvalidate();
-                    }, 24);
+                        commitVisualRefresh();
+                    });
+                });
+            }
+
+            @JavascriptInterface public void showSurface(String requested) {
+                Log.d(NATIVE_TAG, "showSurface requested=" + requested);
+                runOnUiThread(() -> {
+                    if (web == null) return;
+                    final String target = "rest".equals(requested) ? "rest" : "workout";
+                    Log.d(NATIVE_TAG, "showSurface ui target=" + target);
+                    // DOM selection is already performed by the JS restore path before this
+                    // bridge call. Do not call evaluateJavascript from inside the bridge: that
+                    // re-enters the renderer while it is completing restore and can wedge WebView.
+                    web.post(() -> {
+                        if (web == null) return;
+                        Log.d(NATIVE_TAG, "showSurface native-refresh target=" + target);
+                        commitVisualRefresh();
+                    });
                 });
             }
         }, "TurnikNative");

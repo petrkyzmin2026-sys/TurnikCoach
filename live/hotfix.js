@@ -1,8 +1,8 @@
-/* TURNIKCOACH_HOTFIX 5.16.32-completion-flow */
+/* TURNIKCOACH_HOTFIX 5.16.33-accessibility-scale */
 (function(){
   'use strict';
-  const VERSION='5.16.32-completion-flow';
-  const LABEL='5.16.32';
+  const VERSION='5.16.33-accessibility-scale';
+  const LABEL='5.16.33';
   const APPROVED_KEY='tc_hotfix_approved_version';
   const LEGACY_ASSET_VERSION='5.14.0-adaptive-rest';
   const stalePrompt=document.getElementById('tcUpdatePrompt');
@@ -62,25 +62,25 @@
     }
     const overlay=document.createElement('div');
     overlay.id='tcUpdatePrompt';
-    overlay.style.cssText='position:fixed;inset:0;z-index:2147483647;background:rgba(0,0,0,.78);display:flex;align-items:center;justify-content:center;padding:22px;box-sizing:border-box;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif';
+    overlay.style.cssText='position:fixed;inset:0;z-index:2147483647;background:rgba(0,0,0,.78);display:flex;align-items:center;justify-content:center;padding:22px;box-sizing:border-box;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;overflow:hidden';
     const card=document.createElement('div');
-    card.style.cssText='width:min(420px,100%);background:#10161d;color:#fff;border:1px solid rgba(255,255,255,.14);border-radius:20px;padding:22px;box-shadow:0 18px 60px rgba(0,0,0,.5)';
+    card.style.cssText='width:min(420px,100%);height:min(680px,calc(100vh - 44px));height:min(680px,calc(100dvh - 44px));background:#10161d;color:#fff;border:1px solid rgba(255,255,255,.14);border-radius:20px;padding:22px;box-shadow:0 18px 60px rgba(0,0,0,.5);display:flex;flex-direction:column;box-sizing:border-box;overflow:hidden';
     const title=document.createElement('div');
-    title.style.cssText='font-size:22px;font-weight:800;margin-bottom:10px';
+    title.style.cssText='font-size:22px;font-weight:800;margin-bottom:10px;flex:0 0 auto;overflow-wrap:anywhere';
     title.textContent='Доступно обновление TurnikCoach '+LABEL;
     const text=document.createElement('div');
-    text.style.cssText='font-size:15px;line-height:1.45;color:#cfd8e3;margin-bottom:18px';
+    text.style.cssText='font-size:15px;line-height:1.45;color:#cfd8e3;margin-bottom:18px;min-height:0;flex:1 1 0;overflow-y:auto;overscroll-behavior:contain;padding-right:4px';
     text.innerHTML="UX 2.0: активная тренировка получила стабильную схему управления — корректировка результата, «Сделано» и «Пропустить» больше не меняют своё место. После сохранения показывается итог тренировки с возможностью немедленно отменить сохранение.<br><br>Обновления больше не перекрывают активную или восстанавливаемую тренировку: предложение появится после её завершения или выхода без сохранения.<br><br>Алгоритм курса и история не изменяются.<br><br>Установить обновление сейчас?";
     const row=document.createElement('div');
-    row.style.cssText='display:flex;gap:10px';
+    row.style.cssText='display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;flex:0 0 auto';
     const later=document.createElement('button');
     later.type='button';
     later.textContent='Позже';
-    later.style.cssText='flex:1;border:0;border-radius:12px;padding:14px 12px;background:#27313c;color:#fff;font-size:16px;font-weight:700';
+    later.style.cssText='min-height:48px;border:0;border-radius:12px;padding:14px 12px;background:#27313c;color:#fff;font-size:16px;font-weight:700;white-space:normal;overflow-wrap:anywhere';
     const yes=document.createElement('button');
     yes.type='button';
     yes.textContent='Обновить';
-    yes.style.cssText='flex:1;border:0;border-radius:12px;padding:14px 12px;background:#ffc400;color:#111;font-size:16px;font-weight:800';
+    yes.style.cssText='min-height:48px;border:0;border-radius:12px;padding:14px 12px;background:#ffc400;color:#111;font-size:16px;font-weight:800;white-space:normal;overflow-wrap:anywhere';
     later.onclick=()=>{window.__TC_UPDATE_DISMISSED_VERSION=VERSION;removeUpdatePrompt()};
     yes.onclick=()=>{
       if(typeof W!=='undefined'&&W){
@@ -242,6 +242,195 @@
     };
   }
 
+  function tcInstallNavigationUpgrades(){
+    console.log('TC_NAV_UPGRADE',JSON.stringify({phase:'install',version:VERSION}));
+    // A/B diagnostic: the foundation observer mutates the same class/childList surface
+    // it observes. Disable that legacy observer during the upgraded runtime so we can
+    // prove whether it starves the WebView event loop after workout navigation.
+    if(window.__tcBackControlObserver){
+      try{window.__tcBackControlObserver.disconnect()}catch(e){}
+      window.__tcBackControlObserver=null;
+      console.log('TC_NAV_UPGRADE',JSON.stringify({phase:'disconnect-back-observer',version:VERSION}));
+    }
+    // The navigation core is intentionally one-time. Hotfix upgrades live here so a
+    // newer hotfix can change rendering/restore behavior without stacking go/popstate wrappers.
+    const oldStyle=document.getElementById('tcNavUpgradeStyle');
+    if(oldStyle)oldStyle.remove();
+    const style=document.createElement('style');
+    style.id='tcNavUpgradeStyle';
+    style.textContent=
+      '#workout .controls{height:auto!important;min-height:246px!important;max-height:45vh!important;overflow-y:auto!important;box-sizing:border-box!important}'+
+      '#workout .wmedia{bottom:var(--tc-workout-controls-bottom,260px)!important}'+
+      '#workout .controls .chips{height:auto!important;min-height:30px!important;flex:0 0 auto!important;flex-wrap:wrap!important}'+
+      '#workout .controls .counter{grid-template-columns:minmax(56px,64px) minmax(0,1fr) minmax(56px,64px)!important;height:auto!important;min-height:72px!important;flex:0 0 auto!important}'+
+      '#workout .tcStableWorkoutControls{height:auto!important;min-height:246px!important;max-height:45vh!important;overflow-y:auto!important;box-sizing:border-box!important}'+
+      '.nav button{white-space:normal!important;line-height:1.15!important;padding:4px 2px!important;overflow-wrap:anywhere}'+
+      '#sheet .sheetbox{max-height:92vh!important;overflow-y:auto!important;overscroll-behavior:contain}'+
+      '.sheettitle,.dateBig{overflow-wrap:anywhere;word-break:normal}'+
+      '.tcCompletionStats{grid-template-columns:repeat(auto-fit,minmax(92px,1fr))!important}'+
+      '.tcCompletionRow{flex-wrap:wrap!important;align-items:flex-start!important}'+
+      '.tcCompletionRow span,.tcCompletionRow b{min-width:0!important;flex:1 1 140px!important;overflow-wrap:anywhere!important}';
+    document.head.appendChild(style);
+
+    function hasWorkout(){return typeof W!=='undefined'&&!!W}
+    function syncScreenVisibility(id){
+      document.querySelectorAll('.screen').forEach(screen=>{
+        const active=screen.id===id;
+        screen.classList.toggle('on',active);
+        screen.hidden=!active;
+        screen.setAttribute('aria-hidden',active?'false':'true');
+        screen.style.display=active?'flex':'none';
+      });
+      const target=document.getElementById(id);
+      if(target)void target.offsetHeight;
+    }
+    function forceRepaint(){
+      const app=document.getElementById('app');
+      if(!app)return;
+      const previous=app.style.display;
+      app.style.display='none';
+      void app.offsetHeight;
+      app.style.display=previous||'block';
+      void app.offsetHeight;
+      if(typeof requestAnimationFrame==='function')requestAnimationFrame(()=>{
+        app.style.transform='translateZ(0)';
+        void app.offsetHeight;
+        app.style.transform='';
+        try{
+          if(window.TurnikNative&&typeof window.TurnikNative.invalidate==='function')window.TurnikNative.invalidate();
+        }catch(e){}
+      });
+    }
+    function installAdaptiveGeometry(){
+      const workout=document.getElementById('workout');
+      const controls=workout&&workout.querySelector('.controls,.tcStableWorkoutControls');
+      if(!workout||!controls)return;
+      const apply=()=>{
+        const h=Math.ceil(controls.getBoundingClientRect().height||0);
+        if(h>0)workout.style.setProperty('--tc-workout-controls-bottom',(h+22)+'px');
+      };
+      if(window.__tcWorkoutGeometryUpgradeObserver){
+        try{window.__tcWorkoutGeometryUpgradeObserver.disconnect()}catch(e){}
+      }
+      if(typeof ResizeObserver==='function'){
+        const ro=new ResizeObserver(apply);
+        ro.observe(controls);
+        window.__tcWorkoutGeometryUpgradeObserver=ro;
+      }
+      apply();
+      setTimeout(apply,0);
+    }
+    window.tcInstallAdaptiveWorkoutGeometry=installAdaptiveGeometry;
+
+    window.tcRefreshActiveTrainingSurface=function(id){
+      if(!hasWorkout())return false;
+      const target=id==='rest'?'rest':'workout';
+      syncScreenVisibility(target);
+      try{
+        if(target==='workout'&&typeof renderWork==='function')renderWork();
+        if(target==='rest'&&typeof tcRenderRest==='function')tcRenderRest();
+        if(target==='workout')installAdaptiveGeometry();
+      }catch(e){}
+      forceRepaint();
+      try{
+        if(window.TurnikNative&&typeof window.TurnikNative.showSurface==='function')window.TurnikNative.showSurface(target);
+        else if(window.TurnikNative&&typeof window.TurnikNative.refreshSurface==='function')window.TurnikNative.refreshSurface();
+      }catch(e){}
+      return true;
+    };
+
+    function enforceRestoreGuard(){
+      const guard=window.__tcRestoreSurfaceGuard;
+      if(!guard)return false;
+      if(Date.now()>guard.until||!hasWorkout()){
+        window.__tcRestoreSurfaceGuard=null;
+        return false;
+      }
+      return window.tcRefreshActiveTrainingSurface(guard.surface);
+    }
+    function logRestoreSurface(delay){
+      try{
+        const readScreen=id=>{
+          const el=document.getElementById(id);
+          if(!el)return null;
+          const r=el.getBoundingClientRect();
+          return {
+            on:el.classList.contains('on'),
+            hidden:!!el.hidden,
+            display:getComputedStyle(el).display,
+            width:Math.round(r.width),
+            height:Math.round(r.height),
+            top:Math.round(r.top),
+            left:Math.round(r.left)
+          };
+        };
+        const screens=[...document.querySelectorAll('.screen')].map(el=>({
+          id:el.id,
+          on:el.classList.contains('on'),
+          hidden:!!el.hidden,
+          display:getComputedStyle(el).display
+        }));
+        const buttons=[...document.querySelectorAll('button')];
+        const hasButton=text=>buttons.some(btn=>(btn.textContent||'').trim().includes(text));
+        console.log('TC_RESTORE_SURFACE',JSON.stringify({
+          phase:'snapshot',
+          delay,
+          version:VERSION,
+          activeScreens:screens.filter(s=>s.on).map(s=>s.id),
+          screens,
+          today:readScreen('today'),
+          workout:readScreen('workout'),
+          rest:readScreen('rest'),
+          hasDone:hasButton('Сделано'),
+          hasExit:hasButton('Выйти'),
+          historyState:history.state||null,
+          hasW:hasWorkout(),
+          mode:hasWorkout()&&W&&W.mode?W.mode:null
+        }));
+      }catch(e){
+        console.log('TC_RESTORE_SURFACE',JSON.stringify({phase:'snapshot-error',delay,version:VERSION,error:String(e&&e.message||e)}));
+      }
+    }
+    window.tcArmRestoreSurfaceGuard=function(surface){
+      window.__tcRestoreSurfaceGuard={surface:surface==='rest'?'rest':'workout',until:Date.now()+5000};
+      console.log('TC_NAV_UPGRADE',JSON.stringify({phase:'arm-restore-guard',version:VERSION,surface:window.__tcRestoreSurfaceGuard.surface}));
+      const enforce=()=>{try{enforceRestoreGuard()}catch(e){}};
+      const enforceAndLog=delay=>{enforce();logRestoreSurface(delay)};
+      enforceAndLog(0);
+      if(typeof requestAnimationFrame==='function'){
+        requestAnimationFrame(()=>{enforce();requestAnimationFrame(enforce)});
+      }
+      [250,750,1500,3000].forEach(delay=>setTimeout(()=>enforceAndLog(delay),delay));
+      return true;
+    };
+
+    if(window.__tcRestoreGuardFocusHandler)window.removeEventListener('focus',window.__tcRestoreGuardFocusHandler);
+    if(window.__tcRestoreGuardPageshowHandler)window.removeEventListener('pageshow',window.__tcRestoreGuardPageshowHandler);
+    if(window.__tcRestoreGuardVisibilityHandler)document.removeEventListener('visibilitychange',window.__tcRestoreGuardVisibilityHandler);
+    window.__tcRestoreGuardFocusHandler=enforceRestoreGuard;
+    window.__tcRestoreGuardPageshowHandler=enforceRestoreGuard;
+    window.__tcRestoreGuardVisibilityHandler=()=>{if(document.visibilityState==='visible')enforceRestoreGuard()};
+    window.addEventListener('focus',window.__tcRestoreGuardFocusHandler);
+    window.addEventListener('pageshow',window.__tcRestoreGuardPageshowHandler);
+    document.addEventListener('visibilitychange',window.__tcRestoreGuardVisibilityHandler);
+
+    if(window.__tcAdaptiveSurfaceObserver){
+      try{window.__tcAdaptiveSurfaceObserver.disconnect()}catch(e){}
+    }
+    const app=document.getElementById('app');
+    if(app){
+      const mo=new MutationObserver(()=>{
+        const workout=document.getElementById('workout');
+        if(workout&&workout.classList.contains('on'))installAdaptiveGeometry();
+      });
+      mo.observe(app,{childList:true,subtree:true,attributes:true,attributeFilter:['class']});
+      window.__tcAdaptiveSurfaceObserver=mo;
+    }
+    const workout=document.getElementById('workout');
+    if(workout&&workout.classList.contains('on'))installAdaptiveGeometry();
+    window.__TC_NAV_UPGRADE_VERSION=VERSION;
+  }
+
   function tcInstallNavigationFoundation(){
     if(window.__TC_NAV_FOUNDATION)return;
     window.__TC_NAV_FOUNDATION=true;
@@ -261,30 +450,49 @@
       '#workout .stageHeader .endBtn{min-height:48px!important;min-width:76px!important;padding:0 12px!important;touch-action:manipulation}'+
       '#workout .stageControls .btn,#rest .btn,#sheet .sheetbox .btn{min-height:48px!important;touch-action:manipulation}'+
       '#workout .stageControls .btn.green,#rest .btn.green{min-height:58px!important;font-size:16px!important}'+
-      '#workout .controls{height:246px!important;padding:12px!important;display:flex!important;flex-direction:column!important;gap:6px!important}'+
-      '#workout .wmedia{bottom:260px!important}'+
-      '#workout .controls .chips{height:30px!important;min-height:30px!important;flex:0 0 30px!important}'+
-      '#workout .controls .counter{grid-template-columns:64px 1fr 64px!important;height:72px!important;min-height:72px!important;gap:10px!important;flex:0 0 72px!important}'+
+      '#workout .controls{height:auto!important;min-height:246px!important;max-height:45vh!important;overflow-y:auto!important;padding:12px!important;display:flex!important;flex-direction:column!important;gap:6px!important;box-sizing:border-box!important}'+
+      '#workout .wmedia{bottom:var(--tc-workout-controls-bottom,260px)!important}'+
+      '#workout .controls .chips{height:auto!important;min-height:30px!important;flex:0 0 auto!important;flex-wrap:wrap!important}'+
+      '#workout .controls .counter{grid-template-columns:minmax(56px,64px) minmax(0,1fr) minmax(56px,64px)!important;height:auto!important;min-height:72px!important;gap:10px!important;flex:0 0 auto!important}'+
       '#workout .controls .pm{height:60px!important;min-height:60px!important;min-width:60px!important;font-size:30px!important;touch-action:manipulation}'+
       '#workout .controls .fact b{font-size:42px!important}'+
       '#workout .controls .actions{display:grid!important;grid-template-columns:1fr!important;gap:6px!important;margin-top:auto!important}'+
       '#workout .controls .actions .btn.green{min-height:60px!important;font-size:17px!important;font-weight:900!important;order:1}'+
       '#workout .controls .actions .btn.ghost{min-height:48px!important;order:2}'+
-      '#workout .tcStableWorkoutControls{height:246px!important;min-height:246px!important;padding:12px!important;box-sizing:border-box!important}'+
+      '#workout .tcStableWorkoutControls{height:auto!important;min-height:246px!important;max-height:45vh!important;overflow-y:auto!important;padding:12px!important;box-sizing:border-box!important}'+
       '#workout .tcWorkoutActions{display:grid!important;grid-template-columns:1fr!important;gap:6px!important}'+
       '#workout .tcWorkoutDoneAction{min-height:60px!important;font-size:17px!important;font-weight:900!important;width:100%!important}'+
       '#workout .tcWorkoutSkipAction{min-height:48px!important;width:100%!important}'+
       '#workout .tcWorkoutMinus,#workout .tcWorkoutPlus{min-width:60px!important;min-height:60px!important;touch-action:manipulation}'+
-      '.nav button{min-height:48px!important;touch-action:manipulation}';
+      '.nav button{min-height:48px!important;touch-action:manipulation;white-space:normal!important;line-height:1.15!important;padding:4px 2px!important;overflow-wrap:anywhere}'+
+      '#sheet .sheetbox{max-height:92vh!important;overflow-y:auto!important;overscroll-behavior:contain}'+
+      '.sheettitle,.dateBig{overflow-wrap:anywhere;word-break:normal}';
     document.head.appendChild(style);
     const completionStyle=document.createElement('style');
     completionStyle.id='tcCompletionFlowStyle';
-    completionStyle.textContent='.tcCompletionStats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:16px 0}.tcCompletionStats div{background:#10171d;border:1px solid #34414d;border-radius:12px;padding:10px 6px;text-align:center}.tcCompletionStats b{display:block;font-size:22px;color:#ffd84d}.tcCompletionStats span{display:block;margin-top:3px;font-size:10px;color:#9ba6b2}.tcCompletionRows{max-height:180px;overflow:auto}.tcCompletionRow{display:flex;justify-content:space-between;gap:12px;padding:8px 2px;border-bottom:1px solid #27313b;font-size:12px}.tcCompletionRow span{color:#c8d0d8}.tcCompletionRow b{text-align:right;color:#fff}';
+    completionStyle.textContent='.tcCompletionStats{display:grid;grid-template-columns:repeat(auto-fit,minmax(92px,1fr));gap:8px;margin:16px 0}.tcCompletionStats div{background:#10171d;border:1px solid #34414d;border-radius:12px;padding:10px 6px;text-align:center;min-width:0}.tcCompletionStats b{display:block;font-size:22px;color:#ffd84d;overflow-wrap:anywhere}.tcCompletionStats span{display:block;margin-top:3px;font-size:10px;color:#9ba6b2;overflow-wrap:anywhere}.tcCompletionRows{max-height:min(38vh,260px);overflow:auto}.tcCompletionRow{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px 12px;padding:8px 2px;border-bottom:1px solid #27313b;font-size:12px}.tcCompletionRow span,.tcCompletionRow b{min-width:0;flex:1 1 140px;overflow-wrap:anywhere}.tcCompletionRow span{color:#c8d0d8}.tcCompletionRow b{text-align:right;color:#fff}';
     document.head.appendChild(completionStyle);
 
     let internal=false;
     let sheetWasOpen=false;
     const scrollByScreen={};
+    let tcWorkoutGeometryObserver=null;
+    function tcInstallAdaptiveWorkoutGeometry(){
+      const workout=document.getElementById('workout');
+      const controls=workout&&workout.querySelector('.controls,.tcStableWorkoutControls');
+      if(!workout||!controls)return;
+      const apply=()=>{
+        const h=Math.ceil(controls.getBoundingClientRect().height||0);
+        if(h>0)workout.style.setProperty('--tc-workout-controls-bottom',(h+22)+'px');
+      };
+      if(tcWorkoutGeometryObserver)try{tcWorkoutGeometryObserver.disconnect()}catch(e){}
+      if(typeof ResizeObserver==='function'){
+        tcWorkoutGeometryObserver=new ResizeObserver(apply);
+        tcWorkoutGeometryObserver.observe(controls);
+      }
+      apply();
+      setTimeout(apply,0);
+    }
 
     function currentScreen(){
       const el=document.querySelector('.screen.on');
@@ -347,13 +555,42 @@
       try{
         if(target==='workout'&&typeof renderWork==='function')renderWork();
         if(target==='rest'&&typeof tcRenderRest==='function')tcRenderRest();
+        if(target==='workout'&&typeof tcInstallAdaptiveWorkoutGeometry==='function')tcInstallAdaptiveWorkoutGeometry();
       }catch(e){}
       tcForceWebViewRepaint();
       try{
-        if(window.TurnikNative&&typeof window.TurnikNative.refreshSurface==='function')window.TurnikNative.refreshSurface();
+        if(window.TurnikNative&&typeof window.TurnikNative.showSurface==='function')window.TurnikNative.showSurface(target);
+        else if(window.TurnikNative&&typeof window.TurnikNative.refreshSurface==='function')window.TurnikNative.refreshSurface();
       }catch(e){}
       return true;
     };
+    function tcEnforceRestoreSurfaceGuard(){
+      const guard=window.__tcRestoreSurfaceGuard;
+      if(!guard)return false;
+      if(Date.now()>guard.until||!tcHasWorkout()){
+        window.__tcRestoreSurfaceGuard=null;
+        return false;
+      }
+      return window.tcRefreshActiveTrainingSurface(guard.surface);
+    }
+    window.tcArmRestoreSurfaceGuard=function(surface){
+      window.__tcRestoreSurfaceGuard={
+        surface:surface==='rest'?'rest':'workout',
+        until:Date.now()+5000
+      };
+      const enforce=()=>{try{tcEnforceRestoreSurfaceGuard()}catch(e){}};
+      enforce();
+      if(typeof requestAnimationFrame==='function'){
+        requestAnimationFrame(()=>{enforce();requestAnimationFrame(enforce)});
+      }
+      [250,750,1500,3000].forEach(delay=>setTimeout(enforce,delay));
+      return true;
+    };
+    window.addEventListener('focus',tcEnforceRestoreSurfaceGuard);
+    window.addEventListener('pageshow',tcEnforceRestoreSurfaceGuard);
+    document.addEventListener('visibilitychange',()=>{
+      if(document.visibilityState==='visible')tcEnforceRestoreSurfaceGuard();
+    });
     function tcClearWorkout(){try{if(typeof rt!=='undefined'&&rt){clearInterval(rt);rt=null}}catch(e){}try{W=null}catch(e){}try{if(typeof window.tcClearActiveWorkoutSnapshot==='function')window.tcClearActiveWorkoutSnapshot()}catch(e){}}
     const baseGo=window.go;
     window.go=function(id){
@@ -361,6 +598,7 @@
       scrollByScreen[from]=currentScroll(from);
       const r=baseGo(id);
       tcSyncScreenVisibility(id);
+      if(id==='workout')tcInstallAdaptiveWorkoutGeometry();
       tcForceWebViewRepaint();
       if(id==='workout'&&tcHasWorkout()){
         const saveFn=window.tcSaveActiveWorkoutSnapshot;
@@ -853,12 +1091,10 @@
         if(typeof renderWork==='function')renderWork();
       }
       const restoredSurface=tcRestActive&&tcRestEnd?'rest':'workout';
-      [50,250,750].forEach(delay=>setTimeout(()=>{
-        if(typeof W==='undefined'||!W)return;
-        try{
-          if(typeof window.tcRefreshActiveTrainingSurface==='function')window.tcRefreshActiveTrainingSurface(restoredSurface);
-        }catch(e){}
-      },delay));
+      try{
+        if(typeof window.tcArmRestoreSurfaceGuard==='function')window.tcArmRestoreSurfaceGuard(restoredSurface);
+        else if(typeof window.tcRefreshActiveTrainingSurface==='function')window.tcRefreshActiveTrainingSurface(restoredSurface);
+      }catch(e){}
       showRuntimeNotice('Незавершённая тренировка восстановлена.');
       try{
         const item=W.items&&W.items[W.exerciseIndex];
@@ -897,7 +1133,22 @@
     window.addEventListener('pagehide',tcSaveActiveWorkoutSnapshot);
     window.tcSaveActiveWorkoutSnapshot=tcSaveActiveWorkoutSnapshot;
     window.tcClearActiveWorkoutSnapshot=tcClearActiveWorkoutSnapshot;
-    setTimeout(tcRestoreActiveWorkoutSnapshot,0);
+
+    // Cold restore must not compete with the hotfix installation/layout burst.
+    // Restore once, when WebView reaches its first idle/rendering boundary.
+    let restoreStarted=false;
+    const startRestore=()=>{
+      if(restoreStarted)return;
+      restoreStarted=true;
+      tcRestoreActiveWorkoutSnapshot();
+    };
+    if(typeof requestIdleCallback==='function'){
+      requestIdleCallback(startRestore,{timeout:1200});
+    }else if(typeof requestAnimationFrame==='function'){
+      requestAnimationFrame(()=>requestAnimationFrame(startRestore));
+    }else{
+      setTimeout(startRestore,0);
+    }
   }
 
   window.setDone=function(skip){
@@ -1100,6 +1351,7 @@
     tcLoadCourseModule();
     tcInstallUx2InformationArchitecture();
     tcInstallNavigationFoundation();
+    tcInstallNavigationUpgrades();
     tcInstallCompletionFlow();
     tcInstallWorkoutPersistence();
     if(previousVersion!==VERSION)showRuntimeNotice('TurnikCoach обновлён до '+LABEL);

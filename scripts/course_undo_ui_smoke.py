@@ -7,7 +7,8 @@ import time
 import xml.etree.ElementTree as ET
 
 PKG=os.environ.get("TC_TEST_PKG","ru.turnikcoach.app.calendarpreview")
-OUT=os.environ.get("GITHUB_WORKSPACE",".")+"/undo-ui-test-output"
+OUT=os.environ.get("TC_OUT_DIR",os.environ.get("GITHUB_WORKSPACE",".")+"/undo-ui-test-output")
+FONT_SCALE=float(os.environ.get("TC_FONT_SCALE","1.0"))
 os.makedirs(OUT,exist_ok=True)
 
 def adb(*args,check=True,timeout=20):
@@ -67,17 +68,40 @@ def tap_text(text,contains=True):
     adb("shell","input","tap",str(pos[0]),str(pos[1]))
     time.sleep(.8)
 
-def tap_clickable_text(text,timeout=12):
+def clickable_text_position(text):
     target=text.lower()
+    for n in dump().iter("node"):
+        value=(n.attrib.get("text") or "")
+        bounds=n.attrib.get("bounds") or ""
+        if value.lower()!=target or n.attrib.get("clickable")!="true" or not bounds:
+            continue
+        nums=[int(x) for x in re.findall(r"\d+",bounds)]
+        if len(nums)!=4 or nums[2]<=nums[0] or nums[3]<=nums[1]:
+            continue
+        return center(bounds),bounds
+    return None,None
+
+def scroll_clickable_into_view(text,timeout=12):
     end=time.time()+timeout
     while time.time()<end:
         dismiss_system_anr()
-        for n in dump().iter("node"):
-            value=(n.attrib.get("text") or "")
-            if value.lower()!=target or n.attrib.get("clickable")!="true" or not n.attrib.get("bounds"):
-                continue
-            pos=center(n.attrib["bounds"])
-            print("TC_DIAG tap_clickable_text",text,"bounds",n.attrib.get("bounds"),"center",pos,flush=True)
+        pos,bounds=clickable_text_position(text)
+        if pos:
+            print("TC_DIAG scroll_target_visible",text,"bounds",bounds,"center",pos,flush=True)
+            return pos
+        # Keep the gesture inside the Today scroll viewport; the bottom area is occupied
+        # by fixed actions/navigation at 200% text scale and can swallow a swipe.
+        adb("shell","input","swipe","540","1450","540","650","350",check=False)
+        time.sleep(.6)
+    raise AssertionError("Clickable text not reachable by scrolling: "+text)
+
+def tap_clickable_text(text,timeout=12):
+    end=time.time()+timeout
+    while time.time()<end:
+        dismiss_system_anr()
+        pos,bounds=clickable_text_position(text)
+        if pos:
+            print("TC_DIAG tap_clickable_text",text,"bounds",bounds,"center",pos,flush=True)
             adb("shell","input","tap",str(pos[0]),str(pos[1]))
             time.sleep(.8)
             return pos
@@ -285,13 +309,13 @@ def launch():
 launch()
 dismiss_system_anr()
 
-# Exact update path: packaged 5.14 + cached 5.16.31 are active first; staged 5.16.32 must be offered explicitly.
+# Exact update path: packaged 5.14 + cached 5.16.32 are active first; staged 5.16.33 must be offered explicitly.
 time.sleep(3)
 screenshot("00-before-update-assert")
 adb("shell","uiautomator","dump","/sdcard/uxb3-before-update.xml",check=False)
 adb("pull","/sdcard/uxb3-before-update.xml",OUT+"/00-before-update.xml",check=False)
 try:
-    wait_text("Доступно обновление TurnikCoach 5.16.32",timeout=20)
+    wait_text("Доступно обновление TurnikCoach 5.16.33",timeout=20)
 except Exception:
     log=adb("logcat","-d","-t","500",check=False)
     with open(OUT+"/00-logcat.txt","w",encoding="utf-8") as fp:
@@ -301,7 +325,7 @@ wait_text("Обновить",contains=False)
 screenshot("01-update-offered")
 
 tap_clickable_text("Обновить")
-wait_text("TurnikCoach обновлён до 5.16.32",timeout=25)
+wait_text("TurnikCoach обновлён до 5.16.33",timeout=25)
 assert_accessibility_target("План",48)
 assert_accessibility_target("Прогресс",48)
 screenshot("02-update-installed")
@@ -312,6 +336,19 @@ wait_text("Начать дополнительную тренировку",timeo
 screenshot("03-main-done-extra-available")
 
 adb("logcat","-c",check=False)
+if FONT_SCALE>=1.8:
+    try:
+        before=test_eval("(function(){var e=document.getElementById('todayList');var b=document.getElementById('tcStartExtraAfterCourseBtn');return {scrollTop:e&&e.scrollTop||0,clientHeight:e&&e.clientHeight||0,scrollHeight:e&&e.scrollHeight||0,buttonTop:b&&b.getBoundingClientRect().top||0,buttonBottom:b&&b.getBoundingClientRect().bottom||0};})()","font200-today-scroll-before")
+        print("TC_DIAG font200-scroll-before",before,flush=True)
+    except Exception as e:
+        print("TC_DIAG font200-scroll-before-error",e,flush=True)
+    try:
+        scroll_clickable_into_view("Начать дополнительную тренировку",timeout=30)
+    except Exception as e:
+        after_swipe=test_eval("(function(){var e=document.getElementById('todayList');var b=document.getElementById('tcStartExtraAfterCourseBtn');return {scrollTop:e&&e.scrollTop||0,clientHeight:e&&e.clientHeight||0,scrollHeight:e&&e.scrollHeight||0,buttonTop:b&&b.getBoundingClientRect().top||0,buttonBottom:b&&b.getBoundingClientRect().bottom||0};})()","font200-today-scroll-after-swipe")
+        print("TC_DIAG font200-scroll-after-swipe",after_swipe,flush=True)
+        raise
+    screenshot("03b-main-done-extra-scrolled")
 tap_clickable_text("Начать дополнительную тренировку")
 screenshot("04a-after-extra-start-tap")
 adb("shell","uiautomator","dump","/sdcard/ux2-after-start-tap.xml",check=False)
@@ -340,18 +377,44 @@ adb("shell","am","force-stop",PKG)
 time.sleep(1)
 launch()
 dismiss_system_anr()
+upgrade_install=wait_log_tokens(["TC_NAV_UPGRADE",'"phase":"install"','"version":"5.16.33-accessibility-scale"'],timeout=20)
 restore_line=wait_log_tokens(["TC_WORKOUT_STATE",'"phase":"restored"','"name":"Подъём коленей в висе"','"mode":"extra"'],timeout=20)
-handover_line=wait_log_tokens(["TC_WORKOUT_STATE",'"phase":"handover-restored"','"name":"Подъём коленей в висе"','"mode":"extra"'],timeout=20)
+upgrade_arm=wait_log_tokens(["TC_NAV_UPGRADE",'"phase":"arm-restore-guard"','"version":"5.16.33-accessibility-scale"','"surface":"workout"'],timeout=20)
+print("TC_DIAG nav-upgrade-install",upgrade_install,flush=True)
 print("TC_DIAG restore",restore_line,flush=True)
-print("TC_DIAG handover-restore",handover_line,flush=True)
+print("TC_DIAG nav-upgrade-arm",upgrade_arm,flush=True)
 time.sleep(1.2)
 screenshot("05a-process-death-restore-preassert")
 adb("shell","uiautomator","dump","/sdcard/ux2-restore-preassert.xml",check=False)
 adb("pull","/sdcard/ux2-restore-preassert.xml",OUT+"/05a-process-death-restore-preassert.xml",check=False)
+# Preserve the 1.2 s user-visible screenshot, then wait long enough to collect all
+# runtime restore snapshots (0/250/750/1500/3000 ms) before the UI assertion.
+time.sleep(2.1)
+restore_diag=adb("logcat","-d","-s","TurnikCoachNative:D","TurnikCoachJS:D","*:S",check=False)
+restore_diag_text=(restore_diag.stdout or "")+"\n"+(restore_diag.stderr or "")
+with open(OUT+"/05a-process-death-restore-logcat.txt","w",encoding="utf-8") as fp:
+    fp.write(restore_diag_text)
+for line in restore_diag_text.splitlines():
+    if "TC_RESTORE_SURFACE" in line:
+        print("TC_DIAG restore-surface",line,flush=True)
+    elif "TurnikCoachNative" in line:
+        print("TC_DIAG restore-native",line,flush=True)
+
+full_restore_log=adb("logcat","-d","-t","1800",check=False)
+full_restore_text=(full_restore_log.stdout or "")+"\n"+(full_restore_log.stderr or "")
+with open(OUT+"/05a-process-death-full-logcat.txt","w",encoding="utf-8") as fp:
+    fp.write(full_restore_text)
+for line in full_restore_text.splitlines():
+    low=line.lower()
+    if ("chromium" in low or "webview" in low or "renderprocess" in low or
+        "renderer" in low or "fatal exception" in low or "anr" in low or
+        "crash" in low or "signal 6" in low or "signal 11" in low):
+        print("TC_DIAG webview-system",line,flush=True)
+
 wait_text("Сделано",timeout=12,contains=False)
 wait_text("Выйти",timeout=12,contains=False)
 assert_touch_target("Сделано",48,contains=False)
 assert_touch_target("Выйти",48,contains=False)
 screenshot("05-process-death-restored")
 
-print("UX2_COMPLETION_FLOW_SMOKE_OK")
+print("UX2_ACCESSIBILITY_SCALE_BASELINE_OK")
