@@ -64,23 +64,23 @@
     overlay.id='tcUpdatePrompt';
     overlay.style.cssText='position:fixed;inset:0;z-index:2147483647;background:rgba(0,0,0,.78);display:flex;align-items:center;justify-content:center;padding:22px;box-sizing:border-box;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;overflow:hidden';
     const card=document.createElement('div');
-    card.style.cssText='width:min(420px,100%);max-height:calc(100vh - 44px);background:#10161d;color:#fff;border:1px solid rgba(255,255,255,.14);border-radius:20px;padding:22px;box-shadow:0 18px 60px rgba(0,0,0,.5);display:flex;flex-direction:column;box-sizing:border-box;overflow:hidden';
+    card.style.cssText='width:min(420px,100%);height:min(680px,calc(100vh - 44px));height:min(680px,calc(100dvh - 44px));background:#10161d;color:#fff;border:1px solid rgba(255,255,255,.14);border-radius:20px;padding:22px;box-shadow:0 18px 60px rgba(0,0,0,.5);display:flex;flex-direction:column;box-sizing:border-box;overflow:hidden';
     const title=document.createElement('div');
-    title.style.cssText='font-size:22px;font-weight:800;margin-bottom:10px';
+    title.style.cssText='font-size:22px;font-weight:800;margin-bottom:10px;flex:0 0 auto;overflow-wrap:anywhere';
     title.textContent='Доступно обновление TurnikCoach '+LABEL;
     const text=document.createElement('div');
-    text.style.cssText='font-size:15px;line-height:1.45;color:#cfd8e3;margin-bottom:18px;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding-right:4px';
+    text.style.cssText='font-size:15px;line-height:1.45;color:#cfd8e3;margin-bottom:18px;min-height:0;flex:1 1 0;overflow-y:auto;overscroll-behavior:contain;padding-right:4px';
     text.innerHTML="UX 2.0: активная тренировка получила стабильную схему управления — корректировка результата, «Сделано» и «Пропустить» больше не меняют своё место. После сохранения показывается итог тренировки с возможностью немедленно отменить сохранение.<br><br>Обновления больше не перекрывают активную или восстанавливаемую тренировку: предложение появится после её завершения или выхода без сохранения.<br><br>Алгоритм курса и история не изменяются.<br><br>Установить обновление сейчас?";
     const row=document.createElement('div');
-    row.style.cssText='display:flex;gap:10px;flex:0 0 auto';
+    row.style.cssText='display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;flex:0 0 auto';
     const later=document.createElement('button');
     later.type='button';
     later.textContent='Позже';
-    later.style.cssText='flex:1;border:0;border-radius:12px;padding:14px 12px;background:#27313c;color:#fff;font-size:16px;font-weight:700';
+    later.style.cssText='min-height:48px;border:0;border-radius:12px;padding:14px 12px;background:#27313c;color:#fff;font-size:16px;font-weight:700;white-space:normal;overflow-wrap:anywhere';
     const yes=document.createElement('button');
     yes.type='button';
     yes.textContent='Обновить';
-    yes.style.cssText='flex:1;border:0;border-radius:12px;padding:14px 12px;background:#ffc400;color:#111;font-size:16px;font-weight:800';
+    yes.style.cssText='min-height:48px;border:0;border-radius:12px;padding:14px 12px;background:#ffc400;color:#111;font-size:16px;font-weight:800;white-space:normal;overflow-wrap:anywhere';
     later.onclick=()=>{window.__TC_UPDATE_DISMISSED_VERSION=VERSION;removeUpdatePrompt()};
     yes.onclick=()=>{
       if(typeof W!=='undefined'&&W){
