@@ -1,8 +1,8 @@
-/* TURNIKCOACH_HOTFIX 5.16.30-progressive-settings */
+/* TURNIKCOACH_HOTFIX 5.16.31-workout-flow */
 (function(){
   'use strict';
-  const VERSION='5.16.30-progressive-settings';
-  const LABEL='5.16.30';
+  const VERSION='5.16.31-workout-flow';
+  const LABEL='5.16.31';
   const APPROVED_KEY='tc_hotfix_approved_version';
   const LEGACY_ASSET_VERSION='5.14.0-adaptive-rest';
   const stalePrompt=document.getElementById('tcUpdatePrompt');
@@ -41,7 +41,7 @@
     title.textContent='Доступно обновление TurnikCoach '+LABEL;
     const text=document.createElement('div');
     text.style.cssText='font-size:15px;line-height:1.45;color:#cfd8e3;margin-bottom:18px';
-    text.innerHTML="UX 2.0 продолжает упрощение интерфейса: длинные настройки курса теперь разбиты на секции «Основное», «Расписание», «Дополнительная работа», «Контроль прогресса» и «Система и оборудование». Открыта только основная секция; остальные параметры доступны по запросу.<br><br>Если в закрытом разделе есть ошибка, TurnikCoach сам раскрывает нужную секцию и переводит фокус на проблемное поле. Алгоритм курса и сохранённые данные не изменяются.<br><br>Установить обновление сейчас?";
+    text.innerHTML="Во время тренировки TurnikCoach теперь сильнее держит контекст: экран отдыха показывает следующий подход — упражнение и плановое значение. Основные повторяющиеся действия «Сделано» и «Готов раньше» получили увеличенную зону нажатия.<br><br>Алгоритм нагрузки, история и настройки курса не изменяются.<br><br>Установить обновление сейчас?";
     const row=document.createElement('div');
     row.style.cssText='display:flex;gap:10px';
     const later=document.createElement('button');
@@ -129,6 +129,7 @@
       '#workout .stageHeader .row.between{gap:8px}'+
       '#workout .stageHeader .endBtn{min-height:48px!important;min-width:76px!important;padding:0 12px!important;touch-action:manipulation}'+
       '#workout .stageControls .btn,#rest .btn,#sheet .sheetbox .btn{min-height:48px!important;touch-action:manipulation}'+
+      '#workout .stageControls .btn.green,#rest .btn.green{min-height:58px!important;font-size:16px!important}'+
       '.nav button{min-height:48px!important;touch-action:manipulation}';
     document.head.appendChild(style);
 
@@ -492,6 +493,23 @@
     return originalFinishRest();
   };
 
+  function tcNextWorkoutStepText(){
+    try{
+      if(typeof W==='undefined'||!W||!Array.isArray(W.items)||!W.items.length)return '';
+      const x=W.items[W.exerciseIndex],e=x&&x.e;
+      if(!x||!e)return '';
+      const raw=(x.planLabels&&x.planLabels[W.setIndex]!=null)?x.planLabels[W.setIndex]:
+        (x.plan&&x.plan[W.setIndex]!=null?x.plan[W.setIndex]:W.actual);
+      const unit=e.metric==='time'||e.id==='plank'?'сек':e.metric==='weighted'?'кг':'повт.';
+      return 'Следующий подход · '+e.name+(raw!=null?' · '+raw+' '+unit:'');
+    }catch(e){return ''}
+  }
+  function tcUpdateRestNextStep(){
+    const sub=document.querySelector('#rest .rest .sub');
+    const text=tcNextWorkoutStepText();
+    if(sub&&text)sub.textContent=text;
+  }
+
   window.startRest=function(sec,note){
     sec=Math.max(0,Math.round(+sec||0));
     const el=restReasonEl();
@@ -504,6 +522,7 @@
     const ring=document.getElementById('restNum');
     if(ring)ring.textContent=R;
     go('rest');
+    tcUpdateRestNextStep();
     if(rt)clearInterval(rt);
     rt=setInterval(tcRenderRest,250);
     tcRenderRest();
@@ -598,6 +617,7 @@
         const ring=document.getElementById('restNum');
         if(ring)ring.textContent=R;
         go('rest');
+        tcUpdateRestNextStep();
         if(rt)clearInterval(rt);
         rt=setInterval(tcRenderRest,250);
         tcRenderRest();
