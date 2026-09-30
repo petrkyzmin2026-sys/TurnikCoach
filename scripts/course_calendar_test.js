@@ -4,11 +4,39 @@
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
 const course=fs.readFileSync('live/course.js','utf8');
 const hotfix=fs.readFileSync('live/hotfix.js','utf8');
+const mainActivity=fs.readFileSync('app/src/main/java/ru/turnikcoach/app/MainActivity.java','utf8');
 new vm.Script(course,{filename:'live/course.js'});
 new vm.Script(hotfix,{filename:'live/hotfix.js'});
 const bundled=hotfix.match(/const COURSE_MODULE_BUNDLED=("(?:\\.|[^"\\])*");\n  function tcValidCourseModule/);
 assert(bundled,'embedded course module must exist');
 assert.equal(JSON.parse(bundled[1]),course,'APK update must use the same course module');
+function extractFrom(source,name){
+  const start=source.indexOf('function '+name+'(');
+  assert(start>=0,'function missing: '+name);
+  const begin=source.indexOf('{',start);
+  let depth=1,end=begin+1;
+  while(depth&&end<source.length){
+    if(source[end]==='{')depth++;
+    if(source[end]==='}')depth--;
+    end++;
+  }
+  assert.equal(depth,0,'function not closed: '+name);
+  return source.slice(start,end);
+}
+function extractAssignment(source,prefix){
+  const start=source.indexOf(prefix);
+  assert(start>=0,'assignment missing: '+prefix);
+  const begin=source.indexOf('{',start);
+  let depth=1,end=begin+1;
+  while(depth&&end<source.length){
+    if(source[end]==='{')depth++;
+    if(source[end]==='}')depth--;
+    end++;
+  }
+  assert.equal(depth,0,'assignment function not closed: '+prefix);
+  while(end<source.length&&/[;\s]/.test(source[end]))end++;
+  return source.slice(start,end);
+}
 function extract(name){
   const start=course.indexOf('function '+name+'(');
   assert(start>=0,'function missing: '+name);
@@ -52,13 +80,15 @@ assert(course.includes('tcPreviewCourseCard(tcSelectedDate)'),
  'choosing another date must show a read-only plan');
 assert(course.includes('id="tcCycleStartDate"'),
  'settings must expose a cycle start date');
-assert(hotfix.includes("const VERSION='5.16.31-workout-flow'"),
- 'release hotfix version must be 5.16.31');
-assert(course.includes("const COURSE_MODULE_VERSION='1.0.28-progressive-settings'"),
- 'course module version must be 1.0.27');
+assert(hotfix.includes("const VERSION='5.16.32-completion-flow'"),
+ 'release hotfix version must be 5.16.32');
+assert(course.includes("const COURSE_MODULE_VERSION='1.0.34-diagnostics-cleanup'"),
+ 'course module version must be 1.0.34');
+assert(!course.includes('TC_EXTRA_START'),
+ 'temporary extra-workout trace logging must not ship');
 assert(!course.includes('window.confirm('),'course module must not depend on unsupported WebView JS dialogs');
 assert(!hotfix.includes('window.confirm('),'hotfix navigation/discard must not depend on unsupported WebView JS dialogs');
-assert(!hotfix.includes('forceHandover'),'5.16.31 must use an explicit user-visible update prompt');
+assert(!hotfix.includes('forceHandover'),'5.16.32 must use an explicit user-visible update prompt');
 assert(hotfix.includes("showRuntimeNotice('TurnikCoach обновлён до '+LABEL)"),
  'successful activation must give visible feedback');
 assert(hotfix.includes("localStorage.setItem('tc_hotfix_active_version',VERSION)"),
@@ -112,8 +142,27 @@ assert(doneHtml.includes('Начать дополнительную тренир
  'after-main extra workout must remain visibly available');
 assert(doneHtml.includes('id="tcUndoTodayCourseBtn"'),
  'same-day undo must remain available as a secondary action');
-assert(!doneHtml.includes('onclick='),
- 'critical after-main actions must not depend on inline handlers');
+assert(!doneHtml.includes('onclick="tcStartExtraWorkout()"'),
+ 'after-main extra CTA must not keep a second inline action path');
+assert(course.includes("el.dataset.tcBound='delegated-v2'"),
+ 'after-main actions must be marked for one delegated WebView-safe router');
+assert(course.includes('function tcInstallTodayActionDelegation()')&&
+ course.includes("document.addEventListener('click',ev=>{const el=actionFor(ev.target);if(el)run(el,ev)},true)")&&
+ course.includes("document.addEventListener('touchend',ev=>"),
+ 'Today actions must also have stable delegated click/touch activation across rerenders');
+assert(course.includes("document.addEventListener('pointerdown',ev=>")&&
+ course.includes("document.addEventListener('pointerup',ev=>")&&
+ course.includes("pointerGesture===g&&!g.moved&&!g.ran"),
+ 'Today actions must survive WebView click cancellation while cancelling real scroll gestures');
+assert(course.includes(".tcAfterMainCard{position:relative;z-index:40"),
+ 'after-main CTA card must stay above sibling content in the Today stacking context');
+assert(course.includes("tcActionMessage('Не удалось начать тренировку',message)"),
+ 'extra-workout startup errors must never fail silently');
+const emptyExtrasHtml=uiApi.tcTodayCourseDoneHtml([]);
+assert(!emptyExtrasHtml.includes("onclick=\"go('exercise')\""),
+ 'after-main choose-extras CTA must not keep a competing inline action path');
+assert(course.includes("window.__TC_TODAY_ACTION_DELEGATION_V2"),
+ 'Today actions must install the versioned delegated router V2');
 
 const doneExtraApi=new Function('TC_course','state','dateKey','tcExtraRowsHtml',
   extract('tcTodayCourseRecord')+'\n'+extract('tcTodayExtraRecord')+'\n'+extract('tcTodayCourseDoneHtml')+
@@ -133,6 +182,10 @@ assert(startExtraBody.includes("tcActionMessage('Тренировка уже з�
  'active workout must not cause a silent extra-start return');
 assert(startExtraBody.includes("tcActionMessage('Нет дополнительных упражнений'"),
  'empty extra selection must explain why the action cannot start');
+assert.equal((course.match(/\\bunlockAudio\\s*\\(\\s*\\)\\s*;/g)||[]).length,0,
+ 'course start actions must not call an undefined global unlockAudio()');
+assert(course.includes('tcPrimeAudio();'),
+ 'course start actions must use the safe audio priming wrapper');
 
 function windowFunctionBody(name){
   const start=course.indexOf('window.'+name+'=function(');
@@ -322,10 +375,22 @@ assert(course.includes('f.check?\'<label class="tcCheckRow"'),
 
 assert(hotfix.includes("const TC_ACTIVE_WORKOUT_KEY='tc_active_workout_v2'"),
  'UX2 must persist an active workout independently of completed history');
+assert(hotfix.includes("const saveFn=window.tcSaveActiveWorkoutSnapshot")&&
+ hotfix.includes("const saved=typeof saveFn==='function'?saveFn():false"),
+ 'entering workout with active W must synchronously persist through the exported persistence API');
 assert(hotfix.includes('function tcSaveActiveWorkoutSnapshot()'),
  'UX2 must provide durable active-workout snapshots');
 assert(hotfix.includes('function tcRestoreActiveWorkoutSnapshot()'),
  'UX2 must restore an interrupted workout after process recreation');
+assert(hotfix.includes("const hadActiveWorkout=typeof W!=='undefined'&&!!W")&&
+ hotfix.includes("phase:hadActiveWorkout?'handover-restored':'restored'"),
+ 'new hotfix must reassert durable workout state when an older hotfix already restored W');
+assert(hotfix.includes('window.tcRefreshActiveTrainingSurface=function(id)')&&
+ hotfix.includes('[50,250,750].forEach(delay=>setTimeout(()=>'),
+ 'cold restore must repaint the active training surface after initial WebView startup');
+assert(hotfix.includes("TurnikNative.refreshSurface")&&
+ mainActivity.includes("@JavascriptInterface public void refreshSurface()"),
+ 'cold restore native surface refresh bridge must exist on both JS and Android sides');
 assert(hotfix.includes("window.tcClearActiveWorkoutSnapshot=tcClearActiveWorkoutSnapshot"),
  'discard flow must be able to remove a durable workout snapshot');
 assert(hotfix.includes("setNav('n1','◫','План')")&&hotfix.includes("setNav('n3','⌁','Прогресс')"),
@@ -352,6 +417,159 @@ assert(hotfix.includes("return 'Следующий подход · '+e.name"),
  'rest screen must expose the next task instead of a generic message');
 assert(hotfix.includes("#workout .stageControls .btn.green,#rest .btn.green{min-height:58px!important"),
  'primary repeated workout actions must be larger than the generic 48px minimum');
+assert(hotfix.includes("#workout .controls{height:246px!important"),
+ 'active workout must reserve a stable bottom control zone');
+assert(hotfix.includes('function tcSyncScreenVisibility(id)')&&
+ hotfix.includes('tcSyncScreenVisibility(id);'),
+ 'WebView navigation must explicitly synchronize screen visibility after go()');
+assert(hotfix.includes('function tcForceWebViewRepaint()')&&
+ hotfix.includes('tcForceWebViewRepaint();'),
+ 'WebView navigation must force a compositor repaint after the screen switch');
+assert(hotfix.includes("#workout .stageHeader .row.between,#workout .wtop .row.between{gap:8px}"),
+ 'workout controls must support both stageHeader and legacy wtop DOMs');
+assert(hotfix.includes("#workout.screen.on .stageHeader .row.between, #workout.screen.on .wtop .row.between"),
+ 'exit/info decorators must target both workout header variants');
+assert(hotfix.includes('function tcStabilizeWorkoutControls()'),
+ 'packaged and current workout DOM must be normalized at runtime');
+assert(hotfix.includes("done.parentElement.classList.add('tcWorkoutActions')"),
+ 'Done and Skip must share a stable vertical motor container');
+assert(hotfix.includes("#workout .tcWorkoutActions{display:grid!important;grid-template-columns:1fr!important"),
+ 'runtime workout action container must stack Done and Skip vertically');
+assert(hotfix.includes("#workout .tcWorkoutDoneAction{min-height:60px!important"),
+ 'Done must remain the dominant repeated action');
+assert(hotfix.includes("const TC_COMPLETION_UNDO_KEY='tc_completion_undo_v1'"),
+ 'completion flow must keep a bounded undo transaction');
+assert(hotfix.includes('function tcInstallCompletionFlow()'),
+ 'completion summary must wrap the final save path');
+assert(hotfix.includes("if(tx.state)state=tx.state")&&
+ hotfix.includes("window.tcRestoreCourseStateSnapshot(tx.course)")&&
+ course.includes("window.tcGetCourseStateSnapshot=function()")&&
+ course.includes("window.tcRestoreCourseStateSnapshot=function(snapshot)"),
+ 'completion undo must restore both generic state and the encapsulated course snapshot');
+assert(hotfix.includes('tcShowCompletionSummary(summary)'),
+ 'successful save must open a completion summary');
+assert(hotfix.includes("if(tcActiveWorkoutForUpdate()){")&&hotfix.includes('tcScheduleDeferredUpdate(activate)'),
+ 'update prompt must defer while a workout or durable workout snapshot is active');
+
+// Behavioral completion-flow regression: execute the shipped wrapper and shipped Undo transaction.
+const completionHarness=new Function(
+  extractFrom(hotfix,'tcWorkoutSummary')+'\n'+
+  extractFrom(hotfix,'tcReadCompletionUndo')+'\n'+
+  extractFrom(hotfix,'tcClearCompletionUndo')+'\n'+
+  extractFrom(hotfix,'tcInstallCompletionFlow')+'\n'+
+  `
+  const TC_COMPLETION_UNDO_KEY='tc_completion_undo_v1';
+  let tcCompletionFlowInstalled=false;
+  let W={
+    mode:'extra',exerciseIndex:0,setIndex:1,actual:8,
+    items:[
+      {e:{name:'Подъём коленей в висе'},plan:[10,10],actual:[10,8]},
+      {e:{name:'Отжимания от пола'},plan:[20],actual:[20]}
+    ]
+  };
+  let state={history:[{id:'before'}],counter:7};
+  let courseState={courseSeq:4,lastCourseDate:'2026-09-29'};
+  let summarySeen=null,lastGo='',saveCount=0,activeSnapshotClears=0;
+  const notices=[];
+  const store=new Map();
+  const localStorage={
+    setItem:(k,v)=>store.set(k,String(v)),
+    getItem:k=>store.has(k)?store.get(k):null,
+    removeItem:k=>store.delete(k)
+  };
+  const sheet={open:true,classList:{remove:n=>{if(n==='open')sheet.open=false}}};
+  const document={getElementById:id=>id==='sheet'?sheet:null};
+  const window={
+    finishWorkout:function(){
+      state.history.push({id:'saved-extra'});
+      state.counter=99;
+      courseState.courseSeq=5;
+      W=null;
+      return 'saved';
+    },
+    tcGetCourseStateSnapshot:()=>JSON.parse(JSON.stringify(courseState)),
+    tcRestoreCourseStateSnapshot:s=>{courseState=JSON.parse(JSON.stringify(s))},
+    tcClearActiveWorkoutSnapshot:()=>{activeSnapshotClears++}
+  };
+  `+
+  extractAssignment(hotfix,'window.tcUndoLastCompletion=function')+'\n'+
+  `
+  function tcJsonClone(v){return JSON.parse(JSON.stringify(v))}
+  function tcShowCompletionSummary(v){summarySeen=JSON.parse(JSON.stringify(v))}
+  function save(){saveCount++}
+  function render(){}
+  function go(id){lastGo=id}
+  function showRuntimeNotice(message,type){notices.push([message,type||''])}
+  const setTimeout=fn=>{fn();return 1};
+
+  tcInstallCompletionFlow();
+  const finishResult=window.finishWorkout('Нормально');
+  const afterFinish={
+    finishResult,
+    state:JSON.parse(JSON.stringify(state)),
+    course:JSON.parse(JSON.stringify(courseState)),
+    W,
+    tx:JSON.parse(localStorage.getItem(TC_COMPLETION_UNDO_KEY)||'null'),
+    summary:summarySeen,
+    activeSnapshotClears
+  };
+  const undoResult=window.tcUndoLastCompletion();
+  return {
+    afterFinish,
+    undoResult,
+    state:JSON.parse(JSON.stringify(state)),
+    course:JSON.parse(JSON.stringify(courseState)),
+    lastGo,saveCount,activeSnapshotClears,
+    txAfterUndo:localStorage.getItem(TC_COMPLETION_UNDO_KEY),
+    notices
+  };
+  `
+)();
+
+assert.equal(completionHarness.afterFinish.finishResult,'saved');
+assert.equal(completionHarness.afterFinish.W,null,'finish wrapper must leave no active workout after base save');
+assert.equal(completionHarness.afterFinish.state.counter,99,'base save mutation must occur before Undo');
+assert.equal(completionHarness.afterFinish.course.courseSeq,5,'base course mutation must occur before Undo');
+assert.equal(completionHarness.afterFinish.tx.state.counter,7,'Undo transaction must capture pre-save generic state');
+assert.equal(completionHarness.afterFinish.tx.course.courseSeq,4,'Undo transaction must capture pre-save course state');
+assert.equal(completionHarness.afterFinish.summary.mode,'extra');
+assert.equal(completionHarness.afterFinish.summary.exercises,2);
+assert.equal(completionHarness.afterFinish.summary.sets,3);
+assert.equal(completionHarness.afterFinish.summary.total,38);
+assert.equal(completionHarness.afterFinish.summary.feel,'Нормально');
+assert.equal(completionHarness.undoResult,true,'completion Undo must succeed inside its validity window');
+assert.equal(completionHarness.state.counter,7,'Undo must restore generic state exactly');
+assert.equal(completionHarness.state.history.length,1,'Undo must remove the newly saved workout by restoring pre-save state');
+assert.equal(completionHarness.course.courseSeq,4,'Undo must restore course sequence exactly');
+assert.equal(completionHarness.lastGo,'today','Undo must return to Today');
+assert.equal(completionHarness.txAfterUndo,null,'successful Undo must clear the one-shot transaction');
+assert(completionHarness.activeSnapshotClears>=2,'finish and Undo must clear durable active-workout snapshots');
+assert(completionHarness.notices.some(x=>x[0]==='Сохранение тренировки отменено.'),
+ 'Undo must give visible success feedback');
+
+// Behavioral completion-summary rendering regression.
+const summaryRender=new Function(
+  extractFrom(hotfix,'tcShowCompletionSummary')+'\n'+
+  `
+  const sheet={open:false,classList:{add:n=>{if(n==='open')sheet.open=true},remove:n=>{if(n==='open')sheet.open=false}}};
+  const box={innerHTML:''};
+  const done={onclick:null},undo={onclick:null};
+  const window={tcUndoLastCompletion:function(){return true}};
+  const document={getElementById:id=>({sheet,sheetbox:box,tcCompletionDoneBtn:done,tcCompletionUndoBtn:undo}[id]||null)};
+  function closeSheet(){sheet.open=false}
+  const summary={mode:'extra',exercises:2,sets:3,total:38,feel:'Нормально',rows:[
+    {name:'Подъём коленей в висе',values:'10 · 8'},
+    {name:'Отжимания от пола',values:'20'}
+  ]};
+  tcShowCompletionSummary(summary);
+  return {html:box.innerHTML,open:sheet.open,doneBound:typeof done.onclick==='function',undoBound:undo.onclick===window.tcUndoLastCompletion};
+  `
+)();
+assert(summaryRender.open,'completion summary sheet must open');
+assert(summaryRender.html.includes('Дополнительная тренировка завершена'));
+assert(summaryRender.html.includes('Отменить сохранение'));
+assert(summaryRender.html.includes('Подъём коленей в висе'));
+assert(summaryRender.doneBound&&summaryRender.undoBound,'completion summary actions must be bound');
 
 const staleFormFeedback=[];
 new Function('TC_course','tcActionMessage','tcAdvancedChoicePool',formBodies.openAdvanced)(
@@ -381,4 +599,4 @@ assert.equal(undoState.lastCourseTs,0);
 assert.equal(undoState.testAnchorDate,'');
 assert.equal(undoApi.tcUndoLatestTodayCourseRecord('2026-09-25'),false,
  'undo must not remove anything twice');
-console.log('PASS: syntax, bundle, UX2 persistence/IA, critical actions, forms and touch targets');
+console.log('PASS: syntax, bundle, UX2 persistence/IA/completion, critical actions, forms and touch targets');

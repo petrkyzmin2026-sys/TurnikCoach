@@ -18,6 +18,8 @@ on:
       - feature/ux2-foundation-20260926
       - feature/ux2-progressive-settings-20260926
       - feature/ux2-workout-flow-20260926
+      - feature/ux2-completion-flow-20260926
+  pull_request:
   workflow_dispatch:
 
 permissions:
@@ -26,6 +28,7 @@ permissions:
 jobs:
   checks-and-test-apk:
     runs-on: ubuntu-latest
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
       - name: Check actual live code and bundled module
@@ -46,16 +49,25 @@ jobs:
           done
           base64 --decode /tmp/v513.b64 | gzip -dc > app/src/main/assets/index.html
           grep -q 'v5.13 — modern Android package' app/src/main/assets/index.html
-      - name: Reproduce packaged 5.14 + cached 5.16.30 + tested 5.16.31
+      - name: Reproduce packaged 5.14 + cached 5.16.31 + tested 5.16.32
         run: |
-          PREV_COMMIT="d86880a42dab0671ea5426966f2ecf873856387a"
+          PREV_COMMIT="dc17506f9e9d2ae597ad6097bcef72c732ac446c"
           grep -q 'TURNIKCOACH_HOTFIX 5.14.0-adaptive-rest' app/src/main/assets/hotfix.js
           curl -fsSL "https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/${PREV_COMMIT}/live/hotfix.js" > app/src/main/assets/hotfix-prev.js
           cp live/hotfix.js app/src/main/assets/hotfix-next.js
-          grep -q 'TURNIKCOACH_HOTFIX 5.16.30-progressive-settings' app/src/main/assets/hotfix-prev.js
-          grep -q 'TURNIKCOACH_HOTFIX 5.16.31-workout-flow' app/src/main/assets/hotfix-next.js
-          grep -q 'TURNIKCOACH_COURSE 1.0.28-progressive-settings' app/src/main/assets/hotfix-next.js
-      - name: Seed installed 5.16.30 approval and completed main-course state
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('app/src/main/assets/hotfix-next.js')
+          s=p.read_text()
+          needle="  function tcAudio(){\n    try{"
+          assert needle in s
+          s=s.replace(needle,"  function tcAudio(){\n    if(window.__TC_DISABLE_AUDIO_FOR_SMOKE)return null;\n    try{",1)
+          p.write_text(s)
+          PY
+          grep -q 'TURNIKCOACH_HOTFIX 5.16.31-workout-flow' app/src/main/assets/hotfix-prev.js
+          grep -q 'TURNIKCOACH_HOTFIX 5.16.32-completion-flow' app/src/main/assets/hotfix-next.js
+          grep -q 'TURNIKCOACH_COURSE 1.0.34-diagnostics-cleanup' app/src/main/assets/hotfix-next.js
+      - name: Seed installed 5.16.31 approval and completed main-course state
         run: |
           python3 - <<'PY'
           from pathlib import Path
@@ -65,9 +77,10 @@ jobs:
           assert html.count(marker)==1
           seed=r'''<script>
           (function(){
+            window.__TC_DISABLE_AUDIO_FOR_SMOKE=true;
             if(localStorage.getItem('__tcForcedHandoverSmokeSeeded')) return;
             var d=new Date(),k=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
-            localStorage.setItem('tc_hotfix_approved_version','5.16.30-progressive-settings');
+            localStorage.setItem('tc_hotfix_approved_version','5.16.31-workout-flow');
             localStorage.setItem('tc_morozov_course_v1',JSON.stringify({
               enabled:true,level:4,goal:'quantity',pullMax:20,courseSeq:1,extraSeq:0,
               lastCourseDate:k,lastCourseTs:Date.now(),weeklySessions:3,cycleStartDate:k,
@@ -77,6 +90,73 @@ jobs:
               tests:[],masteryTests:[],exerciseMax:{}
             }));
             localStorage.setItem('__tcForcedHandoverSmokeSeeded','1');
+            window.addEventListener('error',function(e){console.error('TC_DIAG window-error',e.message,e.filename,e.lineno,e.colno);});
+            document.addEventListener('pointerup',function(e){
+              var b=e.target&&e.target.closest&&e.target.closest('#tcStartExtraAfterCourseBtn');
+              if(b)console.log('TC_DIAG pointerup extra',b.id);
+            },true);
+            document.addEventListener('touchend',function(e){
+              var b=e.target&&e.target.closest&&e.target.closest('#tcStartExtraAfterCourseBtn');
+              if(b)console.log('TC_DIAG touchend extra',b.id);
+            },true);
+            document.addEventListener('click',function(e){
+              var b=e.target&&e.target.closest&&e.target.closest('#tcStartExtraAfterCourseBtn');
+              if(b)console.log('TC_DIAG click extra',b.id);
+            },true);
+
+            function tcTestLog(payload){console.log('TC_TEST_UI',JSON.stringify(payload));}
+            function tcInstallTestDriver(){
+              if(document.getElementById('tcTestDriver'))return;
+              var host=document.createElement('div');
+              host.id='tcTestDriver';
+              host.style.cssText='position:fixed;left:4px;top:4px;z-index:2147483647;display:grid;gap:3px;width:122px;pointer-events:auto';
+              host.innerHTML=
+                '<button id="tcTestComplete" type="button" style="min-height:48px">TC COMPLETE</button>'+
+                '<button id="tcTestUndo" type="button" style="min-height:48px">TC UNDO</button>'+
+                '<button id="tcTestStart" type="button" style="min-height:48px">TC START</button>'+
+                '<button id="tcTestDiscard" type="button" style="min-height:48px">TC DISCARD</button>';
+              document.body.appendChild(host);
+
+              document.getElementById('tcTestComplete').onclick=function(){
+                try{
+                  if(!W||!Array.isArray(W.items)){tcTestLog({phase:'complete',ok:false,reason:'no-workout'});return;}
+                  W.items.forEach(function(x){x.actual=Array.isArray(x.plan)?x.plan.slice():[];});
+                  W.exerciseIndex=Math.max(0,W.items.length-1);
+                  W.setIndex=Math.max(0,(W.items[W.exerciseIndex].plan||[]).length-1);
+                  W.actual=(W.items[W.exerciseIndex].plan||[])[W.setIndex]||0;
+                  window.finishWorkout('Нормально');
+                  setTimeout(function(){
+                    var box=document.getElementById('sheetbox');
+                    tcTestLog({phase:'complete',ok:true,hasW:!!W,sheetOpen:!!document.querySelector('#sheet.open'),undo:!!document.getElementById('tcCompletionUndoBtn'),text:box?box.innerText:''});
+                  },80);
+                }catch(e){tcTestLog({phase:'complete',ok:false,error:String(e&&e.message||e)});}
+              };
+              document.getElementById('tcTestUndo').onclick=function(){
+                try{
+                  var ok=window.tcUndoLastCompletion();
+                  setTimeout(function(){
+                    tcTestLog({phase:'undo',ok:!!ok,hasW:!!W,sheetOpen:!!document.querySelector('#sheet.open'),screen:(document.querySelector('.screen.on')||{}).id||'',extraAvailable:document.body.innerText.includes('Начать дополнительную тренировку')});
+                  },80);
+                }catch(e){tcTestLog({phase:'undo',ok:false,error:String(e&&e.message||e)});}
+              };
+              document.getElementById('tcTestStart').onclick=function(){
+                try{
+                  var ok=window.tcStartExtraWorkout();
+                  setTimeout(function(){tcTestLog({phase:'start-again',ok:ok!==false,hasW:!!W,screen:(document.querySelector('.screen.on')||{}).id||'',mode:W&&W.mode||''});},80);
+                }catch(e){tcTestLog({phase:'start-again',ok:false,error:String(e&&e.message||e)});}
+              };
+              document.getElementById('tcTestDiscard').onclick=function(){
+                try{
+                  window.tcDiscardWorkout();
+                  setTimeout(function(){
+                    var yes=document.getElementById('tcConfirmDiscardWorkoutBtn');if(yes)yes.click();
+                    setTimeout(function(){tcTestLog({phase:'discard',hasW:!!W,screen:(document.querySelector('.screen.on')||{}).id||'',sheetOpen:!!document.querySelector('#sheet.open'),snapshot:localStorage.getItem('tc_active_workout_v2')});},100);
+                  },30);
+                }catch(e){tcTestLog({phase:'discard',error:String(e&&e.message||e)});}
+              };
+            }
+            if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',tcInstallTestDriver,{once:true});
+            else tcInstallTestDriver();
           })();
           </script>'''
           p.write_text(html.replace(marker,seed+marker))
@@ -99,6 +179,52 @@ jobs:
 
           activity=Path('app/src/main/java/ru/turnikcoach/app/MainActivity.java')
           java=activity.read_text()
+          java=java.replace('import android.util.Base64;','import android.util.Base64;\nimport android.util.Log;\nimport android.content.BroadcastReceiver;\nimport android.content.Context;\nimport android.content.Intent;\nimport android.content.IntentFilter;')
+          java=java.replace('import android.webkit.WebSettings;','import android.webkit.WebSettings;\nimport android.webkit.ConsoleMessage;\nimport android.webkit.WebChromeClient;')
+          chrome_marker='        s.setCacheMode(WebSettings.LOAD_DEFAULT);'
+          assert java.count(chrome_marker)==1
+          chrome_code=(
+              "        s.setCacheMode(WebSettings.LOAD_DEFAULT);\n"
+              "        WebView.setWebContentsDebuggingEnabled(true);\n"
+              "        web.setWebChromeClient(new WebChromeClient() {\n"
+              "            @Override public boolean onConsoleMessage(ConsoleMessage message) {\n"
+              "                Log.d(\"TurnikCoachJS\", message.message() + \" @ \" + message.sourceId() + \":\" + message.lineNumber());\n"
+              "                return true;\n"
+              "            }\n"
+              "        });"
+          )
+          java=java.replace(chrome_marker,chrome_code)
+          receiver_marker='        web.loadUrl("file:///android_asset/index.html");'
+          assert java.count(receiver_marker)==1
+          receiver_code=(
+              "        BroadcastReceiver tcTestJsReceiver = new BroadcastReceiver() {\n"
+              "            @Override public void onReceive(Context context, Intent intent) {\n"
+              "                try {\n"
+              "                    Log.d(\"TurnikCoachBridge\", \"receiver-enter action=\" + (intent == null ? \"null\" : intent.getAction()));\n"
+              "                    String encoded = intent.getStringExtra(\"js_b64\");\n"
+              "                    if (encoded == null) { Log.d(\"TurnikCoachBridge\", \"missing-js\"); return; }\n"
+              "                    String js = new String(Base64.decode(encoded, Base64.DEFAULT), StandardCharsets.UTF_8);\n"
+              "                    Log.d(\"TurnikCoachBridge\", \"eval-start len=\" + js.length());\n"
+              "                    web.post(() -> {\n"
+              "                        Log.d(\"TurnikCoachBridge\", \"eval-post-run\");\n"
+              "                        web.evaluateJavascript(js, value -> {\n"
+              "                            String result = value == null ? \"null\" : value;\n"
+              "                            Log.d(\"TurnikCoachJSResult\", result);\n"
+              "                            try (FileOutputStream out = new FileOutputStream(new File(getFilesDir(), \"tc-test-js-result.txt\"), false)) {\n"
+              "                                out.write(result.getBytes(StandardCharsets.UTF_8));\n"
+              "                            } catch (Exception ignored) {}\n"
+              "                        });\n"
+              "                        Log.d(\"TurnikCoachBridge\", \"eval-js-dispatched\");\n"
+              "                    });\n"
+              "                } catch (Exception e) {\n"
+              "                    Log.e(\"TurnikCoachJSResult\", \"bridge-error\", e);\n"
+              "                }\n"
+              "            }\n"
+              "        };\n"
+              "        registerReceiver(tcTestJsReceiver, new IntentFilter(\"ru.turnikcoach.TEST_EVAL\"), Context.RECEIVER_EXPORTED);\n"
+              "        web.loadUrl(\"file:///android_asset/index.html\");"
+          )
+          java=java.replace(receiver_marker,receiver_code)
           java=java.replace('        startHotfixUpdate();','        // deterministic test: staged hotfix is applied from assets')
           asset_line='                applyAssetHotfix();'
           assert java.count(asset_line)==1
@@ -121,38 +247,62 @@ jobs:
               "    }\n\n"
           )
           java=java.replace(marker,helper+marker)
+          intent_marker='''    @Override public void onBackPressed() {'''
+          assert java.count(intent_marker)==1
+          intent_bridge=(
+              "    @Override protected void onNewIntent(Intent intent) {\n"
+              "        super.onNewIntent(intent);\n"
+              "        if (intent == null || !\"ru.turnikcoach.TEST_EVAL\".equals(intent.getAction())) return;\n"
+              "        try {\n"
+              "            String encoded = intent.getStringExtra(\"js_b64\");\n"
+              "            if (encoded == null) return;\n"
+              "            String js = new String(Base64.decode(encoded, Base64.DEFAULT), StandardCharsets.UTF_8);\n"
+              "            web.evaluateJavascript(js, value -> {\n"
+              "                String result = value == null ? \"null\" : value;\n"
+              "                Log.d(\"TurnikCoachJSResult\", result);\n"
+              "                try (FileOutputStream out = new FileOutputStream(new File(getFilesDir(), \"tc-test-js-result.txt\"), false)) {\n"
+              "                    out.write(result.getBytes(StandardCharsets.UTF_8));\n"
+              "                } catch (Exception ignored) {}\n"
+              "            });\n"
+              "        } catch (Exception e) {\n"
+              "            Log.e(\"TurnikCoachJSResult\", \"intent-bridge-error\", e);\n"
+              "        }\n"
+              "    }\n\n"
+          )
+          java=java.replace(intent_marker,intent_bridge+intent_marker)
           activity.write_text(java)
 
           manifest=Path('app/src/main/AndroidManifest.xml')
           text=manifest.read_text().replace('android:label="Турник Тренер"', 'android:label="Турник Тренер · ТЕСТ"')
+          text=text.replace('<activity android:name=".MainActivity"', '<activity android:name=".MainActivity" android:launchMode="singleTop"')
           manifest.write_text(text)
           PY
       - name: Build isolated DEBUG preview APK
         run: |
           gradle --no-daemon :app:assembleDebug
-          cp app/build/outputs/apk/debug/app-debug.apk TurnikCoach-UX2-Workout-Preview-v5.16.31.apk
+          cp app/build/outputs/apk/debug/app-debug.apk TurnikCoach-UX2-Completion-Preview-v5.16.32.apk
       - name: Enable KVM
         run: sudo chmod 666 /dev/kvm || true
-      - name: Verify 5.16.31 UX2 workout flow in real Android WebView
+      - name: Verify 5.16.32 UX2 completion flow in real Android WebView
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 35
           arch: x86_64
           profile: pixel_6
           disable-animations: true
-          emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim
+          emulator-options: -no-snapshot-save -no-window -gpu swiftshader -noaudio -no-boot-anim
           script: |
-            adb install -r TurnikCoach-UX2-Workout-Preview-v5.16.31.apk
+            adb install -r TurnikCoach-UX2-Completion-Preview-v5.16.32.apk
             TC_TEST_PKG=ru.turnikcoach.v52tr.calendarpreview python3 scripts/course_undo_ui_smoke.py
-      - name: Upload UX2 workout-flow screenshots
+      - name: Upload UX2 completion-flow screenshots
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: TurnikCoach-5.16.31-ux2-workout-smoke-screenshots
+          name: TurnikCoach-5.16.32-ux2-completion-smoke-screenshots
           path: undo-ui-test-output
           if-no-files-found: warn
       - uses: actions/upload-artifact@v4
         with:
-          name: TurnikCoach-5.16.31-ux2-workout-isolated-preview
-          path: TurnikCoach-UX2-Workout-Preview-v5.16.31.apk
+          name: TurnikCoach-5.16.32-ux2-completion-isolated-preview
+          path: TurnikCoach-UX2-Completion-Preview-v5.16.32.apk
           if-no-files-found: error
