@@ -65,10 +65,9 @@ public class MainActivity extends Activity {
 
             private void commitVisualRefresh() {
                 if (web == null) return;
-                Log.d(NATIVE_TAG, "commitVisualRefresh");
-                // Keep the WebView on its existing rendering layer. Switching the whole
-                // WebView to SOFTWARE during a live DOM navigation can stall the renderer
-                // and leave Android displaying the previous frame.
+                final int previousLayer = web.getLayerType();
+                Log.d(NATIVE_TAG, "commitVisualRefresh start layer=" + previousLayer);
+                web.setLayerType(View.LAYER_TYPE_SOFTWARE, null);
                 web.requestLayout();
                 web.invalidate();
                 web.postInvalidateOnAnimation();
@@ -77,8 +76,15 @@ public class MainActivity extends Activity {
                     web.requestLayout();
                     web.invalidate();
                     web.postInvalidateOnAnimation();
-                    Log.d(NATIVE_TAG, "commitVisualRefresh posted");
                 });
+                web.postDelayed(() -> {
+                    if (web == null) return;
+                    web.setLayerType(previousLayer, null);
+                    web.requestLayout();
+                    web.invalidate();
+                    web.postInvalidateOnAnimation();
+                    Log.d(NATIVE_TAG, "commitVisualRefresh settled layer=" + previousLayer);
+                }, 48);
             }
 
             @JavascriptInterface public void refreshSurface() {
