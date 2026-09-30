@@ -362,6 +362,18 @@ for line in restore_diag_text.splitlines():
         print("TC_DIAG restore-surface",line,flush=True)
     elif "TurnikCoachNative" in line:
         print("TC_DIAG restore-native",line,flush=True)
+
+full_restore_log=adb("logcat","-d","-t","1800",check=False)
+full_restore_text=(full_restore_log.stdout or "")+"\n"+(full_restore_log.stderr or "")
+with open(OUT+"/05a-process-death-full-logcat.txt","w",encoding="utf-8") as fp:
+    fp.write(full_restore_text)
+for line in full_restore_text.splitlines():
+    low=line.lower()
+    if ("chromium" in low or "webview" in low or "renderprocess" in low or
+        "renderer" in low or "fatal exception" in low or "anr" in low or
+        "crash" in low or "signal 6" in low or "signal 11" in low):
+        print("TC_DIAG webview-system",line,flush=True)
+
 wait_text("Сделано",timeout=12,contains=False)
 wait_text("Выйти",timeout=12,contains=False)
 assert_touch_target("Сделано",48,contains=False)
