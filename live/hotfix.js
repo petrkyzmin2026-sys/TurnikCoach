@@ -244,6 +244,14 @@
 
   function tcInstallNavigationUpgrades(){
     console.log('TC_NAV_UPGRADE',JSON.stringify({phase:'install',version:VERSION}));
+    // A/B diagnostic: the foundation observer mutates the same class/childList surface
+    // it observes. Disable that legacy observer during the upgraded runtime so we can
+    // prove whether it starves the WebView event loop after workout navigation.
+    if(window.__tcBackControlObserver){
+      try{window.__tcBackControlObserver.disconnect()}catch(e){}
+      window.__tcBackControlObserver=null;
+      console.log('TC_NAV_UPGRADE',JSON.stringify({phase:'disconnect-back-observer',version:VERSION}));
+    }
     // The navigation core is intentionally one-time. Hotfix upgrades live here so a
     // newer hotfix can change rendering/restore behavior without stacking go/popstate wrappers.
     const oldStyle=document.getElementById('tcNavUpgradeStyle');
