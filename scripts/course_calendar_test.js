@@ -80,8 +80,8 @@ assert(course.includes('tcPreviewCourseCard(tcSelectedDate)'),
  'choosing another date must show a read-only plan');
 assert(course.includes('id="tcCycleStartDate"'),
  'settings must expose a cycle start date');
-assert(hotfix.includes("const VERSION='5.16.32-completion-flow'"),
- 'release hotfix version must be 5.16.32');
+assert(hotfix.includes("const VERSION='5.16.33-accessibility-scale'"),
+ 'release hotfix version must be 5.16.33');
 assert(course.includes("const COURSE_MODULE_VERSION='1.0.34-diagnostics-cleanup'"),
  'course module version must be 1.0.34');
 assert(!course.includes('TC_EXTRA_START'),
@@ -448,6 +448,17 @@ assert(hotfix.includes("if(tx.state)state=tx.state")&&
  'completion undo must restore both generic state and the encapsulated course snapshot');
 assert(hotfix.includes('tcShowCompletionSummary(summary)'),
  'successful save must open a completion summary');
+assert(hotfix.includes(".nav{height:80px!important}")&&
+ hotfix.includes(".nav button{min-height:56px!important"),
+ 'large-text layout must reserve more vertical space for bottom navigation');
+assert(hotfix.includes("#sheet .sheetbox{max-height:min(90dvh,calc(100vh - 16px))!important;overflow-y:auto!important"),
+ 'sheet content must stay scrollable instead of clipping at large text sizes');
+assert(hotfix.includes(".tcCompletionStats{display:grid;grid-template-columns:repeat(auto-fit,minmax(92px,1fr))"),
+ 'completion stats must reflow instead of forcing three fixed columns');
+assert(hotfix.includes(".tcCompletionRow{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap"),
+ 'completion rows must wrap long exercise names and values');
+assert(hotfix.includes(".sheettitle,.dateBig,.tcDoneStripTitle,.tcSettingsGroup>summary{overflow-wrap:anywhere"),
+ 'important headings must allow wrapping under text scaling');
 assert(hotfix.includes("if(tcActiveWorkoutForUpdate()){")&&hotfix.includes('tcScheduleDeferredUpdate(activate)'),
  'update prompt must defer while a workout or durable workout snapshot is active');
 
@@ -599,4 +610,4 @@ assert.equal(undoState.lastCourseTs,0);
 assert.equal(undoState.testAnchorDate,'');
 assert.equal(undoApi.tcUndoLatestTodayCourseRecord('2026-09-25'),false,
  'undo must not remove anything twice');
-console.log('PASS: syntax, bundle, UX2 persistence/IA/completion, critical actions, forms and touch targets');
+console.log('PASS: syntax, bundle, UX2 persistence/IA/completion/accessibility, critical actions, forms and touch targets');
