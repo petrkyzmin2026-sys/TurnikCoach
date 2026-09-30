@@ -1133,7 +1133,22 @@
     window.addEventListener('pagehide',tcSaveActiveWorkoutSnapshot);
     window.tcSaveActiveWorkoutSnapshot=tcSaveActiveWorkoutSnapshot;
     window.tcClearActiveWorkoutSnapshot=tcClearActiveWorkoutSnapshot;
-    setTimeout(tcRestoreActiveWorkoutSnapshot,0);
+
+    // Cold restore must not compete with the hotfix installation/layout burst.
+    // Restore once, when WebView reaches its first idle/rendering boundary.
+    let restoreStarted=false;
+    const startRestore=()=>{
+      if(restoreStarted)return;
+      restoreStarted=true;
+      tcRestoreActiveWorkoutSnapshot();
+    };
+    if(typeof requestIdleCallback==='function'){
+      requestIdleCallback(startRestore,{timeout:1200});
+    }else if(typeof requestAnimationFrame==='function'){
+      requestAnimationFrame(()=>requestAnimationFrame(startRestore));
+    }else{
+      setTimeout(startRestore,0);
+    }
   }
 
   window.setDone=function(skip){
