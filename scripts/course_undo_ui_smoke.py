@@ -335,7 +335,17 @@ screenshot("03-main-done-extra-available")
 
 adb("logcat","-c",check=False)
 if FONT_SCALE>=1.8:
-    scroll_clickable_into_view("Начать дополнительную тренировку")
+    try:
+        before=test_eval("(function(){var e=document.getElementById('todayList');var b=document.getElementById('tcStartExtraAfterCourseBtn');return {scrollTop:e&&e.scrollTop||0,clientHeight:e&&e.clientHeight||0,scrollHeight:e&&e.scrollHeight||0,buttonTop:b&&b.getBoundingClientRect().top||0,buttonBottom:b&&b.getBoundingClientRect().bottom||0};})()","font200-today-scroll-before")
+        print("TC_DIAG font200-scroll-before",before,flush=True)
+    except Exception as e:
+        print("TC_DIAG font200-scroll-before-error",e,flush=True)
+    try:
+        scroll_clickable_into_view("Начать дополнительную тренировку")
+    except Exception as e:
+        after_swipe=test_eval("(function(){var e=document.getElementById('todayList');var b=document.getElementById('tcStartExtraAfterCourseBtn');return {scrollTop:e&&e.scrollTop||0,clientHeight:e&&e.clientHeight||0,scrollHeight:e&&e.scrollHeight||0,buttonTop:b&&b.getBoundingClientRect().top||0,buttonBottom:b&&b.getBoundingClientRect().bottom||0};})()","font200-today-scroll-after-swipe")
+        print("TC_DIAG font200-scroll-after-swipe",after_swipe,flush=True)
+        raise
     screenshot("03b-main-done-extra-scrolled")
 tap_clickable_text("Начать дополнительную тренировку")
 screenshot("04a-after-extra-start-tap")
