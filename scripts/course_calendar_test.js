@@ -52,13 +52,13 @@ assert(course.includes('tcPreviewCourseCard(tcSelectedDate)'),
  'choosing another date must show a read-only plan');
 assert(course.includes('id="tcCycleStartDate"'),
  'settings must expose a cycle start date');
-assert(hotfix.includes("const VERSION='5.16.26-touch-targets'"),
- 'release hotfix version must be 5.16.26');
-assert(course.includes("const COURSE_MODULE_VERSION='1.0.24-touch-targets'"),
- 'course module version must be 1.0.24');
+assert(hotfix.includes("const VERSION='5.16.29-ux2-foundation'"),
+ 'release hotfix version must be 5.16.29');
+assert(course.includes("const COURSE_MODULE_VERSION='1.0.27-ux2-today'"),
+ 'course module version must be 1.0.27');
 assert(!course.includes('window.confirm('),'course module must not depend on unsupported WebView JS dialogs');
 assert(!hotfix.includes('window.confirm('),'hotfix navigation/discard must not depend on unsupported WebView JS dialogs');
-assert(!hotfix.includes('forceHandover'),'5.16.26 must use an explicit user-visible update prompt');
+assert(!hotfix.includes('forceHandover'),'5.16.29 must use an explicit user-visible update prompt');
 assert(hotfix.includes("showRuntimeNotice('TurnikCoach обновлён до '+LABEL)"),
  'successful activation must give visible feedback');
 assert(hotfix.includes("localStorage.setItem('tc_hotfix_active_version',VERSION)"),
@@ -320,6 +320,25 @@ assert(course.includes("#sheet .sheetbox input[type=checkbox]{width:24px!importa
 assert(course.includes('f.check?\'<label class="tcCheckRow"'),
  'mastery checkbox rows must use the 48px checkbox-row target');
 
+assert(hotfix.includes("const TC_ACTIVE_WORKOUT_KEY='tc_active_workout_v2'"),
+ 'UX2 must persist an active workout independently of completed history');
+assert(hotfix.includes('function tcSaveActiveWorkoutSnapshot()'),
+ 'UX2 must provide durable active-workout snapshots');
+assert(hotfix.includes('function tcRestoreActiveWorkoutSnapshot()'),
+ 'UX2 must restore an interrupted workout after process recreation');
+assert(hotfix.includes("window.tcClearActiveWorkoutSnapshot=tcClearActiveWorkoutSnapshot"),
+ 'discard flow must be able to remove a durable workout snapshot');
+assert(hotfix.includes("setNav('n1','◫','План')")&&hotfix.includes("setNav('n3','⌁','Прогресс')"),
+ 'top-level navigation must expose Today / Plan / Progress');
+assert(hotfix.includes("viewport.setAttribute('content','width=device-width,initial-scale=1')"),
+ 'UX2 must remove the legacy zoom lock');
+assert(course.includes("const week=()=>'<div class=\"tcWeekSection\""),
+ 'Today must treat the weekly calendar as a secondary section');
+assert(course.includes('<details class="tcTodayPlanDetails"><summary>Посмотреть план</summary>'),
+ 'Today must progressively disclose the detailed set plan');
+assert(course.includes("style=\"margin-top:14px;min-height:58px\" onclick=\"tcStartCourseWorkout()"),
+ 'primary Start workout action must be larger than the 48dp minimum');
+
 const staleFormFeedback=[];
 new Function('TC_course','tcActionMessage','tcAdvancedChoicePool',formBodies.openAdvanced)(
   {level:6,advancedChoices:{},goal:'quantity'},
@@ -348,4 +367,4 @@ assert.equal(undoState.lastCourseTs,0);
 assert.equal(undoState.testAnchorDate,'');
 assert.equal(undoApi.tcUndoLatestTodayCourseRecord('2026-09-25'),false,
  'undo must not remove anything twice');
-console.log('PASS: syntax, bundle, critical actions, form feedback and complete form and 48px touch-target rules');
+console.log('PASS: syntax, bundle, UX2 persistence/IA, critical actions, forms and touch targets');
