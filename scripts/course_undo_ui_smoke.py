@@ -89,7 +89,9 @@ def scroll_clickable_into_view(text,timeout=12):
         if pos:
             print("TC_DIAG scroll_target_visible",text,"bounds",bounds,"center",pos,flush=True)
             return pos
-        adb("shell","input","swipe","540","1760","540","900","350",check=False)
+        # Keep the gesture inside the Today scroll viewport; the bottom area is occupied
+        # by fixed actions/navigation at 200% text scale and can swallow a swipe.
+        adb("shell","input","swipe","540","1450","540","650","350",check=False)
         time.sleep(.6)
     raise AssertionError("Clickable text not reachable by scrolling: "+text)
 
