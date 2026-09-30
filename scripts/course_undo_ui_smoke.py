@@ -343,7 +343,7 @@ if FONT_SCALE>=1.8:
     except Exception as e:
         print("TC_DIAG font200-scroll-before-error",e,flush=True)
     try:
-        scroll_clickable_into_view("Начать дополнительную тренировку")
+        scroll_clickable_into_view("Начать дополнительную тренировку",timeout=30)
     except Exception as e:
         after_swipe=test_eval("(function(){var e=document.getElementById('todayList');var b=document.getElementById('tcStartExtraAfterCourseBtn');return {scrollTop:e&&e.scrollTop||0,clientHeight:e&&e.clientHeight||0,scrollHeight:e&&e.scrollHeight||0,buttonTop:b&&b.getBoundingClientRect().top||0,buttonBottom:b&&b.getBoundingClientRect().bottom||0};})()","font200-today-scroll-after-swipe")
         print("TC_DIAG font200-scroll-after-swipe",after_swipe,flush=True)
