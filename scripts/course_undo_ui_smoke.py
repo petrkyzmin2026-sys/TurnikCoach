@@ -7,7 +7,7 @@ import time
 import xml.etree.ElementTree as ET
 
 PKG=os.environ.get("TC_TEST_PKG","ru.turnikcoach.app.calendarpreview")
-OUT=os.environ.get("GITHUB_WORKSPACE",".")+"/undo-ui-test-output"
+OUT=os.environ.get("TC_OUT_DIR",os.environ.get("GITHUB_WORKSPACE",".")+"/undo-ui-test-output")
 os.makedirs(OUT,exist_ok=True)
 
 def adb(*args,check=True,timeout=20):
