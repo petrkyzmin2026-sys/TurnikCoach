@@ -152,13 +152,13 @@ def launch():
 launch()
 dismiss_system_anr()
 
-# Exact update path: packaged 5.14 + cached 5.16.28 are active first; staged 5.16.29 must be offered explicitly.
+# Exact update path: packaged 5.14 + cached 5.16.29 are active first; staged 5.16.30 must be offered explicitly.
 time.sleep(3)
 screenshot("00-before-update-assert")
 adb("shell","uiautomator","dump","/sdcard/uxb3-before-update.xml",check=False)
 adb("pull","/sdcard/uxb3-before-update.xml",OUT+"/00-before-update.xml",check=False)
 try:
-    wait_text("Доступно обновление TurnikCoach 5.16.29",timeout=20)
+    wait_text("Доступно обновление TurnikCoach 5.16.30",timeout=20)
 except Exception:
     log=adb("logcat","-d","-t","500",check=False)
     with open(OUT+"/00-logcat.txt","w",encoding="utf-8") as fp:
@@ -168,7 +168,7 @@ wait_text("Обновить",contains=False)
 screenshot("01-update-offered")
 
 tap_text("Обновить",contains=False)
-wait_text("TurnikCoach обновлён до 5.16.29",timeout=25)
+wait_text("TurnikCoach обновлён до 5.16.30",timeout=25)
 assert_accessibility_target("План",48)
 assert_accessibility_target("Прогресс",48)
 screenshot("02-update-installed")
@@ -230,9 +230,16 @@ else:
     tap_bottom_nav("workout")
 wait_text("Настройки курса",timeout=12,contains=False)
 tap_text("Настройки курса",contains=False)
+wait_text("Основное",timeout=12,contains=False)
+wait_text("Расписание",timeout=12,contains=False)
+wait_text("Дополнительная работа",timeout=12,contains=False)
+wait_text("Контроль прогресса",timeout=12,contains=False)
+wait_text("Система и оборудование",timeout=12,contains=False)
+tap_text("Расписание",contains=False)
 wait_text("Начало тренировочного цикла",timeout=12)
+tap_text("Система и оборудование",contains=False)
 wait_text("Версия",timeout=12,contains=False)
-wait_text("5.16.29",timeout=12)
+wait_text("5.16.30",timeout=12)
 # The long settings sheet exercises select, number and date controls before Save.
 # Static regression enforces their 48px CSS contract; the Android smoke verifies the form remains operable.
 screenshot("10-course-settings")
@@ -255,4 +262,4 @@ assert_accessibility_target("Выбрать упражнение",48)
 assert_touch_target("★",48,contains=False)
 screenshot("13-plan-touch-targets")
 
-print("UX2_FOUNDATION_SMOKE_OK")
+print("UX2_SETTINGS_SMOKE_OK")
