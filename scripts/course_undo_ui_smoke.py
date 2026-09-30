@@ -8,6 +8,7 @@ import xml.etree.ElementTree as ET
 
 PKG=os.environ.get("TC_TEST_PKG","ru.turnikcoach.app.calendarpreview")
 OUT=os.environ.get("TC_OUT_DIR",os.environ.get("GITHUB_WORKSPACE",".")+"/undo-ui-test-output")
+FONT_SCALE=float(os.environ.get("TC_FONT_SCALE","1.0"))
 os.makedirs(OUT,exist_ok=True)
 
 def adb(*args,check=True,timeout=20):
@@ -67,17 +68,38 @@ def tap_text(text,contains=True):
     adb("shell","input","tap",str(pos[0]),str(pos[1]))
     time.sleep(.8)
 
-def tap_clickable_text(text,timeout=12):
+def clickable_text_position(text):
     target=text.lower()
+    for n in dump().iter("node"):
+        value=(n.attrib.get("text") or "")
+        bounds=n.attrib.get("bounds") or ""
+        if value.lower()!=target or n.attrib.get("clickable")!="true" or not bounds:
+            continue
+        nums=[int(x) for x in re.findall(r"\d+",bounds)]
+        if len(nums)!=4 or nums[2]<=nums[0] or nums[3]<=nums[1]:
+            continue
+        return center(bounds),bounds
+    return None,None
+
+def scroll_clickable_into_view(text,timeout=12):
     end=time.time()+timeout
     while time.time()<end:
         dismiss_system_anr()
-        for n in dump().iter("node"):
-            value=(n.attrib.get("text") or "")
-            if value.lower()!=target or n.attrib.get("clickable")!="true" or not n.attrib.get("bounds"):
-                continue
-            pos=center(n.attrib["bounds"])
-            print("TC_DIAG tap_clickable_text",text,"bounds",n.attrib.get("bounds"),"center",pos,flush=True)
+        pos,bounds=clickable_text_position(text)
+        if pos:
+            print("TC_DIAG scroll_target_visible",text,"bounds",bounds,"center",pos,flush=True)
+            return pos
+        adb("shell","input","swipe","540","1760","540","900","350",check=False)
+        time.sleep(.6)
+    raise AssertionError("Clickable text not reachable by scrolling: "+text)
+
+def tap_clickable_text(text,timeout=12):
+    end=time.time()+timeout
+    while time.time()<end:
+        dismiss_system_anr()
+        pos,bounds=clickable_text_position(text)
+        if pos:
+            print("TC_DIAG tap_clickable_text",text,"bounds",bounds,"center",pos,flush=True)
             adb("shell","input","tap",str(pos[0]),str(pos[1]))
             time.sleep(.8)
             return pos
@@ -312,6 +334,9 @@ wait_text("Начать дополнительную тренировку",timeo
 screenshot("03-main-done-extra-available")
 
 adb("logcat","-c",check=False)
+if FONT_SCALE>=1.8:
+    scroll_clickable_into_view("Начать дополнительную тренировку")
+    screenshot("03b-main-done-extra-scrolled")
 tap_clickable_text("Начать дополнительную тренировку")
 screenshot("04a-after-extra-start-tap")
 adb("shell","uiautomator","dump","/sdcard/ux2-after-start-tap.xml",check=False)
