@@ -80,15 +80,15 @@ assert(course.includes('tcPreviewCourseCard(tcSelectedDate)'),
  'choosing another date must show a read-only plan');
 assert(course.includes('id="tcCycleStartDate"'),
  'settings must expose a cycle start date');
-assert(hotfix.includes("const VERSION='5.16.33-accessibility-scale'"),
- 'release hotfix version must be 5.16.33');
+assert(hotfix.includes("const VERSION='5.16.34-workout-exit'"),
+ 'release hotfix version must be 5.16.34');
 assert(course.includes("const COURSE_MODULE_VERSION='1.0.34-diagnostics-cleanup'"),
  'course module version must be 1.0.34');
 assert(!course.includes('TC_EXTRA_START'),
  'temporary extra-workout trace logging must not ship');
 assert(!course.includes('window.confirm('),'course module must not depend on unsupported WebView JS dialogs');
 assert(!hotfix.includes('window.confirm('),'hotfix navigation/discard must not depend on unsupported WebView JS dialogs');
-assert(!hotfix.includes('forceHandover'),'5.16.33 must use an explicit user-visible update prompt');
+assert(!hotfix.includes('forceHandover'),'5.16.34 must use an explicit user-visible update prompt');
 assert(hotfix.includes("showRuntimeNotice('TurnikCoach обновлён до '+LABEL)"),
  'successful activation must give visible feedback');
 assert(hotfix.includes("localStorage.setItem('tc_hotfix_active_version',VERSION)"),
@@ -452,6 +452,9 @@ assert(hotfix.includes("#workout .controls{height:auto!important;min-height:246p
 assert(hotfix.includes('function tcSyncScreenVisibility(id)')&&
  hotfix.includes('tcSyncScreenVisibility(id);'),
  'WebView navigation must explicitly synchronize screen visibility after go()');
+assert(hotfix.includes("tcSyncScreenVisibility(target||'today');")&&
+ hotfix.includes("replaceRoute(target||'today',false);"),
+ 'discard must unhide Today and synchronize the visible WebView surface');
 assert(hotfix.includes('function tcForceWebViewRepaint()')&&
  hotfix.includes('tcForceWebViewRepaint();'),
  'WebView navigation must force a compositor repaint after the screen switch');
