@@ -309,13 +309,13 @@ def launch():
 launch()
 dismiss_system_anr()
 
-# Exact update path: packaged 5.14 + cached 5.16.32 are active first; staged 5.16.33 must be offered explicitly.
+# Exact update path: packaged 5.14 + cached 5.16.33 are active first; staged 5.16.34 must be offered explicitly.
 time.sleep(3)
 screenshot("00-before-update-assert")
 adb("shell","uiautomator","dump","/sdcard/uxb3-before-update.xml",check=False)
 adb("pull","/sdcard/uxb3-before-update.xml",OUT+"/00-before-update.xml",check=False)
 try:
-    wait_text("Доступно обновление TurnikCoach 5.16.33",timeout=20)
+    wait_text("Доступно обновление TurnikCoach 5.16.34",timeout=20)
 except Exception:
     log=adb("logcat","-d","-t","500",check=False)
     with open(OUT+"/00-logcat.txt","w",encoding="utf-8") as fp:
@@ -325,7 +325,7 @@ wait_text("Обновить",contains=False)
 screenshot("01-update-offered")
 
 tap_clickable_text("Обновить")
-wait_text("TurnikCoach обновлён до 5.16.33",timeout=25)
+wait_text("TurnikCoach обновлён до 5.16.34",timeout=25)
 assert_accessibility_target("План",48)
 assert_accessibility_target("Прогресс",48)
 screenshot("02-update-installed")
@@ -377,9 +377,9 @@ adb("shell","am","force-stop",PKG)
 time.sleep(1)
 launch()
 dismiss_system_anr()
-upgrade_install=wait_log_tokens(["TC_NAV_UPGRADE",'"phase":"install"','"version":"5.16.33-accessibility-scale"'],timeout=20)
+upgrade_install=wait_log_tokens(["TC_NAV_UPGRADE",'"phase":"install"','"version":"5.16.34-workout-exit"'],timeout=20)
 restore_line=wait_log_tokens(["TC_WORKOUT_STATE",'"phase":"restored"','"name":"Подъём коленей в висе"','"mode":"extra"'],timeout=20)
-upgrade_arm=wait_log_tokens(["TC_NAV_UPGRADE",'"phase":"arm-restore-guard"','"version":"5.16.33-accessibility-scale"','"surface":"workout"'],timeout=20)
+upgrade_arm=wait_log_tokens(["TC_NAV_UPGRADE",'"phase":"arm-restore-guard"','"version":"5.16.34-workout-exit"','"surface":"workout"'],timeout=20)
 print("TC_DIAG nav-upgrade-install",upgrade_install,flush=True)
 print("TC_DIAG restore",restore_line,flush=True)
 print("TC_DIAG nav-upgrade-arm",upgrade_arm,flush=True)
@@ -417,4 +417,35 @@ assert_touch_target("Сделано",48,contains=False)
 assert_touch_target("Выйти",48,contains=False)
 screenshot("05-process-death-restored")
 
+# Regression: the real exit button must open confirmation, allow cancellation,
+# and actually display Today after clearing only this unfinished workout.
+# Remove the injected test controls so they cannot overlay the real header button.
+test_exec("var d=document.getElementById('tcTestDriver');if(d)d.remove();","remove-test-overlay")
+tap_clickable_text("Выйти",timeout=18)
+wait_text("Выйти без сохранения?",timeout=18,contains=False)
+confirmation=test_eval_json("(function(){return {open:!!document.querySelector('#sheet.open'),hasW:!!W,confirm:!!document.getElementById('tcConfirmDiscardWorkoutBtn')};})()","exit-confirmation")
+assert confirmation["open"] and confirmation["hasW"] and confirmation["confirm"], "Exit must open a functional confirmation with the workout intact"
+screenshot("06-exit-confirmation")
+tap_clickable_text("Продолжить тренировку",timeout=18)
+cancel=test_eval_json("(function(){return {hasW:!!W,workoutOn:!!document.querySelector('#workout.screen.on'),sheetOpen:!!document.querySelector('#sheet.open')};})()","exit-cancel")
+assert cancel["hasW"] and cancel["workoutOn"] and not cancel["sheetOpen"], "Cancel must return to the active workout"
+
+tap_clickable_text("Выйти",timeout=18)
+tap_clickable_text("Выйти без сохранения",timeout=18)
+time.sleep(1.5)
+after_exit=test_eval_json("(function(){var t=document.getElementById('today'),w=document.getElementById('workout');return {hasW:!!W,todayOn:t.classList.contains('on'),todayHidden:t.hidden,todayDisplay:getComputedStyle(t).display,todayHeight:t.getBoundingClientRect().height,workoutOn:w.classList.contains('on'),workoutHidden:w.hidden,sheetOpen:!!document.querySelector('#sheet.open'),snapshot:localStorage.getItem('tc_active_workout_v2'),route:history.state&&history.state.tcScreen,extraSeq:JSON.parse(localStorage.getItem('tc_morozov_course_v1')||'{}').extraSeq};})()","exit-discard")
+print("TC_DIAG exit-discard",after_exit,flush=True)
+assert not after_exit["hasW"] and after_exit["todayOn"] and not after_exit["todayHidden"] and after_exit["todayDisplay"]=="flex" and after_exit["todayHeight"]>0, "Discard must visibly return to Today"
+assert not after_exit["workoutOn"] and after_exit["workoutHidden"] and not after_exit["sheetOpen"], "Workout and confirmation must be hidden after discard"
+assert after_exit["snapshot"] is None and after_exit["route"]=="today" and after_exit["extraSeq"]==0, "Discard must not persist an unfinished workout or advance extra sequence"
+screenshot("07-exit-returns-to-today")
+wait_text("Начать дополнительную тренировку",timeout=18)
+if FONT_SCALE>=1.8:
+    scroll_clickable_into_view("Начать дополнительную тренировку",timeout=30)
+tap_clickable_text("Начать дополнительную тренировку",timeout=20)
+wait_text("Сделано",timeout=18,contains=False)
+restarted=test_eval_json("(function(){return {hasW:!!W,mode:W&&W.mode||null,workoutOn:!!document.querySelector('#workout.screen.on')};})()","exit-restart")
+assert restarted["hasW"] and restarted["mode"]=="extra" and restarted["workoutOn"], "Discarded extra workout must remain immediately restartable"
+screenshot("08-restart-after-discard")
+print("UX2_EXIT_WITHOUT_SAVE_OK")
 print("UX2_ACCESSIBILITY_SCALE_BASELINE_OK")
