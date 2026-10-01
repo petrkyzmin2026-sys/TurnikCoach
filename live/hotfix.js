@@ -1,8 +1,8 @@
-/* TURNIKCOACH_HOTFIX 5.16.33-accessibility-scale */
+/* TURNIKCOACH_HOTFIX 5.16.34-workout-exit */
 (function(){
   'use strict';
-  const VERSION='5.16.33-accessibility-scale';
-  const LABEL='5.16.33';
+  const VERSION='5.16.34-workout-exit';
+  const LABEL='5.16.34';
   const APPROVED_KEY='tc_hotfix_approved_version';
   const LEGACY_ASSET_VERSION='5.14.0-adaptive-rest';
   const stalePrompt=document.getElementById('tcUpdatePrompt');
@@ -70,7 +70,7 @@
     title.textContent='Доступно обновление TurnikCoach '+LABEL;
     const text=document.createElement('div');
     text.style.cssText='font-size:15px;line-height:1.45;color:#cfd8e3;margin-bottom:18px;min-height:0;flex:1 1 0;overflow-y:auto;overscroll-behavior:contain;padding-right:4px';
-    text.innerHTML="UX 2.0: активная тренировка получила стабильную схему управления — корректировка результата, «Сделано» и «Пропустить» больше не меняют своё место. После сохранения показывается итог тренировки с возможностью немедленно отменить сохранение.<br><br>Обновления больше не перекрывают активную или восстанавливаемую тренировку: предложение появится после её завершения или выхода без сохранения.<br><br>Алгоритм курса и история не изменяются.<br><br>Установить обновление сейчас?";
+    text.innerHTML="Исправлен выход из тренировки без сохранения: после подтверждения приложение возвращается на экран «Сегодня», очищая только незавершённую тренировку. Алгоритм курса и сохранённая история не изменяются.<br><br>Установить обновление сейчас?";
     const row=document.createElement('div');
     row.style.cssText='display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;flex:0 0 auto';
     const later=document.createElement('button');
@@ -633,7 +633,12 @@
       tcClearWorkout();
       internal=true;
       try{baseGo(target||'today')}finally{internal=false}
+      // baseGo changes .on but does not reset the hidden/inline display state
+      // applied by UX2. Without this, a discarded workout can leave the old
+      // WebView frame visible even though W and its snapshot were cleared.
+      tcSyncScreenVisibility(target||'today');
       replaceRoute(target||'today',false);
+      tcForceWebViewRepaint();
       setTimeout(tcDecorateBackControls,0);
     }
 
