@@ -805,6 +805,14 @@
     if(window.__TC_HOTFIX_ACTIVE_VERSION===VERSION)return;
     const previousVersion=String(window.__TC_HOTFIX_ACTIVE_VERSION||window.__TC_HOTFIX_VERSION||'');
     window.__TC_HOTFIX_ACTIVE_VERSION=VERSION;
+    // A previously staged hotfix may have a deferred update retry waiting for
+    // W to become null. Retire that version before discard can trigger it.
+    const stalePendingVersion=String(window.__TC_UPDATE_PENDING_VERSION||'');
+    window.__TC_UPDATE_DISMISSED_VERSION=
+      stalePendingVersion&&stalePendingVersion!==VERSION?stalePendingVersion:'5.16.33-accessibility-scale';
+    window.__TC_UPDATE_PENDING_VERSION='';
+    window.__tcDeferredUpdateActivate=null;
+    removeUpdatePrompt();
     window.__TC_HOTFIX_VERSION=LEGACY_ASSET_VERSION;
     window.__TC_HOTFIX_LABEL=LABEL;
     const activatedAt=Date.now();
