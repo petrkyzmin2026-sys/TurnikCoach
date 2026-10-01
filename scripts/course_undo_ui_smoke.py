@@ -442,7 +442,14 @@ screenshot("07-exit-returns-to-today")
 wait_text("Начать дополнительную тренировку",timeout=18)
 if FONT_SCALE>=1.8:
     scroll_clickable_into_view("Начать дополнительную тренировку",timeout=30)
+    hit=test_eval_json("(function(){var b=document.getElementById('tcStartExtraAfterCourseBtn');var r=b&&b.getBoundingClientRect();var x=r&&(r.left+r.right)/2,y=r&&(r.top+r.bottom)/2;var el=r&&document.elementFromPoint(x,y);return {rect:r&&{top:r.top,bottom:r.bottom,left:r.left,right:r.right},hit:el&&el.outerHTML.slice(0,250),expected:b&&b.outerHTML.slice(0,200),scrollTop:document.getElementById('todayList').scrollTop,screen:(document.querySelector('.screen.on')||{}).id};})()","restart-hit-test")
+    print("TC_DIAG restart-hit-test",hit,flush=True)
+    screenshot("07b-restart-scroll-position")
 tap_clickable_text("Начать дополнительную тренировку",timeout=20)
+screenshot("07c-after-restart-tap")
+tap_state=test_eval_json("(function(){return {hasW:!!W,mode:W&&W.mode||null,screen:(document.querySelector('.screen.on')||{}).id||'',todayDisplay:getComputedStyle(document.getElementById('today')).display,workoutDisplay:getComputedStyle(document.getElementById('workout')).display};})()","restart-immediate-state")
+print("TC_DIAG restart-immediate-state",tap_state,flush=True)
+assert tap_state["hasW"] and tap_state["mode"]=="extra" and tap_state["screen"]=="workout" and tap_state["workoutDisplay"]=="flex", "Restart button must create and visibly navigate to the extra workout"
 wait_text("Сделано",timeout=18,contains=False)
 restarted=test_eval_json("(function(){return {hasW:!!W,mode:W&&W.mode||null,workoutOn:!!document.querySelector('#workout.screen.on')};})()","exit-restart")
 assert restarted["hasW"] and restarted["mode"]=="extra" and restarted["workoutOn"], "Discarded extra workout must remain immediately restartable"
