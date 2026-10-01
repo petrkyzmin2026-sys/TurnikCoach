@@ -439,6 +439,12 @@ assert not after_exit["hasW"] and after_exit["todayOn"] and not after_exit["toda
 assert not after_exit["workoutOn"] and after_exit["workoutHidden"] and not after_exit["sheetOpen"], "Workout and confirmation must be hidden after discard"
 assert after_exit["snapshot"] is None and after_exit["route"]=="today" and after_exit["extraSeq"]==0, "Discard must not persist an unfinished workout or advance extra sequence"
 screenshot("07-exit-returns-to-today")
+# The cached previous hotfix may have a deferred prompt timer that fires
+# 1.5s after W is cleared. It must not resurrect an obsolete update overlay.
+time.sleep(2.6)
+prompt_after_exit=test_eval_json("(function(){var p=document.getElementById('tcUpdatePrompt');return {present:!!p,text:p&&p.innerText.slice(0,100)||'',active:window.__TC_HOTFIX_ACTIVE_VERSION,legacyDismissed:window.__TC_UPDATE_DISMISSED_VERSION};})()","exit-no-stale-update")
+print("TC_DIAG exit-no-stale-update",prompt_after_exit,flush=True)
+assert not prompt_after_exit["present"], "A cached older hotfix must not reopen its update prompt after discard"
 wait_text("Начать дополнительную тренировку",timeout=18)
 if FONT_SCALE>=1.8:
     scroll_clickable_into_view("Начать дополнительную тренировку",timeout=30)
