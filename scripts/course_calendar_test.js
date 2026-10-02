@@ -588,6 +588,9 @@ const correctionHarness=new Function(
   if(!rollbackSkip||serialized.exerciseIndex!==0||serialized.setIndex!==1||
      serialized.items[0].actual[1]!==undefined||serialized.actual!==9)
     throw Error('failed to restore a skipped approach and its input');
+  const reloaded=JSON.parse(JSON.stringify(serialized));
+  if(reloaded.items[0].actual[1]!==undefined)
+    throw Error('undo must survive snapshot serialization without a null skip');
   const rollbackFirst=tcUndoCorrection(serialized);
   if(!rollbackFirst||serialized.exerciseIndex!==0||serialized.setIndex!==0||
      serialized.items[0].actual[0]!==undefined||serialized.actual!==10)
