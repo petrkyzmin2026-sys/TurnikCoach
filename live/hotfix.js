@@ -1,8 +1,8 @@
-/* TURNIKCOACH_HOTFIX 5.16.35-touch-release */
+/* TURNIKCOACH_HOTFIX 5.16.36-haptic-feedback */
 (function(){
   'use strict';
-  const VERSION='5.16.35-touch-release';
-  const LABEL='5.16.35';
+  const VERSION='5.16.36-haptic-feedback';
+  const LABEL='5.16.36';
   const APPROVED_KEY='tc_hotfix_approved_version';
   const LEGACY_ASSET_VERSION='5.14.0-adaptive-rest';
   const stalePrompt=document.getElementById('tcUpdatePrompt');
@@ -24,6 +24,7 @@
       ';color:'+(danger?'#ffd8db':'#e8ffed')+';font:700 13px/1.35 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;box-shadow:0 10px 30px rgba(0,0,0,.35)';
     note.textContent=message;
     document.body.appendChild(note);
+    if(danger)try{if(navigator.vibrate)navigator.vibrate([70,45,70])}catch(e){}
     setTimeout(()=>{if(note&&note.parentNode)note.parentNode.removeChild(note)},4200);
   }
   window.tcShowRuntimeNotice=showRuntimeNotice;
@@ -70,7 +71,7 @@
     title.textContent='Доступно обновление TurnikCoach '+LABEL;
     const text=document.createElement('div');
     text.style.cssText='font-size:15px;line-height:1.45;color:#cfd8e3;margin-bottom:18px;min-height:0;flex:1 1 0;overflow-y:auto;overscroll-behavior:contain;padding-right:4px';
-    text.innerHTML="Исправлено случайное выполнение первого подхода при запуске дополнительной тренировки на устройствах с крупным шрифтом. Переход происходит только после завершения касания. История и алгоритм курса не изменяются.<br><br>Установить обновление сейчас?";
+    text.innerHTML="Добавлено тактильное подтверждение записи выполненного подхода и отдельный сигнал при ошибке. Пропуск подхода не вызывает вибросигнал выполненного подхода. История и алгоритм курса не изменяются.<br><br>Установить обновление сейчас?";
     const row=document.createElement('div');
     row.style.cssText='display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;flex:0 0 auto';
     const later=document.createElement('button');
@@ -1122,6 +1123,35 @@
       return false;
     }
   }
+  // Semantic haptics: confirm only a newly recorded completed set, never a skip.
+  function tcHapticConfirm(){
+    try{if(navigator.vibrate)navigator.vibrate(45)}catch(e){}
+  }
+  function tcInstallHapticFeedback(){
+    if(window.__TC_HAPTIC_FEEDBACK_V2)return;
+    window.__TC_HAPTIC_FEEDBACK_V2=true;
+    const baseSetDone=window.setDone;
+    if(typeof baseSetDone!=='function')return;
+    window.setDone=function(skip){
+      let record=null,index=-1,previous;
+      try{
+        if(typeof W!=='undefined'&&W&&Array.isArray(W.items)){
+          record=W.items[W.exerciseIndex];
+          index=W.setIndex;
+          previous=record&&record.actual&&record.actual[index];
+        }
+      }catch(e){record=null}
+      const result=baseSetDone.apply(this,arguments);
+      try{
+        const current=record&&Array.isArray(record.actual)?record.actual[index]:undefined;
+        if(!skip&&record&&previous===undefined&&current!==undefined&&current!==null){
+          tcHapticConfirm();
+        }
+      }catch(e){}
+      return result;
+    };
+  }
+
   function tcInstallWorkoutPersistence(){
     if(tcWorkoutPersistenceInstalled)return;
     tcWorkoutPersistenceInstalled=true;
@@ -1366,6 +1396,7 @@
     tcInstallNavigationFoundation();
     tcInstallNavigationUpgrades();
     tcInstallCompletionFlow();
+    tcInstallHapticFeedback();
     tcInstallWorkoutPersistence();
     if(previousVersion!==VERSION)showRuntimeNotice('TurnikCoach обновлён до '+LABEL);
     console.log('TurnikCoach hotfix active:',VERSION);
