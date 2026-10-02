@@ -71,7 +71,7 @@ def tap_text(text,contains=True):
 def clickable_text_position(text):
     target=text.lower()
     for n in dump().iter("node"):
-        value=(n.attrib.get("text") or "")
+        value=(n.attrib.get("content-desc") or n.attrib.get("text") or "")
         bounds=n.attrib.get("bounds") or ""
         if value.lower()!=target or n.attrib.get("clickable")!="true" or not bounds:
             continue
@@ -470,8 +470,7 @@ assert done_state["recorded"]==first_before["input"] and done_state["trail"]==1,
 rest_probe=test_eval_json("(function(){var r=document.querySelector('#rest.screen.on .rest'),p=r&&r.querySelector('.tcRestBack');return {rest:!!r,back:!!p,text:p&&p.textContent||'',rect:p&&{top:p.getBoundingClientRect().top,bottom:p.getBoundingClientRect().bottom,left:p.getBoundingClientRect().left,right:p.getBoundingClientRect().right},display:p&&getComputedStyle(p).display,buttons:[...document.querySelectorAll('#rest button')].map(b=>({text:b.textContent,display:getComputedStyle(b).display})),hotfix:window.__TC_HOTFIX_ACTIVE_VERSION};})()","rest-undo-layout")
 print("TC_DIAG rest-correction-layout",rest_probe,flush=True)
 screenshot("05b-rest-layout")
-wait_text("Исправить",timeout=15,contains=False)
-tap_clickable_text("Исправить",timeout=18)
+tap_clickable_text("Исправить предыдущий подход",timeout=18)
 back_state=test_eval_json("(function(){return {ex:W.exerciseIndex,set:W.setIndex,input:W.actual,recorded:W.items[0].actual[0]===undefined?null:W.items[0].actual[0],trail:W.__tcCorrectionTrail&&W.__tcCorrectionTrail.length||0,screen:(document.querySelector('.screen.on')||{}).id};})()","after-done-correction")
 assert back_state["ex"]==first_before["ex"] and back_state["set"]==first_before["set"] and back_state["input"]==first_before["input"] and back_state["recorded"] is None and back_state["trail"]==0 and back_state["screen"]=="workout", "Done correction must restore editable set and remove its recorded result"
 screenshot("05b-done-corrected")
@@ -481,8 +480,7 @@ tap_text("Пропустить",contains=True)
 time.sleep(0.7)
 skip_state=test_eval_json("(function(){return {skipped:W.items[0].actual[0]===null,trail:W.__tcCorrectionTrail&&W.__tcCorrectionTrail.length||0,screen:(document.querySelector('.screen.on')||{}).id};})()","skip-before-correction")
 assert skip_state["skipped"] and skip_state["trail"]==1, "Skipped set must be reversible"
-wait_text("Исправить",timeout=15,contains=False)
-tap_clickable_text("Исправить",timeout=18)
+tap_clickable_text("Исправить предыдущий подход",timeout=18)
 unskip_state=test_eval_json("(function(){return {set:W.setIndex,recorded:W.items[0].actual[0]===undefined?null:W.items[0].actual[0],trail:W.__tcCorrectionTrail&&W.__tcCorrectionTrail.length||0,screen:(document.querySelector('.screen.on')||{}).id,snapshot:JSON.parse(localStorage.getItem('tc_active_workout_v2')||'null')};})()","after-skip-correction")
 assert unskip_state["set"]==0 and unskip_state["recorded"] is None and unskip_state["trail"]==0 and unskip_state["screen"]=="workout", "Skip correction must restore the same editable set"
 assert unskip_state["snapshot"] and unskip_state["snapshot"]["workout"]["setIndex"]==0, "Correction must persist the restored approach"
