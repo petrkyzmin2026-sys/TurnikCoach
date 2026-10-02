@@ -1297,7 +1297,7 @@
       if(rest){
         const prev=rest.querySelector('.tcRestBack'),finish=rest.querySelector('.tcRestExitBtn');
         if(prev){
-          prev.textContent='Исправить';prev.title='Исправить предыдущий подход';
+          if(prev.textContent!=='Исправить')prev.textContent='Исправить';prev.title='Исправить предыдущий подход';
           prev.setAttribute('aria-label','Исправить предыдущий подход');
           prev.onclick=window.tcReturnToPreviousSet;prev.disabled=!hasTrail;prev.style.display=hasTrail?'grid':'none';
         }
