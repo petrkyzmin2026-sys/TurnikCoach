@@ -69,7 +69,7 @@ jobs:
           PY
           grep -q 'TURNIKCOACH_HOTFIX 5.16.34-workout-exit' app/src/main/assets/hotfix-prev.js
           grep -q 'TURNIKCOACH_HOTFIX 5.16.35-touch-release' app/src/main/assets/hotfix-next.js
-          grep -q 'TURNIKCOACH_COURSE 1.0.34-diagnostics-cleanup' app/src/main/assets/hotfix-next.js
+          grep -q 'TURNIKCOACH_COURSE 1.0.35-touch-release' app/src/main/assets/hotfix-next.js
       - name: Seed installed 5.16.34 approval and completed main-course state
         run: |
           python3 - <<'PY'
