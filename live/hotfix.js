@@ -19,7 +19,7 @@
     const note=document.createElement('div');
     note.id='tcRuntimeNotice';
     const danger=tone==='danger';
-    note.style.cssText='position:fixed;left:14px;right:14px;bottom:88px;z-index:2147483646;padding:12px 14px;border-radius:14px;background:'+
+    note.style.cssText='position:fixed;pointer-events:none;left:14px;right:14px;bottom:88px;z-index:2147483646;padding:12px 14px;border-radius:14px;background:'+
       (danger?'#2a181b':'#18221b')+';border:1px solid '+(danger?'#70424a':'#42604a')+
       ';color:'+(danger?'#ffd8db':'#e8ffed')+';font:700 13px/1.35 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;box-shadow:0 10px 30px rgba(0,0,0,.35)';
     note.textContent=message;
