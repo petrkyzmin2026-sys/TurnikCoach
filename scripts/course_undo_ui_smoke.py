@@ -82,18 +82,35 @@ def clickable_text_position(text):
     return None,None
 
 def scroll_clickable_into_view(text,timeout=12):
+    # UiAutomator may report a truncated bottom 27px of an actual 128px CTA as
+    # a "clickable" button. Require the full touch target above the bottom
+    # navigation safe region, not merely a non-empty accessibility node.
+    size=adb("shell","wm","size").stdout
+    match=re.search(r"(\d+)x(\d+)",size)
+    if not match: raise AssertionError("Cannot determine emulator screen size for scroll")
+    _,h=map(int,match.groups())
+    safe_top=int(h*.13)
+    safe_bottom=int(h*.82)
+    last_bounds=None
     end=time.time()+timeout
     while time.time()<end:
         dismiss_system_anr()
         pos,bounds=clickable_text_position(text)
         if pos:
-            print("TC_DIAG scroll_target_visible",text,"bounds",bounds,"center",pos,flush=True)
-            return pos
-        # Keep the gesture inside the Today scroll viewport; the bottom area is occupied
-        # by fixed actions/navigation at 200% text scale and can swallow a swipe.
+            nums=[int(x) for x in re.findall(r"\d+",bounds)]
+            top,bottom=nums[1],nums[3]
+            if top>=safe_top and bottom<=safe_bottom and bottom-top>=115:
+                print("TC_DIAG scroll_target_visible",text,"bounds",bounds,"center",pos,flush=True)
+                return pos
+            if bounds!=last_bounds:
+                print("TC_DIAG scroll_target_clipped",text,"bounds",bounds,
+                    "safe",[safe_top,safe_bottom],flush=True)
+                last_bounds=bounds
+        # Start inside Today's content viewport, away from fixed navigation.
         adb("shell","input","swipe","540","1450","540","650","350",check=False)
         time.sleep(.6)
-    raise AssertionError("Clickable text not reachable by scrolling: "+text)
+    raise AssertionError("Clickable text not safely reachable by scrolling: "+text+
+        " last bounds="+str(last_bounds))
 
 def tap_clickable_text(text,timeout=12):
     end=time.time()+timeout
@@ -309,13 +326,13 @@ def launch():
 launch()
 dismiss_system_anr()
 
-# Exact update path: packaged 5.14 + cached 5.16.33 are active first; staged 5.16.34 must be offered explicitly.
+# Exact update path: packaged 5.14 + cached 5.16.34 are active first; staged 5.16.35 must be offered explicitly.
 time.sleep(3)
 screenshot("00-before-update-assert")
 adb("shell","uiautomator","dump","/sdcard/uxb3-before-update.xml",check=False)
 adb("pull","/sdcard/uxb3-before-update.xml",OUT+"/00-before-update.xml",check=False)
 try:
-    wait_text("Доступно обновление TurnikCoach 5.16.34",timeout=20)
+    wait_text("Доступно обновление TurnikCoach 5.16.35",timeout=20)
 except Exception:
     log=adb("logcat","-d","-t","500",check=False)
     with open(OUT+"/00-logcat.txt","w",encoding="utf-8") as fp:
@@ -325,7 +342,7 @@ wait_text("Обновить",contains=False)
 screenshot("01-update-offered")
 
 tap_clickable_text("Обновить")
-wait_text("TurnikCoach обновлён до 5.16.34",timeout=25)
+wait_text("TurnikCoach обновлён до 5.16.35",timeout=25)
 assert_accessibility_target("План",48)
 assert_accessibility_target("Прогресс",48)
 screenshot("02-update-installed")
@@ -349,7 +366,29 @@ if FONT_SCALE>=1.8:
         print("TC_DIAG font200-scroll-after-swipe",after_swipe,flush=True)
         raise
     screenshot("03b-main-done-extra-scrolled")
+# Capture real pointer/touch ordering in the isolated test app. No test-only
+# listener calls application actions.
+test_exec("""if(!window.__tcGestureTraceInstalled){
+  window.__tcGestureTraceInstalled=true;
+  ['pointerdown','pointerup','touchend','click'].forEach(function(name){
+    document.addEventListener(name,function(ev){
+      var el=ev.target&&ev.target.closest&&ev.target.closest('#tcStartExtraAfterCourseBtn,#workout button');
+      if(el)console.log('TC_GESTURE',JSON.stringify({type:name,id:el.id,text:(el.textContent||'').trim().slice(0,45),at:Date.now(),screen:(document.querySelector('.screen.on')||{}).id}));
+    },true);
+  });
+  var original=window.setDone;
+  if(typeof original==='function')window.setDone=function(skip){
+    console.log('TC_GESTURE',JSON.stringify({type:'setDone',skip:!!skip,at:Date.now(),screen:(document.querySelector('.screen.on')||{}).id}));
+    return original.apply(this,arguments);
+  };
+}""","gesture-start-trace")
 tap_clickable_text("Начать дополнительную тренировку")
+gesture_trace=adb("logcat","-d","-s","TurnikCoachJS:D","*:S",check=False)
+for gesture_line in (gesture_trace.stdout or "").splitlines():
+    if "TC_GESTURE" in gesture_line: print("TC_DIAG gesture",gesture_line,flush=True)
+early=test_eval_json("(function(){return {hasW:!!W,mode:W&&W.mode||null,setIndex:W&&W.setIndex,firstActual:(W&&W.items&&W.items[0]&&W.items[0].actual[0])??null,screen:(document.querySelector('.screen.on')||{}).id||''};})()","start-must-not-record-first-set")
+print("TC_DIAG start-first-set",early,flush=True)
+assert early["hasW"] and early["mode"]=="extra" and early["setIndex"]==0 and early["firstActual"] is None and early["screen"]=="workout", "Starting extra workout must not advance or record a set without Done"
 screenshot("04a-after-extra-start-tap")
 adb("shell","uiautomator","dump","/sdcard/ux2-after-start-tap.xml",check=False)
 adb("pull","/sdcard/ux2-after-start-tap.xml",OUT+"/04a-after-extra-start-tap.xml",check=False)
@@ -359,6 +398,9 @@ with open(OUT+"/04a-after-extra-start-logcat.txt","w",encoding="utf-8") as fp:
 
 # Capture the actual Android surface after the WebView has had time to composite the new screen.
 time.sleep(2)
+settled=test_eval_json("(function(){return {hasW:!!W,mode:W&&W.mode||null,setIndex:W&&W.setIndex,firstActual:(W&&W.items&&W.items[0]&&W.items[0].actual[0])??null,screen:(document.querySelector('.screen.on')||{}).id||''};})()","settled-first-set")
+print("TC_DIAG settled-first-set",settled,flush=True)
+assert settled["hasW"] and settled["mode"]=="extra" and settled["setIndex"]==0 and settled["firstActual"] is None and settled["screen"]=="workout", "Extra workout must remain on its first set after starting"
 screenshot("04b-extra-start-settled")
 adb("shell","uiautomator","dump","/sdcard/ux2-after-start-settled.xml",check=False)
 adb("pull","/sdcard/ux2-after-start-settled.xml",OUT+"/04b-extra-start-settled.xml",check=False)
@@ -366,10 +408,12 @@ settled_log=adb("logcat","-d","-t","700",check=False)
 with open(OUT+"/04b-extra-start-settled-logcat.txt","w",encoding="utf-8") as fp:
     fp.write((settled_log.stdout or "")+"\n"+(settled_log.stderr or ""))
 
-# Headless Android WebView can expose a stale accessibility/surface frame after a dynamic screen switch.
-# Verify the actual application state using runtime markers emitted by the same WebView execution path.
-snapshot_line=wait_log_tokens(["TC_WORKOUT_STATE",'"phase":"snapshot-saved"','"screen":"workout"','"mode":"extra"','"name":"Подъём коленей в висе"'],timeout=10)
-print("TC_DIAG snapshot",snapshot_line,flush=True)
+# The stronger before/after launch assertions above use the test bridge,
+# which clears logcat before evaluation. Validate persistence directly rather
+# than relying on a snapshot log line that was correctly rotated away.
+snapshot_state=test_eval_json("(function(){var s=JSON.parse(localStorage.getItem('tc_active_workout_v2')||'null');var w=s&&s.workout;var i=w&&w.items&&w.items[w.exerciseIndex];return {schema:s&&s.schema,screen:s&&s.screen,mode:w&&w.mode,setIndex:w&&w.setIndex,name:i&&i.e&&i.e.name};})()","extra-start-persisted-snapshot")
+print("TC_DIAG persisted-snapshot",snapshot_state,flush=True)
+assert snapshot_state["schema"]==2 and snapshot_state["screen"]=="workout" and snapshot_state["mode"]=="extra" and snapshot_state["setIndex"]==0 and snapshot_state["name"]=="Подъём коленей в висе", "Initial extra workout must persist its untouched first set"
 
 # Android-specific durability check: process death must restore the same active workout.
 adb("logcat","-c",check=False)
@@ -377,9 +421,9 @@ adb("shell","am","force-stop",PKG)
 time.sleep(1)
 launch()
 dismiss_system_anr()
-upgrade_install=wait_log_tokens(["TC_NAV_UPGRADE",'"phase":"install"','"version":"5.16.34-workout-exit"'],timeout=20)
+upgrade_install=wait_log_tokens(["TC_NAV_UPGRADE",'"phase":"install"','"version":"5.16.35-touch-release"'],timeout=20)
 restore_line=wait_log_tokens(["TC_WORKOUT_STATE",'"phase":"restored"','"name":"Подъём коленей в висе"','"mode":"extra"'],timeout=20)
-upgrade_arm=wait_log_tokens(["TC_NAV_UPGRADE",'"phase":"arm-restore-guard"','"version":"5.16.34-workout-exit"','"surface":"workout"'],timeout=20)
+upgrade_arm=wait_log_tokens(["TC_NAV_UPGRADE",'"phase":"arm-restore-guard"','"version":"5.16.35-touch-release"','"surface":"workout"'],timeout=20)
 print("TC_DIAG nav-upgrade-install",upgrade_install,flush=True)
 print("TC_DIAG restore",restore_line,flush=True)
 print("TC_DIAG nav-upgrade-arm",upgrade_arm,flush=True)

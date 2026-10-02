@@ -1,7 +1,7 @@
-/* TURNIKCOACH_COURSE 1.0.34-diagnostics-cleanup */
+/* TURNIKCOACH_COURSE 1.0.35-touch-release */
 (function(){
   'use strict';
-  const COURSE_MODULE_VERSION='1.0.34-diagnostics-cleanup';
+  const COURSE_MODULE_VERSION='1.0.35-touch-release';
   if(window.__TC_COURSE_MODULE_VERSION===COURSE_MODULE_VERSION)return;
   window.__TC_COURSE_MODULE_VERSION=COURSE_MODULE_VERSION;
   function tcClamp(v,a,b){return Math.max(a,Math.min(b,v))}
@@ -1039,20 +1039,15 @@
         return true;
       };
       document.addEventListener('click',ev=>{const el=actionFor(ev.target);if(el)run(el,ev)},true);
+      // Never navigate while the starting pointer is still down. The old
+      // 140 ms pointerdown fallback could change Today into Workout before
+      // touchend/click, making the same gesture land on the new Done button.
       let pointerGesture=null;
-      const cancelPointerGesture=()=>{
-        if(pointerGesture&&pointerGesture.timer)clearTimeout(pointerGesture.timer);
-        pointerGesture=null;
-      };
+      const cancelPointerGesture=()=>{pointerGesture=null};
       document.addEventListener('pointerdown',ev=>{
         const el=actionFor(ev.target);
         if(!el)return;
-        cancelPointerGesture();
-        const g={el,x:ev.clientX,y:ev.clientY,moved:false,ran:false,timer:null};
-        g.timer=setTimeout(()=>{
-          if(pointerGesture===g&&!g.moved&&!g.ran){g.ran=true;run(g.el,ev)}
-        },140);
-        pointerGesture=g;
+        pointerGesture={el,x:ev.clientX,y:ev.clientY,moved:false};
       },true);
       document.addEventListener('pointermove',ev=>{
         const g=pointerGesture;if(!g)return;
@@ -1060,9 +1055,11 @@
       },true);
       document.addEventListener('pointerup',ev=>{
         const g=pointerGesture;if(!g)return;
-        if(g.timer)clearTimeout(g.timer);
         pointerGesture=null;
-        if(!g.moved&&!g.ran)run(g.el,ev);
+        // Touchend handles normal touchscreen activation and suppresses its
+        // synthetic click; this zero-delay callback is only a fallback after
+        // release for WebViews that cancel click/touchend.
+        if(!g.moved)setTimeout(()=>run(g.el,null),0);
       },true);
       document.addEventListener('pointercancel',cancelPointerGesture,true);
       document.addEventListener('touchstart',ev=>{
