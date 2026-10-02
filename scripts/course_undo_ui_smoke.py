@@ -366,7 +366,7 @@ test_exec("""if(!window.__tcGestureTraceInstalled){
   };
 }""","gesture-start-trace")
 tap_clickable_text("Начать дополнительную тренировку")
-early=test_eval_json("(function(){return {hasW:!!W,mode:W&&W.mode||null,setIndex:W&&W.setIndex,firstActual:W&&W.items&&W.items[0]&&W.items[0].actual[0],screen:(document.querySelector('.screen.on')||{}).id||''};})()","start-must-not-record-first-set")
+early=test_eval_json("(function(){return {hasW:!!W,mode:W&&W.mode||null,setIndex:W&&W.setIndex,firstActual:(W&&W.items&&W.items[0]&&W.items[0].actual[0])??null,screen:(document.querySelector('.screen.on')||{}).id||''};})()","start-must-not-record-first-set")
 print("TC_DIAG start-first-set",early,flush=True)
 assert early["hasW"] and early["mode"]=="extra" and early["setIndex"]==0 and early["firstActual"] is None and early["screen"]=="workout", "Starting extra workout must not advance or record a set without Done"
 screenshot("04a-after-extra-start-tap")
@@ -378,7 +378,7 @@ with open(OUT+"/04a-after-extra-start-logcat.txt","w",encoding="utf-8") as fp:
 
 # Capture the actual Android surface after the WebView has had time to composite the new screen.
 time.sleep(2)
-settled=test_eval_json("(function(){return {hasW:!!W,mode:W&&W.mode||null,setIndex:W&&W.setIndex,firstActual:W&&W.items&&W.items[0]&&W.items[0].actual[0],screen:(document.querySelector('.screen.on')||{}).id||''};})()","settled-first-set")
+settled=test_eval_json("(function(){return {hasW:!!W,mode:W&&W.mode||null,setIndex:W&&W.setIndex,firstActual:(W&&W.items&&W.items[0]&&W.items[0].actual[0])??null,screen:(document.querySelector('.screen.on')||{}).id||''};})()","settled-first-set")
 print("TC_DIAG settled-first-set",settled,flush=True)
 assert settled["hasW"] and settled["mode"]=="extra" and settled["setIndex"]==0 and settled["firstActual"] is None and settled["screen"]=="workout", "Extra workout must remain on its first set after starting"
 screenshot("04b-extra-start-settled")
