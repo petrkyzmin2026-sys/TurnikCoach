@@ -80,15 +80,15 @@ assert(course.includes('tcPreviewCourseCard(tcSelectedDate)'),
  'choosing another date must show a read-only plan');
 assert(course.includes('id="tcCycleStartDate"'),
  'settings must expose a cycle start date');
-assert(hotfix.includes("const VERSION='5.16.34-workout-exit'"),
- 'release hotfix version must be 5.16.34');
-assert(course.includes("const COURSE_MODULE_VERSION='1.0.34-diagnostics-cleanup'"),
- 'course module version must be 1.0.34');
+assert(hotfix.includes("const VERSION='5.16.35-touch-release'"),
+ 'release hotfix version must be 5.16.35');
+assert(course.includes("const COURSE_MODULE_VERSION='1.0.35-touch-release'"),
+ 'course module version must be 1.0.35');
 assert(!course.includes('TC_EXTRA_START'),
  'temporary extra-workout trace logging must not ship');
 assert(!course.includes('window.confirm('),'course module must not depend on unsupported WebView JS dialogs');
 assert(!hotfix.includes('window.confirm('),'hotfix navigation/discard must not depend on unsupported WebView JS dialogs');
-assert(!hotfix.includes('forceHandover'),'5.16.34 must use an explicit user-visible update prompt');
+assert(!hotfix.includes('forceHandover'),'5.16.35 must use an explicit user-visible update prompt');
 assert(hotfix.includes("showRuntimeNotice('TurnikCoach обновлён до '+LABEL)"),
  'successful activation must give visible feedback');
 assert(hotfix.includes("localStorage.setItem('tc_hotfix_active_version',VERSION)"),
@@ -152,8 +152,9 @@ assert(course.includes('function tcInstallTodayActionDelegation()')&&
  'Today actions must also have stable delegated click/touch activation across rerenders');
 assert(course.includes("document.addEventListener('pointerdown',ev=>")&&
  course.includes("document.addEventListener('pointerup',ev=>")&&
- course.includes("pointerGesture===g&&!g.moved&&!g.ran"),
- 'Today actions must survive WebView click cancellation while cancelling real scroll gestures');
+ course.includes("if(!g.moved)setTimeout(()=>run(g.el,null),0)")&&
+ !course.includes("pointerGesture===g&&!g.moved&&!g.ran"),
+ 'Today actions must activate after pointer release, never from a held pointerdown');
 assert(course.includes(".tcAfterMainCard{position:relative;z-index:40"),
  'after-main CTA card must stay above sibling content in the Today stacking context');
 assert(course.includes("tcActionMessage('Не удалось начать тренировку',message)"),
@@ -163,6 +164,47 @@ assert(!emptyExtrasHtml.includes("onclick=\"go('exercise')\""),
  'after-main choose-extras CTA must not keep a competing inline action path');
 assert(course.includes("window.__TC_TODAY_ACTION_DELEGATION_V2"),
  'Today actions must install the versioned delegated router V2');
+
+
+/* The shipped gesture router must not start training while the initiating
+ * touch is still down. A 200% layout previously placed Done underneath the
+ * finger after the 140 ms pointerdown fallback navigated early. */
+{
+ const handlers={};
+ const doc={addEventListener:(name,fn)=>{(handlers[name]??=[]).push(fn)}};
+ const button={id:'tcStartExtraAfterCourseBtn',closest:()=>button};
+ let now=1000,starts=0,queued=[];
+ const win={tcStartExtraWorkout:()=>{starts++}};
+ const timer=fn=>{queued.push(fn);return queued.length};
+ const router=new Function('document','window','setTimeout','Date',
+    extract('tcInstallTodayActionDelegation')+';return tcInstallTodayActionDelegation');
+ router(doc,win,timer,{now:()=>now})();
+ const emit=(type,x=100,y=200,target=button)=>{
+   const e={target,clientX:x,clientY:y,pointerType:'touch',
+     touches:[{clientX:x,clientY:y}],preventDefault(){this.prevented=true},
+     stopPropagation(){this.stopped=true}};
+   for(const h of handlers[type]||[])h(e);
+   return e;
+ };
+ emit('pointerdown');emit('touchstart');
+ assert.equal(starts,0,'press must not start training before release');
+ for(const fn of queued.splice(0))fn();
+ assert.equal(starts,0,'holding Today button must never switch to Workout');
+ emit('pointerup');
+ assert.equal(starts,0,'pointerup fallback must run after pointer release');
+ const end=emit('touchend');
+ assert.equal(end.prevented,true,'touchend must suppress subsequent synthetic click');
+ assert.equal(starts,1,'touchend starts exactly one workout');
+ for(const fn of queued.splice(0))fn();
+ emit('click');
+ assert.equal(starts,1,'pointer/click fallbacks must not repeat the same gesture');
+ now+=1200;
+ emit('pointerdown');emit('touchstart');
+ emit('pointermove',130,200);emit('touchmove',130,200);emit('pointerup',130,200);
+ emit('touchend',130,200);
+ for(const fn of queued.splice(0))fn();
+ assert.equal(starts,1,'a scroll gesture must not start another workout');
+}
 
 const doneExtraApi=new Function('TC_course','state','dateKey','tcExtraRowsHtml',
   extract('tcTodayCourseRecord')+'\n'+extract('tcTodayExtraRecord')+'\n'+extract('tcTodayCourseDoneHtml')+
