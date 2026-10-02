@@ -366,6 +366,9 @@ test_exec("""if(!window.__tcGestureTraceInstalled){
   };
 }""","gesture-start-trace")
 tap_clickable_text("Начать дополнительную тренировку")
+gesture_trace=adb("logcat","-d","-s","TurnikCoachJS:D","*:S",check=False)
+for gesture_line in (gesture_trace.stdout or "").splitlines():
+    if "TC_GESTURE" in gesture_line: print("TC_DIAG gesture",gesture_line,flush=True)
 early=test_eval_json("(function(){return {hasW:!!W,mode:W&&W.mode||null,setIndex:W&&W.setIndex,firstActual:(W&&W.items&&W.items[0]&&W.items[0].actual[0])??null,screen:(document.querySelector('.screen.on')||{}).id||''};})()","start-must-not-record-first-set")
 print("TC_DIAG start-first-set",early,flush=True)
 assert early["hasW"] and early["mode"]=="extra" and early["setIndex"]==0 and early["firstActual"] is None and early["screen"]=="workout", "Starting extra workout must not advance or record a set without Done"
@@ -388,10 +391,12 @@ settled_log=adb("logcat","-d","-t","700",check=False)
 with open(OUT+"/04b-extra-start-settled-logcat.txt","w",encoding="utf-8") as fp:
     fp.write((settled_log.stdout or "")+"\n"+(settled_log.stderr or ""))
 
-# Headless Android WebView can expose a stale accessibility/surface frame after a dynamic screen switch.
-# Verify the actual application state using runtime markers emitted by the same WebView execution path.
-snapshot_line=wait_log_tokens(["TC_WORKOUT_STATE",'"phase":"snapshot-saved"','"screen":"workout"','"mode":"extra"','"name":"Подъём коленей в висе"'],timeout=10)
-print("TC_DIAG snapshot",snapshot_line,flush=True)
+# The stronger before/after launch assertions above use the test bridge,
+# which clears logcat before evaluation. Validate persistence directly rather
+# than relying on a snapshot log line that was correctly rotated away.
+snapshot_state=test_eval_json("(function(){var s=JSON.parse(localStorage.getItem('tc_active_workout_v2')||'null');var w=s&&s.workout;var i=w&&w.items&&w.items[w.exerciseIndex];return {schema:s&&s.schema,screen:s&&s.screen,mode:w&&w.mode,setIndex:w&&w.setIndex,name:i&&i.e&&i.e.name};})()","extra-start-persisted-snapshot")
+print("TC_DIAG persisted-snapshot",snapshot_state,flush=True)
+assert snapshot_state["schema"]==2 and snapshot_state["screen"]=="workout" and snapshot_state["mode"]=="extra" and snapshot_state["setIndex"]==0 and snapshot_state["name"]=="Подъём коленей в висе", "Initial extra workout must persist its untouched first set"
 
 # Android-specific durability check: process death must restore the same active workout.
 adb("logcat","-c",check=False)
