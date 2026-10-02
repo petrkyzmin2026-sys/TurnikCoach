@@ -346,6 +346,14 @@ wait_text("TurnikCoach обновлён до 5.16.37",timeout=25)
 assert_accessibility_target("План",48)
 assert_accessibility_target("Прогресс",48)
 screenshot("02-update-installed")
+nav_hit=test_eval_json("(function(){var b=document.getElementById('n3'),r=b.getBoundingClientRect(),x=(r.left+r.right)/2,y=(r.top+r.bottom)/2,h=document.elementFromPoint(x,y),n=document.getElementById('nav');return {rect:{top:r.top,bottom:r.bottom},hit:h&&h.id||h&&h.tagName||'',inNav:!!(h&&n.contains(h)),sheetOpen:!!document.querySelector('#sheet.open')};})()","progress-nav-real-hit-test")
+print("TC_DIAG bottom-nav-hit",nav_hit,flush=True)
+assert nav_hit["inNav"] and not nav_hit["sheetOpen"], "Progress nav center must not be covered by the Today undo action at large text"
+tap_clickable_text("Прогресс",timeout=20)
+nav_open=test_eval_json("(document.querySelector('.screen.on')||{}).id","progress-nav-opens")
+assert nav_open=="historyScreen", "Progress nav tap must show its real screen"
+tap_clickable_text("Сегодня",timeout=20)
+
 
 # Main course is already saved by the seeded user state; extra workout must still be available.
 wait_text("Основной комплекс выполнен",timeout=20)
