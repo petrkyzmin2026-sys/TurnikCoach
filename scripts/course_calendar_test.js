@@ -4,6 +4,7 @@
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
 const course=fs.readFileSync('live/course.js','utf8');
 const hotfix=fs.readFileSync('live/hotfix.js','utf8');
+const manifest=fs.readFileSync('app/src/main/AndroidManifest.xml','utf8');
 const mainActivity=fs.readFileSync('app/src/main/java/ru/turnikcoach/app/MainActivity.java','utf8');
 new vm.Script(course,{filename:'live/course.js'});
 new vm.Script(hotfix,{filename:'live/hotfix.js'});
@@ -80,15 +81,15 @@ assert(course.includes('tcPreviewCourseCard(tcSelectedDate)'),
  'choosing another date must show a read-only plan');
 assert(course.includes('id="tcCycleStartDate"'),
  'settings must expose a cycle start date');
-assert(hotfix.includes("const VERSION='5.16.35-touch-release'"),
- 'release hotfix version must be 5.16.35');
+assert(hotfix.includes("const VERSION='5.16.36-haptic-feedback'"),
+ 'release hotfix version must be 5.16.36');
 assert(course.includes("const COURSE_MODULE_VERSION='1.0.35-touch-release'"),
  'course module version must be 1.0.35');
 assert(!course.includes('TC_EXTRA_START'),
  'temporary extra-workout trace logging must not ship');
 assert(!course.includes('window.confirm('),'course module must not depend on unsupported WebView JS dialogs');
 assert(!hotfix.includes('window.confirm('),'hotfix navigation/discard must not depend on unsupported WebView JS dialogs');
-assert(!hotfix.includes('forceHandover'),'5.16.35 must use an explicit user-visible update prompt');
+assert(!hotfix.includes('forceHandover'),'5.16.36 must use an explicit user-visible update prompt');
 assert(hotfix.includes("showRuntimeNotice('TurnikCoach обновлён до '+LABEL)"),
  'successful activation must give visible feedback');
 assert(hotfix.includes("localStorage.setItem('tc_hotfix_active_version',VERSION)"),
@@ -429,7 +430,7 @@ assert(hotfix.includes("const hadActiveWorkout=typeof W!=='undefined'&&!!W")&&
  'new hotfix must reassert durable workout state when an older hotfix already restored W');
 assert(hotfix.includes('function tcInstallNavigationUpgrades()')&&
  hotfix.includes('window.__TC_NAV_UPGRADE_VERSION=VERSION')&&
- hotfix.includes('tcInstallNavigationFoundation();\n    tcInstallNavigationUpgrades();\n    tcInstallCompletionFlow();\n    tcInstallWorkoutPersistence();'),
+ hotfix.includes('tcInstallNavigationFoundation();\n    tcInstallNavigationUpgrades();\n    tcInstallCompletionFlow();\n    tcInstallHapticFeedback();\n    tcInstallWorkoutPersistence();'),
  'hotfix upgrades must run after the one-time navigation core and before persistence restore');
 assert(hotfix.includes('window.tcRefreshActiveTrainingSurface=function(id)')&&
  hotfix.includes('window.tcArmRestoreSurfaceGuard=function(surface)')&&
@@ -528,6 +529,34 @@ assert(hotfix.includes('tcShowCompletionSummary(summary)'),
  'successful save must open a completion summary');
 assert(hotfix.includes("if(tcActiveWorkoutForUpdate()){")&&hotfix.includes('tcScheduleDeferredUpdate(activate)'),
  'update prompt must defer while a workout or durable workout snapshot is active');
+
+// Semantic haptics regression: a newly saved set pulses; a skip and duplicate do not.
+assert(manifest.includes('android.permission.VIBRATE'),'preview requires Android vibration permission');
+assert(hotfix.includes('if(!skip&&record&&previous===undefined&&current!==undefined&&current!==null)'),
+ 'set confirmation must not vibrate on skipped or previously recorded sets');
+assert(hotfix.includes('navigator.vibrate([70,45,70])'),
+ 'danger feedback needs a distinct reject pattern');
+const hapticHarness=new Function(
+  extractFrom(hotfix,'tcHapticConfirm')+'\\n'+
+  extractFrom(hotfix,'tcInstallHapticFeedback')+'\\n'+
+  `
+  let W={items:[{actual:[]}],exerciseIndex:0,setIndex:0,actual:8};
+  const pulses=[],navigator={vibrate:v=>{pulses.push(v);return true}};
+  const window={setDone:function(skip){
+    const x=W.items[W.exerciseIndex];
+    x.actual[W.setIndex]=skip?null:W.actual;
+    W.setIndex=Math.min(1,W.setIndex+1);
+  }};
+  tcInstallHapticFeedback();
+  window.setDone(false);  // first successful set
+  window.setDone(true);   // skip must remain silent
+  W.setIndex=0;
+  window.setDone(false);  // repeating an already recorded set must remain silent
+  return pulses;
+  `
+)();
+assert.deepEqual(hapticHarness,[45],
+ 'only one true newly completed set should produce the confirmation pulse');
 
 // Behavioral completion-flow regression: execute the shipped wrapper and shipped Undo transaction.
 const completionHarness=new Function(
