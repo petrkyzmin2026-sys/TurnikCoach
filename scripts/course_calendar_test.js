@@ -559,6 +559,9 @@ const hapticHarness=new Function(
 assert.deepEqual(hapticHarness,[45],
  'only one true newly completed set should produce the confirmation pulse');
 
+assert(hotfix.includes('#app > .nav{z-index:90!important;pointer-events:auto!important}')&&
+ hotfix.includes('#today .scroll{min-height:0!important;overscroll-behavior:contain;padding-bottom:144px!important}'),
+ 'bottom navigation must have an unobstructed hit layer and safe Today scroll clearance at large text');
 // Actual correction implementation: undo skip, previous approach and previous exercise.
 assert(hotfix.includes('window.tcOpenWorkoutFinishMenu=function()')&&
  hotfix.includes('Завершить с сохранением')&&
