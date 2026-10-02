@@ -82,18 +82,35 @@ def clickable_text_position(text):
     return None,None
 
 def scroll_clickable_into_view(text,timeout=12):
+    # UiAutomator may report a truncated bottom 27px of an actual 128px CTA as
+    # a "clickable" button. Require the full touch target above the bottom
+    # navigation safe region, not merely a non-empty accessibility node.
+    size=adb("shell","wm","size").stdout
+    match=re.search(r"(\\d+)x(\\d+)",size)
+    if not match: raise AssertionError("Cannot determine emulator screen size for scroll")
+    _,h=map(int,match.groups())
+    safe_top=int(h*.13)
+    safe_bottom=int(h*.82)
+    last_bounds=None
     end=time.time()+timeout
     while time.time()<end:
         dismiss_system_anr()
         pos,bounds=clickable_text_position(text)
         if pos:
-            print("TC_DIAG scroll_target_visible",text,"bounds",bounds,"center",pos,flush=True)
-            return pos
-        # Keep the gesture inside the Today scroll viewport; the bottom area is occupied
-        # by fixed actions/navigation at 200% text scale and can swallow a swipe.
+            nums=[int(x) for x in re.findall(r"\\d+",bounds)]
+            top,bottom=nums[1],nums[3]
+            if top>=safe_top and bottom<=safe_bottom and bottom-top>=115:
+                print("TC_DIAG scroll_target_visible",text,"bounds",bounds,"center",pos,flush=True)
+                return pos
+            if bounds!=last_bounds:
+                print("TC_DIAG scroll_target_clipped",text,"bounds",bounds,
+                    "safe",[safe_top,safe_bottom],flush=True)
+                last_bounds=bounds
+        # Start inside Today's content viewport, away from fixed navigation.
         adb("shell","input","swipe","540","1450","540","650","350",check=False)
         time.sleep(.6)
-    raise AssertionError("Clickable text not reachable by scrolling: "+text)
+    raise AssertionError("Clickable text not safely reachable by scrolling: "+text+
+        " last bounds="+str(last_bounds))
 
 def tap_clickable_text(text,timeout=12):
     end=time.time()+timeout
