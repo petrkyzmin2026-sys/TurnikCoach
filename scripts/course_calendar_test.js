@@ -81,15 +81,15 @@ assert(course.includes('tcPreviewCourseCard(tcSelectedDate)'),
  'choosing another date must show a read-only plan');
 assert(course.includes('id="tcCycleStartDate"'),
  'settings must expose a cycle start date');
-assert(hotfix.includes("const VERSION='5.16.36-haptic-feedback'"),
- 'release hotfix version must be 5.16.36');
+assert(hotfix.includes("const VERSION='5.16.37-correction-controls'"),
+ 'release hotfix version must be 5.16.37');
 assert(course.includes("const COURSE_MODULE_VERSION='1.0.35-touch-release'"),
  'course module version must be 1.0.35');
 assert(!course.includes('TC_EXTRA_START'),
  'temporary extra-workout trace logging must not ship');
 assert(!course.includes('window.confirm('),'course module must not depend on unsupported WebView JS dialogs');
 assert(!hotfix.includes('window.confirm('),'hotfix navigation/discard must not depend on unsupported WebView JS dialogs');
-assert(!hotfix.includes('forceHandover'),'5.16.36 must use an explicit user-visible update prompt');
+assert(!hotfix.includes('forceHandover'),'5.16.37 must use an explicit user-visible update prompt');
 assert(hotfix.includes("showRuntimeNotice('TurnikCoach обновлён до '+LABEL)"),
  'successful activation must give visible feedback');
 assert(hotfix.includes("localStorage.setItem('tc_hotfix_active_version',VERSION)"),
@@ -430,7 +430,7 @@ assert(hotfix.includes("const hadActiveWorkout=typeof W!=='undefined'&&!!W")&&
  'new hotfix must reassert durable workout state when an older hotfix already restored W');
 assert(hotfix.includes('function tcInstallNavigationUpgrades()')&&
  hotfix.includes('window.__TC_NAV_UPGRADE_VERSION=VERSION')&&
- hotfix.includes('tcInstallNavigationFoundation();\n    tcInstallNavigationUpgrades();\n    tcInstallCompletionFlow();\n    tcInstallHapticFeedback();\n    tcInstallWorkoutPersistence();'),
+ hotfix.includes('tcInstallNavigationFoundation();\n    tcInstallNavigationUpgrades();\n    tcInstallCompletionFlow();\n    tcInstallHapticFeedback();\n    tcInstallWorkoutCorrection();\n    tcInstallWorkoutPersistence();'),
  'hotfix upgrades must run after the one-time navigation core and before persistence restore');
 assert(hotfix.includes('window.tcRefreshActiveTrainingSurface=function(id)')&&
  hotfix.includes('window.tcArmRestoreSurfaceGuard=function(surface)')&&
@@ -557,6 +557,54 @@ const hapticHarness=new Function(
 )();
 assert.deepEqual(hapticHarness,[45],
  'only one true newly completed set should produce the confirmation pulse');
+
+// Actual correction implementation: undo skip, previous approach and previous exercise.
+assert(hotfix.includes('window.tcOpenWorkoutFinishMenu=function()')&&
+ hotfix.includes('Завершить с сохранением')&&
+ hotfix.includes('Выйти без сохранения')&&
+ hotfix.includes('#workout .stageHeader .endBtn,#workout .wtop .endBtn{display:none!important}'),
+ 'workout must have one clear Finish menu, not two competing header actions');
+assert(hotfix.includes("prev.onclick=window.tcReturnToPreviousSet")&&
+ hotfix.includes("back.onclick=window.tcReturnToPreviousSet"),
+ 'Correction must be available in rest and workout, not a rest-only shortcut');
+assert(hotfix.includes('window.tcSaveActiveWorkoutSnapshot()')&&
+ hotfix.includes('window.tcRefreshActiveTrainingSurface'),
+ 'Corrected workout must be re-persisted and displayed');
+const correctionHarness=new Function(
+  extractFrom(hotfix,'tcCaptureCorrectionBefore')+'\n'+
+  extractFrom(hotfix,'tcCommitCorrection')+'\n'+
+  extractFrom(hotfix,'tcUndoCorrection')+'\n'+
+  `
+  const w={exerciseIndex:0,setIndex:0,actual:10,early:false,
+    items:[{plan:[10,9],actual:[]},{plan:[6],actual:[]}]};
+  const first=tcCaptureCorrectionBefore(w);
+  w.items[0].actual[0]=10;w.setIndex=1;w.actual=9;
+  if(!tcCommitCorrection(w,first))throw Error('first set not recorded');
+  const skipped=tcCaptureCorrectionBefore(w);
+  w.items[0].actual[1]=null;w.exerciseIndex=1;w.setIndex=0;w.actual=6;
+  if(!tcCommitCorrection(w,skipped))throw Error('skip not recorded');
+  const serialized=JSON.parse(JSON.stringify(w));
+  const rollbackSkip=tcUndoCorrection(serialized);
+  if(!rollbackSkip||serialized.exerciseIndex!==0||serialized.setIndex!==1||
+     serialized.items[0].actual[1]!==undefined||serialized.actual!==9)
+    throw Error('failed to restore a skipped approach and its input');
+  const rollbackFirst=tcUndoCorrection(serialized);
+  if(!rollbackFirst||serialized.exerciseIndex!==0||serialized.setIndex!==0||
+     serialized.items[0].actual[0]!==undefined||serialized.actual!==10)
+    throw Error('failed to navigate to earlier exercise approach');
+  if(tcUndoCorrection(serialized)!==null)throw Error('underflow should be safe');
+  serialized.items[0].actual[0]=10;
+  serialized.actual=11;
+  const overwrite=tcCaptureCorrectionBefore(serialized);
+  serialized.items[0].actual[0]=11;
+  if(!tcCommitCorrection(serialized,overwrite))throw Error('correction to prior value not recorded');
+  tcUndoCorrection(serialized);
+  if(serialized.items[0].actual[0]!==10)throw Error('prior recorded value not restored');
+  return {savedTrail:w.__tcCorrectionTrail.length,restored:true};
+  `
+)();
+assert.deepEqual(correctionHarness,{savedTrail:2,restored:true},
+ 'undo stack must restore saved, skipped and corrected values after JSON persistence');
 
 // Behavioral completion-flow regression: execute the shipped wrapper and shipped Undo transaction.
 const completionHarness=new Function(
