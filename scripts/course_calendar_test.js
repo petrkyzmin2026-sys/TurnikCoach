@@ -537,8 +537,8 @@ assert(hotfix.includes('if(!skip&&record&&previous===undefined&&current!==undefi
 assert(hotfix.includes('navigator.vibrate([70,45,70])'),
  'danger feedback needs a distinct reject pattern');
 const hapticHarness=new Function(
-  extractFrom(hotfix,'tcHapticConfirm')+'\\n'+
-  extractFrom(hotfix,'tcInstallHapticFeedback')+'\\n'+
+  extractFrom(hotfix,'tcHapticConfirm')+'\n'+
+  extractFrom(hotfix,'tcInstallHapticFeedback')+'\n'+
   `
   let W={items:[{actual:[]}],exerciseIndex:0,setIndex:0,actual:8};
   const pulses=[],navigator={vibrate:v=>{pulses.push(v);return true}};
