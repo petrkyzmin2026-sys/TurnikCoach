@@ -86,7 +86,7 @@ def scroll_clickable_into_view(text,timeout=12):
     # a "clickable" button. Require the full touch target above the bottom
     # navigation safe region, not merely a non-empty accessibility node.
     size=adb("shell","wm","size").stdout
-    match=re.search(r"(\\d+)x(\\d+)",size)
+    match=re.search(r"(\d+)x(\d+)",size)
     if not match: raise AssertionError("Cannot determine emulator screen size for scroll")
     _,h=map(int,match.groups())
     safe_top=int(h*.13)
@@ -97,7 +97,7 @@ def scroll_clickable_into_view(text,timeout=12):
         dismiss_system_anr()
         pos,bounds=clickable_text_position(text)
         if pos:
-            nums=[int(x) for x in re.findall(r"\\d+",bounds)]
+            nums=[int(x) for x in re.findall(r"\d+",bounds)]
             top,bottom=nums[1],nums[3]
             if top>=safe_top and bottom<=safe_bottom and bottom-top>=115:
                 print("TC_DIAG scroll_target_visible",text,"bounds",bounds,"center",pos,flush=True)
