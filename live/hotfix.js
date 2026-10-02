@@ -809,9 +809,16 @@
     // A previously staged hotfix may have a deferred update retry waiting for
     // W to become null. Retire that version before discard can trigger it.
     const stalePendingVersion=String(window.__TC_UPDATE_PENDING_VERSION||'');
+    let priorInstalledHotfix='';
+    try{priorInstalledHotfix=String(localStorage.getItem('tc_hotfix_active_version')||'')}catch(e){}
+    // A bundled 5.14 shell can mask the actually cached 5.16.35 hotfix in
+    // __TC_HOTFIX_VERSION. Suppress the superseded timer from that hotfix,
+    // not the old 5.14 shell that has no pending 5.16.35 prompt.
     window.__TC_UPDATE_DISMISSED_VERSION=
-      previousVersion&&previousVersion!==VERSION?previousVersion:
-      stalePendingVersion&&stalePendingVersion!==VERSION?stalePendingVersion:'5.16.33-accessibility-scale';
+      stalePendingVersion.startsWith('5.16.')&&stalePendingVersion!==VERSION?stalePendingVersion:
+      priorInstalledHotfix.startsWith('5.16.')&&priorInstalledHotfix!==VERSION?priorInstalledHotfix:
+      previousVersion.startsWith('5.16.')&&previousVersion!==VERSION?previousVersion:
+      '5.16.35-touch-release';
     window.__TC_UPDATE_PENDING_VERSION='';
     window.__tcDeferredUpdateActivate=null;
     removeUpdatePrompt();
