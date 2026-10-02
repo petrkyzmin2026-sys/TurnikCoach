@@ -1215,6 +1215,8 @@
     const style=document.createElement('style');
     style.id='tcCorrectionControlsStyle';
     style.textContent=
+      '#app > .nav{z-index:90!important;pointer-events:auto!important}'+
+      '#today .scroll{min-height:0!important;overscroll-behavior:contain;padding-bottom:144px!important}'+
       '#workout .stageHeader .endBtn,#workout .wtop .endBtn{display:none!important}'+
       '#workout .tcWorkoutExitBtn,#rest .tcRestExitBtn{min-width:100px!important;padding:0 9px!important}'+
       '#workout .tcCorrectionSetBtn{width:100%;min-height:48px;border:1px solid #566579;border-radius:12px;background:#202b36;color:#fff;font:750 15px/1.2 system-ui,sans-serif;touch-action:manipulation}'+
