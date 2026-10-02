@@ -1181,7 +1181,7 @@
        frame.setIndex<0||frame.setIndex>=item.plan.length)return null;
     trail.pop();
     if(frame.had)item.actual[frame.setIndex]=frame.previous;
-    else delete item.actual[frame.setIndex];
+    else item.actual.splice(frame.setIndex,1); // no JSON-null hole on process-death restore
     workout.exerciseIndex=frame.exerciseIndex;
     workout.setIndex=frame.setIndex;
     workout.actual=frame.input;
