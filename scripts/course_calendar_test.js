@@ -498,9 +498,10 @@ assert(hotfix.includes('function tcSyncScreenVisibility(id)')&&
 assert(hotfix.includes("tcSyncScreenVisibility(target||'today');")&&
  hotfix.includes("replaceRoute(target||'today',false);"),
  'discard must unhide Today and synchronize the visible WebView surface');
-assert(hotfix.includes("stalePendingVersion&&stalePendingVersion!==VERSION?stalePendingVersion:'5.16.33-accessibility-scale'")&&
+assert(hotfix.includes("priorInstalledHotfix.startsWith('5.16.')")&&
+ hotfix.includes("'5.16.35-touch-release';")&&
  hotfix.includes("window.__TC_UPDATE_PENDING_VERSION='';"),
- 'new hotfix must suppress old deferred update prompts before a discarded workout unlocks them');
+ 'new hotfix must suppress the actual cached 5.16.35 prompt before discard or Progress unlocks it');
 assert(hotfix.includes('function tcForceWebViewRepaint()')&&
  hotfix.includes('tcForceWebViewRepaint();'),
  'WebView navigation must force a compositor repaint after the screen switch');
