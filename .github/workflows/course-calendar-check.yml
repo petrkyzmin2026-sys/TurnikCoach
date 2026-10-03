@@ -24,6 +24,7 @@ on:
       - fix/extra-start-touch-release-20261002
       - feature/ux2-haptics-rebased-20261002
       - feature/ux2-correction-controls-20261002
+      - feature/ux2-progress-on-correction-20261002
   pull_request:
   workflow_dispatch:
 
@@ -54,7 +55,7 @@ jobs:
           done
           base64 --decode /tmp/v513.b64 | gzip -dc > app/src/main/assets/index.html
           grep -q 'v5.13 — modern Android package' app/src/main/assets/index.html
-      - name: Reproduce packaged 5.14 + cached 5.16.35 + tested 5.16.37
+      - name: Reproduce packaged 5.14 + cached 5.16.35 + tested 5.16.38
         run: |
           PREV_COMMIT="7e59d83a6463b645046c64f6d58d10fbd1f916a4"
           grep -q 'TURNIKCOACH_HOTFIX 5.14.0-adaptive-rest' app/src/main/assets/hotfix.js
@@ -70,7 +71,7 @@ jobs:
           p.write_text(s)
           PY
           grep -q 'TURNIKCOACH_HOTFIX 5.16.35-touch-release' app/src/main/assets/hotfix-prev.js
-          grep -q 'TURNIKCOACH_HOTFIX 5.16.37-correction-controls' app/src/main/assets/hotfix-next.js
+          grep -q 'TURNIKCOACH_HOTFIX 5.16.38-progress-summary' app/src/main/assets/hotfix-next.js
           grep -q 'TURNIKCOACH_COURSE 1.0.35-touch-release' app/src/main/assets/hotfix-next.js
       - name: Seed installed 5.16.35 approval and completed main-course state
         run: |
@@ -285,10 +286,10 @@ jobs:
       - name: Build isolated DEBUG preview APK
         run: |
           gradle --no-daemon :app:assembleDebug
-          cp app/build/outputs/apk/debug/app-debug.apk TurnikCoach-UX2-Accessibility-Preview-v5.16.37.apk
+          cp app/build/outputs/apk/debug/app-debug.apk TurnikCoach-UX2-Accessibility-Preview-v5.16.38.apk
       - name: Enable KVM
         run: sudo chmod 666 /dev/kvm || true
-      - name: Verify 5.16.37 UX2 accessibility baseline in real Android WebView
+      - name: Verify 5.16.38 UX2 accessibility baseline in real Android WebView
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 35
@@ -297,16 +298,16 @@ jobs:
           disable-animations: true
           emulator-options: -no-snapshot-save -no-window -gpu swiftshader -noaudio -no-boot-anim
           script: |
-            adb install -r TurnikCoach-UX2-Accessibility-Preview-v5.16.37.apk
+            adb install -r TurnikCoach-UX2-Accessibility-Preview-v5.16.38.apk
             TC_TEST_PKG=ru.turnikcoach.v52tr.calendarpreview python3 scripts/course_undo_ui_smoke.py
       - name: Upload UX2 accessibility baseline screenshots
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: TurnikCoach-5.16.37-ux2-accessibility-baseline-screenshots
+          name: TurnikCoach-5.16.38-ux2-accessibility-baseline-screenshots
           path: undo-ui-test-output
           if-no-files-found: warn
-      - name: Verify 5.16.37 UX2 at 200% system font scale
+      - name: Verify 5.16.38 UX2 at 200% system font scale
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 35
@@ -317,17 +318,17 @@ jobs:
           script: |
             adb shell settings put system font_scale 2.0
             test "$(adb shell settings get system font_scale | tr -d '\r')" = "2.0"
-            adb install -r TurnikCoach-UX2-Accessibility-Preview-v5.16.37.apk
+            adb install -r TurnikCoach-UX2-Accessibility-Preview-v5.16.38.apk
             TC_TEST_PKG=ru.turnikcoach.v52tr.calendarpreview TC_OUT_DIR="$GITHUB_WORKSPACE/undo-ui-font200-output" TC_FONT_SCALE=2.0 python3 scripts/course_undo_ui_smoke.py
       - name: Upload UX2 200% font-scale screenshots
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: TurnikCoach-5.16.37-ux2-font200-screenshots
+          name: TurnikCoach-5.16.38-ux2-font200-screenshots
           path: undo-ui-font200-output
           if-no-files-found: warn
       - uses: actions/upload-artifact@v4
         with:
-          name: TurnikCoach-5.16.37-ux2-accessibility-isolated-preview
-          path: TurnikCoach-UX2-Accessibility-Preview-v5.16.37.apk
+          name: TurnikCoach-5.16.38-ux2-accessibility-isolated-preview
+          path: TurnikCoach-UX2-Accessibility-Preview-v5.16.38.apk
           if-no-files-found: error

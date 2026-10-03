@@ -326,13 +326,13 @@ def launch():
 launch()
 dismiss_system_anr()
 
-# Exact update path: packaged 5.14 + cached 5.16.35 are active first; staged 5.16.37 must be offered explicitly.
+# Exact update path: packaged 5.14 + cached 5.16.35 are active first; staged 5.16.38 must be offered explicitly.
 time.sleep(3)
 screenshot("00-before-update-assert")
 adb("shell","uiautomator","dump","/sdcard/uxb3-before-update.xml",check=False)
 adb("pull","/sdcard/uxb3-before-update.xml",OUT+"/00-before-update.xml",check=False)
 try:
-    wait_text("Доступно обновление TurnikCoach 5.16.37",timeout=20)
+    wait_text("Доступно обновление TurnikCoach 5.16.38",timeout=20)
 except Exception:
     log=adb("logcat","-d","-t","500",check=False)
     with open(OUT+"/00-logcat.txt","w",encoding="utf-8") as fp:
@@ -342,16 +342,26 @@ wait_text("Обновить",contains=False)
 screenshot("01-update-offered")
 
 tap_clickable_text("Обновить")
-wait_text("TurnikCoach обновлён до 5.16.37",timeout=25)
+wait_text("TurnikCoach обновлён до 5.16.38",timeout=25)
 assert_accessibility_target("План",48)
 assert_accessibility_target("Прогресс",48)
 screenshot("02-update-installed")
 nav_hit=test_eval_json("(function(){var b=document.getElementById('n3'),r=b.getBoundingClientRect(),x=(r.left+r.right)/2,y=(r.top+r.bottom)/2,h=document.elementFromPoint(x,y),n=document.getElementById('nav');return {rect:{top:r.top,bottom:r.bottom},hit:h&&h.id||h&&h.tagName||'',inNav:!!(h&&n.contains(h)),sheetOpen:!!document.querySelector('#sheet.open')};})()","progress-nav-real-hit-test")
 print("TC_DIAG bottom-nav-hit",nav_hit,flush=True)
 assert nav_hit["inNav"] and not nav_hit["sheetOpen"], "Progress nav center must not be covered by the Today undo action at large text"
+
+# Progress summary must be available without completing a new workout.
 tap_clickable_text("Прогресс",timeout=20)
-nav_open=test_eval_json("(document.querySelector('.screen.on')||{}).id","progress-nav-opens")
-assert nav_open=="historyScreen", "Progress nav tap must show its real screen"
+progress_probe=test_eval_json("(function(){var h=document.getElementById('historyScreen'),n=document.getElementById('tcProgressSummary');return {screen:(document.querySelector('.screen.on')||{}).id||'',hotfix:window.__TC_HOTFIX_ACTIVE_VERSION,history:!!h,scroll:!!(h&&h.querySelector('.scroll')),summary:!!n,text:n&&n.textContent||'',renderHook:typeof window.tcRenderProgressSummary};})()","progress-nav-diagnostic")
+print("TC_DIAG progress-nav",progress_probe,flush=True)
+screenshot("02a-progress-after-real-tap")
+time.sleep(2.5)  # Verify superseded 5.16.35 prompt cannot reopen after the new update.
+summary=test_eval_json("(function(){var n=document.getElementById('tcProgressSummary'),r=n&&n.getBoundingClientRect(),p=document.getElementById('tcUpdatePrompt');return {present:!!n,items:n&&n.children.length||0,text:n&&n.textContent||'',first:!!n&&n.parentElement.firstElementChild===n,screen:(document.querySelector('.screen.on')||{}).id||'',visible:!!r&&r.width>0&&r.height>0&&r.top<window.innerHeight,blocked:!!p,labels:n&&[...n.children].map(c=>c.getAttribute('aria-label'))||[]};})()","progress-summary-layout")
+print("TC_DIAG progress-summary-verified",summary,flush=True)
+assert summary["screen"]=="historyScreen" and summary["present"] and summary["items"]==3 and summary["first"] and summary["visible"], "Progress cards must be rendered and visible at top of Progress"
+assert not summary["blocked"], "Obsolete cached update must not cover the Progress screen"
+assert summary["labels"] and all(x in "|".join(summary["labels"]) for x in ["За 7 дней","Всего тренировок","MAX подтяг."]), "Progress cards need accessible value labels"
+screenshot("02b-progress-summary")
 tap_clickable_text("Сегодня",timeout=20)
 
 
@@ -429,9 +439,9 @@ adb("shell","am","force-stop",PKG)
 time.sleep(1)
 launch()
 dismiss_system_anr()
-upgrade_install=wait_log_tokens(["TC_NAV_UPGRADE",'"phase":"install"','"version":"5.16.37-correction-controls"'],timeout=20)
+upgrade_install=wait_log_tokens(["TC_NAV_UPGRADE",'"phase":"install"','"version":"5.16.38-progress-summary"'],timeout=20)
 restore_line=wait_log_tokens(["TC_WORKOUT_STATE",'"phase":"restored"','"name":"Подъём коленей в висе"','"mode":"extra"'],timeout=20)
-upgrade_arm=wait_log_tokens(["TC_NAV_UPGRADE",'"phase":"arm-restore-guard"','"version":"5.16.37-correction-controls"','"surface":"workout"'],timeout=20)
+upgrade_arm=wait_log_tokens(["TC_NAV_UPGRADE",'"phase":"arm-restore-guard"','"version":"5.16.38-progress-summary"','"surface":"workout"'],timeout=20)
 print("TC_DIAG nav-upgrade-install",upgrade_install,flush=True)
 print("TC_DIAG restore",restore_line,flush=True)
 print("TC_DIAG nav-upgrade-arm",upgrade_arm,flush=True)
