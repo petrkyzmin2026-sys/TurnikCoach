@@ -81,15 +81,15 @@ assert(course.includes('tcPreviewCourseCard(tcSelectedDate)'),
  'choosing another date must show a read-only plan');
 assert(course.includes('id="tcCycleStartDate"'),
  'settings must expose a cycle start date');
-assert(hotfix.includes("const VERSION='5.16.37-correction-controls'"),
- 'release hotfix version must be 5.16.37');
+assert(hotfix.includes("const VERSION='5.16.38-progress-summary'"),
+ 'release hotfix version must be 5.16.38');
 assert(course.includes("const COURSE_MODULE_VERSION='1.0.35-touch-release'"),
  'course module version must be 1.0.35');
 assert(!course.includes('TC_EXTRA_START'),
  'temporary extra-workout trace logging must not ship');
 assert(!course.includes('window.confirm('),'course module must not depend on unsupported WebView JS dialogs');
 assert(!hotfix.includes('window.confirm('),'hotfix navigation/discard must not depend on unsupported WebView JS dialogs');
-assert(!hotfix.includes('forceHandover'),'5.16.37 must use an explicit user-visible update prompt');
+assert(!hotfix.includes('forceHandover'),'5.16.38 must use an explicit user-visible update prompt');
 assert(hotfix.includes("showRuntimeNotice('TurnikCoach обновлён до '+LABEL)"),
  'successful activation must give visible feedback');
 assert(hotfix.includes("localStorage.setItem('tc_hotfix_active_version',VERSION)"),
@@ -430,7 +430,7 @@ assert(hotfix.includes("const hadActiveWorkout=typeof W!=='undefined'&&!!W")&&
  'new hotfix must reassert durable workout state when an older hotfix already restored W');
 assert(hotfix.includes('function tcInstallNavigationUpgrades()')&&
  hotfix.includes('window.__TC_NAV_UPGRADE_VERSION=VERSION')&&
- hotfix.includes('tcInstallNavigationFoundation();\n    tcInstallNavigationUpgrades();\n    tcInstallCompletionFlow();\n    tcInstallHapticFeedback();\n    tcInstallWorkoutCorrection();\n    tcInstallWorkoutPersistence();'),
+ hotfix.includes('tcInstallNavigationFoundation();\n    tcInstallNavigationUpgrades();\n    tcInstallCompletionFlow();\n    tcInstallHapticFeedback();\n    tcInstallWorkoutCorrection();\n    tcInstallProgressSummary();\n    tcInstallWorkoutPersistence();'),
  'hotfix upgrades must run after the one-time navigation core and before persistence restore');
 assert(hotfix.includes('window.tcRefreshActiveTrainingSurface=function(id)')&&
  hotfix.includes('window.tcArmRestoreSurfaceGuard=function(surface)')&&
@@ -612,6 +612,33 @@ const correctionHarness=new Function(
 )();
 assert.deepEqual(correctionHarness,{savedTrail:2,restored:true},
  'undo stack must restore saved, skipped and corrected values after JSON persistence');
+
+// Shipped progress metrics count actual workouts, not skipped sessions or tests.
+assert(hotfix.includes('function tcInstallProgressSummary()')&&
+ hotfix.includes("window.tcRenderProgressSummary=renderSummary")&&
+ hotfix.includes("'За 7 дней'")&&hotfix.includes("'Всего тренировок'")&&
+ hotfix.includes("'MAX подтяг.'"),
+ 'Progress must render summary cards from existing data without replacing charts');
+const progressMetrics=new Function(
+ extractFrom(hotfix,'tcProgressMetrics')+'\nreturn tcProgressMetrics;'
+)();
+const progressNow=Date.parse('2026-10-02T12:00:00');
+const sameTs=Date.parse('2026-10-01T12:00:00');
+const sample=progressMetrics(
+ [
+   {type:'workout',date:'2026-10-01',ts:sameTs,total:50,courseMode:'extra'},
+   {type:'workout',date:'2026-09-01',ts:Date.parse('2026-09-01T12:00:00'),total:41},
+   {type:'skip',date:'2026-10-02',ts:progressNow}
+ ],
+ [
+   {type:'workout',date:'2026-10-02',ts:progressNow-3600000,total:51,courseMode:'course'},
+   {type:'workout',date:'2026-10-01',ts:sameTs,total:50,courseMode:'extra'},
+   {type:'test',date:'2026-10-01',ts:sameTs,total:50}
+ ],
+ 21,progressNow
+);
+assert.deepEqual(sample,{week:2,total:3,pullMax:21},
+ 'Progress summary must dedupe shared records and exclude skips/tests');
 
 // Behavioral completion-flow regression: execute the shipped wrapper and shipped Undo transaction.
 const completionHarness=new Function(

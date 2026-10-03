@@ -1,8 +1,8 @@
-/* TURNIKCOACH_HOTFIX 5.16.37-correction-controls */
+/* TURNIKCOACH_HOTFIX 5.16.38-progress-summary */
 (function(){
   'use strict';
-  const VERSION='5.16.37-correction-controls';
-  const LABEL='5.16.37';
+  const VERSION='5.16.38-progress-summary';
+  const LABEL='5.16.38';
   const APPROVED_KEY='tc_hotfix_approved_version';
   const LEGACY_ASSET_VERSION='5.14.0-adaptive-rest';
   const stalePrompt=document.getElementById('tcUpdatePrompt');
@@ -71,7 +71,7 @@
     title.textContent='Доступно обновление TurnikCoach '+LABEL;
     const text=document.createElement('div');
     text.style.cssText='font-size:15px;line-height:1.45;color:#cfd8e3;margin-bottom:18px;min-height:0;flex:1 1 0;overflow-y:auto;overscroll-behavior:contain;padding-right:4px';
-    text.innerHTML="Исправлено управление тренировкой: одна кнопка «Завершить» с отдельными действиями сохранения и выхода без сохранения. Можно возвращаться к ранее записанным подходам для исправления значения или случайного пропуска. Добавлен виброотклик выполненного подхода. Алгоритм курса и история не изменяются.<br><br>Установить обновление сейчас?";
+    text.innerHTML="В тренировке объединены действия завершения, добавлен возврат к предыдущему подходу и исправление случайного пропуска. Записанный подход подтверждается виброоткликом. В разделе «Прогресс» появилась краткая сводка тренировок и текущего максимума. Алгоритм курса и ранее сохранённая история не изменяются.<br><br>Установить обновление сейчас?";
     const row=document.createElement('div');
     row.style.cssText='display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;flex:0 0 auto';
     const later=document.createElement('button');
@@ -142,6 +142,73 @@
     if(viewport)viewport.setAttribute('content','width=device-width,initial-scale=1');
   }
 
+
+  function tcProgressMetrics(genericHistory,courseHistory,pullMax,nowTs){
+    const all=[...(Array.isArray(genericHistory)?genericHistory:[]),
+               ...(Array.isArray(courseHistory)?courseHistory:[])];
+    const seen=new Set(),workouts=[];
+    all.forEach(rec=>{
+      if(!rec||rec.type!=='workout')return;  // Never count skips or test events.
+      const key=rec.id!=null?'id:'+rec.id:
+        [rec.ts||'',rec.date||'',rec.courseMode||'',rec.session||'',rec.total||''].join('|');
+      if(seen.has(key))return;
+      seen.add(key);
+      let ts=Number(rec.ts)||0;
+      if(!ts&&/^\d{4}-\d{2}-\d{2}$/.test(rec.date||''))ts=Date.parse(rec.date+'T12:00:00')||0;
+      workouts.push(ts);
+    });
+    const now=Number(nowTs)||Date.now(),start=now-7*24*60*60*1000;
+    return {
+      week:workouts.filter(ts=>ts>=start&&ts<=now).length,
+      total:workouts.length,
+      pullMax:Number.isFinite(+pullMax)&&+pullMax>0?Math.floor(+pullMax):0
+    };
+  }
+  function tcInstallProgressSummary(){
+    if(window.__TC_PROGRESS_SUMMARY_V2)return;
+    window.__TC_PROGRESS_SUMMARY_V2=true;
+    const style=document.createElement('style');
+    style.id='tcProgressSummaryStyle';
+    style.textContent='.tcProgressSummary{display:grid;grid-template-columns:repeat(auto-fit,minmax(94px,1fr));gap:8px;margin:2px 0 12px}.tcProgressMetric{min-width:0;background:#151d24;border:1px solid #34414d;border-radius:14px;padding:12px 8px;text-align:center}.tcProgressMetric b{display:block;color:#ffd84d;font-size:24px;line-height:1.1;overflow-wrap:anywhere}.tcProgressMetric span{display:block;margin-top:5px;color:#c4cdd5;font-size:11px;font-weight:750;line-height:1.3;overflow-wrap:anywhere}';
+    document.head.appendChild(style);
+    const renderSummary=()=>{
+      const screen=document.getElementById('historyScreen'),scroll=screen&&screen.querySelector('.scroll');
+      if(!scroll)return;
+      const course=typeof window.tcGetCourseStateSnapshot==='function'?window.tcGetCourseStateSnapshot():null;
+      const generic=typeof state!=='undefined'&&state?state:null;
+      const pulled=course&&course.pullMax>0?course.pullMax:
+        (generic&&Array.isArray(generic.ex)&&generic.ex.find(e=>e.id==='pull')||{}).max;
+      const metrics=tcProgressMetrics(generic&&generic.history,
+        course&&course.history,pulled,Date.now());
+      let host=document.getElementById('tcProgressSummary');
+      if(!host){
+        host=document.createElement('div');host.id='tcProgressSummary';
+        host.className='tcProgressSummary';scroll.insertBefore(host,scroll.firstElementChild||null);
+      }
+      const entries=[['За 7 дней',metrics.week],
+                     ['Всего тренировок',metrics.total],
+                     ['MAX подтяг.',metrics.pullMax||'—']];
+      // textContent avoids putting saved exercise/history data through HTML.
+      entries.forEach((entry,i)=>{
+        let cell=host.children[i];
+        if(!cell){
+          cell=document.createElement('div');cell.className='tcProgressMetric';
+          const number=document.createElement('b'),label=document.createElement('span');
+          cell.appendChild(number);cell.appendChild(label);host.appendChild(cell);
+        }
+        cell.firstElementChild.textContent=String(entry[1]);
+        cell.lastElementChild.textContent=entry[0];
+        cell.setAttribute('role','group');
+        cell.setAttribute('aria-label',entry[0]+': '+entry[1]);
+      });
+    };
+    const base=window.renderHistory;
+    if(typeof base==='function')window.renderHistory=function(){
+      const result=base.apply(this,arguments);renderSummary();return result;
+    };
+    window.tcRenderProgressSummary=renderSummary;
+    renderSummary();
+  }
 
   const TC_COMPLETION_UNDO_KEY='tc_completion_undo_v1';
   let tcCompletionFlowInstalled=false;
@@ -1595,6 +1662,7 @@
     tcInstallCompletionFlow();
     tcInstallHapticFeedback();
     tcInstallWorkoutCorrection();
+    tcInstallProgressSummary();
     tcInstallWorkoutPersistence();
     if(previousVersion!==VERSION)showRuntimeNotice('TurnikCoach обновлён до '+LABEL);
     console.log('TurnikCoach hotfix active:',VERSION);
