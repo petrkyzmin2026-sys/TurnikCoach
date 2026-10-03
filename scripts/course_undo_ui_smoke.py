@@ -71,7 +71,7 @@ def tap_text(text,contains=True):
 def clickable_text_position(text):
     target=text.lower()
     for n in dump().iter("node"):
-        value=(n.attrib.get("text") or "")
+        value=(n.attrib.get("content-desc") or n.attrib.get("text") or "")
         bounds=n.attrib.get("bounds") or ""
         if value.lower()!=target or n.attrib.get("clickable")!="true" or not bounds:
             continue
@@ -326,13 +326,13 @@ def launch():
 launch()
 dismiss_system_anr()
 
-# Exact update path: packaged 5.14 + cached 5.16.35 are active first; staged 5.16.36 must be offered explicitly.
+# Exact update path: packaged 5.14 + cached 5.16.35 are active first; staged 5.16.37 must be offered explicitly.
 time.sleep(3)
 screenshot("00-before-update-assert")
 adb("shell","uiautomator","dump","/sdcard/uxb3-before-update.xml",check=False)
 adb("pull","/sdcard/uxb3-before-update.xml",OUT+"/00-before-update.xml",check=False)
 try:
-    wait_text("Доступно обновление TurnikCoach 5.16.36",timeout=20)
+    wait_text("Доступно обновление TurnikCoach 5.16.37",timeout=20)
 except Exception:
     log=adb("logcat","-d","-t","500",check=False)
     with open(OUT+"/00-logcat.txt","w",encoding="utf-8") as fp:
@@ -342,10 +342,18 @@ wait_text("Обновить",contains=False)
 screenshot("01-update-offered")
 
 tap_clickable_text("Обновить")
-wait_text("TurnikCoach обновлён до 5.16.36",timeout=25)
+wait_text("TurnikCoach обновлён до 5.16.37",timeout=25)
 assert_accessibility_target("План",48)
 assert_accessibility_target("Прогресс",48)
 screenshot("02-update-installed")
+nav_hit=test_eval_json("(function(){var b=document.getElementById('n3'),r=b.getBoundingClientRect(),x=(r.left+r.right)/2,y=(r.top+r.bottom)/2,h=document.elementFromPoint(x,y),n=document.getElementById('nav');return {rect:{top:r.top,bottom:r.bottom},hit:h&&h.id||h&&h.tagName||'',inNav:!!(h&&n.contains(h)),sheetOpen:!!document.querySelector('#sheet.open')};})()","progress-nav-real-hit-test")
+print("TC_DIAG bottom-nav-hit",nav_hit,flush=True)
+assert nav_hit["inNav"] and not nav_hit["sheetOpen"], "Progress nav center must not be covered by the Today undo action at large text"
+tap_clickable_text("Прогресс",timeout=20)
+nav_open=test_eval_json("(document.querySelector('.screen.on')||{}).id","progress-nav-opens")
+assert nav_open=="historyScreen", "Progress nav tap must show its real screen"
+tap_clickable_text("Сегодня",timeout=20)
+
 
 # Main course is already saved by the seeded user state; extra workout must still be available.
 wait_text("Основной комплекс выполнен",timeout=20)
@@ -421,9 +429,9 @@ adb("shell","am","force-stop",PKG)
 time.sleep(1)
 launch()
 dismiss_system_anr()
-upgrade_install=wait_log_tokens(["TC_NAV_UPGRADE",'"phase":"install"','"version":"5.16.36-haptic-feedback"'],timeout=20)
+upgrade_install=wait_log_tokens(["TC_NAV_UPGRADE",'"phase":"install"','"version":"5.16.37-correction-controls"'],timeout=20)
 restore_line=wait_log_tokens(["TC_WORKOUT_STATE",'"phase":"restored"','"name":"Подъём коленей в висе"','"mode":"extra"'],timeout=20)
-upgrade_arm=wait_log_tokens(["TC_NAV_UPGRADE",'"phase":"arm-restore-guard"','"version":"5.16.36-haptic-feedback"','"surface":"workout"'],timeout=20)
+upgrade_arm=wait_log_tokens(["TC_NAV_UPGRADE",'"phase":"arm-restore-guard"','"version":"5.16.37-correction-controls"','"surface":"workout"'],timeout=20)
 print("TC_DIAG nav-upgrade-install",upgrade_install,flush=True)
 print("TC_DIAG restore",restore_line,flush=True)
 print("TC_DIAG nav-upgrade-arm",upgrade_arm,flush=True)
@@ -456,16 +464,45 @@ for line in full_restore_text.splitlines():
         print("TC_DIAG webview-system",line,flush=True)
 
 wait_text("Сделано",timeout=12,contains=False)
-wait_text("Выйти",timeout=12,contains=False)
+wait_text("Завершить",timeout=12,contains=False)
 assert_touch_target("Сделано",48,contains=False)
-assert_touch_target("Выйти",48,contains=False)
+assert_touch_target("Завершить",48,contains=False)
 screenshot("05-process-death-restored")
+
+# User-visible correction path: Done must be reversible without saving history.
+first_before=test_eval_json("(function(){return {ex:W.exerciseIndex,set:W.setIndex,input:W.actual,trail:W.__tcCorrectionTrail&&W.__tcCorrectionTrail.length||0};})()","before-done-correction")
+tap_clickable_text("Сделано",timeout=18)
+time.sleep(0.7)
+done_state=test_eval_json("(function(){return {ex:W.exerciseIndex,set:W.setIndex,recorded:W.items[0].actual[0],trail:W.__tcCorrectionTrail&&W.__tcCorrectionTrail.length||0,screen:(document.querySelector('.screen.on')||{}).id};})()","done-before-correction")
+assert done_state["recorded"]==first_before["input"] and done_state["trail"]==1, "Done must record one reversible set"
+rest_probe=test_eval_json("(function(){var r=document.querySelector('#rest.screen.on .rest'),p=r&&r.querySelector('.tcRestBack');return {rest:!!r,back:!!p,text:p&&p.textContent||'',rect:p&&{top:p.getBoundingClientRect().top,bottom:p.getBoundingClientRect().bottom,left:p.getBoundingClientRect().left,right:p.getBoundingClientRect().right},display:p&&getComputedStyle(p).display,buttons:[...document.querySelectorAll('#rest button')].map(b=>({text:b.textContent,display:getComputedStyle(b).display})),hotfix:window.__TC_HOTFIX_ACTIVE_VERSION};})()","rest-undo-layout")
+print("TC_DIAG rest-correction-layout",rest_probe,flush=True)
+screenshot("05b-rest-layout")
+tap_clickable_text("Исправить предыдущий подход",timeout=18)
+back_state=test_eval_json("(function(){return {ex:W.exerciseIndex,set:W.setIndex,input:W.actual,recorded:W.items[0].actual[0]===undefined?null:W.items[0].actual[0],trail:W.__tcCorrectionTrail&&W.__tcCorrectionTrail.length||0,screen:(document.querySelector('.screen.on')||{}).id};})()","after-done-correction")
+assert back_state["ex"]==first_before["ex"] and back_state["set"]==first_before["set"] and back_state["input"]==first_before["input"] and back_state["recorded"] is None and back_state["trail"]==0 and back_state["screen"]=="workout", "Done correction must restore editable set and remove its recorded result"
+screenshot("05b-done-corrected")
+
+# An accidental Skip must also be reversible.
+tap_text("Пропустить",contains=True)
+time.sleep(0.7)
+skip_state=test_eval_json("(function(){return {skipped:W.items[0].actual[0]===null,trail:W.__tcCorrectionTrail&&W.__tcCorrectionTrail.length||0,screen:(document.querySelector('.screen.on')||{}).id};})()","skip-before-correction")
+assert skip_state["skipped"] and skip_state["trail"]==1, "Skipped set must be reversible"
+tap_clickable_text("Исправить предыдущий подход",timeout=18)
+unskip_state=test_eval_json("(function(){return {set:W.setIndex,recorded:W.items[0].actual[0]===undefined?null:W.items[0].actual[0],trail:W.__tcCorrectionTrail&&W.__tcCorrectionTrail.length||0,screen:(document.querySelector('.screen.on')||{}).id,snapshot:JSON.parse(localStorage.getItem('tc_active_workout_v2')||'null')};})()","after-skip-correction")
+assert unskip_state["set"]==0 and unskip_state["recorded"] is None and unskip_state["trail"]==0 and unskip_state["screen"]=="workout", "Skip correction must restore the same editable set"
+assert unskip_state["snapshot"] and unskip_state["snapshot"]["workout"]["setIndex"]==0, "Correction must persist the restored approach"
+screenshot("05c-skip-corrected")
 
 # Regression: the real exit button must open confirmation, allow cancellation,
 # and actually display Today after clearing only this unfinished workout.
 # Remove the injected test controls so they cannot overlay the real header button.
 test_exec("var d=document.getElementById('tcTestDriver');if(d)d.remove();","remove-test-overlay")
-tap_clickable_text("Выйти",timeout=18)
+tap_clickable_text("Завершить",timeout=18)
+wait_text("Действия с тренировкой",timeout=18,contains=False)
+menu=test_eval_json("(function(){return {open:!!document.querySelector('#sheet.open'),save:!!document.getElementById('tcFinishSaveBtn'),discard:!!document.getElementById('tcFinishDiscardBtn'),cancel:!!document.getElementById('tcFinishCancelBtn')};})()","unified-finish-menu")
+assert all(menu.values()), "Unified Finish menu must expose save, discard and continue"
+tap_clickable_text("Выйти без сохранения",timeout=18)
 wait_text("Выйти без сохранения?",timeout=18,contains=False)
 confirmation=test_eval_json("(function(){return {open:!!document.querySelector('#sheet.open'),hasW:!!W,confirm:!!document.getElementById('tcConfirmDiscardWorkoutBtn')};})()","exit-confirmation")
 assert confirmation["open"] and confirmation["hasW"] and confirmation["confirm"], "Exit must open a functional confirmation with the workout intact"
@@ -474,7 +511,8 @@ tap_clickable_text("Продолжить тренировку",timeout=18)
 cancel=test_eval_json("(function(){return {hasW:!!W,workoutOn:!!document.querySelector('#workout.screen.on'),sheetOpen:!!document.querySelector('#sheet.open')};})()","exit-cancel")
 assert cancel["hasW"] and cancel["workoutOn"] and not cancel["sheetOpen"], "Cancel must return to the active workout"
 
-tap_clickable_text("Выйти",timeout=18)
+tap_clickable_text("Завершить",timeout=18)
+tap_clickable_text("Выйти без сохранения",timeout=18)
 tap_clickable_text("Выйти без сохранения",timeout=18)
 time.sleep(1.5)
 after_exit=test_eval_json("(function(){var t=document.getElementById('today'),w=document.getElementById('workout');return {hasW:!!W,todayOn:t.classList.contains('on'),todayHidden:t.hidden,todayDisplay:getComputedStyle(t).display,todayHeight:t.getBoundingClientRect().height,workoutOn:w.classList.contains('on'),workoutHidden:w.hidden,sheetOpen:!!document.querySelector('#sheet.open'),snapshot:localStorage.getItem('tc_active_workout_v2'),route:history.state&&history.state.tcScreen,extraSeq:JSON.parse(localStorage.getItem('tc_morozov_course_v1')||'{}').extraSeq};})()","exit-discard")

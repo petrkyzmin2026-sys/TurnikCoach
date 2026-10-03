@@ -1,8 +1,8 @@
-/* TURNIKCOACH_HOTFIX 5.16.36-haptic-feedback */
+/* TURNIKCOACH_HOTFIX 5.16.37-correction-controls */
 (function(){
   'use strict';
-  const VERSION='5.16.36-haptic-feedback';
-  const LABEL='5.16.36';
+  const VERSION='5.16.37-correction-controls';
+  const LABEL='5.16.37';
   const APPROVED_KEY='tc_hotfix_approved_version';
   const LEGACY_ASSET_VERSION='5.14.0-adaptive-rest';
   const stalePrompt=document.getElementById('tcUpdatePrompt');
@@ -19,7 +19,7 @@
     const note=document.createElement('div');
     note.id='tcRuntimeNotice';
     const danger=tone==='danger';
-    note.style.cssText='position:fixed;left:14px;right:14px;bottom:88px;z-index:2147483646;padding:12px 14px;border-radius:14px;background:'+
+    note.style.cssText='position:fixed;pointer-events:none;left:14px;right:14px;bottom:88px;z-index:2147483646;padding:12px 14px;border-radius:14px;background:'+
       (danger?'#2a181b':'#18221b')+';border:1px solid '+(danger?'#70424a':'#42604a')+
       ';color:'+(danger?'#ffd8db':'#e8ffed')+';font:700 13px/1.35 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;box-shadow:0 10px 30px rgba(0,0,0,.35)';
     note.textContent=message;
@@ -71,7 +71,7 @@
     title.textContent='Доступно обновление TurnikCoach '+LABEL;
     const text=document.createElement('div');
     text.style.cssText='font-size:15px;line-height:1.45;color:#cfd8e3;margin-bottom:18px;min-height:0;flex:1 1 0;overflow-y:auto;overscroll-behavior:contain;padding-right:4px';
-    text.innerHTML="Добавлено тактильное подтверждение записи выполненного подхода и отдельный сигнал при ошибке. Пропуск подхода не вызывает вибросигнал выполненного подхода. История и алгоритм курса не изменяются.<br><br>Установить обновление сейчас?";
+    text.innerHTML="Исправлено управление тренировкой: одна кнопка «Завершить» с отдельными действиями сохранения и выхода без сохранения. Можно возвращаться к ранее записанным подходам для исправления значения или случайного пропуска. Добавлен виброотклик выполненного подхода. Алгоритм курса и история не изменяются.<br><br>Установить обновление сейчас?";
     const row=document.createElement('div');
     row.style.cssText='display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;flex:0 0 auto';
     const later=document.createElement('button');
@@ -809,8 +809,16 @@
     // A previously staged hotfix may have a deferred update retry waiting for
     // W to become null. Retire that version before discard can trigger it.
     const stalePendingVersion=String(window.__TC_UPDATE_PENDING_VERSION||'');
+    let priorInstalledHotfix='';
+    try{priorInstalledHotfix=String(localStorage.getItem('tc_hotfix_active_version')||'')}catch(e){}
+    // A bundled 5.14 shell can mask the actually cached 5.16.35 hotfix in
+    // __TC_HOTFIX_VERSION. Suppress the superseded timer from that hotfix,
+    // not the old 5.14 shell that has no pending 5.16.35 prompt.
     window.__TC_UPDATE_DISMISSED_VERSION=
-      stalePendingVersion&&stalePendingVersion!==VERSION?stalePendingVersion:'5.16.33-accessibility-scale';
+      stalePendingVersion.startsWith('5.16.')&&stalePendingVersion!==VERSION?stalePendingVersion:
+      priorInstalledHotfix.startsWith('5.16.')&&priorInstalledHotfix!==VERSION?priorInstalledHotfix:
+      previousVersion.startsWith('5.16.')&&previousVersion!==VERSION?previousVersion:
+      '5.16.35-touch-release';
     window.__TC_UPDATE_PENDING_VERSION='';
     window.__tcDeferredUpdateActivate=null;
     removeUpdatePrompt();
@@ -1152,6 +1160,195 @@
     };
   }
 
+  // Reversible set entry is stored inside the active workout and its durable snapshot.
+  function tcCaptureCorrectionBefore(workout){
+    if(!workout||workout.mode==='courseTest'||!Array.isArray(workout.items))return null;
+    const ex=Number(workout.exerciseIndex),set=Number(workout.setIndex);
+    const item=workout.items[ex];
+    if(!item||!Array.isArray(item.plan)||set<0||set>=item.plan.length||!Array.isArray(item.actual))return null;
+    const had=Object.prototype.hasOwnProperty.call(item.actual,set);
+    return {exerciseIndex:ex,setIndex:set,input:workout.actual,had,previous:had?item.actual[set]:null,early:!!workout.early};
+  }
+  function tcCommitCorrection(workout,frame){
+    if(!workout||!frame||!Array.isArray(workout.items))return false;
+    const item=workout.items[frame.exerciseIndex];
+    if(!item||!Array.isArray(item.actual))return false;
+    if(!Object.prototype.hasOwnProperty.call(item.actual,frame.setIndex))return false;
+    if(frame.had&&item.actual[frame.setIndex]===frame.previous)return false;
+    if(!Array.isArray(workout.__tcCorrectionTrail))workout.__tcCorrectionTrail=[];
+    workout.__tcCorrectionTrail.push(frame);
+    if(workout.__tcCorrectionTrail.length>150)workout.__tcCorrectionTrail.shift();
+    return true;
+  }
+  function tcUndoCorrection(workout){
+    const trail=workout&&workout.__tcCorrectionTrail;
+    if(!Array.isArray(trail)||!trail.length)return null;
+    const frame=trail[trail.length-1],item=workout.items&&workout.items[frame.exerciseIndex];
+    if(!item||!Array.isArray(item.actual)||!Array.isArray(item.plan)||
+       frame.setIndex<0||frame.setIndex>=item.plan.length)return null;
+    trail.pop();
+    if(frame.had)item.actual[frame.setIndex]=frame.previous;
+    else item.actual.splice(frame.setIndex,1); // no JSON-null hole on process-death restore
+    workout.exerciseIndex=frame.exerciseIndex;
+    workout.setIndex=frame.setIndex;
+    workout.actual=frame.input;
+    workout.early=frame.early;
+    return frame;
+  }
+  function tcInstallWorkoutCorrection(){
+    if(window.__TC_WORKOUT_CORRECTION_V1)return;
+    window.__TC_WORKOUT_CORRECTION_V1=true;
+    const originalSetDone=window.setDone;
+    if(typeof originalSetDone==='function'){
+      window.setDone=function(skip){
+        const current=typeof W!=='undefined'?W:null;
+        const frame=tcCaptureCorrectionBefore(current);
+        const result=originalSetDone.apply(this,arguments);
+        if(frame&&tcCommitCorrection(current,frame)){
+          // The existing persistence wrapper may already have scheduled a snapshot.
+          if(typeof window.tcSaveActiveWorkoutSnapshot==='function')window.tcSaveActiveWorkoutSnapshot();
+          setTimeout(decorateCorrectionControls,0);
+        }
+        return result;
+      };
+    }
+    const style=document.createElement('style');
+    style.id='tcCorrectionControlsStyle';
+    style.textContent=
+      '#app > .nav{z-index:90!important;pointer-events:auto!important}'+
+      '#today .scroll{min-height:0!important;overscroll-behavior:contain;padding-bottom:144px!important}'+
+      '#workout .stageHeader .endBtn,#workout .wtop .endBtn{display:none!important}'+
+      '#workout .tcWorkoutExitBtn,#rest .tcRestExitBtn{min-width:100px!important;padding:0 9px!important}'+
+      '#workout .tcCorrectionSetBtn{width:100%;min-height:48px;border:1px solid #566579;border-radius:12px;background:#202b36;color:#fff;font:750 15px/1.2 system-ui,sans-serif;touch-action:manipulation}'+
+      '#workout .tcCorrectionSetBtn:active{transform:scale(.99)}'+
+      '#rest .tcRestBack{min-width:94px!important;width:auto!important;padding:0 7px!important;border-radius:12px!important;font-size:13px!important}';
+    document.head.appendChild(style);
+
+    function closeCurrentSheet(){
+      const el=document.getElementById('sheet');
+      if(el)el.classList.remove('open');
+    }
+    window.tcOpenWorkoutFinishMenu=function(){
+      if(typeof W==='undefined'||!W){showRuntimeNotice('Нет активной тренировки.','danger');return}
+      const sheet=document.getElementById('sheet'),box=document.getElementById('sheetbox');
+      if(!sheet||!box)return;
+      const canSave=W.mode!=='courseTest';
+      box.innerHTML='<div class="sheettitle">Действия с тренировкой</div>'+
+        '<div class="sub" style="margin:8px 0 12px;line-height:1.5">Сохранение завершит текущую тренировку и запишет выполненные подходы. Выход без сохранения удалит результаты только этого запуска.</div>'+
+        (canSave?'<button id="tcFinishSaveBtn" type="button" class="btn yellow full" style="min-height:58px">Завершить с сохранением</button>':'')+
+        '<button id="tcFinishDiscardBtn" type="button" class="btn danger full" style="margin-top:10px;min-height:58px">Выйти без сохранения</button>'+
+        '<button id="tcFinishCancelBtn" type="button" class="btn ghost full" style="margin-top:10px;min-height:48px">Продолжить тренировку</button>';
+      sheet.classList.add('open');
+      const saveBtn=document.getElementById('tcFinishSaveBtn');
+      if(saveBtn)saveBtn.onclick=function(e){
+        e.preventDefault();e.stopPropagation();closeCurrentSheet();
+        if(typeof askFeedback==='function')askFeedback(true);
+      };
+      const discardBtn=document.getElementById('tcFinishDiscardBtn');
+      if(discardBtn)discardBtn.onclick=function(e){
+        e.preventDefault();e.stopPropagation();closeCurrentSheet();
+        if(typeof window.tcDiscardWorkout==='function')window.tcDiscardWorkout();
+      };
+      const cancelBtn=document.getElementById('tcFinishCancelBtn');
+      if(cancelBtn)cancelBtn.onclick=function(e){e.preventDefault();e.stopPropagation();closeCurrentSheet()};
+    };
+    window.tcReturnToPreviousSet=function(){
+      const current=typeof W!=='undefined'?W:null;
+      if(!current||!Array.isArray(current.__tcCorrectionTrail)||!current.__tcCorrectionTrail.length){
+        showRuntimeNotice('Ранее записанных подходов пока нет.','danger');return false;
+      }
+      const frame=tcUndoCorrection(current);
+      if(!frame){showRuntimeNotice('Не удалось восстановить предыдущий подход.','danger');return false}
+      closeCurrentSheet();
+      window.__tcRestoreSurfaceGuard=null;
+      try{
+        // Cancel the pending timer; course manual-rest cleanup also restores its labels.
+        tcRestActive=false;tcRestEnd=0;tcSignalSeconds.clear();
+        if(rt){clearInterval(rt);rt=null}
+        if(typeof window.finishRest==='function'&&window.__tcManualCourseRest)window.finishRest();
+        else window.__tcManualCourseRest=false;
+      }catch(e){}
+      try{
+        if(typeof go==='function')go('workout');
+        if(typeof renderWork==='function')renderWork();
+        if(typeof window.tcSaveActiveWorkoutSnapshot==='function')window.tcSaveActiveWorkoutSnapshot();
+        if(typeof window.tcRefreshActiveTrainingSurface==='function')window.tcRefreshActiveTrainingSurface('workout');
+      }catch(e){console.error('TurnikCoach set correction',e)}
+      setTimeout(decorateCorrectionControls,0);
+      showRuntimeNotice('Предыдущий подход открыт для исправления.');
+      return true;
+    };
+    function decorateCorrectionControls(){
+      const hasTrail=typeof W!=='undefined'&&W&&Array.isArray(W.__tcCorrectionTrail)&&W.__tcCorrectionTrail.length>0;
+      const workout=document.querySelector('#workout.screen.on');
+      if(workout){
+        const header=workout.querySelector('.stageHeader .row.between,.wtop .row.between');
+        const menu=header&&header.querySelector('.tcWorkoutExitBtn');
+        if(menu&&menu.dataset.tcUnifiedFinish!=='1'){
+          menu.textContent='Завершить';menu.title='Сохранить или выйти без сохранения';
+          menu.onclick=window.tcOpenWorkoutFinishMenu;menu.dataset.tcUnifiedFinish='1';
+        }
+        const legacy=workout.querySelector('.stageHeader .endBtn,.wtop .endBtn');
+        if(legacy)legacy.style.display='none';
+        const actions=workout.querySelector('.tcWorkoutActions,.stageControls .actions,.controls .actions');
+        if(actions){
+          let back=actions.querySelector('.tcCorrectionSetBtn');
+          if(!back){
+            back=document.createElement('button');back.type='button';back.className='tcCorrectionSetBtn';
+            back.textContent='← Исправить предыдущий подход';
+            back.onclick=window.tcReturnToPreviousSet;
+            actions.appendChild(back);
+          }
+          back.disabled=!hasTrail;
+          back.style.display=hasTrail?'block':'none';
+        }
+      }
+      const rest=document.querySelector('#rest.screen.on .rest');
+      if(rest){
+        const prev=rest.querySelector('.tcRestBack'),finish=rest.querySelector('.tcRestExitBtn');
+        if(prev){
+          if(prev.textContent!=='Исправить')prev.textContent='Исправить';prev.title='Исправить предыдущий подход';
+          prev.setAttribute('aria-label','Исправить предыдущий подход');
+          prev.onclick=window.tcReturnToPreviousSet;prev.disabled=!hasTrail;prev.style.display=hasTrail?'grid':'none';
+        }
+        if(finish&&finish.dataset.tcUnifiedFinish!=='1'){
+          finish.textContent='Завершить';finish.title='Сохранить или выйти без сохранения';
+          finish.onclick=window.tcOpenWorkoutFinishMenu;finish.dataset.tcUnifiedFinish='1';
+        }
+      }
+      // The last set opens the effort sheet; let the user correct it before saving.
+      const sheet=document.getElementById('sheet'),box=document.getElementById('sheetbox');
+      if(hasTrail&&sheet&&box&&sheet.classList.contains('open')&&
+         [...box.querySelectorAll('button')].some(b=>/^(Легко|Нормально|Тяжело)$/i.test((b.textContent||'').trim()))&&
+         !box.querySelector('#tcFixSetFromFeedbackBtn')){
+        const b=document.createElement('button');
+        b.id='tcFixSetFromFeedbackBtn';b.type='button';b.className='btn ghost full';
+        b.textContent='Исправить последний подход';b.style.marginTop='10px';
+        b.onclick=window.tcReturnToPreviousSet;box.appendChild(b);
+      }
+    }
+    window.tcEnsureCorrectionControls=()=>setTimeout(decorateCorrectionControls,0);
+    const oldGo=window.go;
+    if(typeof oldGo==='function')window.go=function(id){
+      const result=oldGo.apply(this,arguments);
+      setTimeout(decorateCorrectionControls,0);
+      return result;
+    };
+    const oldRenderWork=window.renderWork;
+    if(typeof oldRenderWork==='function')window.renderWork=function(){
+      const result=oldRenderWork.apply(this,arguments);
+      setTimeout(decorateCorrectionControls,0);
+      return result;
+    };
+    const app=document.getElementById('app');
+    if(app){
+      const observer=new MutationObserver(()=>setTimeout(decorateCorrectionControls,0));
+      observer.observe(app,{childList:true,subtree:true});
+      window.__tcCorrectionUiObserver=observer;
+    }
+    decorateCorrectionControls();
+  }
+
   function tcInstallWorkoutPersistence(){
     if(tcWorkoutPersistenceInstalled)return;
     tcWorkoutPersistenceInstalled=true;
@@ -1397,6 +1594,7 @@
     tcInstallNavigationUpgrades();
     tcInstallCompletionFlow();
     tcInstallHapticFeedback();
+    tcInstallWorkoutCorrection();
     tcInstallWorkoutPersistence();
     if(previousVersion!==VERSION)showRuntimeNotice('TurnikCoach обновлён до '+LABEL);
     console.log('TurnikCoach hotfix active:',VERSION);
