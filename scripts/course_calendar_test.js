@@ -4,6 +4,8 @@
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
 const course=fs.readFileSync('live/course.js','utf8');
 const hotfix=fs.readFileSync('live/hotfix.js','utf8');
+assert(Buffer.byteLength(hotfix,'utf8')<=256*1024,
+ 'Android native hotfix downloader must receive at most 256 KiB of UTF-8');
 const manifest=fs.readFileSync('app/src/main/AndroidManifest.xml','utf8');
 const mainActivity=fs.readFileSync('app/src/main/java/ru/turnikcoach/app/MainActivity.java','utf8');
 new vm.Script(course,{filename:'live/course.js'});
