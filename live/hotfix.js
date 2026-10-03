@@ -1299,7 +1299,9 @@ style.textContent=
 '#workout .tcWorkoutExitBtn,#rest .tcRestExitBtn{min-width:100px!important;padding:0 9px!important}'+
 '#workout .tcCorrectionSetBtn{width:100%;min-height:48px;border:1px solid #566579;border-radius:12px;background:#202b36;color:#fff;font:750 15px/1.2 system-ui,sans-serif;touch-action:manipulation}'+
 '#workout .tcCorrectionSetBtn:active{transform:scale(.99)}'+
-'#rest .tcRestBack{min-width:94px!important;width:auto!important;padding:0 7px!important;border-radius:12px!important;font-size:13px!important}';
+'#rest .tcRestBack{min-width:94px!important;width:auto!important;padding:0 7px!important;border-radius:12px!important;font-size:13px!important}'+
+'#rest .tcRestBack,#rest .tcRestExitBtn{min-width:0!important;max-width:calc((100% - 112px)/2)!important;min-height:48px!important;height:auto!important;white-space:normal!important;overflow-wrap:anywhere!important}'+
+'#rest .rest .tcInfoBtn{left:50%!important;right:auto!important;top:12px!important;transform:translateX(-50%)!important}';
 document.head.appendChild(style);
 
 function closeCurrentSheet(){
