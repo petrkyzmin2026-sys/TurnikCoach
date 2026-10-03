@@ -83,15 +83,15 @@ assert(course.includes('tcPreviewCourseCard(tcSelectedDate)'),
  'choosing another date must show a read-only plan');
 assert(course.includes('id="tcCycleStartDate"'),
  'settings must expose a cycle start date');
-assert(hotfix.includes("const VERSION='5.16.38-progress-summary'"),
- 'release hotfix version must be 5.16.38');
+assert(hotfix.includes("const VERSION='5.16.39-training-two-buttons'"),
+ 'release hotfix version must be 5.16.39');
 assert(course.includes("const COURSE_MODULE_VERSION='1.0.35-touch-release'"),
  'course module version must be 1.0.35');
 assert(!course.includes('TC_EXTRA_START'),
  'temporary extra-workout trace logging must not ship');
 assert(!course.includes('window.confirm('),'course module must not depend on unsupported WebView JS dialogs');
 assert(!hotfix.includes('window.confirm('),'hotfix navigation/discard must not depend on unsupported WebView JS dialogs');
-assert(!hotfix.includes('forceHandover'),'5.16.38 must use an explicit user-visible update prompt');
+assert(!hotfix.includes('forceHandover'),'5.16.39 must use an explicit user-visible update prompt');
 assert(hotfix.includes("showRuntimeNotice('TurnikCoach обновлён до '+LABEL)"),
  'successful activation must give visible feedback');
 assert(hotfix.includes("localStorage.setItem('tc_hotfix_active_version',VERSION)"),
@@ -102,8 +102,8 @@ assert(hotfix.includes('window.__TC_HOTFIX_ACTIVE_VERSION=VERSION'),
  'live hotfix must keep its active version separate from the legacy asset compatibility sentinel');
 assert(hotfix.includes('window.__TC_HOTFIX_VERSION=LEGACY_ASSET_VERSION'),
  'packaged 5.14 hotfix must be prevented from re-patching the page after the live update');
-assert(hotfix.includes("b.type='button';b.className='tcWorkoutExitBtn';b.textContent='Выйти'"),
- 'actual packaged workout header must receive a visible exit-without-saving action');
+assert(hotfix.includes("b.type='button';b.className='tcWorkoutExitBtn';b.textContent='Завершить'"),
+ 'packaged header must expose Finish instead of Exit');
 assert(hotfix.includes('window.tcEnsureWorkoutControls=function()'),
  'workout control decorator must be explicitly callable after render');
 assert(course.includes("if(typeof window.tcEnsureWorkoutControls==='function')window.tcEnsureWorkoutControls();"),
@@ -565,11 +565,16 @@ assert(hotfix.includes('#app > .nav{z-index:90!important;pointer-events:auto!imp
  hotfix.includes('#today .scroll{min-height:0!important;overscroll-behavior:contain;padding-bottom:144px!important}'),
  'bottom navigation must have an unobstructed hit layer and safe Today scroll clearance at large text');
 // Actual correction implementation: undo skip, previous approach and previous exercise.
-assert(hotfix.includes('window.tcOpenWorkoutFinishMenu=function()')&&
- hotfix.includes('Завершить с сохранением')&&
- hotfix.includes('Выйти без сохранения')&&
- hotfix.includes('#workout .stageHeader .endBtn,#workout .wtop .endBtn{display:none!important}'),
- 'workout must have one clear Finish menu, not two competing header actions');
+assert(hotfix.includes('window.tcFinishActiveWorkout=function()')&&
+ hotfix.includes('tcTrainingTopActions')&&
+ hotfix.includes("back.textContent='← Назад'")&&
+ hotfix.includes("finish.textContent='Завершить'")&&
+ hotfix.includes("finish.onclick=window.tcFinishActiveWorkout")&&
+ hotfix.includes("back.disabled=!hasTrail;back.onclick=window.tcReturnToPreviousSet")&&
+ hotfix.includes("prev.style.display='grid'")&&
+ hotfix.includes("workout.querySelectorAll('.tcCorrectionSetBtn').forEach(b=>b.remove())")&&
+ !hotfix.includes('window.tcOpenWorkoutFinishMenu=function()'),
+ 'Workout and rest must use Back and direct Finish without a duplicate menu or bottom Back');
 assert(hotfix.includes("prev.onclick=window.tcReturnToPreviousSet")&&
  hotfix.includes("back.onclick=window.tcReturnToPreviousSet"),
  'Correction must be available in rest and workout, not a rest-only shortcut');
