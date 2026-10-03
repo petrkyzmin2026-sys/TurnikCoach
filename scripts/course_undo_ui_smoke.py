@@ -326,13 +326,13 @@ def launch():
 launch()
 dismiss_system_anr()
 
-# Exact update path: packaged 5.14 + cached 5.16.35 are active first; staged 5.16.38 must be offered explicitly.
+# Exact update path: packaged 5.14 + cached 5.16.38 are active first; staged 5.16.39 must be offered explicitly.
 time.sleep(3)
 screenshot("00-before-update-assert")
 adb("shell","uiautomator","dump","/sdcard/uxb3-before-update.xml",check=False)
 adb("pull","/sdcard/uxb3-before-update.xml",OUT+"/00-before-update.xml",check=False)
 try:
-    wait_text("Доступно обновление TurnikCoach 5.16.38",timeout=20)
+    wait_text("Доступно обновление TurnikCoach 5.16.39",timeout=20)
 except Exception:
     log=adb("logcat","-d","-t","500",check=False)
     with open(OUT+"/00-logcat.txt","w",encoding="utf-8") as fp:
@@ -342,7 +342,7 @@ wait_text("Обновить",contains=False)
 screenshot("01-update-offered")
 
 tap_clickable_text("Обновить")
-wait_text("TurnikCoach обновлён до 5.16.38",timeout=25)
+wait_text("TurnikCoach обновлён до 5.16.39",timeout=25)
 assert_accessibility_target("План",48)
 assert_accessibility_target("Прогресс",48)
 screenshot("02-update-installed")
@@ -355,7 +355,7 @@ tap_clickable_text("Прогресс",timeout=20)
 progress_probe=test_eval_json("(function(){var h=document.getElementById('historyScreen'),n=document.getElementById('tcProgressSummary');return {screen:(document.querySelector('.screen.on')||{}).id||'',hotfix:window.__TC_HOTFIX_ACTIVE_VERSION,history:!!h,scroll:!!(h&&h.querySelector('.scroll')),summary:!!n,text:n&&n.textContent||'',renderHook:typeof window.tcRenderProgressSummary};})()","progress-nav-diagnostic")
 print("TC_DIAG progress-nav",progress_probe,flush=True)
 screenshot("02a-progress-after-real-tap")
-time.sleep(2.5)  # Verify superseded 5.16.35 prompt cannot reopen after the new update.
+time.sleep(2.5)  # Verify superseded 5.16.38 prompt cannot reopen after the new update.
 summary=test_eval_json("(function(){var n=document.getElementById('tcProgressSummary'),r=n&&n.getBoundingClientRect(),p=document.getElementById('tcUpdatePrompt');return {present:!!n,items:n&&n.children.length||0,text:n&&n.textContent||'',first:!!n&&n.parentElement.firstElementChild===n,screen:(document.querySelector('.screen.on')||{}).id||'',visible:!!r&&r.width>0&&r.height>0&&r.top<window.innerHeight,blocked:!!p,labels:n&&[...n.children].map(c=>c.getAttribute('aria-label'))||[]};})()","progress-summary-layout")
 print("TC_DIAG progress-summary-verified",summary,flush=True)
 assert summary["screen"]=="historyScreen" and summary["present"] and summary["items"]==3 and summary["first"] and summary["visible"], "Progress cards must be rendered and visible at top of Progress"
@@ -439,9 +439,9 @@ adb("shell","am","force-stop",PKG)
 time.sleep(1)
 launch()
 dismiss_system_anr()
-upgrade_install=wait_log_tokens(["TC_NAV_UPGRADE",'"phase":"install"','"version":"5.16.38-progress-summary"'],timeout=20)
+upgrade_install=wait_log_tokens(["TC_NAV_UPGRADE",'"phase":"install"','"version":"5.16.39-training-two-buttons"'],timeout=20)
 restore_line=wait_log_tokens(["TC_WORKOUT_STATE",'"phase":"restored"','"name":"Подъём коленей в висе"','"mode":"extra"'],timeout=20)
-upgrade_arm=wait_log_tokens(["TC_NAV_UPGRADE",'"phase":"arm-restore-guard"','"version":"5.16.38-progress-summary"','"surface":"workout"'],timeout=20)
+upgrade_arm=wait_log_tokens(["TC_NAV_UPGRADE",'"phase":"arm-restore-guard"','"version":"5.16.39-training-two-buttons"','"surface":"workout"'],timeout=20)
 print("TC_DIAG nav-upgrade-install",upgrade_install,flush=True)
 print("TC_DIAG restore",restore_line,flush=True)
 print("TC_DIAG nav-upgrade-arm",upgrade_arm,flush=True)
@@ -477,6 +477,8 @@ wait_text("Сделано",timeout=12,contains=False)
 wait_text("Завершить",timeout=12,contains=False)
 assert_touch_target("Сделано",48,contains=False)
 assert_touch_target("Завершить",48,contains=False)
+top_actions=test_eval_json("(function(){var w=document.querySelector('#workout.screen.on'),bar=w&&w.querySelector('.tcTrainingTopActions'),b=bar&&bar.querySelector('.tcWorkoutBackBtn'),f=bar&&bar.querySelector('.tcWorkoutExitBtn');return {bar:!!bar,buttons:bar&&[...bar.querySelectorAll('button')].map(x=>x.textContent.trim())||[],backDisabled:b&&b.disabled,finish:!!f,otherBack:w&&w.querySelectorAll('.tcCorrectionSetBtn').length||0,oldFinishVisible:[...w.querySelectorAll('.endBtn')].some(x=>getComputedStyle(x).display!=='none')};})()","workout-two-visible-header-actions")
+assert top_actions["bar"] and top_actions["buttons"]==["← Назад","Завершить"] and top_actions["backDisabled"] and top_actions["finish"] and not top_actions["otherBack"] and not top_actions["oldFinishVisible"], "Workout header must expose exactly Back + Finish, with Back disabled until a previous set exists"
 screenshot("05-process-death-restored")
 
 # User-visible correction path: Done must be reversible without saving history.
@@ -487,8 +489,11 @@ done_state=test_eval_json("(function(){return {ex:W.exerciseIndex,set:W.setIndex
 assert done_state["recorded"]==first_before["input"] and done_state["trail"]==1, "Done must record one reversible set"
 rest_probe=test_eval_json("(function(){var r=document.querySelector('#rest.screen.on .rest'),p=r&&r.querySelector('.tcRestBack');return {rest:!!r,back:!!p,text:p&&p.textContent||'',rect:p&&{top:p.getBoundingClientRect().top,bottom:p.getBoundingClientRect().bottom,left:p.getBoundingClientRect().left,right:p.getBoundingClientRect().right},display:p&&getComputedStyle(p).display,buttons:[...document.querySelectorAll('#rest button')].map(b=>({text:b.textContent,display:getComputedStyle(b).display})),hotfix:window.__TC_HOTFIX_ACTIVE_VERSION};})()","rest-undo-layout")
 print("TC_DIAG rest-correction-layout",rest_probe,flush=True)
+rest_buttons=test_eval_json("(function(){var r=document.querySelector('#rest.screen.on .rest'),q=s=>r.querySelector(s),b=q('.tcRestBack'),f=q('.tcRestExitBtn'),i=q('.tcInfoBtn'),rect=x=>{var a=x&&x.getBoundingClientRect();return a&&{l:a.left,r:a.right,t:a.top,b:a.bottom,w:a.width,h:a.height}},hit=x=>{if(!x)return false;var a=x.getBoundingClientRect(),v=document.elementFromPoint((a.left+a.right)/2,(a.top+a.bottom)/2);return v===x||x.contains(v)},overlap=(a,b)=>a&&b&&a.l<b.r&&a.r>b.l&&a.t<b.b&&a.b>b.t;var x=rect(b),y=rect(f),w=rect(i);return {back:x,finish:y,info:w,backHit:hit(b),finishHit:hit(f),infoHit:hit(i),intersects:overlap(x,y)||overlap(x,w)||overlap(y,w)};})()","rest-navigation-real-hit-test")
+assert rest_buttons["back"] and rest_buttons["finish"] and rest_buttons["info"] and rest_buttons["backHit"] and rest_buttons["finishHit"] and rest_buttons["infoHit"] and not rest_buttons["intersects"], "Rest Back, Finish and Info must all be directly hittable with no overlap"
+
 screenshot("05b-rest-layout")
-tap_clickable_text("Исправить предыдущий подход",timeout=18)
+tap_clickable_text("Назад",timeout=18)
 back_state=test_eval_json("(function(){return {ex:W.exerciseIndex,set:W.setIndex,input:W.actual,recorded:W.items[0].actual[0]===undefined?null:W.items[0].actual[0],trail:W.__tcCorrectionTrail&&W.__tcCorrectionTrail.length||0,screen:(document.querySelector('.screen.on')||{}).id};})()","after-done-correction")
 assert back_state["ex"]==first_before["ex"] and back_state["set"]==first_before["set"] and back_state["input"]==first_before["input"] and back_state["recorded"] is None and back_state["trail"]==0 and back_state["screen"]=="workout", "Done correction must restore editable set and remove its recorded result"
 screenshot("05b-done-corrected")
@@ -498,31 +503,28 @@ tap_text("Пропустить",contains=True)
 time.sleep(0.7)
 skip_state=test_eval_json("(function(){return {skipped:W.items[0].actual[0]===null,trail:W.__tcCorrectionTrail&&W.__tcCorrectionTrail.length||0,screen:(document.querySelector('.screen.on')||{}).id};})()","skip-before-correction")
 assert skip_state["skipped"] and skip_state["trail"]==1, "Skipped set must be reversible"
-tap_clickable_text("Исправить предыдущий подход",timeout=18)
+tap_clickable_text("Назад",timeout=18)
 unskip_state=test_eval_json("(function(){return {set:W.setIndex,recorded:W.items[0].actual[0]===undefined?null:W.items[0].actual[0],trail:W.__tcCorrectionTrail&&W.__tcCorrectionTrail.length||0,screen:(document.querySelector('.screen.on')||{}).id,snapshot:JSON.parse(localStorage.getItem('tc_active_workout_v2')||'null')};})()","after-skip-correction")
 assert unskip_state["set"]==0 and unskip_state["recorded"] is None and unskip_state["trail"]==0 and unskip_state["screen"]=="workout", "Skip correction must restore the same editable set"
 assert unskip_state["snapshot"] and unskip_state["snapshot"]["workout"]["setIndex"]==0, "Correction must persist the restored approach"
 screenshot("05c-skip-corrected")
 
-# Regression: the real exit button must open confirmation, allow cancellation,
-# and actually display Today after clearing only this unfinished workout.
-# Remove the injected test controls so they cannot overlay the real header button.
+# Exactly two workout header actions: Back and direct Finish.
 test_exec("var d=document.getElementById('tcTestDriver');if(d)d.remove();","remove-test-overlay")
 tap_clickable_text("Завершить",timeout=18)
-wait_text("Действия с тренировкой",timeout=18,contains=False)
-menu=test_eval_json("(function(){return {open:!!document.querySelector('#sheet.open'),save:!!document.getElementById('tcFinishSaveBtn'),discard:!!document.getElementById('tcFinishDiscardBtn'),cancel:!!document.getElementById('tcFinishCancelBtn')};})()","unified-finish-menu")
-assert all(menu.values()), "Unified Finish menu must expose save, discard and continue"
-tap_clickable_text("Выйти без сохранения",timeout=18)
+feedback=test_eval_json("(function(){var box=document.getElementById('sheetbox');return {open:!!document.querySelector('#sheet.open'),effort:!!box&&[...box.querySelectorAll('button')].some(b=>/^(Легко|Нормально|Тяжело)$/i.test((b.textContent||'').trim())),oldMenu:!!document.getElementById('tcFinishDiscardBtn'),hasW:!!W};})()","direct-finish-effort")
+assert feedback["open"] and feedback["effort"] and not feedback["oldMenu"] and feedback["hasW"], "Finish must open the effort/save step directly, not a duplicate exit menu"
+screenshot("06-finish-direct-effort")
+test_exec("document.getElementById('sheet').classList.remove('open');","close-unsaved-effort")
+# Destructive discard is a separate system-Back operation with one confirmation.
+test_exec("window.tcDiscardWorkout();","open-discard-confirmation")
 wait_text("Выйти без сохранения?",timeout=18,contains=False)
 confirmation=test_eval_json("(function(){return {open:!!document.querySelector('#sheet.open'),hasW:!!W,confirm:!!document.getElementById('tcConfirmDiscardWorkoutBtn')};})()","exit-confirmation")
-assert confirmation["open"] and confirmation["hasW"] and confirmation["confirm"], "Exit must open a functional confirmation with the workout intact"
-screenshot("06-exit-confirmation")
+assert confirmation["open"] and confirmation["hasW"] and confirmation["confirm"], "Discard confirmation must not destroy an active workout before approval"
 tap_clickable_text("Продолжить тренировку",timeout=18)
 cancel=test_eval_json("(function(){return {hasW:!!W,workoutOn:!!document.querySelector('#workout.screen.on'),sheetOpen:!!document.querySelector('#sheet.open')};})()","exit-cancel")
-assert cancel["hasW"] and cancel["workoutOn"] and not cancel["sheetOpen"], "Cancel must return to the active workout"
-
-tap_clickable_text("Завершить",timeout=18)
-tap_clickable_text("Выйти без сохранения",timeout=18)
+assert cancel["hasW"] and cancel["workoutOn"] and not cancel["sheetOpen"], "Cancel must resume the existing workout"
+test_exec("window.tcDiscardWorkout();","reopen-discard-confirmation")
 tap_clickable_text("Выйти без сохранения",timeout=18)
 time.sleep(1.5)
 after_exit=test_eval_json("(function(){var t=document.getElementById('today'),w=document.getElementById('workout');return {hasW:!!W,todayOn:t.classList.contains('on'),todayHidden:t.hidden,todayDisplay:getComputedStyle(t).display,todayHeight:t.getBoundingClientRect().height,workoutOn:w.classList.contains('on'),workoutHidden:w.hidden,sheetOpen:!!document.querySelector('#sheet.open'),snapshot:localStorage.getItem('tc_active_workout_v2'),route:history.state&&history.state.tcScreen,extraSeq:JSON.parse(localStorage.getItem('tc_morozov_course_v1')||'{}').extraSeq};})()","exit-discard")
