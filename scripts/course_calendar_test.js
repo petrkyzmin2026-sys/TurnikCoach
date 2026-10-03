@@ -575,6 +575,9 @@ assert(hotfix.includes('window.tcFinishActiveWorkout=function()')&&
  hotfix.includes("workout.querySelectorAll('.tcCorrectionSetBtn').forEach(b=>b.remove())")&&
  !hotfix.includes('window.tcOpenWorkoutFinishMenu=function()'),
  'Workout and rest must use Back and direct Finish without a duplicate menu or bottom Back');
+assert(hotfix.includes('#rest .rest .tcInfoBtn{left:50%!important;right:auto!important')&&
+ hotfix.includes('max-width:calc((100% - 112px)/2)'),
+ 'Rest Info must be centered and side controls must not overlap it even at 200% font scale');
 assert(hotfix.includes("prev.onclick=window.tcReturnToPreviousSet")&&
  hotfix.includes("back.onclick=window.tcReturnToPreviousSet"),
  'Correction must be available in rest and workout, not a rest-only shortcut');
