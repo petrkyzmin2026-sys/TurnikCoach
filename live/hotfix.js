@@ -1,8 +1,8 @@
-/* TURNIKCOACH_HOTFIX 5.16.38-progress-summary */
+/* TURNIKCOACH_HOTFIX 5.16.39-training-two-buttons */
 (function(){
 'use strict';
-const VERSION='5.16.38-progress-summary';
-const LABEL='5.16.38';
+const VERSION='5.16.39-training-two-buttons';
+const LABEL='5.16.39';
 const APPROVED_KEY='tc_hotfix_approved_version';
 const LEGACY_ASSET_VERSION='5.14.0-adaptive-rest';
 const stalePrompt=document.getElementById('tcUpdatePrompt');
@@ -71,7 +71,7 @@ title.style.cssText='font-size:22px;font-weight:800;margin-bottom:10px;flex:0 0 
 title.textContent='Доступно обновление TurnikCoach '+LABEL;
 const text=document.createElement('div');
 text.style.cssText='font-size:15px;line-height:1.45;color:#cfd8e3;margin-bottom:18px;min-height:0;flex:1 1 0;overflow-y:auto;overscroll-behavior:contain;padding-right:4px';
-text.innerHTML="В тренировке объединены действия завершения, добавлен возврат к предыдущему подходу и исправление случайного пропуска. Записанный подход подтверждается виброоткликом. В разделе «Прогресс» появилась краткая сводка тренировок и текущего максимума. Алгоритм курса и ранее сохранённая история не изменяются.<br><br>Установить обновление сейчас?";
+text.innerHTML="На экране упражнения и отдыха две кнопки: «Назад» для исправления предыдущего подхода и «Завершить» для сохранения тренировки. Убраны дублирующие кнопки и промежуточное меню завершения. Записанный подход подтверждается виброоткликом. В разделе «Прогресс» появилась краткая сводка тренировок и текущего максимума. Алгоритм курса и ранее сохранённая история не изменяются.<br><br>Установить обновление сейчас?";
 const row=document.createElement('div');
 row.style.cssText='display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;flex:0 0 auto';
 const later=document.createElement('button');
@@ -806,8 +806,8 @@ tcStabilizeWorkoutControls();
 const wh=document.querySelector('#workout.screen.on .stageHeader .row.between, #workout.screen.on .wtop .row.between');
 if(wh&&!wh.querySelector('.tcWorkoutExitBtn')){
 const b=document.createElement('button');
-b.type='button';b.className='tcWorkoutExitBtn';b.textContent='Выйти';b.title='Выйти без сохранения';
-b.onclick=window.tcDiscardWorkout;
+b.type='button';b.className='tcWorkoutExitBtn';b.textContent='Завершить';b.title='Завершить с сохранением';
+b.onclick=function(){if(typeof window.tcFinishActiveWorkout==='function')window.tcFinishActiveWorkout()};
 wh.insertBefore(b,wh.firstChild);
 }
 
@@ -820,8 +820,8 @@ rest.appendChild(b);
 }
 if(rest&&!rest.querySelector('.tcRestExitBtn')){
 const b=document.createElement('button');
-b.type='button';b.className='tcRestExitBtn';b.textContent='Выйти';b.title='Выйти без сохранения';
-b.onclick=window.tcDiscardWorkout;
+b.type='button';b.className='tcRestExitBtn';b.textContent='Завершить';b.title='Завершить с сохранением';
+b.onclick=function(){if(typeof window.tcFinishActiveWorkout==='function')window.tcFinishActiveWorkout()};
 rest.appendChild(b);
 }
 
@@ -1263,10 +1263,12 @@ workout.early=frame.early;
 return frame;
 }
 function tcInstallWorkoutCorrection(){
-if(window.__TC_WORKOUT_CORRECTION_V1)return;
-window.__TC_WORKOUT_CORRECTION_V1=true;
+if(window.__TC_WORKOUT_CORRECTION_V2)return;
+window.__TC_WORKOUT_CORRECTION_V2=true;
+const inherited=!!window.__TC_WORKOUT_CORRECTION_V1;
+if(window.__tcCorrectionUiObserver)window.__tcCorrectionUiObserver.disconnect();
 const originalSetDone=window.setDone;
-if(typeof originalSetDone==='function'){
+if(!inherited&&typeof originalSetDone==='function'){
 window.setDone=function(skip){
 const current=typeof W!=='undefined'?W:null;
 const frame=tcCaptureCorrectionBefore(current);
@@ -1285,6 +1287,15 @@ style.textContent=
 '#app > .nav{z-index:90!important;pointer-events:auto!important}'+
 '#today .scroll{min-height:0!important;overscroll-behavior:contain;padding-bottom:144px!important}'+
 '#workout .stageHeader .endBtn,#workout .wtop .endBtn{display:none!important}'+
+'#workout .stageHeader .row.between,#workout .wtop .row.between{display:flex!important;flex-wrap:wrap!important;gap:8px!important}'+
+'#workout .wtop .row.between{padding-left:0!important;min-height:0!important}'+
+'#workout .wtop .tcWorkoutExitBtn{position:static!important;left:auto!important;top:auto!important}'+
+'#workout .tcTrainingTopActions{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);width:100%;gap:8px;flex:0 0 100%;order:-1}'+
+'#workout .tcWorkoutBackBtn,#workout .tcWorkoutExitBtn{min-width:0!important;min-height:48px;height:auto!important;padding:10px 7px!important;border-radius:12px;font:800 14px/1.2 system-ui,sans-serif;overflow-wrap:anywhere}'+
+'#workout .tcWorkoutBackBtn{background:#202b36;border:1px solid #566579;color:#fff}'+
+'#workout .tcWorkoutExitBtn{background:#285335;border:1px solid #4e805b;color:#fff}'+
+'#workout .tcWorkoutBackBtn:disabled,#rest .tcRestBack:disabled{opacity:.45}'+
+'#workout .tcCorrectionSetBtn{display:none!important}'+
 '#workout .tcWorkoutExitBtn,#rest .tcRestExitBtn{min-width:100px!important;padding:0 9px!important}'+
 '#workout .tcCorrectionSetBtn{width:100%;min-height:48px;border:1px solid #566579;border-radius:12px;background:#202b36;color:#fff;font:750 15px/1.2 system-ui,sans-serif;touch-action:manipulation}'+
 '#workout .tcCorrectionSetBtn:active{transform:scale(.99)}'+
@@ -1295,29 +1306,15 @@ function closeCurrentSheet(){
 const el=document.getElementById('sheet');
 if(el)el.classList.remove('open');
 }
-window.tcOpenWorkoutFinishMenu=function(){
-if(typeof W==='undefined'||!W){showRuntimeNotice('Нет активной тренировки.','danger');return}
-const sheet=document.getElementById('sheet'),box=document.getElementById('sheetbox');
-if(!sheet||!box)return;
-const canSave=W.mode!=='courseTest';
-box.innerHTML='<div class="sheettitle">Действия с тренировкой</div>'+
-'<div class="sub" style="margin:8px 0 12px;line-height:1.5">Сохранение завершит текущую тренировку и запишет выполненные подходы. Выход без сохранения удалит результаты только этого запуска.</div>'+
-(canSave?'<button id="tcFinishSaveBtn" type="button" class="btn yellow full" style="min-height:58px">Завершить с сохранением</button>':'')+
-'<button id="tcFinishDiscardBtn" type="button" class="btn danger full" style="margin-top:10px;min-height:58px">Выйти без сохранения</button>'+
-'<button id="tcFinishCancelBtn" type="button" class="btn ghost full" style="margin-top:10px;min-height:48px">Продолжить тренировку</button>';
-sheet.classList.add('open');
-const saveBtn=document.getElementById('tcFinishSaveBtn');
-if(saveBtn)saveBtn.onclick=function(e){
-e.preventDefault();e.stopPropagation();closeCurrentSheet();
-if(typeof askFeedback==='function')askFeedback(true);
-};
-const discardBtn=document.getElementById('tcFinishDiscardBtn');
-if(discardBtn)discardBtn.onclick=function(e){
-e.preventDefault();e.stopPropagation();closeCurrentSheet();
-if(typeof window.tcDiscardWorkout==='function')window.tcDiscardWorkout();
-};
-const cancelBtn=document.getElementById('tcFinishCancelBtn');
-if(cancelBtn)cancelBtn.onclick=function(e){e.preventDefault();e.stopPropagation();closeCurrentSheet()};
+window.tcFinishActiveWorkout=function(){
+if(typeof W==='undefined'||!W){showRuntimeNotice('Нет активной тренировки.','danger');return false}
+if(W.mode==='courseTest'){
+if(typeof window.setDone==='function')window.setDone(false);
+return true;
+}
+if(typeof askFeedback!=='function'){showRuntimeNotice('Не удалось открыть сохранение.','danger');return false}
+askFeedback(true);
+return true;
 };
 window.tcReturnToPreviousSet=function(){
 const current=typeof W!=='undefined'?W:null;
@@ -1350,38 +1347,33 @@ const hasTrail=typeof W!=='undefined'&&W&&Array.isArray(W.__tcCorrectionTrail)&&
 const workout=document.querySelector('#workout.screen.on');
 if(workout){
 const header=workout.querySelector('.stageHeader .row.between,.wtop .row.between');
-const menu=header&&header.querySelector('.tcWorkoutExitBtn');
-if(menu&&menu.dataset.tcUnifiedFinish!=='1'){
-menu.textContent='Завершить';menu.title='Сохранить или выйти без сохранения';
-menu.onclick=window.tcOpenWorkoutFinishMenu;menu.dataset.tcUnifiedFinish='1';
+if(header){
+let bar=header.querySelector('.tcTrainingTopActions');
+if(!bar){
+bar=document.createElement('div');bar.className='tcTrainingTopActions';
+const existing=header.querySelector('.tcWorkoutExitBtn');
+if(existing)bar.appendChild(existing);
+header.insertBefore(bar,header.firstChild);
+}
+let back=bar.querySelector('.tcWorkoutBackBtn');
+if(!back){back=document.createElement('button');back.type='button';back.className='tcWorkoutBackBtn';back.textContent='← Назад';back.title='Вернуться к предыдущему подходу';bar.insertBefore(back,bar.firstChild)}
+back.disabled=!hasTrail;back.onclick=window.tcReturnToPreviousSet;
+const finish=bar.querySelector('.tcWorkoutExitBtn');
+if(finish){finish.textContent='Завершить';finish.title='Завершить с сохранением';finish.onclick=window.tcFinishActiveWorkout;}
 }
 const legacy=workout.querySelector('.stageHeader .endBtn,.wtop .endBtn');
 if(legacy)legacy.style.display='none';
-const actions=workout.querySelector('.tcWorkoutActions,.stageControls .actions,.controls .actions');
-if(actions){
-let back=actions.querySelector('.tcCorrectionSetBtn');
-if(!back){
-back=document.createElement('button');back.type='button';back.className='tcCorrectionSetBtn';
-back.textContent='← Исправить предыдущий подход';
-back.onclick=window.tcReturnToPreviousSet;
-actions.appendChild(back);
-}
-back.disabled=!hasTrail;
-back.style.display=hasTrail?'block':'none';
-}
+workout.querySelectorAll('.tcCorrectionSetBtn').forEach(b=>b.remove());
 }
 const rest=document.querySelector('#rest.screen.on .rest');
 if(rest){
 const prev=rest.querySelector('.tcRestBack'),finish=rest.querySelector('.tcRestExitBtn');
 if(prev){
-if(prev.textContent!=='Исправить')prev.textContent='Исправить';prev.title='Исправить предыдущий подход';
-prev.setAttribute('aria-label','Исправить предыдущий подход');
-prev.onclick=window.tcReturnToPreviousSet;prev.disabled=!hasTrail;prev.style.display=hasTrail?'grid':'none';
+if(prev.textContent!=='← Назад')prev.textContent='← Назад';prev.title='Вернуться к предыдущему подходу';
+prev.setAttribute('aria-label','Назад');
+prev.onclick=window.tcReturnToPreviousSet;prev.disabled=!hasTrail;prev.style.display='grid';
 }
-if(finish&&finish.dataset.tcUnifiedFinish!=='1'){
-finish.textContent='Завершить';finish.title='Сохранить или выйти без сохранения';
-finish.onclick=window.tcOpenWorkoutFinishMenu;finish.dataset.tcUnifiedFinish='1';
-}
+if(finish){finish.textContent='Завершить';finish.title='Завершить с сохранением';finish.onclick=window.tcFinishActiveWorkout;}
 }
 // The last set opens the effort sheet; let the user correct it before saving.
 const sheet=document.getElementById('sheet'),box=document.getElementById('sheetbox');
