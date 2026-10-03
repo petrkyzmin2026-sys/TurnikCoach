@@ -65,9 +65,9 @@ jobs:
           from pathlib import Path
           p=Path('app/src/main/assets/hotfix-next.js')
           s=p.read_text()
-          needle="  function tcAudio(){\n    try{"
+          needle="function tcAudio(){\ntry{"
           assert needle in s
-          s=s.replace(needle,"  function tcAudio(){\n    if(window.__TC_DISABLE_AUDIO_FOR_SMOKE)return null;\n    try{",1)
+          s=s.replace(needle,"function tcAudio(){\nif(window.__TC_DISABLE_AUDIO_FOR_SMOKE)return null;\ntry{",1)
           p.write_text(s)
           PY
           grep -q 'TURNIKCOACH_HOTFIX 5.16.35-touch-release' app/src/main/assets/hotfix-prev.js
