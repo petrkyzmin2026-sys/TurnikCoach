@@ -1359,7 +1359,7 @@ let back=bar.querySelector('.tcWorkoutBackBtn');
 if(!back){back=document.createElement('button');back.type='button';back.className='tcWorkoutBackBtn';back.textContent='← Назад';back.title='Вернуться к предыдущему подходу';bar.insertBefore(back,bar.firstChild)}
 back.disabled=!hasTrail;back.onclick=window.tcReturnToPreviousSet;
 const finish=bar.querySelector('.tcWorkoutExitBtn');
-if(finish){finish.textContent='Завершить';finish.title='Завершить с сохранением';finish.onclick=window.tcFinishActiveWorkout;}
+if(finish){if(finish.textContent!=='Завершить')finish.textContent='Завершить';finish.title='Завершить с сохранением';finish.onclick=window.tcFinishActiveWorkout;}
 }
 const legacy=workout.querySelector('.stageHeader .endBtn,.wtop .endBtn');
 if(legacy)legacy.style.display='none';
@@ -1373,7 +1373,7 @@ if(prev.textContent!=='← Назад')prev.textContent='← Назад';prev.ti
 prev.setAttribute('aria-label','Назад');
 prev.onclick=window.tcReturnToPreviousSet;prev.disabled=!hasTrail;prev.style.display='grid';
 }
-if(finish){finish.textContent='Завершить';finish.title='Завершить с сохранением';finish.onclick=window.tcFinishActiveWorkout;}
+if(finish){if(finish.textContent!=='Завершить')finish.textContent='Завершить';finish.title='Завершить с сохранением';finish.onclick=window.tcFinishActiveWorkout;}
 }
 // The last set opens the effort sheet; let the user correct it before saving.
 const sheet=document.getElementById('sheet'),box=document.getElementById('sheetbox');
