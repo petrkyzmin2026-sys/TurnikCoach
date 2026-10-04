@@ -83,15 +83,15 @@ assert(course.includes('tcPreviewCourseCard(tcSelectedDate)'),
  'choosing another date must show a read-only plan');
 assert(course.includes('id="tcCycleStartDate"'),
  'settings must expose a cycle start date');
-assert(hotfix.includes("const VERSION='5.16.40-top-back-exit'"),
- 'release hotfix version must be 5.16.40');
+assert(hotfix.includes("const VERSION='5.16.41-finish-without-save'"),
+ 'release hotfix version must be 5.16.41');
 assert(course.includes("const COURSE_MODULE_VERSION='1.0.35-touch-release'"),
  'course module version must be 1.0.35');
 assert(!course.includes('TC_EXTRA_START'),
  'temporary extra-workout trace logging must not ship');
 assert(!course.includes('window.confirm('),'course module must not depend on unsupported WebView JS dialogs');
 assert(!hotfix.includes('window.confirm('),'hotfix navigation/discard must not depend on unsupported WebView JS dialogs');
-assert(!hotfix.includes('forceHandover'),'5.16.40 must use an explicit user-visible update prompt');
+assert(!hotfix.includes('forceHandover'),'5.16.41 must use an explicit user-visible update prompt');
 assert(hotfix.includes("showRuntimeNotice('TurnikCoach обновлён до '+LABEL)"),
  'successful activation must give visible feedback');
 assert(hotfix.includes("localStorage.setItem('tc_hotfix_active_version',VERSION)"),
@@ -119,6 +119,9 @@ assert(hotfix.includes('try{W=null}catch(e){}'),
  'discard must clear the actual lexical workout state');
 assert(hotfix.includes('tcConfirmDiscardWorkoutBtn'),
  'discard without saving must use an in-app confirmation sheet');
+assert(hotfix.includes('<div class="sheettitle">Завершить без сохранения?</div>')&&
+ hotfix.includes('>Завершить без сохранения</button>'),
+ 'discard confirmation must use the agreed Finish without saving wording');
 assert(course.includes('tcOpenUndoTodayCourseConfirm'),
  'same-day undo must keep an in-app confirmation sheet');
 assert(course.includes('tcActionMessage'),
