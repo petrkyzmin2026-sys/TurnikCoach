@@ -326,13 +326,13 @@ def launch():
 launch()
 dismiss_system_anr()
 
-# Exact update path: packaged 5.14 + cached 5.16.38 are active first; staged 5.16.39 must be offered explicitly.
+# Exact update path: packaged 5.14 + cached 5.16.38 are active first; staged 5.16.40 must be offered explicitly.
 time.sleep(3)
 screenshot("00-before-update-assert")
 adb("shell","uiautomator","dump","/sdcard/uxb3-before-update.xml",check=False)
 adb("pull","/sdcard/uxb3-before-update.xml",OUT+"/00-before-update.xml",check=False)
 try:
-    wait_text("Доступно обновление TurnikCoach 5.16.39",timeout=20)
+    wait_text("Доступно обновление TurnikCoach 5.16.40",timeout=20)
 except Exception:
     log=adb("logcat","-d","-t","500",check=False)
     with open(OUT+"/00-logcat.txt","w",encoding="utf-8") as fp:
@@ -342,7 +342,7 @@ wait_text("Обновить",contains=False)
 screenshot("01-update-offered")
 
 tap_clickable_text("Обновить")
-wait_text("TurnikCoach обновлён до 5.16.39",timeout=25)
+wait_text("TurnikCoach обновлён до 5.16.40",timeout=25)
 assert_accessibility_target("План",48)
 assert_accessibility_target("Прогресс",48)
 screenshot("02-update-installed")
@@ -439,9 +439,9 @@ adb("shell","am","force-stop",PKG)
 time.sleep(1)
 launch()
 dismiss_system_anr()
-upgrade_install=wait_log_tokens(["TC_NAV_UPGRADE",'"phase":"install"','"version":"5.16.39-training-two-buttons"'],timeout=20)
+upgrade_install=wait_log_tokens(["TC_NAV_UPGRADE",'"phase":"install"','"version":"5.16.40-top-back-exit"'],timeout=20)
 restore_line=wait_log_tokens(["TC_WORKOUT_STATE",'"phase":"restored"','"name":"Подъём коленей в висе"','"mode":"extra"'],timeout=20)
-upgrade_arm=wait_log_tokens(["TC_NAV_UPGRADE",'"phase":"arm-restore-guard"','"version":"5.16.39-training-two-buttons"','"surface":"workout"'],timeout=20)
+upgrade_arm=wait_log_tokens(["TC_NAV_UPGRADE",'"phase":"arm-restore-guard"','"version":"5.16.40-top-back-exit"','"surface":"workout"'],timeout=20)
 print("TC_DIAG nav-upgrade-install",upgrade_install,flush=True)
 print("TC_DIAG restore",restore_line,flush=True)
 print("TC_DIAG nav-upgrade-arm",upgrade_arm,flush=True)
@@ -474,11 +474,11 @@ for line in full_restore_text.splitlines():
         print("TC_DIAG webview-system",line,flush=True)
 
 wait_text("Сделано",timeout=12,contains=False)
-wait_text("Завершить",timeout=12,contains=False)
+wait_text("Выйти",timeout=12,contains=False)
 assert_touch_target("Сделано",48,contains=False)
-assert_touch_target("Завершить",48,contains=False)
-top_actions=test_eval_json("(function(){var w=document.querySelector('#workout.screen.on'),bar=w&&w.querySelector('.tcTrainingTopActions'),b=bar&&bar.querySelector('.tcWorkoutBackBtn'),f=bar&&bar.querySelector('.tcWorkoutExitBtn');return {bar:!!bar,buttons:bar&&[...bar.querySelectorAll('button')].map(x=>x.textContent.trim())||[],backDisabled:b&&b.disabled,finish:!!f,otherBack:w&&w.querySelectorAll('.tcCorrectionSetBtn').length||0,oldFinishVisible:[...w.querySelectorAll('.endBtn')].some(x=>getComputedStyle(x).display!=='none')};})()","workout-two-visible-header-actions")
-assert top_actions["bar"] and top_actions["buttons"]==["← Назад","Завершить"] and top_actions["backDisabled"] and top_actions["finish"] and not top_actions["otherBack"] and not top_actions["oldFinishVisible"], "Workout header must expose exactly Back + Finish, with Back disabled until a previous set exists"
+assert_touch_target("Выйти",48,contains=False)
+top_actions=test_eval_json("(function(){var w=document.querySelector('#workout.screen.on'),bar=w&&w.querySelector('.tcTrainingTopActions'),b=bar&&bar.querySelector('.tcWorkoutBackBtn'),e=bar&&bar.querySelector('.tcWorkoutExitBtn'),rb=b&&b.getBoundingClientRect(),re=e&&e.getBoundingClientRect(),rw=w&&w.getBoundingClientRect();return {bar:!!bar,buttons:bar&&[...bar.querySelectorAll('button')].map(x=>x.textContent.trim())||[],backDisabled:b&&b.disabled,exit:!!e,backLeft:!!rb&&!!rw&&rb.left-rw.left<32,exitRight:!!re&&!!rw&&rw.right-re.right<32,otherBack:w&&w.querySelectorAll('.tcCorrectionSetBtn').length||0,oldFinishVisible:[...w.querySelectorAll('.endBtn')].some(x=>getComputedStyle(x).display!=='none')};})()","workout-top-back-exit-actions")
+assert top_actions["bar"] and top_actions["buttons"]==["← Назад","Выйти"] and top_actions["backDisabled"] and top_actions["exit"] and top_actions["backLeft"] and top_actions["exitRight"] and not top_actions["otherBack"] and not top_actions["oldFinishVisible"], "Workout header must place Back at top-left and Exit at top-right, with Back disabled until a previous set exists"
 screenshot("05-process-death-restored")
 
 # User-visible correction path: Done must be reversible without saving history.
@@ -509,22 +509,17 @@ assert unskip_state["set"]==0 and unskip_state["recorded"] is None and unskip_st
 assert unskip_state["snapshot"] and unskip_state["snapshot"]["workout"]["setIndex"]==0, "Correction must persist the restored approach"
 screenshot("05c-skip-corrected")
 
-# Exactly two workout header actions: Back and direct Finish.
+# Exit is the top-right action and requires exactly one destructive confirmation.
 test_exec("var d=document.getElementById('tcTestDriver');if(d)d.remove();","remove-test-overlay")
-tap_clickable_text("Завершить",timeout=18)
-feedback=test_eval_json("(function(){var box=document.getElementById('sheetbox');return {open:!!document.querySelector('#sheet.open'),effort:!!box&&[...box.querySelectorAll('button')].some(b=>/^(Легко|Нормально|Тяжело)$/i.test((b.textContent||'').trim())),oldMenu:!!document.getElementById('tcFinishDiscardBtn'),hasW:!!W};})()","direct-finish-effort")
-assert feedback["open"] and feedback["effort"] and not feedback["oldMenu"] and feedback["hasW"], "Finish must open the effort/save step directly, not a duplicate exit menu"
-screenshot("06-finish-direct-effort")
-test_exec("document.getElementById('sheet').classList.remove('open');","close-unsaved-effort")
-# Destructive discard is a separate system-Back operation with one confirmation.
-test_exec("window.tcDiscardWorkout();","open-discard-confirmation")
+tap_clickable_text("Выйти",timeout=18)
 wait_text("Выйти без сохранения?",timeout=18,contains=False)
-confirmation=test_eval_json("(function(){return {open:!!document.querySelector('#sheet.open'),hasW:!!W,confirm:!!document.getElementById('tcConfirmDiscardWorkoutBtn')};})()","exit-confirmation")
-assert confirmation["open"] and confirmation["hasW"] and confirmation["confirm"], "Discard confirmation must not destroy an active workout before approval"
+confirmation=test_eval_json("(function(){return {open:!!document.querySelector('#sheet.open'),hasW:!!W,confirm:!!document.getElementById('tcConfirmDiscardWorkoutBtn'),finishMenu:!!document.getElementById('tcFinishDiscardBtn')};})()","top-exit-confirmation")
+assert confirmation["open"] and confirmation["hasW"] and confirmation["confirm"] and not confirmation["finishMenu"], "One tap on top-right Exit must open the single discard confirmation without an intermediate Finish menu"
+screenshot("06-exit-single-confirmation")
 tap_clickable_text("Продолжить тренировку",timeout=18)
 cancel=test_eval_json("(function(){return {hasW:!!W,workoutOn:!!document.querySelector('#workout.screen.on'),sheetOpen:!!document.querySelector('#sheet.open')};})()","exit-cancel")
 assert cancel["hasW"] and cancel["workoutOn"] and not cancel["sheetOpen"], "Cancel must resume the existing workout"
-test_exec("window.tcDiscardWorkout();","reopen-discard-confirmation")
+tap_clickable_text("Выйти",timeout=18)
 tap_clickable_text("Выйти без сохранения",timeout=18)
 time.sleep(1.5)
 after_exit=test_eval_json("(function(){var t=document.getElementById('today'),w=document.getElementById('workout');return {hasW:!!W,todayOn:t.classList.contains('on'),todayHidden:t.hidden,todayDisplay:getComputedStyle(t).display,todayHeight:t.getBoundingClientRect().height,workoutOn:w.classList.contains('on'),workoutHidden:w.hidden,sheetOpen:!!document.querySelector('#sheet.open'),snapshot:localStorage.getItem('tc_active_workout_v2'),route:history.state&&history.state.tcScreen,extraSeq:JSON.parse(localStorage.getItem('tc_morozov_course_v1')||'{}').extraSeq};})()","exit-discard")
