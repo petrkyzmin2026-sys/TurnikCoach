@@ -326,13 +326,13 @@ def launch():
 launch()
 dismiss_system_anr()
 
-# Exact update path: packaged 5.14 + cached 5.16.38 are active first; staged 5.16.40 must be offered explicitly.
+# Exact update path: packaged 5.14 + cached 5.16.40 are active first; staged 5.16.41 must be offered explicitly.
 time.sleep(3)
 screenshot("00-before-update-assert")
 adb("shell","uiautomator","dump","/sdcard/uxb3-before-update.xml",check=False)
 adb("pull","/sdcard/uxb3-before-update.xml",OUT+"/00-before-update.xml",check=False)
 try:
-    wait_text("Доступно обновление TurnikCoach 5.16.40",timeout=20)
+    wait_text("Доступно обновление TurnikCoach 5.16.41",timeout=20)
 except Exception:
     log=adb("logcat","-d","-t","500",check=False)
     with open(OUT+"/00-logcat.txt","w",encoding="utf-8") as fp:
@@ -342,7 +342,7 @@ wait_text("Обновить",contains=False)
 screenshot("01-update-offered")
 
 tap_clickable_text("Обновить")
-wait_text("TurnikCoach обновлён до 5.16.40",timeout=25)
+wait_text("TurnikCoach обновлён до 5.16.41",timeout=25)
 assert_accessibility_target("План",48)
 assert_accessibility_target("Прогресс",48)
 screenshot("02-update-installed")
@@ -439,9 +439,9 @@ adb("shell","am","force-stop",PKG)
 time.sleep(1)
 launch()
 dismiss_system_anr()
-upgrade_install=wait_log_tokens(["TC_NAV_UPGRADE",'"phase":"install"','"version":"5.16.40-top-back-exit"'],timeout=20)
+upgrade_install=wait_log_tokens(["TC_NAV_UPGRADE",'"phase":"install"','"version":"5.16.41-finish-without-save"'],timeout=20)
 restore_line=wait_log_tokens(["TC_WORKOUT_STATE",'"phase":"restored"','"name":"Подъём коленей в висе"','"mode":"extra"'],timeout=20)
-upgrade_arm=wait_log_tokens(["TC_NAV_UPGRADE",'"phase":"arm-restore-guard"','"version":"5.16.40-top-back-exit"','"surface":"workout"'],timeout=20)
+upgrade_arm=wait_log_tokens(["TC_NAV_UPGRADE",'"phase":"arm-restore-guard"','"version":"5.16.41-finish-without-save"','"surface":"workout"'],timeout=20)
 print("TC_DIAG nav-upgrade-install",upgrade_install,flush=True)
 print("TC_DIAG restore",restore_line,flush=True)
 print("TC_DIAG nav-upgrade-arm",upgrade_arm,flush=True)
@@ -512,7 +512,7 @@ screenshot("05c-skip-corrected")
 # Exit is the top-right action and requires exactly one destructive confirmation.
 test_exec("var d=document.getElementById('tcTestDriver');if(d)d.remove();","remove-test-overlay")
 tap_clickable_text("Выйти",timeout=18)
-wait_text("Выйти без сохранения?",timeout=18,contains=False)
+wait_text("Завершить без сохранения?",timeout=18,contains=False)
 confirmation=test_eval_json("(function(){return {open:!!document.querySelector('#sheet.open'),hasW:!!W,confirm:!!document.getElementById('tcConfirmDiscardWorkoutBtn'),finishMenu:!!document.getElementById('tcFinishDiscardBtn')};})()","top-exit-confirmation")
 assert confirmation["open"] and confirmation["hasW"] and confirmation["confirm"] and not confirmation["finishMenu"], "One tap on top-right Exit must open the single discard confirmation without an intermediate Finish menu"
 screenshot("06-exit-single-confirmation")
@@ -520,7 +520,7 @@ tap_clickable_text("Продолжить тренировку",timeout=18)
 cancel=test_eval_json("(function(){return {hasW:!!W,workoutOn:!!document.querySelector('#workout.screen.on'),sheetOpen:!!document.querySelector('#sheet.open')};})()","exit-cancel")
 assert cancel["hasW"] and cancel["workoutOn"] and not cancel["sheetOpen"], "Cancel must resume the existing workout"
 tap_clickable_text("Выйти",timeout=18)
-tap_clickable_text("Выйти без сохранения",timeout=18)
+tap_clickable_text("Завершить без сохранения",timeout=18)
 time.sleep(1.5)
 after_exit=test_eval_json("(function(){var t=document.getElementById('today'),w=document.getElementById('workout');return {hasW:!!W,todayOn:t.classList.contains('on'),todayHidden:t.hidden,todayDisplay:getComputedStyle(t).display,todayHeight:t.getBoundingClientRect().height,workoutOn:w.classList.contains('on'),workoutHidden:w.hidden,sheetOpen:!!document.querySelector('#sheet.open'),snapshot:localStorage.getItem('tc_active_workout_v2'),route:history.state&&history.state.tcScreen,extraSeq:JSON.parse(localStorage.getItem('tc_morozov_course_v1')||'{}').extraSeq};})()","exit-discard")
 print("TC_DIAG exit-discard",after_exit,flush=True)
