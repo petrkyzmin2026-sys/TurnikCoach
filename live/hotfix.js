@@ -1,8 +1,8 @@
-/* TURNIKCOACH_HOTFIX 5.16.39-training-two-buttons */
+/* TURNIKCOACH_HOTFIX 5.16.40-top-back-exit */
 (function(){
 'use strict';
-const VERSION='5.16.39-training-two-buttons';
-const LABEL='5.16.39';
+const VERSION='5.16.40-top-back-exit';
+const LABEL='5.16.40';
 const APPROVED_KEY='tc_hotfix_approved_version';
 const LEGACY_ASSET_VERSION='5.14.0-adaptive-rest';
 const stalePrompt=document.getElementById('tcUpdatePrompt');
@@ -71,7 +71,7 @@ title.style.cssText='font-size:22px;font-weight:800;margin-bottom:10px;flex:0 0 
 title.textContent='Доступно обновление TurnikCoach '+LABEL;
 const text=document.createElement('div');
 text.style.cssText='font-size:15px;line-height:1.45;color:#cfd8e3;margin-bottom:18px;min-height:0;flex:1 1 0;overflow-y:auto;overscroll-behavior:contain;padding-right:4px';
-text.innerHTML="На экране упражнения и отдыха две кнопки: «Назад» для исправления предыдущего подхода и «Завершить» для сохранения тренировки. Убраны дублирующие кнопки и промежуточное меню завершения. Записанный подход подтверждается виброоткликом. В разделе «Прогресс» появилась краткая сводка тренировок и текущего максимума. Алгоритм курса и ранее сохранённая история не изменяются.<br><br>Установить обновление сейчас?";
+text.innerHTML="Исправлено управление тренировкой: «Назад» находится слева сверху и возвращает к предыдущему выполненному или пропущенному подходу; «Выйти» находится справа сверху и закрывает тренировку без сохранения только после подтверждения. Дублирующие кнопки убраны. Алгоритм курса и ранее сохранённая история не изменяются.<br><br>Установить обновление сейчас?";
 const row=document.createElement('div');
 row.style.cssText='display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;flex:0 0 auto';
 const later=document.createElement('button');
@@ -806,8 +806,8 @@ tcStabilizeWorkoutControls();
 const wh=document.querySelector('#workout.screen.on .stageHeader .row.between, #workout.screen.on .wtop .row.between');
 if(wh&&!wh.querySelector('.tcWorkoutExitBtn')){
 const b=document.createElement('button');
-b.type='button';b.className='tcWorkoutExitBtn';b.textContent='Завершить';b.title='Завершить с сохранением';
-b.onclick=function(){if(typeof window.tcFinishActiveWorkout==='function')window.tcFinishActiveWorkout()};
+b.type='button';b.className='tcWorkoutExitBtn';b.textContent='Выйти';b.title='Выйти без сохранения';
+b.onclick=window.tcDiscardWorkout;
 wh.insertBefore(b,wh.firstChild);
 }
 
@@ -820,8 +820,8 @@ rest.appendChild(b);
 }
 if(rest&&!rest.querySelector('.tcRestExitBtn')){
 const b=document.createElement('button');
-b.type='button';b.className='tcRestExitBtn';b.textContent='Завершить';b.title='Завершить с сохранением';
-b.onclick=function(){if(typeof window.tcFinishActiveWorkout==='function')window.tcFinishActiveWorkout()};
+b.type='button';b.className='tcRestExitBtn';b.textContent='Выйти';b.title='Выйти без сохранения';
+b.onclick=window.tcDiscardWorkout;
 rest.appendChild(b);
 }
 
@@ -1290,10 +1290,10 @@ style.textContent=
 '#workout .stageHeader .row.between,#workout .wtop .row.between{display:flex!important;flex-wrap:wrap!important;gap:8px!important}'+
 '#workout .wtop .row.between{padding-left:0!important;min-height:0!important}'+
 '#workout .wtop .tcWorkoutExitBtn{position:static!important;left:auto!important;top:auto!important}'+
-'#workout .tcTrainingTopActions{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);width:100%;gap:8px;flex:0 0 100%;order:-1}'+
-'#workout .tcWorkoutBackBtn,#workout .tcWorkoutExitBtn{min-width:0!important;min-height:48px;height:auto!important;padding:10px 7px!important;border-radius:12px;font:800 14px/1.2 system-ui,sans-serif;overflow-wrap:anywhere}'+
+'#workout .tcTrainingTopActions{display:flex;align-items:center;justify-content:space-between;width:100%;gap:12px;flex:0 0 100%;order:-1}'+
+'#workout .tcWorkoutBackBtn,#workout .tcWorkoutExitBtn{min-width:88px!important;max-width:44%;min-height:48px;height:48px!important;padding:0 14px!important;border-radius:12px;font:800 14px/1.2 system-ui,sans-serif;white-space:nowrap;touch-action:manipulation}'+
 '#workout .tcWorkoutBackBtn{background:#202b36;border:1px solid #566579;color:#fff}'+
-'#workout .tcWorkoutExitBtn{background:#285335;border:1px solid #4e805b;color:#fff}'+
+'#workout .tcWorkoutExitBtn{background:#2a181b;border:1px solid #70424a;color:#ffb8bd}'+
 '#workout .tcWorkoutBackBtn:disabled,#rest .tcRestBack:disabled{opacity:.45}'+
 '#workout .tcCorrectionSetBtn{display:none!important}'+
 '#workout .tcWorkoutExitBtn,#rest .tcRestExitBtn{min-width:100px!important;padding:0 9px!important}'+
@@ -1308,16 +1308,6 @@ function closeCurrentSheet(){
 const el=document.getElementById('sheet');
 if(el)el.classList.remove('open');
 }
-window.tcFinishActiveWorkout=function(){
-if(typeof W==='undefined'||!W){showRuntimeNotice('Нет активной тренировки.','danger');return false}
-if(W.mode==='courseTest'){
-if(typeof window.setDone==='function')window.setDone(false);
-return true;
-}
-if(typeof askFeedback!=='function'){showRuntimeNotice('Не удалось открыть сохранение.','danger');return false}
-askFeedback(true);
-return true;
-};
 window.tcReturnToPreviousSet=function(){
 const current=typeof W!=='undefined'?W:null;
 if(!current||!Array.isArray(current.__tcCorrectionTrail)||!current.__tcCorrectionTrail.length){
@@ -1360,8 +1350,8 @@ header.insertBefore(bar,header.firstChild);
 let back=bar.querySelector('.tcWorkoutBackBtn');
 if(!back){back=document.createElement('button');back.type='button';back.className='tcWorkoutBackBtn';back.textContent='← Назад';back.title='Вернуться к предыдущему подходу';bar.insertBefore(back,bar.firstChild)}
 back.disabled=!hasTrail;back.onclick=window.tcReturnToPreviousSet;
-const finish=bar.querySelector('.tcWorkoutExitBtn');
-if(finish){if(finish.textContent!=='Завершить')finish.textContent='Завершить';finish.title='Завершить с сохранением';finish.onclick=window.tcFinishActiveWorkout;}
+const exit=bar.querySelector('.tcWorkoutExitBtn');
+if(exit){if(exit.textContent!=='Выйти')exit.textContent='Выйти';exit.title='Выйти без сохранения';exit.onclick=window.tcDiscardWorkout;}
 }
 const legacy=workout.querySelector('.stageHeader .endBtn,.wtop .endBtn');
 if(legacy)legacy.style.display='none';
@@ -1375,7 +1365,7 @@ if(prev.textContent!=='← Назад')prev.textContent='← Назад';prev.ti
 prev.setAttribute('aria-label','Назад');
 prev.onclick=window.tcReturnToPreviousSet;prev.disabled=!hasTrail;prev.style.display='grid';
 }
-if(finish){if(finish.textContent!=='Завершить')finish.textContent='Завершить';finish.title='Завершить с сохранением';finish.onclick=window.tcFinishActiveWorkout;}
+if(finish){if(finish.textContent!=='Выйти')finish.textContent='Выйти';finish.title='Выйти без сохранения';finish.onclick=window.tcDiscardWorkout;}
 }
 // The last set opens the effort sheet; let the user correct it before saving.
 const sheet=document.getElementById('sheet'),box=document.getElementById('sheetbox');
