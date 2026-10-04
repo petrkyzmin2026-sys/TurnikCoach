@@ -1,8 +1,8 @@
-/* TURNIKCOACH_HOTFIX 5.16.40-top-back-exit */
+/* TURNIKCOACH_HOTFIX 5.16.41-finish-without-save */
 (function(){
 'use strict';
-const VERSION='5.16.40-top-back-exit';
-const LABEL='5.16.40';
+const VERSION='5.16.41-finish-without-save';
+const LABEL='5.16.41';
 const APPROVED_KEY='tc_hotfix_approved_version';
 const LEGACY_ASSET_VERSION='5.14.0-adaptive-rest';
 const stalePrompt=document.getElementById('tcUpdatePrompt');
@@ -71,7 +71,7 @@ title.style.cssText='font-size:22px;font-weight:800;margin-bottom:10px;flex:0 0 
 title.textContent='Доступно обновление TurnikCoach '+LABEL;
 const text=document.createElement('div');
 text.style.cssText='font-size:15px;line-height:1.45;color:#cfd8e3;margin-bottom:18px;min-height:0;flex:1 1 0;overflow-y:auto;overscroll-behavior:contain;padding-right:4px';
-text.innerHTML="Исправлено управление тренировкой: «Назад» находится слева сверху и возвращает к предыдущему выполненному или пропущенному подходу; «Выйти» находится справа сверху и закрывает тренировку без сохранения только после подтверждения. Дублирующие кнопки убраны. Алгоритм курса и ранее сохранённая история не изменяются.<br><br>Установить обновление сейчас?";
+text.innerHTML="Уточнено действие выхода из тренировки: верхняя кнопка остаётся «Выйти», а подтверждение теперь называется «Завершить без сохранения», чтобы было ясно, что текущая тренировка будет завершена без записи результата. Алгоритм курса и ранее сохранённая история не изменяются.<br><br>Установить обновление сейчас?";
 const row=document.createElement('div');
 row.style.cssText='display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;flex:0 0 auto';
 const later=document.createElement('button');
@@ -720,9 +720,9 @@ window.tcDiscardWorkout=function(){
 if(!tcHasWorkout()){showRuntimeNotice('Нет активной тренировки для выхода без сохранения.','danger');return;}
 const box=document.getElementById('sheetbox');
 if(!box||!sheet){showRuntimeNotice('Не удалось открыть подтверждение выхода.','danger');return;}
-box.innerHTML='<div class="sheettitle">Выйти без сохранения?</div>'+
+box.innerHTML='<div class="sheettitle">Завершить без сохранения?</div>'+
 '<div class="sub" style="margin-top:7px;line-height:1.45">Подходы этого запуска будут отброшены. Тренировка не попадёт в историю и останется доступной для повторного начала.</div>'+
-'<button id="tcConfirmDiscardWorkoutBtn" type="button" class="btn danger full" style="margin-top:16px">Выйти без сохранения</button>'+
+'<button id="tcConfirmDiscardWorkoutBtn" type="button" class="btn danger full" style="margin-top:16px">Завершить без сохранения</button>'+
 '<button id="tcCancelDiscardWorkoutBtn" type="button" class="btn ghost full" style="margin-top:8px">Продолжить тренировку</button>';
 sheet.classList.add('open');
 const yes=document.getElementById('tcConfirmDiscardWorkoutBtn');
