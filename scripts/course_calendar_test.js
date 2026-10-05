@@ -82,30 +82,30 @@ assert.equal(api.tcScheduledOn('2026-09-26'),true,
 const flexNames=['tcWeeklyMode','tcCourseWeekdays','tcDateFromKey','tcScheduledOn','tcScheduleEventFor',
   'tcPullLoadDates','tcLastPullLoadDateBefore','tcRecoveryReadyOn','tcPreviousScheduledDay','tcNextScheduledAfter',
   'tcTransferCandidateRaw','tcTransferCandidate','tcScheduledMainToday','tcCourseDue','tcRecoveryShiftToday'];
-const flexState={enabled:true,level:4,goal:'quantity',weeklySessions:3,cycleStartDate:'2026-10-04',
-  courseSeq:12,lastCourseDate:'2026-10-02',history:[{courseMode:'course',date:'2026-10-02'}],
-  tests:[],masteryTests:[],scheduleEvents:[{plannedDate:'2026-10-04',status:'missed',actualDate:''}],
+const flexState={enabled:true,level:4,goal:'quantity',weeklySessions:4,cycleStartDate:'2026-09-25',
+  courseSeq:12,lastCourseDate:'2026-09-25',history:[{courseMode:'course',date:'2026-09-25'}],
+  tests:[],masteryTests:[],scheduleEvents:[{plannedDate:'2026-09-27',status:'missed',actualDate:''}],
   transferRestDates:[]};
 const flexApi=new Function('TC_course','dateKey','tcDayDiff','tcTestDue','tcMasteryDue',
   flexNames.map(extract).join('\n')+'\nreturn {tcTransferCandidateRaw,tcTransferCandidate,tcRecoveryReadyOn,tcCourseDue,tcRecoveryShiftToday};')(
-  flexState,()=> '2026-10-05',
+  flexState,()=> '2026-09-28',
   (a,b)=>Math.round((new Date(b+'T12:00:00')-new Date(a+'T12:00:00'))/86400000),
   ()=>false,()=>false
 );
-const mondayTransfer=flexApi.tcTransferCandidateRaw('2026-10-05');
-assert.equal(mondayTransfer.plannedDate,'2026-10-04','Sunday miss must remain the next course stage on Monday');
+const mondayTransfer=flexApi.tcTransferCandidateRaw('2026-09-28');
+assert.equal(mondayTransfer.plannedDate,'2026-09-27','Sunday miss must remain the next course stage on Monday');
 assert.equal(mondayTransfer.ready,true,'Friday factual load must allow Monday transfer');
-assert.equal(mondayTransfer.nextScheduledDate,'2026-10-06','transfer window must close at the next scheduled slot');
-flexState.transferRestDates.push('2026-10-05');
-assert.equal(flexApi.tcTransferCandidate('2026-10-05'),null,'choosing rest hides transfer only for that day');
-assert.equal(flexApi.tcTransferCandidateRaw('2026-10-06'),null,'missed session must not become training debt on the next scheduled day');
+assert.equal(mondayTransfer.nextScheduledDate,'2026-09-29','transfer window must close at the next scheduled slot');
+flexState.transferRestDates.push('2026-09-28');
+assert.equal(flexApi.tcTransferCandidate('2026-09-28'),null,'choosing rest hides transfer only for that day');
+assert.equal(flexApi.tcTransferCandidateRaw('2026-09-29'),null,'missed session must not become training debt on the next scheduled day');
 flexState.transferRestDates=[];
-flexState.history.unshift({courseMode:'course',date:'2026-10-05',plannedDate:'2026-10-04'});
-flexState.lastCourseDate='2026-10-05';
-assert.equal(flexApi.tcRecoveryReadyOn('2026-10-06'),false,'day after a transferred main workout must be recovery');
+flexState.history.unshift({courseMode:'course',date:'2026-09-28',plannedDate:'2026-09-27'});
+flexState.lastCourseDate='2026-09-28';
+assert.equal(flexApi.tcRecoveryReadyOn('2026-09-29'),false,'day after a transferred main workout must be recovery');
 const tuesdayApi=new Function('TC_course','dateKey','tcDayDiff','tcTestDue','tcMasteryDue',
   flexNames.map(extract).join('\n')+'\nreturn {tcCourseDue,tcRecoveryShiftToday};')(
-  flexState,()=> '2026-10-06',
+  flexState,()=> '2026-09-29',
   (a,b)=>Math.round((new Date(b+'T12:00:00')-new Date(a+'T12:00:00'))/86400000),
   ()=>false,()=>false
 );
