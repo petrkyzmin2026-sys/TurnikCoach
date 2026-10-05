@@ -79,19 +79,57 @@ assert.deepEqual(dates.filter(api.tcScheduledOn),
 courseState.cycleStartDate='';
 assert.equal(api.tcScheduledOn('2026-09-26'),true,
  'older installations without an anchor retain the legacy weekday schedule');
+const flexNames=['tcWeeklyMode','tcCourseWeekdays','tcDateFromKey','tcScheduledOn','tcScheduleEventFor',
+  'tcPullLoadDates','tcLastPullLoadDateBefore','tcRecoveryReadyOn','tcPreviousScheduledDay','tcNextScheduledAfter',
+  'tcTransferCandidateRaw','tcTransferCandidate','tcScheduledMainToday','tcCourseDue','tcRecoveryShiftToday'];
+const flexState={enabled:true,level:4,goal:'quantity',weeklySessions:3,cycleStartDate:'2026-10-04',
+  courseSeq:12,lastCourseDate:'2026-10-02',history:[{courseMode:'course',date:'2026-10-02'}],
+  tests:[],masteryTests:[],scheduleEvents:[{plannedDate:'2026-10-04',status:'missed',actualDate:''}],
+  transferRestDates:[]};
+const flexApi=new Function('TC_course','dateKey','tcDayDiff','tcTestDue','tcMasteryDue',
+  flexNames.map(extract).join('\n')+'\nreturn {tcTransferCandidateRaw,tcTransferCandidate,tcRecoveryReadyOn,tcCourseDue,tcRecoveryShiftToday};')(
+  flexState,()=> '2026-10-05',
+  (a,b)=>Math.round((new Date(b+'T12:00:00')-new Date(a+'T12:00:00'))/86400000),
+  ()=>false,()=>false
+);
+const mondayTransfer=flexApi.tcTransferCandidateRaw('2026-10-05');
+assert.equal(mondayTransfer.plannedDate,'2026-10-04','Sunday miss must remain the next course stage on Monday');
+assert.equal(mondayTransfer.ready,true,'Friday factual load must allow Monday transfer');
+assert.equal(mondayTransfer.nextScheduledDate,'2026-10-06','transfer window must close at the next scheduled slot');
+flexState.transferRestDates.push('2026-10-05');
+assert.equal(flexApi.tcTransferCandidate('2026-10-05'),null,'choosing rest hides transfer only for that day');
+assert.equal(flexApi.tcTransferCandidateRaw('2026-10-06'),null,'missed session must not become training debt on the next scheduled day');
+flexState.transferRestDates=[];
+flexState.history.unshift({courseMode:'course',date:'2026-10-05',plannedDate:'2026-10-04'});
+flexState.lastCourseDate='2026-10-05';
+assert.equal(flexApi.tcRecoveryReadyOn('2026-10-06'),false,'day after a transferred main workout must be recovery');
+const tuesdayApi=new Function('TC_course','dateKey','tcDayDiff','tcTestDue','tcMasteryDue',
+  flexNames.map(extract).join('\n')+'\nreturn {tcCourseDue,tcRecoveryShiftToday};')(
+  flexState,()=> '2026-10-06',
+  (a,b)=>Math.round((new Date(b+'T12:00:00')-new Date(a+'T12:00:00'))/86400000),
+  ()=>false,()=>false
+);
+assert.equal(tuesdayApi.tcCourseDue(),false,'scheduled session immediately after transfer must not run');
+assert.equal(tuesdayApi.tcRecoveryShiftToday(),true,'conflicting scheduled session must become recovery shift');
+assert(course.includes('scheduleEvents:[]')&&course.includes('transferRestDates:[]'),
+ 'course state must keep schedule events separate from completed workout history');
+assert(course.includes('Выполнить сегодня')&&course.includes('Оставить день отдыха'),
+ 'Today must expose explicit transfer and rest choices');
+assert(course.includes("rec.plannedDate=W.coursePlannedDate||rec.date")&&course.includes("rec.transferred=rec.plannedDate!==rec.date"),
+ 'completed transfer must persist both planned and actual dates');
 assert(course.includes('tcPreviewCourseCard(tcSelectedDate)'),
  'choosing another date must show a read-only plan');
 assert(course.includes('id="tcCycleStartDate"'),
  'settings must expose a cycle start date');
-assert(hotfix.includes("const VERSION='5.16.41-finish-without-save'"),
- 'release hotfix version must be 5.16.41');
-assert(course.includes("const COURSE_MODULE_VERSION='1.0.35-touch-release'"),
- 'course module version must be 1.0.35');
+assert(hotfix.includes("const VERSION='5.16.42-flexible-course-schedule'"),
+ 'release hotfix version must be 5.16.42');
+assert(course.includes("const COURSE_MODULE_VERSION='1.0.36-flex-schedule'"),
+ 'course module version must be 1.0.36');
 assert(!course.includes('TC_EXTRA_START'),
  'temporary extra-workout trace logging must not ship');
 assert(!course.includes('window.confirm('),'course module must not depend on unsupported WebView JS dialogs');
 assert(!hotfix.includes('window.confirm('),'hotfix navigation/discard must not depend on unsupported WebView JS dialogs');
-assert(!hotfix.includes('forceHandover'),'5.16.41 must use an explicit user-visible update prompt');
+assert(!hotfix.includes('forceHandover'),'5.16.42 must use an explicit user-visible update prompt');
 assert(hotfix.includes("showRuntimeNotice('TurnikCoach обновлён до '+LABEL)"),
  'successful activation must give visible feedback');
 assert(hotfix.includes("localStorage.setItem('tc_hotfix_active_version',VERSION)"),
