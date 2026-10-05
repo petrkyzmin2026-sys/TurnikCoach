@@ -383,7 +383,15 @@ function tcCalendarMonday(){
       tests.forEach(t=>{html+='<div class="tcInfoBlock"><h3>Контрольный максимум</h3><p>'+t.value+' повторений</p></div>'});
       mastery.forEach(t=>{html+='<div class="tcInfoBlock"><h3>Контроль освоения уровня</h3><p>'+(t.passed?'Норматив выполнен':'Норматив не выполнен')+'</p></div>'});
       if(key<now){
-        if(!finished.length&&!tests.length&&!mastery.length)html+='<div class="info">'+(TC_course.cycleStartDate&&key<TC_course.cycleStartDate?'Дата предшествует выбранному началу цикла.':tcScheduledOn(key)?'Занятие предусмотрено календарём; записи о выполнении нет.':'На эту дату основное занятие не назначено.')+'</div>';
+        if(!finished.length&&!tests.length&&!mastery.length){
+          const ev=tcScheduleEventFor(key);
+          const msg=ev&&ev.status==='rescheduled'?'Плановая тренировка перенесена и выполнена '+fmtKeyDate(ev.actualDate,false)+'.':
+            ev&&ev.status==='recovery_shift'?'Плановая тренировка сдвинута из-за восстановления после фактической тяговой нагрузки.':
+            ev&&ev.status==='missed'?'Плановая тренировка пропущена; последовательность курса не сдвинута.':
+            TC_course.cycleStartDate&&key<TC_course.cycleStartDate?'Дата предшествует выбранному началу цикла.':
+            tcScheduledOn(key)?'Занятие предусмотрено календарём; записи о выполнении нет.':'На эту дату основное занятие не назначено.';
+          html+='<div class="info">'+msg+'</div>';
+        }
         return html+'</div>';
       }
       if(TC_course.cycleStartDate&&key<TC_course.cycleStartDate)return html+'<div class="info">Основные занятия начнутся '+fmtKeyDate(TC_course.cycleStartDate,false)+'.</div></div>';
@@ -418,12 +426,13 @@ function tcCalendarMonday(){
       const mon=tcCalendarMonday(),sun=new Date(mon);sun.setDate(mon.getDate()+6);
       const days=Array.from({length:7},(_,i)=>{
         const d=new Date(mon);d.setDate(mon.getDate()+i);
-        const key=dateKey(d),planned=tcScheduledOn(key)||(key===today&&tcCourseDue());
+        const key=dateKey(d),planned=tcScheduledOn(key)||(key===today&&tcCourseDue()),ev=tcScheduleEventFor(key);
         const done=TC_course.history.some(h=>h.courseMode==='course'&&h.date===key);
         const test=TC_course.tests.some(t=>t.date===key)||TC_course.masteryTests.some(t=>t.date===key);
         const dueTest=key===today&&(tcTestDue()||tcMasteryDue()),dueAux=key===today&&tcAuxDue();
-        const missed=key<today&&planned&&!done&&!test;
-        const type=test?'ТЕСТ':done?'ГОТОВО':dueTest?'ТЕСТ':dueAux?'К№2':missed?'ПРОП.':planned?'КУРС':TC_course.cycleStartDate&&key<TC_course.cycleStartDate?'ДО СТ.':tcExtraExercises().length?'ДОП.':'ОТД.';
+        const transferred=!!ev&&ev.status==='rescheduled',shifted=(!!ev&&ev.status==='recovery_shift')||(key===today&&tcRecoveryShiftToday());
+        const missed=(!!ev&&ev.status==='missed')||(key<today&&planned&&!done&&!test&&!transferred&&!shifted);
+        const type=test?'ТЕСТ':done?'ГОТОВО':transferred?'ПЕРЕН.':dueTest?'ТЕСТ':shifted?'ВОССТ.':dueAux?'К№2':missed?'ПРОП.':planned?'КУРС':TC_course.cycleStartDate&&key<TC_course.cycleStartDate?'ДО СТ.':tcExtraExercises().length?'ДОП.':'ОТД.';
         const status=(key===today?' tcWeekToday':'')+(key===selected?' tcWeekSelected':'');
         return '<button type="button" class="tcWeekDay'+status+'" aria-pressed="'+(key===selected?'true':'false')+'" onclick="tcSelectCourseDay(\''+key+'\')"><b>'+names[i]+'</b><span>'+d.getDate()+'</span><small>'+type+'</small></button>';
       });
@@ -1052,25 +1061,17 @@ function tcCalendarMonday(){
       return state.history.find(h=>h&&h.type==='workout'&&h.session==='доп.'&&h.date===dateKey())||null;
     }
     function tcTodayCourseDoneHtml(extras){
-      if(!tcTodayCourseRecord())return '';
+      const rec=tcTodayCourseRecord();if(!rec)return '';
+      const moved=!!rec.transferred;
       let html='<div class="tcDoneStrip" id="tcTodayCourseDoneStrip" role="status">'+
-        '<div class="tcDoneStripHead"><div><div class="tcDoneStripTitle">Основной комплекс выполнен</div>'+
-        '<div class="tcDoneStripText">Результат сохранён. Дополнительные упражнения можно выполнить отдельно — последовательность курса второй раз не сдвинется.</div></div>'+
+        '<div class="tcDoneStripHead"><div><div class="tcDoneStripTitle">'+(moved?'Перенесённая тренировка выполнена':'Основной комплекс выполнен')+'</div>'+
+        '<div class="tcDoneStripText">'+(moved?'Плановая дата: '+fmtKeyDate(rec.plannedDate,false)+'. ':'')+
+        'Результат сохранён. Последовательность курса сдвинута один раз по факту выполнения.</div></div>'+
         '<span class="tcDoneBadge">ГОТОВО</span></div>'+
         '<button id="tcUndoTodayCourseBtn" type="button" class="btn ghost full tcUndoTodayCourseBtn">Ошибочно завершил — отменить запись</button></div>';
-      if(tcTodayExtraRecord()){
-        return html+'<div class="todayCard tcAfterMainCard"><div class="row between"><div><div class="dateBig">Дополнительная тренировка выполнена</div>'+
-          '<div class="meta">Запись сохранена отдельно от курса Морозова.</div></div><span class="tag stage4">ГОТОВО</span></div></div>';
-      }
-      if(extras&&extras.length){
-        return html+'<div class="todayCard tcAfterMainCard"><div class="row between"><div><div class="dateBig">Дополнительная тренировка</div>'+
-          '<div class="meta">Пресс, ноги, отжимания и другие выбранные нетяговые упражнения.</div></div><span class="tag">ДОП.</span></div>'+
-          tcExtraRowsHtml(extras)+
-          '<button id="tcStartExtraAfterCourseBtn" type="button" class="btn yellow full" style="margin-top:12px">Начать дополнительную тренировку</button></div>';
-      }
-      return html+'<div class="todayCard tcAfterMainCard"><div class="dateBig">Дополнительная тренировка</div>'+
-        '<div class="meta">Дополнительные упражнения не выбраны.</div>'+
-        '<button id="tcChooseExtrasAfterCourseBtn" type="button" class="btn ghost full" style="margin-top:10px">Выбрать упражнения</button></div>';
+      if(tcTodayExtraRecord())return html+'<div class="todayCard tcAfterMainCard"><div class="row between"><div><div class="dateBig">Дополнительная тренировка выполнена</div><div class="meta">Запись сохранена отдельно от курса Морозова.</div></div><span class="tag stage4">ГОТОВО</span></div></div>';
+      if(extras&&extras.length)return html+'<div class="todayCard tcAfterMainCard"><div class="row between"><div><div class="dateBig">Дополнительная тренировка</div><div class="meta">Пресс, ноги, отжимания и другие выбранные нетяговые упражнения.</div></div><span class="tag">ДОП.</span></div>'+tcExtraRowsHtml(extras)+'<button id="tcStartExtraAfterCourseBtn" type="button" class="btn yellow full" style="margin-top:12px">Начать дополнительную тренировку</button></div>';
+      return html+'<div class="todayCard tcAfterMainCard"><div class="dateBig">Дополнительная тренировка</div><div class="meta">Дополнительные упражнения не выбраны.</div><button id="tcChooseExtrasAfterCourseBtn" type="button" class="btn ghost full" style="margin-top:10px">Выбрать упражнения</button></div>';
     }
     function tcBindTodayDoneActions(){
       const ids=['tcUndoTodayCourseBtn','tcStartExtraAfterCourseBtn','tcChooseExtrasAfterCourseBtn'];
@@ -1141,12 +1142,12 @@ function tcCalendarMonday(){
     function tcUndoLatestTodayCourseRecord(today){
       const rec=TC_course.history.find(h=>h.courseMode==='course');
       if(!rec||rec.date!==today)return false;
-      const idx=TC_course.history.indexOf(rec);
-      if(idx>=0)TC_course.history.splice(idx,1);
+      const idx=TC_course.history.indexOf(rec);if(idx>=0)TC_course.history.splice(idx,1);
       TC_course.courseSeq=Math.max(0,(+TC_course.courseSeq||0)-1);
       const previous=TC_course.history.find(h=>h.courseMode==='course');
-      TC_course.lastCourseDate=previous&&previous.date||'';
-      TC_course.lastCourseTs=previous&&previous.ts||0;
+      TC_course.lastCourseDate=previous&&previous.date||'';TC_course.lastCourseTs=previous&&previous.ts||0;
+      const planned=rec.plannedDate||rec.date;
+      if(planned<today)tcUpsertScheduleEvent(planned,rec.scheduleOriginStatus||'missed','');else tcRemoveScheduleEvent(planned);
       if(TC_course.testAnchorDate===rec.date&&!TC_course.lastTestDate&&!previous)TC_course.testAnchorDate='';
       return true;
     }
@@ -1172,6 +1173,30 @@ function tcCalendarMonday(){
       const sheet=q('sheet');if(sheet)sheet.classList.remove('open');
       tcSaveCourse();render();
     };
+
+    function tcTransferCardHtml(candidate){
+      const c=tcCourseComplex(),items=tcBuildCourseItems(),total=items.reduce((n,x)=>n+(x.plan||[]).length,0);
+      if(!candidate.ready){
+        const last=tcLastPullLoadDateBefore(dateKey());
+        return '<div class="todayCard tcTodayPrimaryCard"><div class="row between"><div class="grow"><div class="dateBig">Сегодня восстановление</div><div class="tcTodayPrimaryMeta">Пропущенная тренировка '+fmtKeyDate(candidate.plannedDate,false)+' остаётся следующей по последовательности, но сегодня ещё рано повторять тяговую нагрузку'+(last?' после '+fmtKeyDate(last,false):'')+'.</div></div><span class="tag stage4">ВОССТ.</span></div></div>';
+      }
+      return '<div class="todayCard tcTodayPrimaryCard"><div class="row between"><div class="grow"><div class="dateBig">Пропущена тренировка курса</div><div class="tcTodayPrimaryMeta">Плановая дата: '+fmtKeyDate(candidate.plannedDate,false)+' · '+(c.def?c.def.name:'Основной комплекс')+' · '+items.length+' упражн. · '+total+' подходов</div></div><span class="tag">ПЕРЕНОС</span></div>'+
+        '<div class="meta" style="margin-top:9px">Это тот же следующий этап курса. Выполнение сегодня не сдвинет недельный календарь и не создаст тренировочный долг.</div>'+
+        '<button class="btn yellow full" style="margin-top:14px;min-height:58px" onclick="tcStartTransferredCourseWorkout(\''+candidate.plannedDate+'\')">Выполнить сегодня</button>'+
+        '<button class="btn ghost full" style="margin-top:8px" onclick="tcChooseTransferRest(\''+candidate.plannedDate+'\')">Оставить день отдыха</button>'+
+        '<details class="tcTodayPlanDetails"><summary>Посмотреть план</summary><div class="tcTodayPlanBody">'+tcCourseRowsHtml(items)+tcAdaptationNote(tcOriginalCourseDefs())+'</div></details></div>';
+    }
+    window.tcChooseTransferRest=function(plannedDate){
+      const c=tcTransferCandidateRaw(dateKey());if(!c||c.plannedDate!==plannedDate)return;
+      const today=dateKey();if(!TC_course.transferRestDates.includes(today))TC_course.transferRestDates.push(today);
+      TC_course.transferRestDates=TC_course.transferRestDates.slice(-60);tcSaveCourse();render();
+      if(typeof window.tcShowRuntimeNotice==='function')window.tcShowRuntimeNotice('Сегодня оставлен день отдыха. Следующий этап курса не пропущен.');
+    };
+    function tcRecoveryShiftCardHtml(){
+      const last=tcLastPullLoadDateBefore(dateKey()),next=tcNextScheduledAfter(dateKey());
+      return '<div class="todayCard tcTodayPrimaryCard"><div class="row between"><div class="grow"><div class="dateBig">Плановая тренировка сдвинута</div><div class="tcTodayPrimaryMeta">Сегодня был день основного курса, но после фактической тяговой нагрузки'+(last?' '+fmtKeyDate(last,false):'')+' требуется восстановление.</div></div><span class="tag stage4">ВОССТ.</span></div>'+
+        '<div class="meta" style="margin-top:9px">Комплекс не сгорает и courseSeq не меняется. Следующее окно будет предложено автоматически'+(next?' до плановой даты '+fmtKeyDate(next,false):'')+'.</div></div>';
+    }
 
     function tcRenderToday(){
       const now=new Date(),due=tcCourseDue(),l=tcCourseLevel(),c=tcCourseComplex(),items=tcBuildCourseItems(),extras=tcBuildExtraItems();
