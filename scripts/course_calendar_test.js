@@ -54,11 +54,11 @@ function extract(name){
   return course.slice(start,end);
 }
 const names=['tcDayDiff','tcCourseWeekdays','tcDateFromKey','tcScheduledOn',
-  'tcProjectedCourseSeq','tcCourseComplexNo','tcCourseComplex','tcUndoLatestTodayCourseRecord'];
+  'tcProjectedCourseSeq','tcCourseComplexNo','tcCourseComplex','tcScheduleEventFor','tcUpsertScheduleEvent','tcRemoveScheduleEvent','tcUndoLatestTodayCourseRecord'];
 const key=(date=new Date('2026-09-25T12:00:00'))=>
   date.getFullYear()+'-'+String(date.getMonth()+1).padStart(2,'0')+'-'+String(date.getDate()).padStart(2,'0');
 const courseState={enabled:true,level:4,goal:'quantity',weeklySessions:4,
-  cycleStartDate:'2026-09-25',courseSeq:5,lastCourseDate:'',history:[]};
+  cycleStartDate:'2026-09-25',courseSeq:5,lastCourseDate:'',history:[],scheduleEvents:[]};
 const api=new Function('TC_course','dateKey','tcCourseLevel',
   names.map(extract).join('\n')+'\nreturn {tcScheduledOn,tcProjectedCourseSeq,tcCourseComplex,tcUndoLatestTodayCourseRecord};')(
   courseState,key,()=>({complexes:{1:{name:'№1'},2:{name:'№2'},3:{name:'№3'}}})
