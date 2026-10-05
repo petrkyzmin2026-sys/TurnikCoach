@@ -125,9 +125,9 @@ const statsState={
  pullMax:21,activeRunId:'r1',
  courseRuns:[{id:'r1',startedDate:'2026-09-01',level:4,goal:'quantity',baselinePullMax:17,targetMax:25}],
  history:[
-  {runId:'r1',courseMode:'course',transferred:false,details:[{actual:[10,9]}]},
-  {runId:'r1',courseMode:'course',transferred:true,details:[{actual:[8,8]}]},
-  {runId:'r1',courseMode:'auxCourse',details:[{actual:[5]}]}
+  {runId:'r1',courseMode:'course',transferred:false,details:[{metric:'reps',actual:[10,9]}]},
+  {runId:'r1',courseMode:'course',transferred:true,details:[{metric:'reps',actual:[8,8]}]},
+  {runId:'r1',courseMode:'auxCourse',details:[{metric:'time',actual:[30]},{metric:'reps',actual:[5]}]}
  ],
  scheduleEvents:[
   {runId:'r1',status:'missed'},{runId:'r1',status:'recovery_shift'}
@@ -143,10 +143,13 @@ assert.equal(statsResult.completed,2,'stats count only completed main course ses
 assert.equal(statsResult.on,1);assert.equal(statsResult.moved,1);
 assert.equal(statsResult.missed,1);assert.equal(statsResult.recovery,1);
 assert.equal(statsResult.rate,67,'recovery shifts must be excluded from course completion denominator');
-assert.equal(statsResult.sets,5);assert.equal(statsResult.reps,40);
+assert.equal(statsResult.sets,6);assert.equal(statsResult.reps,40,'timed seconds must not be added to repetition volume');
 assert.equal(statsResult.base,17);assert.equal(statsResult.cur,21);
 assert.equal(statsResult.delta,4);assert.equal(statsResult.pct,24);
 assert.deepEqual(statsResult.tests,[19,21]);
+const resumedStart=new Function('TC_course','dateKey',extract('tcRunStartDate')+';return tcRunStartDate;')(
+ {courseRuns:[{id:'old'}],history:[],cycleStartDate:'2026-09-01',level:4,goal:'quantity'},()=> '2026-10-05');
+assert.equal(resumedStart(),'2026-10-05','a resumed/new course period must start today instead of reusing the legacy cycle anchor');
 assert(course.includes('Выполнение курса:')&&course.includes('Контрольные максимумы:'),
  'Progress must render the compact Morozov course statistics card');
 assert(course.includes('tcPreviewCourseCard(tcSelectedDate)'),
