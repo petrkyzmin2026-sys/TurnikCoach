@@ -308,9 +308,9 @@ return tcCourseWeekdays().includes(tcDateFromKey(k).getDay());
 function tcScheduleEventFor(plannedDate){return (TC_course.scheduleEvents||[]).find(e=>e.plannedDate===plannedDate)||null}
 function tcUpsertScheduleEvent(plannedDate,status,actualDate){
 if(!plannedDate)return null;
-let e=tcScheduleEventFor(plannedDate);
-if(!e){e={plannedDate,status,actualDate:actualDate||'',updatedAt:Date.now()};TC_course.scheduleEvents.push(e)}
-else{e.status=status;e.actualDate=actualDate||'';e.updatedAt=Date.now()}
+const run=tcEnsureCourseRun();let e=tcScheduleEventFor(plannedDate);
+if(!e){e={plannedDate,status,actualDate:actualDate||'',updatedAt:Date.now(),runId:run&&run.id||''};TC_course.scheduleEvents.push(e)}
+else{e.status=status;e.actualDate=actualDate||'';e.updatedAt=Date.now();if(!e.runId&&run)e.runId=run.id}
 return e;
 }
 function tcRemoveScheduleEvent(plannedDate){
@@ -805,7 +805,7 @@ select.value=choices.some(x=>x[0]===previous)?previous:choices[0][0];
 };
 };
 window.tcSaveCourseSettings=function(){
-const oldLevel=TC_course.level,oldGoal=TC_course.goal,oldWeekly=TC_course.weeklySessions,oldStart=TC_course.cycleStartDate;
+const oldLevel=TC_course.level,oldGoal=TC_course.goal,oldWeekly=TC_course.weeklySessions,oldStart=TC_course.cycleStartDate,oldEnabled=TC_course.enabled;
 const fail=(message,el)=>{
 if(el){
   const group=el.closest&&el.closest('details.tcSettingsGroup');if(group)group.open=true;
@@ -895,7 +895,9 @@ if(![7,10].includes(nextAuxInterval)){
 }
 }
 
-TC_course.enabled=!!enabled.checked;
+const nextEnabled=!!enabled.checked;
+if(oldEnabled&&(!nextEnabled||oldLevel!==nextLevel||oldGoal!==nextGoal))tcCloseCourseRun(!nextEnabled?'disabled':'changed');
+TC_course.enabled=nextEnabled;
 TC_course.level=nextLevel;
 TC_course.pullMax=nextMax;
 TC_course.goal=nextGoal;
@@ -921,7 +923,7 @@ TC_course.courseSeq=0;TC_course.pendingTransition=null;
 if(!weeklyEl)TC_course.weeklySessions=3;
 TC_course.testAnchorDate='';TC_course.lastTestDate='';TC_course.testDeferredUntil='';
 }
-if(TC_course.enabled){state.ex.forEach(e=>{if(TC_PULL_CONFLICT_IDS.has(e.id)){e.sel=false;e.main=false}})}
+if(TC_course.enabled){const run=tcEnsureCourseRun();if(run){run.targetMax=TC_course.targetMax}state.ex.forEach(e=>{if(TC_PULL_CONFLICT_IDS.has(e.id)){e.sel=false;e.main=false}})}
 const pull=state.ex.find(e=>e.id==='pull');if(pull)pull.max=TC_course.pullMax;
 const wp=state.ex.find(e=>e.id==='weightedPull');if(wp)wp.load=TC_course.weightedLoad;
 tcSelectedDate='';tcWeekOffset=0;
@@ -1609,7 +1611,7 @@ if(!W||W.mode!=='courseTest'){tcActionMessage('Контроль уже закр�
 const value=+(W.items[0].actual[0]);
 if(!Number.isInteger(value)||value<1){tcActionMessage('Результат не сохранён','Укажите целое положительное количество выполненных повторений.');return;}
 const previous=TC_course.pullMax,achieved=value>=TC_course.targetMax;
-const rec={date:dateKey(),ts:Date.now(),value,previous,goal:TC_course.targetMax,level:TC_course.level};
+const run=tcEnsureCourseRun(),rec={date:dateKey(),ts:Date.now(),value,previous,goal:TC_course.targetMax,level:TC_course.level,runId:run&&run.id||''};
 TC_course.tests.unshift(rec);
 TC_course.lastTestDate=rec.date;
 TC_course.testAnchorDate=rec.date;
@@ -1795,7 +1797,7 @@ if(raw===''||!Number.isFinite(n)||n<field.min||(!field.step&&!Number.isInteger(n
 values[field.id]=n;
 }
 const passed=tcMasteryOutcome(TC_course.level,values);
-const rec={date:dateKey(),ts:Date.now(),level:TC_course.level,values,passed,sourcePage:def.page,goal:TC_course.goal};
+const run=tcEnsureCourseRun(),rec={date:dateKey(),ts:Date.now(),level:TC_course.level,values,passed,sourcePage:def.page,goal:TC_course.goal,runId:run&&run.id||''};
 TC_course.masteryTests.unshift(rec);
 TC_course.lastTestDate=rec.date;
 TC_course.testAnchorDate=rec.date;
@@ -1826,11 +1828,11 @@ const p=TC_course.pendingTransition;
 if(!p||p.from!==TC_course.level||p.to!==p.from+1||p.to>6){tcActionMessage('Переход недоступен','Нет подтверждённого перехода с текущего уровня на следующий.');return;}
 const current=TC_course.masteryTests.find(t=>t.ts===p.testTs&&t.level===p.from);
 if(!current||!current.passed){tcActionMessage('Переход недоступен','Сначала необходимо выполнить и сохранить норматив текущего уровня.');return;}
-TC_course.level=p.to;TC_course.courseSeq=0;TC_course.weeklySessions=3;
+tcCloseCourseRun('level');TC_course.level=p.to;TC_course.courseSeq=0;TC_course.weeklySessions=3;
 TC_course.pendingTransition=null;
 TC_course.lastTestDate='';TC_course.testAnchorDate='';
 TC_course.testDeferredUntil='';
-tcNormalizeGoal();
+tcNormalizeGoal();tcEnsureCourseRun();
 // Keep the last load date so an immediate consecutive workout is not introduced.
 tcSaveCourse();
 q('sheet').classList.remove('open');
@@ -1983,10 +1985,10 @@ if(!W)return;
 if(!['course','extra','supplement','auxCourse'].includes(W.mode))return tcBeforeCourseFinishWorkout(feel);
 let total=0,details=[];W.items.forEach(x=>{const actual=x.plan.map((_,i)=>x.actual[i]===undefined?null:x.actual[i]);const sum=actual.reduce((s,v)=>s+(Number.isFinite(+v)?+v:0),0);total+=sum;details.push({id:x.e.id,name:x.e.name,metric:x.e.metric,load:x.e.load||0,plan:x.plan.slice(),planLabels:(x.planLabels||x.plan.map(String)).slice(),actual,sum})});
 const rec={type:'workout',date:dateKey(),ts:Date.now(),feedback:feel,total,details,early:!!W.early,courseMode:W.mode,adapted:!!W.adapted,equipment:'bar',session:W.mode==='extra'?'доп.':'курс'};
-if(W.mode==='course'){rec.courseLevel=W.courseLevel;rec.courseComplex=W.courseComplex;rec.courseGoal=W.courseGoal;rec.plannedDate=W.coursePlannedDate||rec.date;rec.transferred=rec.plannedDate!==rec.date;rec.scheduleOriginStatus=W.courseScheduleOrigin||'';TC_course.history.unshift(rec);TC_course.courseSeq++;TC_course.lastCourseDate=rec.date;TC_course.lastCourseTs=rec.ts;tcUpsertScheduleEvent(rec.plannedDate,rec.transferred?'rescheduled':'completed',rec.date);TC_course.transferRestDates=(TC_course.transferRestDates||[]).filter(k=>k!==rec.date);if(!TC_course.testAnchorDate)TC_course.testAnchorDate=rec.date;tcSaveCourse()}
-else if(W.mode==='auxCourse'){rec.courseLevel=W.courseLevel;rec.courseComplex=2;rec.courseGoal=W.courseGoal;TC_course.history.unshift(rec);tcSaveCourse()}
+if(W.mode==='course'){const run=tcEnsureCourseRun();rec.runId=run&&run.id||'';rec.courseLevel=W.courseLevel;rec.courseComplex=W.courseComplex;rec.courseGoal=W.courseGoal;rec.plannedDate=W.coursePlannedDate||rec.date;rec.transferred=rec.plannedDate!==rec.date;rec.scheduleOriginStatus=W.courseScheduleOrigin||'';TC_course.history.unshift(rec);TC_course.courseSeq++;TC_course.lastCourseDate=rec.date;TC_course.lastCourseTs=rec.ts;tcUpsertScheduleEvent(rec.plannedDate,rec.transferred?'rescheduled':'completed',rec.date);TC_course.transferRestDates=(TC_course.transferRestDates||[]).filter(k=>k!==rec.date);if(!TC_course.testAnchorDate)TC_course.testAnchorDate=rec.date;tcSaveCourse()}
+else if(W.mode==='auxCourse'){const run=tcEnsureCourseRun();rec.runId=run&&run.id||'';rec.courseLevel=W.courseLevel;rec.courseComplex=2;rec.courseGoal=W.courseGoal;TC_course.history.unshift(rec);tcSaveCourse()}
 else if(W.mode==='extra'){TC_course.extraSeq++;tcSaveCourse();state.history.unshift(rec);save()}
-else {rec.courseLevel=TC_course.level;rec.courseComplex='дополнение';TC_course.history.unshift(rec);tcSaveCourse()}
+else {const run=tcEnsureCourseRun();rec.runId=run&&run.id||'';rec.courseLevel=TC_course.level;rec.courseComplex='дополнение';TC_course.history.unshift(rec);tcSaveCourse()}
 q('sheet').classList.remove('open');W=null;go('today');
 };
 
@@ -2024,6 +2026,7 @@ window.render=function(){const r=tcBeforeCourseRender();tcDecorateCourseCatalog(
 
 // Initial redraw after installing the module.
 tcSanitizeSelectedEquipment();
+if(TC_course.enabled&&tcEnsureCourseRun())tcSaveCourse();
 tcInjectCourseUiStyles();
 render();
 
