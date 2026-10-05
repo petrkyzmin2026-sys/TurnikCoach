@@ -1,7 +1,7 @@
-/* TURNIKCOACH_COURSE 1.0.35-touch-release */
+/* TURNIKCOACH_COURSE 1.0.36-flex-schedule */
 (function(){
   'use strict';
-  const COURSE_MODULE_VERSION='1.0.35-touch-release';
+  const COURSE_MODULE_VERSION='1.0.36-flex-schedule';
   if(window.__TC_COURSE_MODULE_VERSION===COURSE_MODULE_VERSION)return;
   window.__TC_COURSE_MODULE_VERSION=COURSE_MODULE_VERSION;
   function tcClamp(v,a,b){return Math.max(a,Math.min(b,v))}
@@ -147,12 +147,12 @@
       const pull=state.ex.find(e=>e.id==='pull');
       const weighted=state.ex.find(e=>e.id==='weightedPull');
       const m=Math.max(1,+((pull&&pull.max)||1));
-      return{enabled:false,level:m<=1?1:m<=3?2:m<=14?3:4,goal:'quantity',pullMax:m,weightedLoad:+((weighted&&weighted.load)||0),courseSeq:0,extraSeq:0,lastCourseDate:'',lastCourseTs:0,authorSupplement:false,history:[],tests:[],testPeriodWeeks:3,targetMax:30,testAnchorDate:'',lastTestDate:'',testDeferredUntil:'',weeklySessions:3,cycleStartDate:'',masteryTests:[],pendingTransition:null,advancedChoices:{onearm:[],muscleup:[]},auxEnabled:{3:false,6:false},auxInterval3:10,exerciseMax:{},equipment:'bar'};
+      return{enabled:false,level:m<=1?1:m<=3?2:m<=14?3:4,goal:'quantity',pullMax:m,weightedLoad:+((weighted&&weighted.load)||0),courseSeq:0,extraSeq:0,lastCourseDate:'',lastCourseTs:0,authorSupplement:false,history:[],tests:[],testPeriodWeeks:3,targetMax:30,testAnchorDate:'',lastTestDate:'',testDeferredUntil:'',weeklySessions:3,cycleStartDate:'',masteryTests:[],pendingTransition:null,advancedChoices:{onearm:[],muscleup:[]},auxEnabled:{3:false,6:false},auxInterval3:10,exerciseMax:{},scheduleEvents:[],transferRestDates:[],equipment:'bar'};
     }
     function tcLoadCourse(){
       let c=tcCourseDefault();
       try{const raw=JSON.parse(localStorage.getItem(TC_COURSE_KEY)||'null');if(raw&&typeof raw==='object')c={...c,...raw}}catch(e){}
-      c.level=tcClamp(Math.floor(+c.level||1),1,7);c.pullMax=Math.max(1,Math.floor(+c.pullMax||1));c.weightedLoad=Math.max(0,+c.weightedLoad||0);c.courseSeq=Math.max(0,Math.floor(+c.courseSeq||0));c.extraSeq=Math.max(0,Math.floor(+c.extraSeq||0));c.history=Array.isArray(c.history)?c.history:[];c.tests=Array.isArray(c.tests)?c.tests:[];c.masteryTests=Array.isArray(c.masteryTests)?c.masteryTests:[];c.pendingTransition=c.pendingTransition&&typeof c.pendingTransition==='object'?c.pendingTransition:null;c.advancedChoices=c.advancedChoices&&typeof c.advancedChoices==='object'?c.advancedChoices:{onearm:[],muscleup:[]};c.advancedChoices.onearm=Array.isArray(c.advancedChoices.onearm)?c.advancedChoices.onearm:[];c.advancedChoices.muscleup=Array.isArray(c.advancedChoices.muscleup)?c.advancedChoices.muscleup:[];c.auxEnabled=c.auxEnabled&&typeof c.auxEnabled==='object'?c.auxEnabled:{3:false,6:false};c.auxEnabled[3]=c.auxEnabled[3]===true;c.auxEnabled[6]=c.auxEnabled[6]===true;c.auxInterval3=[7,10].includes(+c.auxInterval3)?+c.auxInterval3:10;c.exerciseMax=c.exerciseMax&&typeof c.exerciseMax==='object'&&!Array.isArray(c.exerciseMax)?c.exerciseMax:{};c.equipment='bar';c.testPeriodWeeks=[2,3,4].includes(+c.testPeriodWeeks)?+c.testPeriodWeeks:3;c.weeklySessions=[2,3,4].includes(+c.weeklySessions)?+c.weeklySessions:3;c.cycleStartDate=/^\d{4}-\d{2}-\d{2}$/.test(c.cycleStartDate||'')?c.cycleStartDate:'';c.targetMax=Math.max(1,Math.floor(+c.targetMax||30));c.testAnchorDate=/^\d{4}-\d{2}-\d{2}$/.test(c.testAnchorDate||'')?c.testAnchorDate:'';c.lastTestDate=/^\d{4}-\d{2}-\d{2}$/.test(c.lastTestDate||'')?c.lastTestDate:'';c.testDeferredUntil=/^\d{4}-\d{2}-\d{2}$/.test(c.testDeferredUntil||'')?c.testDeferredUntil:'';
+      c.level=tcClamp(Math.floor(+c.level||1),1,7);c.pullMax=Math.max(1,Math.floor(+c.pullMax||1));c.weightedLoad=Math.max(0,+c.weightedLoad||0);c.courseSeq=Math.max(0,Math.floor(+c.courseSeq||0));c.extraSeq=Math.max(0,Math.floor(+c.extraSeq||0));c.history=Array.isArray(c.history)?c.history:[];c.tests=Array.isArray(c.tests)?c.tests:[];c.masteryTests=Array.isArray(c.masteryTests)?c.masteryTests:[];c.pendingTransition=c.pendingTransition&&typeof c.pendingTransition==='object'?c.pendingTransition:null;c.advancedChoices=c.advancedChoices&&typeof c.advancedChoices==='object'?c.advancedChoices:{onearm:[],muscleup:[]};c.advancedChoices.onearm=Array.isArray(c.advancedChoices.onearm)?c.advancedChoices.onearm:[];c.advancedChoices.muscleup=Array.isArray(c.advancedChoices.muscleup)?c.advancedChoices.muscleup:[];c.auxEnabled=c.auxEnabled&&typeof c.auxEnabled==='object'?c.auxEnabled:{3:false,6:false};c.auxEnabled[3]=c.auxEnabled[3]===true;c.auxEnabled[6]=c.auxEnabled[6]===true;c.auxInterval3=[7,10].includes(+c.auxInterval3)?+c.auxInterval3:10;c.exerciseMax=c.exerciseMax&&typeof c.exerciseMax==='object'&&!Array.isArray(c.exerciseMax)?c.exerciseMax:{};c.equipment='bar';c.testPeriodWeeks=[2,3,4].includes(+c.testPeriodWeeks)?+c.testPeriodWeeks:3;c.weeklySessions=[2,3,4].includes(+c.weeklySessions)?+c.weeklySessions:3;c.cycleStartDate=/^\d{4}-\d{2}-\d{2}$/.test(c.cycleStartDate||'')?c.cycleStartDate:'';c.targetMax=Math.max(1,Math.floor(+c.targetMax||30));c.testAnchorDate=/^\d{4}-\d{2}-\d{2}$/.test(c.testAnchorDate||'')?c.testAnchorDate:'';c.lastTestDate=/^\d{4}-\d{2}-\d{2}$/.test(c.lastTestDate||'')?c.lastTestDate:'';c.testDeferredUntil=/^\d{4}-\d{2}-\d{2}$/.test(c.testDeferredUntil||'')?c.testDeferredUntil:'';c.scheduleEvents=Array.isArray(c.scheduleEvents)?c.scheduleEvents.filter(e=>e&&/^\d{4}-\d{2}-\d{2}$/.test(e.plannedDate||'')&&['completed','missed','rescheduled','recovery_shift'].includes(e.status)).slice(-240):[];c.transferRestDates=Array.isArray(c.transferRestDates)?c.transferRestDates.filter(k=>/^\d{4}-\d{2}-\d{2}$/.test(k||'')).slice(-60):[];
       return c;
     }
     let TC_course=tcLoadCourse();
@@ -272,28 +272,91 @@
     }
     function tcDateFromKey(k){return new Date(k+'T12:00:00')}
     function tcScheduledOn(k){
-      if(TC_course.cycleStartDate){
-        const d=tcDayDiff(TC_course.cycleStartDate,k);
-        return d>=0&&tcCourseWeekdays().map(x=>(x+6)%7).includes(d%7);
-      }
-      return tcCourseWeekdays().includes(tcDateFromKey(k).getDay());
-    }
-    function tcCourseDue(){
-      if(!tcWeeklyMode())return false;
-      const today=dateKey();
-      if(TC_course.lastCourseDate===today||tcTestDue()||tcMasteryDue())return false;
-      if(!TC_course.lastCourseDate&&!TC_course.cycleStartDate)return true;
-      return tcScheduledOn(today);
-    }
-    function tcNextCourseDay(){
-      const now=tcDateFromKey(dateKey());
-      for(let i=0;i<28;i++){
-        const d=new Date(now);d.setDate(now.getDate()+i);const k=dateKey(d);
-        if(tcScheduledOn(k)&&k!==TC_course.lastCourseDate&&(i>0||tcCourseDue()))return k;
-      }
-      return '';
-    }
-    function tcCalendarMonday(){
+if(TC_course.cycleStartDate){
+const d=tcDayDiff(TC_course.cycleStartDate,k);
+return d>=0&&tcCourseWeekdays().map(x=>(x+6)%7).includes(d%7);
+}
+return tcCourseWeekdays().includes(tcDateFromKey(k).getDay());
+}
+function tcScheduleEventFor(plannedDate){return (TC_course.scheduleEvents||[]).find(e=>e.plannedDate===plannedDate)||null}
+function tcUpsertScheduleEvent(plannedDate,status,actualDate){
+if(!plannedDate)return null;
+let e=tcScheduleEventFor(plannedDate);
+if(!e){e={plannedDate,status,actualDate:actualDate||'',updatedAt:Date.now()};TC_course.scheduleEvents.push(e)}
+else{e.status=status;e.actualDate=actualDate||'';e.updatedAt=Date.now()}
+return e;
+}
+function tcRemoveScheduleEvent(plannedDate){
+const i=(TC_course.scheduleEvents||[]).findIndex(e=>e.plannedDate===plannedDate);
+if(i>=0)TC_course.scheduleEvents.splice(i,1);
+}
+function tcPullLoadDates(){
+const a=[];
+(TC_course.history||[]).forEach(h=>{if(h&&h.date&&['course','auxCourse','supplement'].includes(h.courseMode))a.push(h.date)});
+(TC_course.tests||[]).forEach(t=>{if(t&&t.date)a.push(t.date)});
+(TC_course.masteryTests||[]).forEach(t=>{if(t&&t.date)a.push(t.date)});
+if(TC_course.lastCourseDate)a.push(TC_course.lastCourseDate);
+return [...new Set(a)].sort();
+}
+function tcLastPullLoadDateBefore(key){
+let last='';for(const d of tcPullLoadDates())if(d<key&&d>last)last=d;return last;
+}
+function tcRecoveryReadyOn(key){
+const last=tcLastPullLoadDateBefore(key);return !last||tcDayDiff(last,key)>=2;
+}
+function tcScheduledMainToday(){
+if(!tcWeeklyMode())return false;
+const today=dateKey();
+if(TC_course.lastCourseDate===today||tcTestDue()||tcMasteryDue())return false;
+if(!TC_course.lastCourseDate&&!TC_course.cycleStartDate)return true;
+return tcScheduledOn(today);
+}
+function tcCourseDue(){return tcScheduledMainToday()&&tcRecoveryReadyOn(dateKey())}
+function tcRecoveryShiftToday(){return tcScheduledMainToday()&&!tcRecoveryReadyOn(dateKey())}
+function tcPreviousScheduledDay(key){
+const d=tcDateFromKey(key);
+for(let i=1;i<=28;i++){const x=new Date(d);x.setDate(d.getDate()-i);const k=dateKey(x);if(tcScheduledOn(k))return k}
+return '';
+}
+function tcNextScheduledAfter(key){
+const d=tcDateFromKey(key);
+for(let i=1;i<=28;i++){const x=new Date(d);x.setDate(d.getDate()+i);const k=dateKey(x);if(tcScheduledOn(k))return k}
+return '';
+}
+function tcSyncScheduleEvents(){
+if(!tcWeeklyMode())return false;
+const today=dateKey(),end=tcDateFromKey(today),start=new Date(end);start.setDate(start.getDate()-28);
+if(TC_course.cycleStartDate){const c=tcDateFromKey(TC_course.cycleStartDate);if(c>start)start.setTime(c.getTime())}
+let changed=false;
+for(let d=new Date(start);d<end;d.setDate(d.getDate()+1)){
+const k=dateKey(d);if(!tcScheduledOn(k))continue;
+const rec=(TC_course.history||[]).find(h=>h&&h.courseMode==='course'&&((h.plannedDate||h.date)===k));
+if(rec){const status=rec.date===k?'completed':'rescheduled',old=tcScheduleEventFor(k);if(!old||old.status!==status||old.actualDate!==rec.date){tcUpsertScheduleEvent(k,status,rec.date);changed=true}continue}
+if((TC_course.tests||[]).some(t=>t.date===k)||(TC_course.masteryTests||[]).some(t=>t.date===k))continue;
+const status=tcRecoveryReadyOn(k)?'missed':'recovery_shift',old=tcScheduleEventFor(k);
+if(!old||old.status!==status||old.actualDate){tcUpsertScheduleEvent(k,status,'');changed=true}
+}
+return changed;
+}
+function tcTransferCandidateRaw(today=dateKey()){
+if(!tcWeeklyMode()||tcScheduledOn(today))return null;
+const planned=tcPreviousScheduledDay(today);if(!planned)return null;
+const next=tcNextScheduledAfter(planned);if(!next||today>=next)return null;
+const e=tcScheduleEventFor(planned);if(!e||!['missed','recovery_shift'].includes(e.status))return null;
+return{plannedDate:planned,status:e.status,nextScheduledDate:next,ready:tcRecoveryReadyOn(today)};
+}
+function tcTransferCandidate(today=dateKey()){
+const c=tcTransferCandidateRaw(today);return c&&!(TC_course.transferRestDates||[]).includes(today)?c:null;
+}
+function tcNextCourseDay(){
+const now=tcDateFromKey(dateKey());
+for(let i=0;i<28;i++){
+const d=new Date(now);d.setDate(now.getDate()+i);const k=dateKey(d);
+if(tcScheduledOn(k)&&k!==TC_course.lastCourseDate&&(i>0||tcCourseDue()))return k;
+}
+return '';
+}
+function tcCalendarMonday(){
       const d=tcDateFromKey(dateKey());
       d.setDate(d.getDate()-(d.getDay()+6)%7+tcWeekOffset*7);return d;
     }
@@ -912,13 +975,7 @@
       const match=TC_course.history.find(h=>h.courseMode==='auxCourse'&&h.courseLevel===TC_course.level);
       return match?match.date:'';
     }
-    function tcLastPullLoadDate(){
-      let last=TC_course.lastCourseDate||'';
-      for(const h of TC_course.history){
-        if(['course','auxCourse','supplement'].includes(h.courseMode)&&h.date>last)last=h.date;
-      }
-      return last;
-    }
+    function tcLastPullLoadDate(){const a=tcPullLoadDates();return a.length?a[a.length-1]:''}
     function tcSupplementBreak(){
       const all=TC_course.history.filter(h=>h.courseMode==='supplement'&&h.date&&h.courseLevel===TC_course.level).map(h=>h.date).sort();
       if(!all.length)return false;
@@ -931,7 +988,7 @@
       const level=TC_course.level,today=dateKey();
       if(![3,6].includes(level)||!tcRunnableDefs(TC_COURSE[level].complexes[2].items).length)return false;
       if(!TC_course.enabled||![3,6].includes(level)||!TC_course.auxEnabled[level])return false;
-      if(!TC_course.lastCourseDate||tcScheduledOn(today)||tcCourseDue()||tcTestDue()||tcMasteryDue())return false;
+      if(!TC_course.lastCourseDate||tcScheduledOn(today)||tcCourseDue()||tcTransferCandidateRaw(today)||tcTestDue()||tcMasteryDue())return false;
       if(tcDayDiff(tcLastPullLoadDate(),today)<2)return false;
       const lastAux=tcLastAuxDate();
       if(lastAux&&tcDayDiff(lastAux,today)<tcAuxInterval())return false;
@@ -978,7 +1035,7 @@
     function tcSupplementHtml(){
       if(!TC_course.authorSupplement||!tcCourseLevel().supplement)return'';
       if(tcSupplementBreak())return '<div class="meta" style="margin-top:10px">Дополнительные подтягивания: пятидневная разгрузка.</div>';
-      if(tcAuxDue()||tcCourseDue()||tcTestDue()||tcMasteryDue())return'';
+      if(tcAuxDue()||tcCourseDue()||tcTransferCandidateRaw(dateKey())||tcRecoveryShiftToday()||tcTestDue()||tcMasteryDue())return'';
       if(TC_course.history.some(h=>h.courseMode==='supplement'&&h.date===dateKey()))return'';
       const reps=Math.max(1,Math.floor(TC_course.pullMax*.8));
       const seq=Array(10).fill(String(reps)).join('  ');
@@ -1744,7 +1801,7 @@
     window.tcStartSupplementWorkout=function(){
       if(W){tcActionMessage('Тренировка уже запущена','Сначала завершите текущую тренировку или выйдите из неё без сохранения.');return;}
       if(!TC_course.authorSupplement||!tcCourseLevel().supplement){tcActionMessage('Дополнение курса выключено','Включите дополнительные подтягивания в настройках курса, если они предусмотрены текущим уровнем.');return;}
-      if(tcCourseDue()){tcActionMessage('Сегодня основной комплекс','Дополнительные подтягивания по курсу не выполняются в день основной тренировки.');return;}
+      if(tcCourseDue()||tcTransferCandidateRaw(dateKey())||tcRecoveryShiftToday()){tcActionMessage('Приоритет основной тренировки','Дополнительные подтягивания не назначаются, пока основная тренировка ожидает выполнения или требуется восстановление.');return;}
       if(tcAuxDue()){tcActionMessage('Сегодня вспомогательный комплекс','Дополнительные подтягивания не назначаются одновременно со вспомогательной тяговой тренировкой.');return;}
       if(tcTestDue()||tcMasteryDue()){tcActionMessage('Сегодня контрольное испытание','Дополнительную тяговую нагрузку перед контрольным испытанием приложение не назначает.');return;}
       if(tcSupplementBreak()){tcActionMessage('Разгрузка от дополнительной работы','Сейчас действует пятидневный перерыв от дополнительных подтягиваний.');return;}
