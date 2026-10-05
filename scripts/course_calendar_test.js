@@ -264,7 +264,9 @@ assert(doneExtraApi.tcTodayCourseDoneHtml(extras).includes('Дополнител
 
 const startExtraPos=course.indexOf('window.tcStartExtraWorkout=function(){');
 assert(startExtraPos>=0,'tcStartExtraWorkout missing');
-const startExtraBody=course.slice(startExtraPos,course.indexOf('\n    };',startExtraPos)+7);
+const startExtraEnd=course.indexOf('window.tcStartSupplementWorkout=function(){',startExtraPos);
+assert(startExtraEnd>startExtraPos,'tcStartExtraWorkout end marker missing');
+const startExtraBody=course.slice(startExtraPos,startExtraEnd);
 assert(startExtraBody.includes("tcActionMessage('Тренировка уже запущена'"),
  'active workout must not cause a silent extra-start return');
 assert(startExtraBody.includes("tcActionMessage('Нет дополнительных упражнений'"),
@@ -302,8 +304,8 @@ assert(actionBodies.aux.includes("tcActionMessage('Вспомогательны�
  'auxiliary workout must explain schedule/recovery blocking');
 assert(actionBodies.aux.includes("tcActionMessage('Нет доступных упражнений'"),
  'auxiliary workout must explain empty runnable set');
-assert(actionBodies.supplement.includes("tcActionMessage('Сегодня основной комплекс'"),
- 'supplement must explain main-day blocking');
+assert(actionBodies.supplement.includes("tcActionMessage('Приоритет основной тренировки'"),
+ 'supplement must explain pending-main/recovery blocking');
 assert(actionBodies.supplement.includes("tcActionMessage('Сегодня контрольное испытание'"),
  'supplement must explain control-day blocking');
 assert(actionBodies.supplement.includes("tcActionMessage('Дополнение уже выполнено'"),
