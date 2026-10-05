@@ -117,19 +117,51 @@ assert(course.includes('Выполнить сегодня')&&course.includes('О
  'Today must expose explicit transfer and rest choices');
 assert(course.includes("rec.plannedDate=W.coursePlannedDate||rec.date")&&course.includes("rec.transferred=rec.plannedDate!==rec.date"),
  'completed transfer must persist both planned and actual dates');
+assert(course.includes("courseRuns:[]")&&course.includes("activeRunId:''")&&course.includes('function tcEnsureCourseRun()'),
+ 'course state must persist versioned Morozov course periods');
+assert(course.includes("rec.runId=run&&run.id||''")&&course.includes("runId:run&&run.id||''"),
+ 'workouts and control results must link to their course run');
+const statsState={
+ pullMax:21,activeRunId:'r1',
+ courseRuns:[{id:'r1',startedDate:'2026-09-01',level:4,goal:'quantity',baselinePullMax:17,targetMax:25}],
+ history:[
+  {runId:'r1',courseMode:'course',transferred:false,details:[{actual:[10,9]}]},
+  {runId:'r1',courseMode:'course',transferred:true,details:[{actual:[8,8]}]},
+  {runId:'r1',courseMode:'auxCourse',details:[{actual:[5]}]}
+ ],
+ scheduleEvents:[
+  {runId:'r1',status:'missed'},{runId:'r1',status:'recovery_shift'}
+ ],
+ tests:[{runId:'r1',ts:1,value:19},{runId:'r1',ts:2,value:21}]
+};
+const statsApi=new Function('TC_course',
+ extract('tcCourseRunById')+'\n'+extract('tcCurrentCourseRun')+
+ '\nfunction tcEnsureCourseRun(){return tcCurrentCourseRun()}\n'+extract('tcCourseRunStats')+
+ '\nreturn tcCourseRunStats;')(statsState);
+const statsResult=statsApi();
+assert.equal(statsResult.completed,2,'stats count only completed main course sessions');
+assert.equal(statsResult.on,1);assert.equal(statsResult.moved,1);
+assert.equal(statsResult.missed,1);assert.equal(statsResult.recovery,1);
+assert.equal(statsResult.rate,67,'recovery shifts must be excluded from course completion denominator');
+assert.equal(statsResult.sets,5);assert.equal(statsResult.reps,40);
+assert.equal(statsResult.base,17);assert.equal(statsResult.cur,21);
+assert.equal(statsResult.delta,4);assert.equal(statsResult.pct,24);
+assert.deepEqual(statsResult.tests,[19,21]);
+assert(course.includes('Выполнение курса:')&&course.includes('Контрольные максимумы:'),
+ 'Progress must render the compact Morozov course statistics card');
 assert(course.includes('tcPreviewCourseCard(tcSelectedDate)'),
  'choosing another date must show a read-only plan');
 assert(course.includes('id="tcCycleStartDate"'),
  'settings must expose a cycle start date');
-assert(hotfix.includes("const VERSION='5.16.42-flexible-course-schedule'"),
- 'release hotfix version must be 5.16.42');
-assert(course.includes("const COURSE_MODULE_VERSION='1.0.36-flex-schedule'"),
- 'course module version must be 1.0.36');
+assert(hotfix.includes("const VERSION='5.16.43-morozov-stats'"),
+ 'release hotfix version must be 5.16.43');
+assert(course.includes("const COURSE_MODULE_VERSION='1.0.37-course-stats'"),
+ 'course module version must be 1.0.37');
 assert(!course.includes('TC_EXTRA_START'),
  'temporary extra-workout trace logging must not ship');
 assert(!course.includes('window.confirm('),'course module must not depend on unsupported WebView JS dialogs');
 assert(!hotfix.includes('window.confirm('),'hotfix navigation/discard must not depend on unsupported WebView JS dialogs');
-assert(!hotfix.includes('forceHandover'),'5.16.42 must use an explicit user-visible update prompt');
+assert(!hotfix.includes('forceHandover'),'5.16.43 must use an explicit user-visible update prompt');
 assert(hotfix.includes("showRuntimeNotice('TurnikCoach обновлён до '+LABEL)"),
  'successful activation must give visible feedback');
 assert(hotfix.includes("localStorage.setItem('tc_hotfix_active_version',VERSION)"),
