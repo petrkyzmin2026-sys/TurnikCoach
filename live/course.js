@@ -339,7 +339,7 @@ if(!old||old.status!==status||old.actualDate){tcUpsertScheduleEvent(k,status,'')
 return changed;
 }
 function tcTransferCandidateRaw(today=dateKey()){
-if(!tcWeeklyMode()||tcScheduledOn(today))return null;
+if(!tcWeeklyMode()||tcScheduledOn(today)||tcTestDue()||tcMasteryDue())return null;
 const planned=tcPreviousScheduledDay(today);if(!planned)return null;
 const next=tcNextScheduledAfter(planned);if(!next||today>=next)return null;
 const e=tcScheduleEventFor(planned);if(!e||!['missed','recovery_shift'].includes(e.status))return null;
