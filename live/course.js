@@ -8,11 +8,9 @@ function tcClamp(v,a,b){return Math.max(a,Math.min(b,v))}
 function tcPrimeAudio(){try{if(typeof unlockAudio==='function')unlockAudio()}catch(e){}}
 function tcFinishSignal(){try{if(typeof beep==='function'){beep(620,.18,.42);setTimeout(()=>beep(880,.26,.46),200)}}catch(e){}}
 function tcQueueDecorate(){setTimeout(()=>{},0)}
-// ---------- Morozov pull-up course (source-driven module) ----------
 const TC_COURSE_KEY='tc_morozov_course_v1';
 const TC_PULL_CONFLICT_IDS=new Set(['pull','chin','bandPull','weightedPull','oneArmPull']);
 const TC_PULL_HEAVY_IDS=new Set(['pull','chin','bandPull','weightedPull','oneArmPull','muscleUp','frontLever','backLever']);
-
 const TC_COURSE={
 1:{
 title:'Начинающие',
@@ -21,18 +19,18 @@ frequency:'4 тренировки в неделю; чередовать комп
 sequence:[1,2,1,2],
 mastery:'8 подтягиваний с резиной минимального натяжения',
 complexes:{
-  1:{name:'Комплекс №1',purpose:'Общая силовая подготовка тяговых мышц и освоение правильного движения.',items:[
-    {id:'c_band',name:'Подтягивания с резиной',metric:'reps',sets:3,scheme:{type:'fixed',value:8},rest:{type:'fixed',sec:60},tip:'Используй такую помощь резины, чтобы сохранять правильную технику.'},
-    {id:'c_australian',name:'Австралийские подтягивания',metric:'reps',sets:3,scheme:{type:'fixed',value:12},rest:{type:'fixed',sec:60}},
-    {id:'c_band_row',name:'Тяга резины',metric:'reps',sets:2,scheme:{type:'fixed',value:15},rest:{type:'fixed',sec:60}},
-    {id:'c_bent_hold',name:'Вис на согнутых руках',metric:'time',sets:3,scheme:{type:'max'},rest:{type:'fixed',sec:60}}
-  ]},
-  2:{name:'Комплекс №2',purpose:'Техника, удержание и контролируемая эксцентрическая работа.',items:[
-    {id:'c_active_hang',name:'Активный вис',metric:'time',sets:3,scheme:{type:'max'},rest:{type:'fixed',sec:60}},
-    {id:'c_chair_pull',name:'Подтягивания с ногами на стуле',metric:'reps',sets:3,scheme:{type:'fixed',value:12},rest:{type:'fixed',sec:60}},
-    {id:'c_aus_biceps',name:'Тяга на бицепс в австралийском мосту',metric:'reps',sets:2,scheme:{type:'fixed',value:8},rest:{type:'fixed',sec:60}},
-    {id:'c_slow_negative',name:'Медленный негатив',metric:'reps',sets:5,scheme:{type:'timed',value:2,label:'2 · 20 сек'},rest:{type:'fixed',sec:60},tip:'Два медленных негативных повторения; курс указывает 20 секунд.'}
-  ]}
+1:{name:'Комплекс №1',purpose:'Общая силовая подготовка тяговых мышц и освоение правильного движения.',items:[
+{id:'c_band',name:'Подтягивания с резиной',metric:'reps',sets:3,scheme:{type:'fixed',value:8},rest:{type:'fixed',sec:60},tip:'Используй такую помощь резины, чтобы сохранять правильную технику.'},
+{id:'c_australian',name:'Австралийские подтягивания',metric:'reps',sets:3,scheme:{type:'fixed',value:12},rest:{type:'fixed',sec:60}},
+{id:'c_band_row',name:'Тяга резины',metric:'reps',sets:2,scheme:{type:'fixed',value:15},rest:{type:'fixed',sec:60}},
+{id:'c_bent_hold',name:'Вис на согнутых руках',metric:'time',sets:3,scheme:{type:'max'},rest:{type:'fixed',sec:60}}
+]},
+2:{name:'Комплекс №2',purpose:'Техника, удержание и контролируемая эксцентрическая работа.',items:[
+{id:'c_active_hang',name:'Активный вис',metric:'time',sets:3,scheme:{type:'max'},rest:{type:'fixed',sec:60}},
+{id:'c_chair_pull',name:'Подтягивания с ногами на стуле',metric:'reps',sets:3,scheme:{type:'fixed',value:12},rest:{type:'fixed',sec:60}},
+{id:'c_aus_biceps',name:'Тяга на бицепс в австралийском мосту',metric:'reps',sets:2,scheme:{type:'fixed',value:8},rest:{type:'fixed',sec:60}},
+{id:'c_slow_negative',name:'Медленный негатив',metric:'reps',sets:5,scheme:{type:'timed',value:2,label:'2 · 20 сек'},rest:{type:'fixed',sec:60},tip:'Два медленных негативных повторения; курс указывает 20 секунд.'}
+]}
 }
 },
 2:{
@@ -42,13 +40,13 @@ frequency:'2–4 тренировки в неделю по индивидуал�
 sequence:[1],
 mastery:'8 подтягиваний средним хватом',
 complexes:{
-  1:{name:'Комплекс №1',purpose:'Более направленная работа на чёткие подтягивания; объём ниже, интенсивность выше.',items:[
-    {id:'c_classic_max',name:'Классические подтягивания',metric:'reps',sets:3,scheme:{type:'max',ref:'pull'},rest:{type:'range',min:60,max:180},tip:'В этом уровне автор ставит задачу выполнять чёткие 2–4 подтягивания без технических ошибок.'},
-    {id:'c_shrug',name:'Шраги на турнике',metric:'reps',sets:3,scheme:{type:'fixed',value:12},rest:{type:'range',min:60,max:180},tip:'Шраги развивают мышцы, опускающие плечо, ротаторы плеча и при большей амплитуде трапеции.'},
-    {id:'c_half_pull',name:'Полуамплитудные подтягивания',metric:'reps',sets:3,scheme:{type:'fixed',value:8},rest:{type:'range',min:60,max:180}},
-    {id:'c_pause_negative',name:'Негатив с паузами',metric:'reps',sets:3,scheme:{type:'timed',value:3,label:'3 · паузы 5 сек'},rest:{type:'range',min:60,max:180}},
-    {id:'c_chin_max',name:'Подтягивания нижним хватом',metric:'reps',sets:3,scheme:{type:'max'},rest:{type:'range',min:60,max:180},tip:'Нижний хват немного сильнее переносит нагрузку на бицепс; распределение нагрузки зависит от техники.'}
-  ]}
+1:{name:'Комплекс №1',purpose:'Более направленная работа на чёткие подтягивания; объём ниже, интенсивность выше.',items:[
+{id:'c_classic_max',name:'Классические подтягивания',metric:'reps',sets:3,scheme:{type:'max',ref:'pull'},rest:{type:'range',min:60,max:180},tip:'В этом уровне автор ставит задачу выполнять чёткие 2–4 подтягивания без технических ошибок.'},
+{id:'c_shrug',name:'Шраги на турнике',metric:'reps',sets:3,scheme:{type:'fixed',value:12},rest:{type:'range',min:60,max:180},tip:'Шраги развивают мышцы, опускающие плечо, ротаторы плеча и при большей амплитуде трапеции.'},
+{id:'c_half_pull',name:'Полуамплитудные подтягивания',metric:'reps',sets:3,scheme:{type:'fixed',value:8},rest:{type:'range',min:60,max:180}},
+{id:'c_pause_negative',name:'Негатив с паузами',metric:'reps',sets:3,scheme:{type:'timed',value:3,label:'3 · паузы 5 сек'},rest:{type:'range',min:60,max:180}},
+{id:'c_chin_max',name:'Подтягивания нижним хватом',metric:'reps',sets:3,scheme:{type:'max'},rest:{type:'range',min:60,max:180},tip:'Нижний хват немного сильнее переносит нагрузку на бицепс; распределение нагрузки зависит от техники.'}
+]}
 }
 },
 3:{
@@ -59,17 +57,17 @@ sequence:[1,1,1,2],
 mastery:'15–20 классических подтягиваний и 6 подтягиваний широким хватом',
 supplement:'10 подходов по 80% от максимума в дни без основной тренировки; пропускать в дни основной тренировки; раз в месяц отдых от этой дополнительной работы не менее 5 дней.',
 complexes:{
-  1:{name:'Комплекс №1',purpose:'Рост количества подтягиваний через сочетание высокой и умеренной относительной нагрузки.',items:[
-    {id:'c_pull80',name:'Классические подтягивания',metric:'reps',sets:3,scheme:{type:'percent',pct:.8,ref:'pull'},rest:{type:'fixed',sec:180}},
-    {id:'c_wide_band_max',name:'Широкие подтягивания с резиной',metric:'reps',sets:1,scheme:{type:'max'},rest:{type:'range',min:60,max:180}},
-    {id:'c_pull50',name:'Классические подтягивания',metric:'reps',sets:6,scheme:{type:'percent',pct:.5,ref:'pull'},rest:{type:'manual',label:'минимальный'}},
-    {id:'c_negative_pause_max',name:'Негатив с паузами',metric:'time',sets:3,scheme:{type:'max',label:'MAX · максимальная пауза'},rest:{type:'manual',label:'минимальный'}}
-  ]},
-  2:{name:'Комплекс №2',purpose:'Дополнительная взрывная и асимметричная работа.',items:[
-    {id:'c_chicken_wings',name:'Куриные крылья',metric:'reps',sets:2,scheme:{type:'fixed',value:10},rest:{type:'fixed',sec:180}},
-    {id:'c_plyo80',name:'Плиометрические подтягивания',metric:'reps',sets:3,scheme:{type:'percent',pct:.8},rest:{type:'fixed',sec:180},tip:'Высокие и плиометрические подтягивания используются для развития взрывной силы.'},
-    {id:'c_asym80',name:'Асимметричные подтягивания',metric:'reps_side',sets:3,scheme:{type:'percent',pct:.8,label:'80% MAX'},rest:{type:'fixed',sec:180},tip:'Асимметричные подтягивания увеличивают нагрузку на тянущую сторону; вспомогательная сторона стабилизирует движение.'}
-  ]}
+1:{name:'Комплекс №1',purpose:'Рост количества подтягиваний через сочетание высокой и умеренной относительной нагрузки.',items:[
+{id:'c_pull80',name:'Классические подтягивания',metric:'reps',sets:3,scheme:{type:'percent',pct:.8,ref:'pull'},rest:{type:'fixed',sec:180}},
+{id:'c_wide_band_max',name:'Широкие подтягивания с резиной',metric:'reps',sets:1,scheme:{type:'max'},rest:{type:'range',min:60,max:180}},
+{id:'c_pull50',name:'Классические подтягивания',metric:'reps',sets:6,scheme:{type:'percent',pct:.5,ref:'pull'},rest:{type:'manual',label:'минимальный'}},
+{id:'c_negative_pause_max',name:'Негатив с паузами',metric:'time',sets:3,scheme:{type:'max',label:'MAX · максимальная пауза'},rest:{type:'manual',label:'минимальный'}}
+]},
+2:{name:'Комплекс №2',purpose:'Дополнительная взрывная и асимметричная работа.',items:[
+{id:'c_chicken_wings',name:'Куриные крылья',metric:'reps',sets:2,scheme:{type:'fixed',value:10},rest:{type:'fixed',sec:180}},
+{id:'c_plyo80',name:'Плиометрические подтягивания',metric:'reps',sets:3,scheme:{type:'percent',pct:.8},rest:{type:'fixed',sec:180},tip:'Высокие и плиометрические подтягивания используются для развития взрывной силы.'},
+{id:'c_asym80',name:'Асимметричные подтягивания',metric:'reps_side',sets:3,scheme:{type:'percent',pct:.8,label:'80% MAX'},rest:{type:'fixed',sec:180},tip:'Асимметричные подтягивания увеличивают нагрузку на тянущую сторону; вспомогательная сторона стабилизирует движение.'}
+]}
 }
 },
 4:{
@@ -79,70 +77,69 @@ frequency:'По цели: комплекс №1 — 2–4 раза/нед.; №2
 mastery:'5 асимметричных подтягиваний на каждую руку и 1 подтягивание выше груди',
 supplement:'10 подходов по 80% от максимума в дни без основной тренировки; пропускать в дни основной тренировки; раз в месяц отдых от этой дополнительной работы не менее 5 дней.',
 complexes:{
-  1:{name:'Комплекс №1 · выход силой',goal:'muscleup',purpose:'Подготовка к выходу силой.',items:[
-    {id:'c_plyo35',name:'Плиометрические подтягивания',metric:'reps',sets:5,scheme:{type:'range_reps',min:3,max:5,label:'3–5'},rest:{type:'range',min:120,max:240}},
-    {id:'c_wide80',name:'Подтягивания широким хватом',metric:'reps',sets:3,scheme:{type:'percent',pct:.8,label:'80% MAX'},rest:{type:'range',min:120,max:240}},
-    {id:'c_iguana',name:'Хват игуаны · тяга к плечу на полусогнутых',metric:'reps',sets:3,scheme:{type:'fixed',value:8},rest:{type:'range',min:120,max:240}}
-  ]},
-  2:{name:'Комплекс №2 · одна рука',goal:'onearm',purpose:'Подготовка к подтягиванию на одной руке.',items:[
-    {id:'c_asym_max',name:'Асимметричные подтягивания',metric:'reps_side',sets:2,scheme:{type:'max'},rest:{type:'range',min:120,max:240},tip:'Асимметричная работа повышает нагрузку на тянущую сторону.'},
-    {id:'c_onearm_active_hang',name:'Активный вис на одной руке',metric:'time_side',sets:3,scheme:{type:'max'},rest:{type:'range',min:120,max:240}},
-    {id:'c_regrip_bent',name:'Перехваты в висе на полусогнутых',metric:'reps',sets:3,scheme:{type:'max'},rest:{type:'range',min:120,max:240}}
-  ]},
-  3:{name:'Комплекс №3 · количество',goal:'quantity',purpose:'Развитие выносливости и увеличение общего количества подтягиваний.',items:[
-    {id:'c_pull80_l4',name:'Классические подтягивания',metric:'reps',sets:3,scheme:{type:'percent',pct:.8,ref:'pull'},rest:{type:'range',min:120,max:240}},
-    {id:'c_wide_max_l4',name:'Подтягивания широким хватом',metric:'reps',sets:2,scheme:{type:'max'},rest:{type:'range',min:120,max:240}},
-    {id:'c_weighted3',name:'Подтягивания с дополнительным весом',metric:'weighted',sets:4,scheme:{type:'fixed',value:3,label:'3 · максимальный рабочий вес'},rest:{type:'range',min:120,max:240}}
-  ]}
+1:{name:'Комплекс №1 · выход силой',goal:'muscleup',purpose:'Подготовка к выходу силой.',items:[
+{id:'c_plyo35',name:'Плиометрические подтягивания',metric:'reps',sets:5,scheme:{type:'range_reps',min:3,max:5,label:'3–5'},rest:{type:'range',min:120,max:240}},
+{id:'c_wide80',name:'Подтягивания широким хватом',metric:'reps',sets:3,scheme:{type:'percent',pct:.8,label:'80% MAX'},rest:{type:'range',min:120,max:240}},
+{id:'c_iguana',name:'Хват игуаны · тяга к плечу на полусогнутых',metric:'reps',sets:3,scheme:{type:'fixed',value:8},rest:{type:'range',min:120,max:240}}
+]},
+2:{name:'Комплекс №2 · одна рука',goal:'onearm',purpose:'Подготовка к подтягиванию на одной руке.',items:[
+{id:'c_asym_max',name:'Асимметричные подтягивания',metric:'reps_side',sets:2,scheme:{type:'max'},rest:{type:'range',min:120,max:240},tip:'Асимметричная работа повышает нагрузку на тянущую сторону.'},
+{id:'c_onearm_active_hang',name:'Активный вис на одной руке',metric:'time_side',sets:3,scheme:{type:'max'},rest:{type:'range',min:120,max:240}},
+{id:'c_regrip_bent',name:'Перехваты в висе на полусогнутых',metric:'reps',sets:3,scheme:{type:'max'},rest:{type:'range',min:120,max:240}}
+]},
+3:{name:'Комплекс №3 · количество',goal:'quantity',purpose:'Развитие выносливости и увеличение общего количества подтягиваний.',items:[
+{id:'c_pull80_l4',name:'Классические подтягивания',metric:'reps',sets:3,scheme:{type:'percent',pct:.8,ref:'pull'},rest:{type:'range',min:120,max:240}},
+{id:'c_wide_max_l4',name:'Подтягивания широким хватом',metric:'reps',sets:2,scheme:{type:'max'},rest:{type:'range',min:120,max:240}},
+{id:'c_weighted3',name:'Подтягивания с дополнительным весом',metric:'weighted',sets:4,scheme:{type:'fixed',value:3,label:'3 · максимальный рабочий вес'},rest:{type:'range',min:120,max:240}}
+]}
 }
 },
 5:{
 title:'Пятый уровень',entry:'Продвинутая специализация после четвёртого уровня',frequency:'Комплекс выбирается по цели; в курсе указано 2–4 тренировки в неделю',sequence:[1],mastery:'Дополнительный вес в подтягивании — 60–70% собственного веса тела',
 complexes:{
-  1:{name:'Комплекс №1 · выход силой',goal:'muscleup',purpose:'Скоростно-силовая работа для выхода силой.',items:[
-    {id:'c_high_max',name:'Высокие подтягивания',metric:'reps',sets:3,scheme:{type:'max'},rest:{type:'range',min:180,max:300},tip:'Высокие подтягивания развивают взрывную силу.'},
-    {id:'c_three_stage50',name:'Трёхстадийные подтягивания',metric:'reps',sets:6,scheme:{type:'percent',pct:.5,label:'50% MAX'},rest:{type:'range',min:180,max:300},tip:'Разделение движения на фазы развивает нейромышечный контроль каждой части амплитуды.'},
-    {id:'c_power_crow',name:'Силовая каркуша',metric:'reps',sets:3,scheme:{type:'max'},rest:{type:'range',min:180,max:300}}
-  ]},
-  2:{name:'Комплекс №2 · одна рука / силовая база',goal:'onearm',purpose:'Односторонняя силовая работа и тяжёлые подтягивания.',items:[
-    {id:'c_full_asym2',name:'Асимметричные подтягивания полные',metric:'reps_side',sets:2,scheme:{type:'fixed',value:2},rest:{type:'range',min:180,max:300}},
-    {id:'c_onearm_bent_hold',name:'Вис на одной полусогнутой руке',metric:'time_side',sets:3,scheme:{type:'max'},rest:{type:'range',min:180,max:300}},
-    {id:'c_typewriter',name:'Печатная машинка',metric:'reps',sets:2,scheme:{type:'max'},rest:{type:'range',min:180,max:300}},
-    {id:'c_weighted3_l5',name:'Подтягивания с дополнительным весом',metric:'weighted',sets:5,scheme:{type:'fixed',value:3,label:'3 · максимальный рабочий вес'},rest:{type:'range',min:180,max:300}}
-  ]}
+1:{name:'Комплекс №1 · выход силой',goal:'muscleup',purpose:'Скоростно-силовая работа для выхода силой.',items:[
+{id:'c_high_max',name:'Высокие подтягивания',metric:'reps',sets:3,scheme:{type:'max'},rest:{type:'range',min:180,max:300},tip:'Высокие подтягивания развивают взрывную силу.'},
+{id:'c_three_stage50',name:'Трёхстадийные подтягивания',metric:'reps',sets:6,scheme:{type:'percent',pct:.5,label:'50% MAX'},rest:{type:'range',min:180,max:300},tip:'Разделение движения на фазы развивает нейромышечный контроль каждой части амплитуды.'},
+{id:'c_power_crow',name:'Силовая каркуша',metric:'reps',sets:3,scheme:{type:'max'},rest:{type:'range',min:180,max:300}}
+]},
+2:{name:'Комплекс №2 · одна рука / силовая база',goal:'onearm',purpose:'Односторонняя силовая работа и тяжёлые подтягивания.',items:[
+{id:'c_full_asym2',name:'Асимметричные подтягивания полные',metric:'reps_side',sets:2,scheme:{type:'fixed',value:2},rest:{type:'range',min:180,max:300}},
+{id:'c_onearm_bent_hold',name:'Вис на одной полусогнутой руке',metric:'time_side',sets:3,scheme:{type:'max'},rest:{type:'range',min:180,max:300}},
+{id:'c_typewriter',name:'Печатная машинка',metric:'reps',sets:2,scheme:{type:'max'},rest:{type:'range',min:180,max:300}},
+{id:'c_weighted3_l5',name:'Подтягивания с дополнительным весом',metric:'weighted',sets:5,scheme:{type:'fixed',value:3,label:'3 · максимальный рабочий вес'},rest:{type:'range',min:180,max:300}}
+]}
 }
 },
 6:{
 title:'Шестой уровень',entry:'Следующая ступень специальной силовой работы',frequency:'Комплекс №1 — 2–4 раза/нед.; комплекс №2 — вспомогательная силовая работа, примерно раз в 10 дней',sequence:[1,1,1,2],mastery:'В PDF отдельный тест перехода после шестого уровня не указан.',
 complexes:{
-  1:{name:'Комплекс №1',purpose:'Продвинутая односторонняя тяговая работа.',items:[
-    {id:'c_onearm_negative',name:'Негативы на одной руке с подтягиванием в нейтральном хвате',metric:'reps_side',sets:3,scheme:{type:'timed',value:6,label:'6 · 10 сек'},rest:{type:'range',min:180,max:300}},
-    {id:'c_jump_onearm',name:'Подтягивания с прыжка на низком турнике',metric:'reps_side',sets:3,scheme:{type:'fixed',value:4},rest:{type:'range',min:180,max:300}},
-    {id:'c_band_onearm',name:'Подтягивания с резиной средней тяги',metric:'reps_side',sets:2,scheme:{type:'max'},rest:{type:'range',min:180,max:300}}
-  ]},
-  2:{name:'Комплекс №2',purpose:'Вспомогательная силовая работа.',items:[
-    {id:'c_towel_hang',name:'Вис на полотенце одной рукой',metric:'time_side',sets:3,scheme:{type:'max'},rest:{type:'range',min:180,max:300}},
-    {id:'c_weighted23',name:'Подтягивания с дополнительным весом',metric:'weighted',sets:4,scheme:{type:'range_reps',min:2,max:3,label:'2–3 · максимальный вес'},rest:{type:'range',min:180,max:300}}
-  ]}
+1:{name:'Комплекс №1',purpose:'Продвинутая односторонняя тяговая работа.',items:[
+{id:'c_onearm_negative',name:'Негативы на одной руке с подтягиванием в нейтральном хвате',metric:'reps_side',sets:3,scheme:{type:'timed',value:6,label:'6 · 10 сек'},rest:{type:'range',min:180,max:300}},
+{id:'c_jump_onearm',name:'Подтягивания с прыжка на низком турнике',metric:'reps_side',sets:3,scheme:{type:'fixed',value:4},rest:{type:'range',min:180,max:300}},
+{id:'c_band_onearm',name:'Подтягивания с резиной средней тяги',metric:'reps_side',sets:2,scheme:{type:'max'},rest:{type:'range',min:180,max:300}}
+]},
+2:{name:'Комплекс №2',purpose:'Вспомогательная силовая работа.',items:[
+{id:'c_towel_hang',name:'Вис на полотенце одной рукой',metric:'time_side',sets:3,scheme:{type:'max'},rest:{type:'range',min:180,max:300}},
+{id:'c_weighted23',name:'Подтягивания с дополнительным весом',metric:'weighted',sets:4,scheme:{type:'range_reps',min:2,max:3,label:'2–3 · максимальный вес'},rest:{type:'range',min:180,max:300}}
+]}
 }
 },
 7:{
 title:'Седьмой уровень',entry:'Прогрессия подтягивания на одной руке / дальнейшая работа на выход силой',frequency:'Комплекс №1 — 3 раза/нед. для одной руки; комплекс №2 — 3 раза/нед. для выхода силой в одно движение',sequence:[1],mastery:'В PDF отдельный финальный тест не указан.',
 complexes:{
-  1:{name:'Комплекс №1 · одна рука',goal:'onearm',purpose:'Прогрессия подтягивания на одной руке.',items:[
-    {id:'c_onearm_progression',name:'Прогрессия подтягивания на одной руке',metric:'reps_side',sets:4,scheme:{type:'max'},rest:{type:'manual',label:'по усмотрению'}},
-    {id:'c_l6_choice1',name:'Упражнение на выбор из 6 уровня',metric:'reps',sets:1,scheme:{type:'choice',label:'любой комплекс'},rest:{type:'manual',label:'по усмотрению'}},
-    {id:'c_l6_choice2',name:'Упражнение на выбор из 6 уровня',metric:'reps',sets:1,scheme:{type:'choice',label:'любой комплекс'},rest:{type:'manual',label:'по усмотрению'}}
-  ]},
-  2:{name:'Комплекс №2 · выход силой',goal:'muscleup',purpose:'Дальнейшая работа на выход силой в одно движение.',items:[
-    {id:'c_onearm_progression_mu',name:'Прогрессия подтягивания на одной руке',metric:'reps_side',sets:4,scheme:{type:'max'},rest:{type:'manual',label:'по усмотрению'}},
-    {id:'c_l5_choice1',name:'Упражнение на выбор из 5 уровня · комплекс №1',metric:'reps',sets:1,scheme:{type:'choice',label:'на выбор'},rest:{type:'manual',label:'по усмотрению'}},
-    {id:'c_l5_choice2',name:'Упражнение на выбор из 5 уровня · комплекс №1',metric:'reps',sets:1,scheme:{type:'choice',label:'на выбор'},rest:{type:'manual',label:'по усмотрению'}}
-  ]}
+1:{name:'Комплекс №1 · одна рука',goal:'onearm',purpose:'Прогрессия подтягивания на одной руке.',items:[
+{id:'c_onearm_progression',name:'Прогрессия подтягивания на одной руке',metric:'reps_side',sets:4,scheme:{type:'max'},rest:{type:'manual',label:'по усмотрению'}},
+{id:'c_l6_choice1',name:'Упражнение на выбор из 6 уровня',metric:'reps',sets:1,scheme:{type:'choice',label:'любой комплекс'},rest:{type:'manual',label:'по усмотрению'}},
+{id:'c_l6_choice2',name:'Упражнение на выбор из 6 уровня',metric:'reps',sets:1,scheme:{type:'choice',label:'любой комплекс'},rest:{type:'manual',label:'по усмотрению'}}
+]},
+2:{name:'Комплекс №2 · выход силой',goal:'muscleup',purpose:'Дальнейшая работа на выход силой в одно движение.',items:[
+{id:'c_onearm_progression_mu',name:'Прогрессия подтягивания на одной руке',metric:'reps_side',sets:4,scheme:{type:'max'},rest:{type:'manual',label:'по усмотрению'}},
+{id:'c_l5_choice1',name:'Упражнение на выбор из 5 уровня · комплекс №1',metric:'reps',sets:1,scheme:{type:'choice',label:'на выбор'},rest:{type:'manual',label:'по усмотрению'}},
+{id:'c_l5_choice2',name:'Упражнение на выбор из 5 уровня · комплекс №1',metric:'reps',sets:1,scheme:{type:'choice',label:'на выбор'},rest:{type:'manual',label:'по усмотрению'}}
+]}
 }
 }
 };
-
 function tcCourseDefault(){
 const pull=state.ex.find(e=>e.id==='pull');
 const weighted=state.ex.find(e=>e.id==='weightedPull');
@@ -199,7 +196,6 @@ console.error('course state restore',e);
 return false;
 }
 };
-
 function tcNextTestDate(){
 const start=TC_course.lastTestDate||TC_course.testAnchorDate;
 if(!start)return '';
@@ -217,14 +213,10 @@ if(!TC_course.enabled||!TC_course.lastCourseDate||!tcMasteryDefinition())return 
 const next=tcNextTestDate(),now=dateKey();
 return !!next&&now>=next&&(!TC_course.testDeferredUntil||now>=TC_course.testDeferredUntil)&&tcRecoveredForTest();
 }
-
 function tcCourseLevel(){return TC_COURSE[TC_course.level]||TC_COURSE[1]}
 function tcCourseGoalName(g){return g==='muscleup'?'Выход силой':g==='onearm'?'Подтягивание на одной руке':'Количество подтягиваний'}
 function tcGoalOptions(level){if(level<=3)return[['quantity','Количество подтягиваний']];if(level===4)return[['quantity','Количество подтягиваний'],['muscleup','Выход силой'],['onearm','Подтягивание на одной руке']];return[['muscleup','Выход силой'],['onearm','Подтягивание на одной руке']]}
 function tcNormalizeGoal(){const a=tcGoalOptions(TC_course.level).map(x=>x[0]);if(!a.includes(TC_course.goal))TC_course.goal=a[0]}
-
-// Equipment profile: the user owns only a standard horizontal bar.
-// The PDF programme is retained verbatim in TC_COURSE; filtering applies ONLY to executable assignments.
 const TC_UNAVAILABLE_BAR_ONLY={
 c_band:'Требуется резиновая петля',
 c_australian:'Требуется низкая перекладина либо иной опорный снаряд',
@@ -282,9 +274,6 @@ return seq[seqIndex%seq.length]||ids[0]||1;
 }
 function tcCourseComplex(seqIndex=TC_course.courseSeq){const no=tcCourseComplexNo(seqIndex);return{no,def:tcCourseLevel().complexes[no]}}
 function tcDayDiff(a,b){if(!a||!b)return 999;const x=new Date(a+'T12:00:00'),y=new Date(b+'T12:00:00');return Math.round((y-x)/86400000)}
-
-// A saved date anchors the first main session; legacy users retain
-// their former weekday pattern until they explicitly save a date.
 let tcSelectedDate='',tcWeekOffset=0;
 function tcWeeklyMode(){return TC_course.enabled&&TC_course.level>=1&&TC_course.level<=7}
 function tcCourseWeekdays(){
@@ -396,7 +385,6 @@ if(tcScheduledOn(k)&&k!==TC_course.lastCourseDate&&!TC_course.history.some(h=>h.
 }
 return seq;
 }
-
 function tcPreviewCourseCard(key){
 const now=dateKey(),records=TC_course.history.filter(h=>h.date===key);
 const finished=records.filter(h=>['course','auxCourse','supplement'].includes(h.courseMode));
@@ -405,19 +393,19 @@ const mastery=TC_course.masteryTests.filter(t=>t.date===key);
 let html='<div class="todayCard tcCoursePreview"><div class="row between"><div><div class="dateBig">'+fmtDate(tcDateFromKey(key))+'</div><div class="meta">Просмотр без изменения расписания и истории</div></div><span class="tag stage4">ПРОСМОТР</span></div>';
 finished.forEach(h=>{
 html+='<div class="tcInfoBlock"><h3>'+(h.courseMode==='course'?'Выполнен комплекс №'+h.courseComplex:h.courseMode==='auxCourse'?'Выполнен вспомогательный комплекс':'Выполнена дополнительная работа')+'</h3>'+
-  (h.details||[]).map(d=>'<p>'+tcProgramEscape(d.name)+': '+(d.actual||[]).map(v=>v==null?'—':String(v)).join(' · ')+'</p>').join('')+'</div>';
+(h.details||[]).map(d=>'<p>'+tcProgramEscape(d.name)+': '+(d.actual||[]).map(v=>v==null?'—':String(v)).join(' · ')+'</p>').join('')+'</div>';
 });
 tests.forEach(t=>{html+='<div class="tcInfoBlock"><h3>Контрольный максимум</h3><p>'+t.value+' повторений</p></div>'});
 mastery.forEach(t=>{html+='<div class="tcInfoBlock"><h3>Контроль освоения уровня</h3><p>'+(t.passed?'Норматив выполнен':'Норматив не выполнен')+'</p></div>'});
 if(key<now){
 if(!finished.length&&!tests.length&&!mastery.length){
-  const ev=tcScheduleEventFor(key);
-  const msg=ev&&ev.status==='rescheduled'?'Плановая тренировка перенесена и выполнена '+fmtKeyDate(ev.actualDate,false)+'.':
-    ev&&ev.status==='recovery_shift'?'Плановая тренировка сдвинута из-за восстановления после фактической тяговой нагрузки.':
-    ev&&ev.status==='missed'?'Плановая тренировка пропущена; последовательность курса не сдвинута.':
-    TC_course.cycleStartDate&&key<TC_course.cycleStartDate?'Дата предшествует выбранному началу цикла.':
-    tcScheduledOn(key)?'Занятие предусмотрено календарём; записи о выполнении нет.':'На эту дату основное занятие не назначено.';
-  html+='<div class="info">'+msg+'</div>';
+const ev=tcScheduleEventFor(key);
+const msg=ev&&ev.status==='rescheduled'?'Плановая тренировка перенесена и выполнена '+fmtKeyDate(ev.actualDate,false)+'.':
+ev&&ev.status==='recovery_shift'?'Плановая тренировка сдвинута из-за восстановления после фактической тяговой нагрузки.':
+ev&&ev.status==='missed'?'Плановая тренировка пропущена; последовательность курса не сдвинута.':
+TC_course.cycleStartDate&&key<TC_course.cycleStartDate?'Дата предшествует выбранному началу цикла.':
+tcScheduledOn(key)?'Занятие предусмотрено календарём; записи о выполнении нет.':'На эту дату основное занятие не назначено.';
+html+='<div class="info">'+msg+'</div>';
 }
 return html+'</div>';
 }
@@ -466,7 +454,6 @@ return '<button type="button" class="tcWeekDay'+status+'" aria-pressed="'+(key==
 return '<div class="tcWeekNav"><button type="button" onclick="tcShiftCourseWeek(-1)" aria-label="Предыдущая неделя">‹</button><span>'+fmtKeyDate(dateKey(mon),false)+' — '+fmtKeyDate(dateKey(sun),false)+'</span><button type="button" onclick="tcShiftCourseWeek(1)" aria-label="Следующая неделя">›</button><button type="button" class="tcWeekReset" onclick="tcShowCourseToday()">Сегодня</button></div>'+
 '<div class="tcWeekCalendar" aria-label="Расписание недели">'+days.join('')+'</div>';
 }
-
 function tcBaseExerciseAvailable(ex){
 if(!ex)return false;
 if(['weightedPull','bandPull','benchDip','dipBars','australianPull','towelHang'].includes(ex.id))return false;
@@ -490,7 +477,6 @@ if(s.type==='timed')return String(s.value);
 if(s.type==='choice')return 'НА ВЫБОР';
 return '—';
 }
-
 function tcVariantKey(def){return def&&def.scheme&&def.scheme.type==='percent'&&!def.scheme.ref?def.id:null}
 function tcVariantMax(def){
 const key=tcVariantKey(def);if(!key)return null;
@@ -520,7 +506,6 @@ const s=def.scheme||{};
 if(s.type==='percent')return tcSchemeTarget(def)==null?'MAX НЕ УКАЗАН':tcSchemeTarget(def)+' · '+Math.round(s.pct*100)+'% от '+(s.ref==='pull'?TC_course.pullMax:tcVariantMax(def));
 return tcSchemeLabel(def);
 }
-
 function tcAdvancedChoicePool(){
 if(TC_course.level!==7)return[];
 if(TC_course.goal==='muscleup')return tcRunnableDefs(TC_COURSE[5].complexes[1].items);
@@ -538,9 +523,9 @@ const picked=TC_course.advancedChoices[TC_course.goal],pool=tcAdvancedChoicePool
 let index=0;
 return c.def.items.map(def=>{
 if(def.scheme&&def.scheme.type==='choice'){
-  const src=pool.find(x=>x.id===picked[index]);
-  index++;
-  return src?{...src,id:src.id+'_lv7_'+index}:def;
+const src=pool.find(x=>x.id===picked[index]);
+index++;
+return src?{...src,id:src.id+'_lv7_'+index}:def;
 }
 return def;
 });
@@ -554,9 +539,9 @@ q('sheetbox').innerHTML='<div class="sheettitle">Упражнения для 7-�
 (TC_course.goal==='muscleup'?'комплекса №1 пятого уровня':'любого комплекса шестого уровня')+
 '. Их объём и отдых будут взяты из соответствующих комплексов; PDF седьмого уровня не устанавливает для них отдельных чисел.</div>'+
 pool.map(def=>'<label style="display:flex;gap:10px;align-items:flex-start;padding:11px 3px;border-bottom:1px solid #34414d">'+
-  '<input type="checkbox" class="tcAdvancedSelect" value="'+def.id+'" '+
-  (chosen.includes(def.id)?'checked':'')+'>'+
-  '<span><b>'+def.name+'</b><br><small>'+tcProgramPrescription(def)+' · отдых '+tcCourseRestText(def.rest)+'</small></span></label>').join('')+
+'<input type="checkbox" class="tcAdvancedSelect" value="'+def.id+'" '+
+(chosen.includes(def.id)?'checked':'')+'>'+
+'<span><b>'+def.name+'</b><br><small>'+tcProgramPrescription(def)+' · отдых '+tcCourseRestText(def.rest)+'</small></span></label>').join('')+
 '<div id="tcAdvancedError" class="meta" style="margin-top:9px">Выберите ровно два упражнения.</div>'+
 '<button class="btn yellow full" style="margin-top:12px" onclick="tcSaveAdvancedChoices()">Сохранить выбор</button>'+
 '<button class="btn ghost full" style="margin-top:8px" onclick="closeSheet()">Отмена</button>';
@@ -575,7 +560,6 @@ TC_course.advancedChoices[TC_course.goal]=ids;
 tcSaveCourse();closeSheet();render();
 if(typeof window.tcShowRuntimeNotice==='function')window.tcShowRuntimeNotice('Выбор упражнений сохранён.');
 };
-
 function tcCalibrationDefs(mode,all=false){
 const raw=tcRunnableDefs(mode==='aux'&&[3,6].includes(TC_course.level)?TC_COURSE[TC_course.level].complexes[2].items:tcResolvedCourseDefs(tcCourseComplex()));
 return all?raw.filter(def=>tcVariantKey(def)):tcUncalibrated(raw);
@@ -598,13 +582,13 @@ if(!defs.length){tcActionMessage('Контрольные максимумы не
 const fields=defs.map(def=>{
 const sides=def.id==='c_asym80';
 const names=sides?[
-  {key:def.id+'_left',title:'Максимум на левую руку'},
-  {key:def.id+'_right',title:'Максимум на правую руку'}
+{key:def.id+'_left',title:'Максимум на левую руку'},
+{key:def.id+'_right',title:'Максимум на правую руку'}
 ]:[{key:def.id,title:'Максимум повторений'}];
 return '<div class="tcInfoBlock"><h3>'+tcProgramEscape(def.name)+'</h3>'+
-  names.map(field=>'<label style="display:block;font-size:13px;margin:8px 0">'+field.title+
-  '<input type="number" id="tcCal_'+field.key+'" value="'+(TC_course.exerciseMax[field.key]||'')+'" min="1" step="1" inputmode="numeric" style="display:block;width:100%;box-sizing:border-box;padding:10px;background:#0c1218;color:#fff;border:1px solid #44515b;border-radius:9px;margin-top:5px"></label>').join('')+
-  (sides?'<div class="meta">Для общего числа повторений на каждую сторону используется меньший из двух результатов. Это правило расчёта TurnikCoach, а не отдельное указание автора.</div>':'')+'</div>';
+names.map(field=>'<label style="display:block;font-size:13px;margin:8px 0">'+field.title+
+'<input type="number" id="tcCal_'+field.key+'" value="'+(TC_course.exerciseMax[field.key]||'')+'" min="1" step="1" inputmode="numeric" style="display:block;width:100%;box-sizing:border-box;padding:10px;background:#0c1218;color:#fff;border:1px solid #44515b;border-radius:9px;margin-top:5px"></label>').join('')+
+(sides?'<div class="meta">Для общего числа повторений на каждую сторону используется меньший из двух результатов. Это правило расчёта TurnikCoach, а не отдельное указание автора.</div>':'')+'</div>';
 }).join('');
 q('sheetbox').innerHTML='<div class="sheettitle">Контрольные максимумы</div>'+
 '<div class="sub">Введите реальные результаты каждого варианта подтягиваний. Без них назначать процент от MAX нельзя.</div>'+
@@ -623,24 +607,23 @@ if(!defs.length){tcActionMessage('Результаты не сохранены',
 for(const def of defs){
 const keys=def.id==='c_asym80'?[def.id+'_left',def.id+'_right']:[def.id];
 for(const key of keys){
-  const el=document.getElementById('tcCal_'+key);
-  if(!el){tcActionMessage('Результаты не сохранены','Поле контрольного максимума исчезло из формы. Откройте настройку заново.');return;}
-  const raw=el.value.trim(),n=Number(raw);
-  if(!raw||!Number.isSafeInteger(n)||n<1){
-    el.style.borderColor='#ff7777';
-    const warn=document.getElementById('tcCalError');
-    if(warn)warn.textContent='Для каждого упражнения укажите целый положительный максимум.';
-    if(typeof el.focus==='function')el.focus();
-    return;
-  }
-  pending[key]=n;
+const el=document.getElementById('tcCal_'+key);
+if(!el){tcActionMessage('Результаты не сохранены','Поле контрольного максимума исчезло из формы. Откройте настройку заново.');return;}
+const raw=el.value.trim(),n=Number(raw);
+if(!raw||!Number.isSafeInteger(n)||n<1){
+el.style.borderColor='#ff7777';
+const warn=document.getElementById('tcCalError');
+if(warn)warn.textContent='Для каждого упражнения укажите целый положительный максимум.';
+if(typeof el.focus==='function')el.focus();
+return;
+}
+pending[key]=n;
 }
 }
 Object.assign(TC_course.exerciseMax,pending);
 tcSaveCourse();closeSheet();render();
 if(typeof window.tcShowRuntimeNotice==='function')window.tcShowRuntimeNotice('Контрольные максимумы сохранены.');
 };
-
 function tcBuildItemsFor(defs){
 return tcRunnableDefs(defs).map(def=>{
 const target=tcSchemeTarget(def),labels=Array.from({length:def.sets},()=>tcDisplayScheme(def));
@@ -689,7 +672,6 @@ const wp=state.ex.find(e=>e.id==='weightedPull');if(wp)wp.load=value;
 tcSaveCourse();save();closeSheet();render();
 if(typeof window.tcShowRuntimeNotice==='function')window.tcShowRuntimeNotice('Дополнительный вес сохранён: '+value+' кг.');
 };
-
 function tcBuildCourseItems(seqIndex=TC_course.courseSeq){const c=tcCourseComplex(seqIndex);return c.def?tcBuildItemsFor(tcResolvedCourseDefs(c)):[]}
 function tcBuildAuxItems(){return [3,6].includes(TC_course.level)?tcBuildItemsFor(TC_COURSE[TC_course.level].complexes[2].items):[]}
 function tcBuildExtraItems(){const idx=TC_course.extraSeq%3;return tcExtraExercises().map(e=>({e,plan:pres(e,idx),actual:[]}))}
@@ -708,7 +690,6 @@ const ratio=(+actual||0)/target;if(ratio<.9)sec=r.max;else if(ratio>1.2)sec=r.mi
 sec=tcClamp(sec,r.min,r.max);
 return{manual:false,seconds:sec,note:'Диапазон курса '+tcCourseRestText(r)+' · TurnikCoach выбрал '+Math.floor(sec/60)+':'+String(sec%60).padStart(2,'0')};
 }
-
 function tcCourseCardHtml(){
 const l=tcCourseLevel(),c=tcCourseComplex(),enabled=TC_course.enabled;
 return '<div class="card" id="tcCourseCard" style="margin-bottom:12px;border-color:'+(enabled?'#ffd84d':'#2c3945')+'">'+
@@ -731,7 +712,6 @@ if(close)close.onclick=function(ev){if(ev){ev.preventDefault();ev.stopPropagatio
 return true;
 }
 window.tcActionMessage=tcActionMessage;
-
 function tcGroupCourseSettings(box){
 if(!box||box.querySelector('.tcSettingsGroups'))return;
 const error=box.querySelector('#tcSettingsError');
@@ -748,7 +728,7 @@ const text=(node.textContent||'').trim();
 if(['tcCourseEnabled','tcCourseLevel','tcCourseMax','tcCourseGoal'].some(id=>has(node,id)))groups.main.push(node);
 else if(['tcWeeklySessions','tcCycleStartDate'].some(id=>has(node,id)))groups.schedule.push(node);
 else if(['tcAuxEnabled','tcAuxInterval3','tcCourseSupplement'].some(id=>has(node,id))||
-  /Изменить максимумы|Выбрать два упражнения 7-го уровня/.test(text))groups.extra.push(node);
+/Изменить максимумы|Выбрать два упражнения 7-го уровня/.test(text))groups.extra.push(node);
 else if(['tcTargetMax','tcTestWeeks'].some(id=>has(node,id)))groups.control.push(node);
 else groups.system.push(node);
 });
@@ -768,7 +748,6 @@ append('control','Контроль прогресса',false);
 append('system','Система и оборудование',false);
 box.insertBefore(wrap,error);
 }
-
 window.tcOpenCourseSettings=function(){
 if(W){tcActionMessage('Настройки недоступны','Сначала завершите текущую тренировку или выйдите из неё без сохранения.');return;}
 tcNormalizeGoal();const l=tcCourseLevel(),goals=tcGoalOptions(TC_course.level);
@@ -786,8 +765,8 @@ box.innerHTML='<div class="sheettitle">Курс Морозова</div><div class
 '<p class="meta">Это дополнительная тяговая работа из PDF; она не заменяет основной комплекс и не назначается на день основной тренировки или испытания. Включается по вашему выбору.</p></div>':'')+
 (tcCalibrationDefs('main',true).length?'<button class="btn ghost full" style="margin-top:8px" onclick="tcOpenCourseCalibration(\'main:all\')">Изменить максимумы отдельных вариантов</button>':'')+
 ([3,6].includes(TC_course.level)&&tcCalibrationDefs('aux',true).length?'<button class="btn ghost full" style="margin-top:8px" onclick="tcOpenCourseCalibration(\'aux:all\')">Изменить максимумы вспомогательного комплекса</button>':'')+
-    '<div class="tcInfoBlock"><h3>Оборудование</h3><p>Только турник. Упражнения с резиной, отягощением, полотенцем, стулом и низкой перекладиной сохраняются в справочнике курса, но не включаются в назначаемую тренировку.</p></div>'+ 
-    (l.supplement?'<div class="tcInfoBlock"><h3>Дополнительные подтягивания по курсу</h3><p><label class="tcCheckRow" style="display:flex;gap:9px;align-items:flex-start"><input id="tcCourseSupplement" type="checkbox" '+(TC_course.authorSupplement?'checked':'')+'><span>'+l.supplement+'</span></label></p></div>':'')+
+'<div class="tcInfoBlock"><h3>Оборудование</h3><p>Только турник. Упражнения с резиной, отягощением, полотенцем, стулом и низкой перекладиной сохраняются в справочнике курса, но не включаются в назначаемую тренировку.</p></div>'+ 
+(l.supplement?'<div class="tcInfoBlock"><h3>Дополнительные подтягивания по курсу</h3><p><label class="tcCheckRow" style="display:flex;gap:9px;align-items:flex-start"><input id="tcCourseSupplement" type="checkbox" '+(TC_course.authorSupplement?'checked':'')+'><span>'+l.supplement+'</span></label></p></div>':'')+
 (TC_course.level===4&&TC_course.goal==='quantity'?'<div class="tcInfoBlock"><h3>Контроль максимума · TurnikCoach</h3><p>Цель: <input id="tcTargetMax" type="number" min="1" step="1" value="'+TC_course.targetMax+'" style="width:65px;background:#0c1218;color:#fff;border:1px solid #3a4653;border-radius:8px;padding:7px"> повторений.<br><br>Проверять каждые <select id="tcTestWeeks" style="background:#0c1218;color:#fff;border:1px solid #3a4653;border-radius:8px;padding:7px">'+[2,3,4].map(n=>'<option value="'+n+'" '+(TC_course.testPeriodWeeks===n?'selected':'')+'>'+n+' недели</option>').join('')+'</select><br><br>Контроль назначается после восстановления; результат сохраняется отдельно от основной тренировки.</p></div>':'')+
 (TC_course.level===7?'<button class="btn ghost full" style="margin-top:8px" onclick="tcOpenAdvancedChoiceSheet()">Выбрать два упражнения 7-го уровня</button>':'')+
 '<div class="tcInfoBlock"><h3>Версия</h3><p>Hotfix: <b>'+(window.__TC_HOTFIX_LABEL||window.__TC_HOTFIX_VERSION||'не определён')+'</b><br>Модуль курса: <b>'+COURSE_MODULE_VERSION+'</b>'+(window.__TC_HOTFIX_INSTALLED_AT?'<br>Активирован: '+new Date(window.__TC_HOTFIX_INSTALLED_AT).toLocaleString('ru-RU'):'')+'</p></div>'+
@@ -808,8 +787,8 @@ window.tcSaveCourseSettings=function(){
 const oldLevel=TC_course.level,oldGoal=TC_course.goal,oldWeekly=TC_course.weeklySessions,oldStart=TC_course.cycleStartDate,oldEnabled=TC_course.enabled;
 const fail=(message,el)=>{
 if(el){
-  const group=el.closest&&el.closest('details.tcSettingsGroup');if(group)group.open=true;
-  el.style.borderColor='#ff7777';if(typeof el.focus==='function')el.focus();
+const group=el.closest&&el.closest('details.tcSettingsGroup');if(group)group.open=true;
+el.style.borderColor='#ff7777';if(typeof el.focus==='function')el.focus();
 }
 const error=document.getElementById('tcSettingsError');
 if(error){error.textContent=message;return false;}
@@ -825,7 +804,6 @@ if(!enabled||!level||!mx||!goal||!startEl){
 fail('Форма настроек изменилась или загрузилась не полностью. Закройте её и откройте заново.');
 return;
 }
-
 const nextLevel=Number(level.value);
 if(!Number.isInteger(nextLevel)||nextLevel<1||nextLevel>7){
 fail('Выберите допустимый уровень курса от 1 до 7.',level);
@@ -850,28 +828,26 @@ if(dateError)dateError.textContent='Укажите действительную 
 fail('Укажите действительную дату начала цикла.',startEl);
 return;
 }
-
 const weeklyEl=document.getElementById('tcWeeklySessions');
 let nextWeekly=TC_course.weeklySessions;
 if(weeklyEl){
 if(nextLevel===2){
-  nextWeekly=Number(weeklyEl.value);
-  if(![2,3,4].includes(nextWeekly)){fail('Выберите 2, 3 или 4 основные тренировки в неделю.',weeklyEl);return;}
+nextWeekly=Number(weeklyEl.value);
+if(![2,3,4].includes(nextWeekly)){fail('Выберите 2, 3 или 4 основные тренировки в неделю.',weeklyEl);return;}
 }else if(nextLevel===4&&nextGoal==='quantity'){
-  nextWeekly=Number(weeklyEl.value);
-  if(![3,4].includes(nextWeekly)){fail('Для этой цели выберите 3 или 4 основные тренировки в неделю.',weeklyEl);return;}
+nextWeekly=Number(weeklyEl.value);
+if(![3,4].includes(nextWeekly)){fail('Для этой цели выберите 3 или 4 основные тренировки в неделю.',weeklyEl);return;}
 }else{
-  nextWeekly=3;
+nextWeekly=3;
 }
 }
-
 const targetEl=document.getElementById('tcTargetMax');
 let nextTarget=TC_course.targetMax;
 if(targetEl){
 const raw=String(targetEl.value||'').trim(),n=Number(raw);
 if(!raw||!Number.isSafeInteger(n)||n<1){
-  fail('Цель контрольного максимума должна быть целым положительным числом.',targetEl);
-  return;
+fail('Цель контрольного максимума должна быть целым положительным числом.',targetEl);
+return;
 }
 nextTarget=n;
 }
@@ -880,8 +856,8 @@ let nextWeeks=TC_course.testPeriodWeeks;
 if(weeksEl){
 nextWeeks=Number(weeksEl.value);
 if(![2,3,4].includes(nextWeeks)){
-  fail('Интервал контрольного максимума должен составлять 2, 3 или 4 недели.',weeksEl);
-  return;
+fail('Интервал контрольного максимума должен составлять 2, 3 или 4 недели.',weeksEl);
+return;
 }
 }
 const auxEl=document.getElementById('tcAuxEnabled');
@@ -890,11 +866,10 @@ let nextAuxInterval=TC_course.auxInterval3;
 if(auxIntervalEl){
 nextAuxInterval=Number(auxIntervalEl.value);
 if(![7,10].includes(nextAuxInterval)){
-  fail('Периодичность вспомогательного комплекса должна составлять 7 или 10 дней.',auxIntervalEl);
-  return;
+fail('Периодичность вспомогательного комплекса должна составлять 7 или 10 дней.',auxIntervalEl);
+return;
 }
 }
-
 const nextEnabled=!!enabled.checked;
 if(oldEnabled&&(!nextEnabled||oldLevel!==nextLevel||oldGoal!==nextGoal))tcCloseCourseRun(!nextEnabled?'disabled':'changed');
 TC_course.enabled=nextEnabled;
@@ -916,7 +891,6 @@ if(auxEl&&[3,6].includes(oldLevel))TC_course.auxEnabled[oldLevel]=!!auxEl.checke
 const sup=document.getElementById('tcCourseSupplement');
 if(sup)TC_course.authorSupplement=!!sup.checked;
 tcNormalizeGoal();
-
 if(TC_course.level===4&&TC_course.goal==='quantity'&&TC_course.weeklySessions<3)TC_course.weeklySessions=3;
 if(TC_course.level!==oldLevel||TC_course.goal!==oldGoal){
 TC_course.courseSeq=0;TC_course.pendingTransition=null;
@@ -939,7 +913,6 @@ st.textContent+='.tcWeekNav{display:flex;align-items:center;gap:6px;margin-top:1
 st.textContent+='.tcTodayPlanDetails{margin-top:10px;border:1px solid #34414d;border-radius:12px;background:#111820;overflow:hidden}.tcTodayPlanDetails>summary{list-style:none;min-height:48px;display:flex;align-items:center;justify-content:center;padding:0 12px;cursor:pointer;font-size:13px;font-weight:850;color:#d8e0e8;touch-action:manipulation}.tcTodayPlanDetails>summary::-webkit-details-marker{display:none}.tcTodayPlanBody{padding:0 12px 10px}.tcTodayPrimaryMeta{margin-top:6px;color:#aeb8c2;font-size:12px;line-height:1.4}.tcWeekSection{margin-top:14px}.tcWeekSectionTitle{font-size:11px;font-weight:900;letter-spacing:.08em;color:#8f9aa6;margin:0 2px 6px}.tcSettingsGroups{margin-top:12px}.tcSettingsGroup{border:1px solid #34414d;border-radius:14px;background:#10171d;margin:9px 0;overflow:hidden}.tcSettingsGroup>summary{list-style:none;min-height:54px;display:flex;align-items:center;padding:0 14px;font-size:14px;font-weight:900;color:#f3f6f8;cursor:pointer;touch-action:manipulation}.tcSettingsGroup>summary::-webkit-details-marker{display:none}.tcSettingsGroup>summary:after{content:"›";margin-left:auto;color:#ffd84d;font-size:22px;transform:rotate(90deg);transition:transform .15s ease}.tcSettingsGroup[open]>summary:after{transform:rotate(-90deg)}.tcSettingsGroupBody{padding:0 12px 12px}.tcSettingsGroupBody>.tcInfoBlock:first-child{margin-top:0}.tcDoneStrip{margin:8px 0 12px;padding:13px 14px 14px;border:1px solid #3d5b46;border-radius:16px;background:#171d23;box-shadow:none}.tcDoneStripHead{display:flex;align-items:flex-start;gap:10px}.tcDoneStripHead>div{flex:1;min-width:0}.tcDoneStripTitle{font-size:17px;line-height:1.2;font-weight:900;color:#f6f7f9}.tcDoneStripText{margin-top:5px;font-size:12px;line-height:1.38;color:#aeb8c2}.tcDoneBadge{flex:0 0 auto;font-size:9px;font-weight:900;letter-spacing:.04em;color:#d9ffe2;border:1px solid #3d5b46;background:#17251b;border-radius:999px;padding:5px 7px}.tcUndoTodayCourseBtn,.tcAfterMainCard .btn{position:relative;z-index:42;pointer-events:auto!important;touch-action:manipulation;min-height:48px!important}.tcUndoTodayCourseBtn{margin-top:11px!important;border-radius:12px!important;font-size:13px!important}.tcAfterMainCard{position:relative;z-index:40;margin-top:10px;isolation:isolate}';
 document.head.appendChild(st);
 }
-
 function tcCollapseExtraCatalog(host){
 if(!TC_course.enabled||!host)return;
 if(document.getElementById('tcExtrasDetails'))return;
@@ -951,13 +924,11 @@ const body=document.createElement('div');body.className='tcExtrasBody';
 [...host.children].forEach(node=>{if(node.id!=='tcCourseCard')body.appendChild(node)});
 details.appendChild(summary);details.appendChild(body);details.addEventListener('toggle',()=>{window.__tcExtrasOpen=details.open});host.appendChild(details);
 }
-
-
 function tcSanitizeSelectedEquipment(){
 let dirty=false;
 for(const e of state.ex){
 if(!tcBaseExerciseAvailable(e)&&(e.sel||e.main)){
-  e.sel=false;e.main=false;dirty=true;
+e.sel=false;e.main=false;dirty=true;
 }
 }
 if(dirty)save();
@@ -971,10 +942,10 @@ const ex=state.ex.find(e=>e.name===name.textContent.trim());
 if(!ex||tcBaseExerciseAvailable(ex))return;
 row.querySelectorAll('input,button').forEach(control=>{control.disabled=true});
 if(!row.querySelector('.tcEquipmentUnavailable')){
-  const badge=document.createElement('div');
-  badge.className='meta tcEquipmentUnavailable';
-  badge.textContent='Недоступно: требуется другое оборудование';
-  (name.parentNode||row).appendChild(badge);
+const badge=document.createElement('div');
+badge.className='meta tcEquipmentUnavailable';
+badge.textContent='Недоступно: требуется другое оборудование';
+(name.parentNode||row).appendChild(badge);
 }
 });
 }
@@ -984,11 +955,11 @@ host.querySelectorAll('.exercise').forEach(row=>{
 const children=[...row.children];
 const check=children.find(el=>el&&el.matches&&el.matches('input[type="checkbox"]'));
 if(check&&(!check.parentElement||!check.parentElement.classList.contains('tcExerciseCheckTarget'))){
-  const label=document.createElement('label');
-  label.className='tcExerciseCheckTarget';
-  label.setAttribute('aria-label','Выбрать упражнение');
-  check.parentNode.insertBefore(label,check);
-  label.appendChild(check);
+const label=document.createElement('label');
+label.className='tcExerciseCheckTarget';
+label.setAttribute('aria-label','Выбрать упражнение');
+check.parentNode.insertBefore(label,check);
+label.appendChild(check);
 }
 const number=children.find(el=>el&&el.matches&&el.matches('input[type="number"]'));
 if(number)number.classList.add('tcExerciseNumberTarget');
@@ -996,7 +967,6 @@ const main=children.find(el=>el&&el.tagName==='BUTTON');
 if(main)main.classList.add('tcExerciseMainTarget');
 });
 }
-
 function tcDecorateCourseCatalog(){
 const host=q('exerciseList');if(!host)return;
 tcExpandExerciseTouchTargets(host);
@@ -1012,8 +982,6 @@ const summary=host.querySelector('.catalogSummary .meta');if(summary)summary.tex
 tcCollapseExtraCatalog(host);
 }
 }
-
-
 function tcAuxInterval(){return TC_course.level===3?TC_course.auxInterval3:10}
 function tcLastAuxDate(){
 const match=TC_course.history.find(h=>h.courseMode==='auxCourse'&&h.courseLevel===TC_course.level);
@@ -1024,7 +992,6 @@ function tcSupplementBreak(){
 const all=TC_course.history.filter(h=>h.courseMode==='supplement'&&h.date&&h.courseLevel===TC_course.level).map(h=>h.date).sort();
 if(!all.length)return false;
 const elapsed=tcDayDiff(all[0],dateKey());
-// App convention: 30-day work interval followed by a 5-day pause, repeated.
 const phase=elapsed%35;
 return elapsed>=30&&phase>=30&&phase<=34;
 }
@@ -1044,7 +1011,7 @@ if(!tcAuxDue())return '';
 const title='Комплекс №2 · вспомогательная работа';
 if(tcCalibrationDefs('aux').length){
 return '<div class="todayCard" style="margin-top:12px;border-color:#6a5520"><div class="dateBig">'+title+
-  '</div><button class="btn yellow full" style="margin-top:10px" onclick="tcOpenCourseCalibration(\'aux\')">Указать максимумы</button></div>';
+'</div><button class="btn yellow full" style="margin-top:10px" onclick="tcOpenCourseCalibration(\'aux\')">Указать максимумы</button></div>';
 }
 if(tcNeedsWorkingWeight('aux'))return tcWorkingWeightCard('aux');
 const items=tcBuildAuxItems();
@@ -1074,7 +1041,6 @@ const load=x.e.load?'<span class="meta" style="white-space:nowrap">+'+x.e.load+'
 return '<div class="planrow"><div class="grow"><div class="strong" style="font-size:15px">'+x.e.name+'</div>'+load+'</div><div class="r sets" style="white-space:nowrap">'+seq+'</div></div>';
 }).join('');
 }
-
 function tcExtraRowsHtml(items){return items.map(x=>'<div class="planrow"><div><div class="strong" style="font-size:15px">'+x.e.name+'</div><div class="meta">Дополнительное упражнение · '+metricTitle(x.e)+'</div></div><div class="r sets">'+x.plan.join(' · ')+'</div></div>').join('')}
 function tcSupplementHtml(){
 if(!TC_course.authorSupplement||!tcCourseLevel().supplement)return'';
@@ -1085,9 +1051,6 @@ const reps=Math.max(1,Math.floor(TC_course.pullMax*.8));
 const seq=Array(10).fill(String(reps)).join('  ');
 return '<div class="todayCard" style="margin-top:12px;border-color:#6a5520"><div class="row between"><div><div class="dateBig">Дополнительные подтягивания по курсу</div></div><span class="tag stage4">КУРС</span></div><div class="planrow"><div class="grow"><div class="strong" style="font-size:15px">Классические подтягивания</div></div><div class="r sets" style="white-space:normal">'+seq+'</div></div><button class="btn ghost full" style="margin-top:10px" onclick="tcStartSupplementWorkout()">Начать</button></div>';
 }
-
-
-
 function tcTodayCourseRecord(){
 const rec=TC_course.history.find(h=>h.courseMode==='course');
 return rec&&rec.date===dateKey()?rec:null;
@@ -1132,9 +1095,6 @@ else if(el.id==='tcUndoTodayCourseBtn')window.tcOpenUndoTodayCourseConfirm();
 return true;
 };
 document.addEventListener('click',ev=>{const el=actionFor(ev.target);if(el)run(el,ev)},true);
-// Never navigate while the starting pointer is still down. The old
-// 140 ms pointerdown fallback could change Today into Workout before
-// touchend/click, making the same gesture land on the new Done button.
 let pointerGesture=null;
 const cancelPointerGesture=()=>{pointerGesture=null};
 document.addEventListener('pointerdown',ev=>{
@@ -1149,9 +1109,6 @@ if(Math.abs(ev.clientX-g.x)>14||Math.abs(ev.clientY-g.y)>14){g.moved=true;cancel
 document.addEventListener('pointerup',ev=>{
 const g=pointerGesture;if(!g)return;
 pointerGesture=null;
-// Touchend handles normal touchscreen activation and suppresses its
-// synthetic click; this zero-delay callback is only a fallback after
-// release for WebViews that cancel click/touchend.
 if(!g.moved)setTimeout(()=>run(g.el,null),0);
 },true);
 document.addEventListener('pointercancel',cancelPointerGesture,true);
@@ -1171,9 +1128,7 @@ if(!g.moved&&Date.now()-g.at<900)run(g.el,ev);
 },{capture:true,passive:false});
 document.addEventListener('touchcancel',()=>{gesture=null},{capture:true,passive:true});
 }
-
 tcInstallTodayActionDelegation();
-
 function tcUndoLatestTodayCourseRecord(today){
 const rec=TC_course.history.find(h=>h.courseMode==='course');
 if(!rec||rec.date!==today)return false;
@@ -1208,7 +1163,6 @@ tcSelectedDate='';tcWeekOffset=0;
 const sheet=q('sheet');if(sheet)sheet.classList.remove('open');
 tcSaveCourse();render();
 };
-
 function tcTransferCardHtml(candidate){
 const c=tcCourseComplex(),items=tcBuildCourseItems(),total=items.reduce((n,x)=>n+(x.plan||[]).length,0);
 if(!candidate.ready){
@@ -1232,7 +1186,6 @@ const last=tcLastPullLoadDateBefore(dateKey()),next=tcNextScheduledAfter(dateKey
 return '<div class="todayCard tcTodayPrimaryCard"><div class="row between"><div class="grow"><div class="dateBig">Плановая тренировка сдвинута</div><div class="tcTodayPrimaryMeta">Сегодня был день основного курса, но после фактической тяговой нагрузки'+(last?' '+fmtKeyDate(last,false):'')+' требуется восстановление.</div></div><span class="tag stage4">ВОССТ.</span></div>'+
 '<div class="meta" style="margin-top:9px">Комплекс не сгорает и courseSeq не меняется. Следующее окно будет предложено автоматически'+(next?' до плановой даты '+fmtKeyDate(next,false):'')+'.</div></div>';
 }
-
 function tcRenderToday(){
 if(tcSyncScheduleEvents())tcSaveCourse();
 const now=new Date(),due=tcCourseDue(),l=tcCourseLevel(),c=tcCourseComplex(),items=tcBuildCourseItems(),extras=tcBuildExtraItems(),transfer=tcTransferCandidate();
@@ -1261,7 +1214,6 @@ q('todaySub').textContent='Сегодня · контроль уровня';
 q('todayList').innerHTML=tcPendingLevelHtml()+tcMasteryCardHtml()+week();
 return;
 }
-
 if(tcRecoveryShiftToday()){
 q('todaySub').textContent='Сегодня · восстановление';
 q('todayList').innerHTML=tcRecoveryShiftCardHtml()+week();
@@ -1272,13 +1224,12 @@ q('todaySub').textContent=transfer.ready?'Сегодня · перенос ос�
 q('todayList').innerHTML=tcTransferCardHtml(transfer)+week();
 tcQueueDecorate();return;
 }
-
 if(due&&TC_course.level===7&&!tcAdvancedSelected()){
 q('todaySub').textContent='Сегодня · подготовка тренировки';
 q('todayList').innerHTML=
-  '<div class="todayCard"><div class="dateBig">Выберите два вспомогательных упражнения</div>'+
-  '<div class="meta">Это нужно один раз для комплекса 7-го уровня.</div>'+
-  '<button class="btn yellow full" style="margin-top:12px" onclick="tcOpenAdvancedChoiceSheet()">Выбрать упражнения</button></div>'+week();
+'<div class="todayCard"><div class="dateBig">Выберите два вспомогательных упражнения</div>'+
+'<div class="meta">Это нужно один раз для комплекса 7-го уровня.</div>'+
+'<button class="btn yellow full" style="margin-top:12px" onclick="tcOpenAdvancedChoiceSheet()">Выбрать упражнения</button></div>'+week();
 return;
 }
 if(due&&!tcRunnableDefs(tcOriginalCourseDefs()).length){
@@ -1300,38 +1251,36 @@ if(due){
 const totalSets=items.reduce((sum,x)=>sum+(Array.isArray(x.plan)?x.plan.length:0),0);
 q('todaySub').textContent='Сегодня · основная тренировка';
 q('todayList').innerHTML=
-  tcPendingLevelHtml()+tcEquipmentMasteryNote()+
-  '<div class="todayCard tcTodayPrimaryCard"><div class="row between"><div class="grow"><div class="dateBig">'+
-  (c.def?c.def.name:'Основной комплекс')+'</div><div class="tcTodayPrimaryMeta">'+items.length+
-  ' упражн. · '+totalSets+' подходов · '+l.title+'</div></div><span class="tag">КУРС</span></div>'+
-  '<button class="btn yellow full" style="margin-top:14px;min-height:58px" onclick="tcStartCourseWorkout()">'+
-  (tcUnavailableDefs(tcOriginalCourseDefs()).length?'Начать адаптированную тренировку':'Начать тренировку')+
-  '</button><details class="tcTodayPlanDetails"><summary>Посмотреть план</summary><div class="tcTodayPlanBody">'+
-  tcCourseRowsHtml(items)+tcAdaptationNote(tcOriginalCourseDefs())+
-  '<button class="btn ghost full" style="margin-top:8px" onclick="tcOpenCourseInfo()">ⓘ Почему такой план</button></div></details></div>'+
-  tcMasteryCardHtml()+week();
+tcPendingLevelHtml()+tcEquipmentMasteryNote()+
+'<div class="todayCard tcTodayPrimaryCard"><div class="row between"><div class="grow"><div class="dateBig">'+
+(c.def?c.def.name:'Основной комплекс')+'</div><div class="tcTodayPrimaryMeta">'+items.length+
+' упражн. · '+totalSets+' подходов · '+l.title+'</div></div><span class="tag">КУРС</span></div>'+
+'<button class="btn yellow full" style="margin-top:14px;min-height:58px" onclick="tcStartCourseWorkout()">'+
+(tcUnavailableDefs(tcOriginalCourseDefs()).length?'Начать адаптированную тренировку':'Начать тренировку')+
+'</button><details class="tcTodayPlanDetails"><summary>Посмотреть план</summary><div class="tcTodayPlanBody">'+
+tcCourseRowsHtml(items)+tcAdaptationNote(tcOriginalCourseDefs())+
+'<button class="btn ghost full" style="margin-top:8px" onclick="tcOpenCourseInfo()">ⓘ Почему такой план</button></div></details></div>'+
+tcMasteryCardHtml()+week();
 }else{
 const nextKey=tcWeeklyMode()?tcNextCourseDay():'';
 const next=new Date(TC_course.lastCourseDate+'T12:00:00');next.setDate(next.getDate()+2);
 q('todaySub').textContent=tcAuxDue()?'Сегодня · вспомогательная тренировка':'Сегодня · восстановление';
 let html='<div class="todayCard"><div class="row between"><div class="grow"><div class="dateBig">'+
-  (tcAuxDue()?'Основной комплекс не назначен':'Сегодня восстановление')+'</div><div class="sessionNo">Следующая основная тренировка — '+
-  fmtKeyDate(nextKey||dateKey(next),false)+'</div></div><span class="tag stage4">ВОССТАНОВЛЕНИЕ</span></div>';
+(tcAuxDue()?'Основной комплекс не назначен':'Сегодня восстановление')+'</div><div class="sessionNo">Следующая основная тренировка — '+
+fmtKeyDate(nextKey||dateKey(next),false)+'</div></div><span class="tag stage4">ВОССТАНОВЛЕНИЕ</span></div>';
 if(extras.length){
-  html+='<div class="tcTodayPrimaryMeta">Можно выполнить выбранные дополнительные упражнения без дополнительной тяговой нагрузки.</div>'+
-    '<button class="btn yellow full" style="margin-top:14px;min-height:58px" onclick="tcStartExtraWorkout()">Начать дополнительную тренировку</button>'+
-    '<details class="tcTodayPlanDetails"><summary>Посмотреть дополнительный план</summary><div class="tcTodayPlanBody">'+tcExtraRowsHtml(extras)+'</div></details>';
+html+='<div class="tcTodayPrimaryMeta">Можно выполнить выбранные дополнительные упражнения без дополнительной тяговой нагрузки.</div>'+
+'<button class="btn yellow full" style="margin-top:14px;min-height:58px" onclick="tcStartExtraWorkout()">Начать дополнительную тренировку</button>'+
+'<details class="tcTodayPlanDetails"><summary>Посмотреть дополнительный план</summary><div class="tcTodayPlanBody">'+tcExtraRowsHtml(extras)+'</div></details>';
 }else{
-  html+='<div class="empty" style="margin-top:12px">Дополнительные упражнения не выбраны. Можно оставить полный отдых.</div>'+
-    '<button class="btn ghost full" style="margin-top:10px" onclick="go(\'exercise\')">Настроить дополнительный план</button>';
+html+='<div class="empty" style="margin-top:12px">Дополнительные упражнения не выбраны. Можно оставить полный отдых.</div>'+
+'<button class="btn ghost full" style="margin-top:10px" onclick="go(\'exercise\')">Настроить дополнительный план</button>';
 }
 html+='</div>';
 q('todayList').innerHTML=tcAuxCardHtml()+html+tcSupplementHtml()+tcCourseControlStatusHtml()+week();
 }
 tcQueueDecorate();
 }
-
-
 function tcAuthorLevelText(level){
 if(level===1)return 'Автор относит сюда тех, кто делает 0–1 обычное подтягивание или работает с резиной. Основная задача уровня — увеличить силу тянущих мышц комплексно. Для сохранения правильной техники предлагается использовать помощь ног и резину.';
 if(level===2)return 'Автор переводит работу ближе к самим подтягиваниям: объём уменьшается, интенсивность увеличивается. Главный акцент — не допускать технических ошибок и научиться выполнять чёткие 2–4 подтягивания.';
@@ -1348,8 +1297,6 @@ if(level===4&&goal==='muscleup')return 'Для выхода силой авто�
 if(level===4&&goal==='onearm')return 'Для подтягивания на одной руке автор назначает комплекс №2: асимметричные подтягивания, активный вис на одной руке и перехваты в висе на полусогнутых руках.';
 return '';
 }
-
-// Narrative notes from the supplied PDF, not imagined demonstrations from linked videos.
 const TC_SOURCE_TECHNIQUE={
 classic:{page:7,title:'Классический верхний хват',note:'Автор описывает работу мышц рук и спины с участием широчайших, трапециевидных, ромбовидных, круглой мышцы и сгибателей руки.'},
 wide:{page:9,title:'Широкий верхний хват',note:'Автор относит более выраженный акцент к мышцам спины и стабилизаторам плеча. В качестве варианта для проработки спины упоминает частичную амплитуду.'},
@@ -1383,7 +1330,6 @@ const info=tcSourceExerciseInfo(def);
 if(info)return info.note+' (PDF, стр. '+info.page+'.)';
 return 'В предоставленном PDF приведено задание для этого упражнения, но пошаговая техника в тексте не описана. Для подробной техники необходимы соответствующие видеоматериалы автора.';
 }
-
 function tcCurrentCalculationHtml(){
 if(!W||!['course','supplement','auxCourse'].includes(W.mode)||!W.items||!W.items.length)return '';
 const x=W.items[W.exerciseIndex],def=x&&(x.def||x.e.courseDef);
@@ -1409,10 +1355,6 @@ if(def.metric==='weighted'&&x.e.load)body+='<br>Дополнительный в�
 if(def.metric==='reps_side'||def.metric==='time_side')body+='<br>Выполняется на каждую сторону.';
 return '<div class="tcInfoBlock"><h3>Расчёт текущего задания</h3><p>'+body+'</p></div>';
 }
-
-
-
-// Read-only seven-level catalogue. Browsing does not change a workout or saved preferences.
 function tcProgramEscape(v){
 return String(v==null?'':v).replace(/[&<>"']/g,ch=>({
 '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
@@ -1429,7 +1371,6 @@ const units=(def.metric==='time'||def.metric==='time_side')?' сек':'';
 const weight=(def.metric==='weighted')?' с дополнительным весом':'';
 return def.sets+' подх.'+sides+' · '+target+units+weight;
 }
-
 const TC_TECHNIQUE_REFERENCE=[
 {page:7,title:'Классические подтягивания верхним хватом',note:'Автор описывает совместную работу мышц спины, рук, предплечий и грудных мышц.'},
 {page:8,title:'Общие мышцы при разных хватах',note:'В тексте указано участие мышц предплечий, кора и груди во всех вариантах подтягиваний. В описаниях ниже автор выделяет преимущественно целевые мышцы.'},
@@ -1453,7 +1394,7 @@ return '<details class="tcProgramLevel"><summary><span class="tcProgramChevron">
 '<span class="tcProgramGrow">Справочник техники · PDF, стр. 7–23, 63</span></summary>'+
 '<div class="tcProgramLevelBody"><div class="tcProgramLine">Краткое изложение письменных пояснений автора. Видеоуроки, отмеченные в PDF, в справочник не включены, поскольку их содержание не представлено в документе.</div>'+
 TC_TECHNIQUE_REFERENCE.map(item=>'<details class="tcProgramNote"><summary>'+tcProgramEscape(item.title)+'</summary>'+
-  '<p>'+tcProgramEscape(item.note)+'</p><div class="meta">PDF, стр. '+item.page+'</div></details>').join('')+
+'<p>'+tcProgramEscape(item.note)+'</p><div class="meta">PDF, стр. '+item.page+'</div></details>').join('')+
 '</div></details>';
 }
 function tcProgramExerciseHtml(def){
@@ -1509,8 +1450,6 @@ tcProgramTechniqueReferenceHtml()+
 box.scrollTop=0;
 sheet.classList.add('open');
 };
-
-
 function tcAuthorFrequencyAdvice(){
 const l=tcCourseLevel(),level=TC_course.level,goal=TC_course.goal;
 const page={1:26,2:30,3:36,4:goal==='quantity'?46:goal==='muscleup'?44:45,5:goal==='onearm'?53:52,6:58,7:goal==='muscleup'?66:65}[level];
@@ -1537,7 +1476,6 @@ if(current)return current.def||current.e&&current.e.courseDef||null;
 const next=tcCourseComplex();
 return next.def&&next.def.items&&next.def.items[0]||null;
 }
-
 function tcAuthorTechniqueGuideHtml(){
 const rows=[
 ['Классический верхний хват','Нагрузка распределяется между мышцами рук и спины; автор перечисляет широчайшие, трапециевидные, ромбовидные, большую круглую, сгибатели руки, предплечья и грудные.','7–8'],
@@ -1551,7 +1489,6 @@ const rows=[
 ];
 return rows.map(r=>'<div style="margin:8px 0"><b>'+r[0]+'</b><br>'+r[1]+' <span class="meta">PDF, стр. '+r[2]+'</span></div>').join('');
 }
-
 function tcAdvicePanel(title,body,opened){
 return '<details class="tcProgramNote"'+(opened?' open':'')+'><summary style="font-size:14px;font-weight:800">'+title+'</summary>'+
 '<div style="font-size:13px;line-height:1.55;color:#c6d0dd;padding-top:8px">'+body+'</div></details>';
@@ -1578,8 +1515,8 @@ box.innerHTML='<div class="sheettitle">ⓘ Советы автора</div>'+
 (def?tcAdvicePanel('Текущее упражнение · техника и назначение',exercise,true):'')+
 (W?tcAdvicePanel('Расчёт текущего плана',tcCurrentCalculationHtml(),false):'')+
 tcAdvicePanel('Уровень и цель','<b>Идея этапа:</b> '+tcProgramEscape(tcAuthorLevelText(TC_course.level))+
-  (tcAuthorGoalText(TC_course.level,TC_course.goal)?'<br><br>'+tcProgramEscape(tcAuthorGoalText(TC_course.level,TC_course.goal)):'')+
-  '<br><br><b>Критерий освоения:</b> '+tcProgramEscape(l.mastery),false)+
+(tcAuthorGoalText(TC_course.level,TC_course.goal)?'<br><br>'+tcProgramEscape(tcAuthorGoalText(TC_course.level,TC_course.goal)):'')+
+'<br><br><b>Критерий освоения:</b> '+tcProgramEscape(l.mastery),false)+
 tcAdvicePanel('Частота и отдых по курсу',frequency+rest,false)+
 tcAdvicePanel('Восстановление и дополнительные занятия',recovery,false)+
 tcAdvicePanel('Справочник техники из PDF',tcAuthorTechniqueGuideHtml(),false)+
@@ -1589,9 +1526,6 @@ tcAdvicePanel('Перед началом тренировок',safety,false)+
 box.scrollTop=0;
 q('sheet').classList.add('open');
 };
-
-
-// Control trial is a single MAX set, separate from the author's workout complex.
 window.tcStartCourseTest=function(){
 if(W){tcActionMessage('Тренировка уже запущена','Сначала завершите текущую тренировку или выйдите из неё без сохранения.');return;}
 if(!tcRecoveredForTest()){tcActionMessage('Контроль пока недоступен','После предыдущей тяговой нагрузки требуется не менее двух дней восстановления.');return;}
@@ -1646,7 +1580,6 @@ const lastLoad=(TC_course.history||[]).find(h=>
 const lastDate=lastLoad&&lastLoad.date>TC_course.lastCourseDate?lastLoad.date:TC_course.lastCourseDate;
 return !!lastDate&&tcDayDiff(lastDate,dateKey())>=2;
 }
-
 function tcCourseControlStatusHtml(){
 if(!TC_course.lastCourseDate)return '';
 const next=tcNextTestDate();
@@ -1655,17 +1588,16 @@ const deferred=TC_course.testDeferredUntil&&TC_course.testDeferredUntil>next?TC_
 if(TC_course.level===4&&TC_course.goal==='quantity'){
 const last=tcLatestTest();
 return '<div class="meta" style="margin-top:9px">Следующий контроль максимума: '+
-  fmtKeyDate(deferred,false)+' · цель '+TC_course.targetMax+
-  (last?' · последний '+last.value:'')+'</div>';
+fmtKeyDate(deferred,false)+' · цель '+TC_course.targetMax+
+(last?' · последний '+last.value:'')+'</div>';
 }
 if(tcMasteryDefinition()){
 const latest=TC_course.masteryTests.find(t=>t.level===TC_course.level);
 return '<div class="meta" style="margin-top:9px">Следующая проверка норматива уровня: '+
-  fmtKeyDate(deferred,false)+(latest?' · предыдущая: '+(latest.passed?'выполнен':'не выполнен'):'')+'</div>';
+fmtKeyDate(deferred,false)+(latest?' · предыдущая: '+(latest.passed?'выполнен':'не выполнен'):'')+'</div>';
 }
 return '';
 }
-
 function tcCourseTestCard(){
 const next=tcNextTestDate(),due=tcTestDue(),ready=tcRecoveredForTest();
 if(TC_course.level!==4||TC_course.goal!=='quantity')return '';
@@ -1679,14 +1611,10 @@ return '<div class="todayCard" style="margin-top:12px;border-color:#ffd84d">'+
 '<div class="meta">Отдельное испытание после восстановления · цель '+TC_course.targetMax+
 ' · последний подтверждённый максимум '+TC_course.pullMax+'</div>'+
 (ready?'<button class="btn yellow full" style="margin-top:12px" onclick="tcStartCourseTest()">Начать контроль</button>':
-  '<div class="meta" style="margin-top:8px">После предыдущей тренировки сегодня ещё требуется восстановление. Контроль будет доступен в следующий день без ограничения.</div>')+
+'<div class="meta" style="margin-top:8px">После предыдущей тренировки сегодня ещё требуется восстановление. Контроль будет доступен в следующий день без ограничения.</div>')+
 '<button class="btn ghost full" style="margin-top:8px" onclick="tcDeferCourseTest()">Перенести на 7 дней</button>'+
 '</div>';
 }
-
-
-// PDF "ТЕСТ МАСТЕРИНГ": only the criteria actually printed for levels 1–5.
-// Levels 6–7 have no quantified promotion test in the supplied PDF.
 function tcMasteryDefinition(){
 const level=TC_course.level;
 if(level===1||level===5)return null; // Source tests require unavailable band / external load.
@@ -1729,7 +1657,6 @@ return '<div class="todayCard" style="margin-top:12px;border-color:#5eae78">'+
 '<button class="btn yellow full" style="margin-top:10px" onclick="tcAdvanceCourseLevel()">Перейти на уровень '+p.to+'</button>'+
 '</div>';
 }
-
 function tcEquipmentMasteryNote(){
 if(TC_course.level===1)return '<div class="info" style="margin-top:8px">Контрольный норматив автора требует резиновую петлю минимального натяжения. При наличии только турника это испытание не назначается; норматив сохранён в полной программе.</div>';
 if(TC_course.level===5)return '<div class="info" style="margin-top:8px">Контрольный норматив автора требует подтягивания с дополнительным весом. Без отягощения испытание не назначается; норматив сохранён в полной программе.</div>';
@@ -1748,7 +1675,7 @@ return '<div class="todayCard" style="margin-top:12px;border-color:#ffd84d">'+
 '<div class="dateBig">Контроль освоения уровня</div>'+
 '<div class="meta">'+def.name+' · норматив автора, PDF, стр. '+def.page+'</div>'+
 (recovered?'<button class="btn yellow full" style="margin-top:10px" onclick="tcOpenMasteryTest()">Проверить нормативы</button>':
-  '<div class="meta" style="margin-top:8px">Контроль выполняется после восстановления от предыдущей тяговой нагрузки.</div>')+
+'<div class="meta" style="margin-top:8px">Контроль выполняется после восстановления от предыдущей тяговой нагрузки.</div>')+
 '<button class="btn ghost full" style="margin-top:8px" onclick="tcDeferMasteryTest()">Перенести на 7 дней</button></div>';
 }
 window.tcDeferMasteryTest=function(){
@@ -1789,10 +1716,10 @@ if(field.check){values[field.id]=!!el.checked;continue}
 const raw=String(el.value||'').trim();
 const n=Number(raw);
 if(raw===''||!Number.isFinite(n)||n<field.min||(!field.step&&!Number.isInteger(n))){
-  el.style.borderColor='#ff7777';el.focus();
-  const error=document.getElementById('tcMasteryError');
-  if(error)error.textContent='Проверьте выделенное поле: требуется допустимое числовое значение.';
-  return;
+el.style.borderColor='#ff7777';el.focus();
+const error=document.getElementById('tcMasteryError');
+if(error)error.textContent='Проверьте выделенное поле: требуется допустимое числовое значение.';
+return;
 }
 values[field.id]=n;
 }
@@ -1818,7 +1745,7 @@ q('sheetbox').innerHTML='<div class="sheettitle">Контроль уровня '
 '<div class="tcInfoBlock"><h3>'+(passed?'Норматив выполнен':'Норматив пока не выполнен')+
 '</h3><p>Результаты сохранены отдельно от основной тренировки. '+
 (passed?'Вы можете перейти к следующему уровню либо продолжить работу на текущем.':
- 'Следующий контроль будет предложен по установленному интервалу.')+'</p></div>'+
+'Следующий контроль будет предложен по установленному интервалу.')+'</p></div>'+
 (passed?'<button class="btn yellow full" onclick="tcAdvanceCourseLevel()">Перейти на уровень '+(rec.level+1)+'</button>':'')+
 '<button class="btn ghost full" style="margin-top:8px" onclick="closeSheet()">Остаться на текущем уровне</button>';
 q('sheet').classList.add('open');
@@ -1833,12 +1760,10 @@ TC_course.pendingTransition=null;
 TC_course.lastTestDate='';TC_course.testAnchorDate='';
 TC_course.testDeferredUntil='';
 tcNormalizeGoal();tcEnsureCourseRun();
-// Keep the last load date so an immediate consecutive workout is not introduced.
 tcSaveCourse();
 q('sheet').classList.remove('open');
 W=null;go('today');
 };
-
 function tcBeginCourseWorkout(plannedDate,transferred,originStatus){
 if(W){tcActionMessage('Тренировка уже запущена','Сначала завершите текущую тренировку или выйдите из неё без сохранения.');return false}
 if(transferred){
@@ -1890,13 +1815,10 @@ if(TC_course.history.some(h=>h.courseMode==='supplement'&&h.date===dateKey())){t
 const reps=Math.max(1,Math.floor(TC_course.pullMax*.8)),def={id:'c_daily80',name:'Классические подтягивания · авторское дополнение',metric:'reps',sets:10,scheme:{type:'fixed',value:reps,label:String(reps)},rest:{type:'manual',label:'отдых в PDF не задан'}};
 const e={id:def.id,name:def.name,metric:'reps',max:TC_course.pullMax,load:0,courseDef:def,media:'',muscles:[]};const item={e,def,plan:Array(10).fill(reps),planLabels:Array(10).fill(String(reps)),actual:[]};W={mode:'supplement',sessionIndex:0,exerciseIndex:0,setIndex:0,items:[item],actual:reps,early:false};go('workout');
 };
-
 function tcPrepareManualRest(label,note){
 window.__tcManualCourseRest=true;go('rest');const title=document.querySelector('#rest h1'),sub=document.querySelector('#rest .sub'),num=q('restNum'),buttons=document.querySelectorAll('#rest button');if(title)title.textContent=label==='минимальный'?'Минимальный отдых':'Отдых по самочувствию';if(sub)sub.textContent=note||('По курсу: '+label);if(num)num.textContent='—';if(buttons[0])buttons[0].textContent='Продолжить';if(buttons[1])buttons[1].style.display='none';
 }
 function tcRestoreRestUI(){const title=document.querySelector('#rest h1'),sub=document.querySelector('#rest .sub'),buttons=document.querySelectorAll('#rest button');if(title)title.textContent='Восстановись';if(sub)sub.textContent='За 3 секунды до окончания прозвучат три сигнала';if(buttons[0])buttons[0].textContent='Готов раньше';if(buttons[1])buttons[1].style.display='block';window.__tcManualCourseRest=false}
-
-
 function tcPlanToken(def,x){
 const sch=def.scheme||{};
 if(sch.type==='percent')return tcSchemeTarget(def)==null?'—':String(tcSchemeTarget(def));
@@ -1917,7 +1839,6 @@ if(def.metric==='reps_side'||def.metric==='time_side')side='на каждую с
 if(def.metric==='weighted'&&x&&x.e&&x.e.load)side='+'+x.e.load+' кг';
 return '<span class="tcPlanMain">'+seq+'</span>'+(side?'<span class="tcPlanSide">'+side+'</span>':'');
 }
-
 const tcBeforeCourseRenderWork=window.renderWork;
 window.renderWork=function(){
 const r=tcBeforeCourseRenderWork();
@@ -1954,7 +1875,6 @@ if(fallback)fallback.style.display='none';
 const legend=q('legend');if(legend)legend.textContent='';
 return r;
 };
-
 const tcBeforeCourseSetDone=window.setDone;
 window.setDone=function(skip){
 if(!W)return;
@@ -1975,10 +1895,8 @@ if(!more){tcFinishSignal();askFeedback(false);return}
 const rr=tcAdaptiveCourseRest(def,target,actual,!!skip);advance();
 if(rr.manual)tcPrepareManualRest(rr.label,rr.note);else window.startRest(rr.seconds,rr.note);
 };
-
 const tcBeforeCourseFinishRest=window.finishRest;
 window.finishRest=function(){if(window.__tcManualCourseRest){tcRestoreRestUI();go('workout');return}return tcBeforeCourseFinishRest()};
-
 const tcBeforeCourseFinishWorkout=window.finishWorkout;
 window.finishWorkout=function(feel){
 if(!W)return;
@@ -1991,23 +1909,20 @@ else if(W.mode==='extra'){TC_course.extraSeq++;tcSaveCourse();state.history.unsh
 else {const run=tcEnsureCourseRun();rec.runId=run&&run.id||'';rec.courseLevel=TC_course.level;rec.courseComplex='дополнение';TC_course.history.unshift(rec);tcSaveCourse()}
 q('sheet').classList.remove('open');W=null;go('today');
 };
-
 const tcBeforeCourseInfo=window.tcOpenTrainingInfo;
 window.tcOpenTrainingInfo=function(){if(TC_course.enabled&&(W&&['course','supplement','auxCourse','courseTest'].includes(W.mode)||q('today').classList.contains('on')))return tcOpenCourseInfo();return tcBeforeCourseInfo()};
-
-
 function tcCourseTestsHtml(){
 const maxTests=TC_course.tests.map(t=>({
 date:t.date,ts:t.ts,
 label:'Контрольный максимум',
 summary:t.value+' повт. · предыдущий '+t.previous+
-  ' · изменение '+(t.value-t.previous>0?'+':'')+(t.value-t.previous)
+' · изменение '+(t.value-t.previous>0?'+':'')+(t.value-t.previous)
 }));
 const norms=TC_course.masteryTests.map(t=>({
 date:t.date,ts:t.ts,
 label:'Норматив уровня '+t.level,
 summary:(t.passed?'Выполнен':'Не выполнен')+
-  (t.values&&t.values.regular!=null?' · обычные '+t.values.regular:'')
+(t.values&&t.values.regular!=null?' · обычные '+t.values.regular:'')
 }));
 const all=maxTests.concat(norms).sort((a,b)=>(b.ts||0)-(a.ts||0)).slice(0,12);
 if(!all.length)return '';
@@ -2034,14 +1949,10 @@ return '<div class="tcInfoBlock"><h3>Текущий период · с '+fmtKeyD
 function tcCourseHistoryHtml(){if(!TC_course.enabled&&!TC_course.history.length)return'';const rows=TC_course.history.slice(0,8).map(h=>'<div class="historyitem"><div class="row between"><div><div class="strong" style="font-size:14px">'+(h.courseMode==='supplement'?'Дополнительные подтягивания по курсу':h.courseMode==='auxCourse'?'Вспомогательный комплекс №2 · уровень '+h.courseLevel:'Курс Морозова · уровень '+h.courseLevel+' · комплекс '+h.courseComplex)+(h.adapted?' · адаптация: только турник':'')+'</div><div class="meta">'+fmtRecordDate(h)+' · '+(h.feedback||'—')+'</div></div><span class="badge">КУРС</span></div>'+(h.details||[]).map(d=>'<div class="meta" style="margin-top:6px">'+d.name+': '+d.actual.map(v=>v===null?'—':v).join(' · ')+'</div>').join('')+'</div>').join('');return '<div class="exerciseProgressCard"><div class="progressHead"><div><div class="progressName">Курс Морозова</div><div class="meta">Статистика и история текущего периода</div></div><span class="badge">ур. '+TC_course.level+'</span></div>'+tcCourseStatsHtml()+'<div class="tcInfoBlock"><h3>Критерий текущего уровня</h3><p>'+tcCourseLevel().mastery+'</p></div>'+tcCourseTestsHtml()+rows+'</div>'}
 const tcBeforeCourseRenderHistory=window.renderHistory;
 window.renderHistory=function(){const r=tcBeforeCourseRenderHistory();const host=q('exerciseProgress');if(host){const old=document.getElementById('tcCourseHistoryWrap');if(old)old.remove();const wrap=document.createElement('div');wrap.id='tcCourseHistoryWrap';wrap.innerHTML=tcCourseHistoryHtml();host.parentNode.insertBefore(wrap,host)}return r};
-
 const tcBeforeCourseRender=window.render;
 window.render=function(){const r=tcBeforeCourseRender();tcDecorateCourseCatalog();if(TC_course.enabled&&q('today').classList.contains('on'))tcRenderToday();return r};
-
-// Initial redraw after installing the module.
 tcSanitizeSelectedEquipment();
 if(TC_course.enabled&&tcEnsureCourseRun())tcSaveCourse();
 tcInjectCourseUiStyles();
 render();
-
 })();
