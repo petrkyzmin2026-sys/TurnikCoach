@@ -147,12 +147,12 @@
       const pull=state.ex.find(e=>e.id==='pull');
       const weighted=state.ex.find(e=>e.id==='weightedPull');
       const m=Math.max(1,+((pull&&pull.max)||1));
-      return{enabled:false,level:m<=1?1:m<=3?2:m<=14?3:4,goal:'quantity',pullMax:m,weightedLoad:+((weighted&&weighted.load)||0),courseSeq:0,extraSeq:0,lastCourseDate:'',lastCourseTs:0,authorSupplement:false,history:[],tests:[],testPeriodWeeks:3,targetMax:30,testAnchorDate:'',lastTestDate:'',testDeferredUntil:'',weeklySessions:3,cycleStartDate:'',masteryTests:[],pendingTransition:null,advancedChoices:{onearm:[],muscleup:[]},auxEnabled:{3:false,6:false},auxInterval3:10,exerciseMax:{},scheduleEvents:[],transferRestDates:[],equipment:'bar'};
+      return{enabled:false,level:m<=1?1:m<=3?2:m<=14?3:4,goal:'quantity',pullMax:m,weightedLoad:+((weighted&&weighted.load)||0),courseSeq:0,extraSeq:0,lastCourseDate:'',lastCourseTs:0,authorSupplement:false,history:[],tests:[],testPeriodWeeks:3,targetMax:30,testAnchorDate:'',lastTestDate:'',testDeferredUntil:'',weeklySessions:3,cycleStartDate:'',masteryTests:[],pendingTransition:null,advancedChoices:{onearm:[],muscleup:[]},auxEnabled:{3:false,6:false},auxInterval3:10,exerciseMax:{},scheduleEvents:[],transferRestDates:[],scheduleRuleChangedOn:'',equipment:'bar'};
     }
     function tcLoadCourse(){
       let c=tcCourseDefault();
       try{const raw=JSON.parse(localStorage.getItem(TC_COURSE_KEY)||'null');if(raw&&typeof raw==='object')c={...c,...raw}}catch(e){}
-      c.level=tcClamp(Math.floor(+c.level||1),1,7);c.pullMax=Math.max(1,Math.floor(+c.pullMax||1));c.weightedLoad=Math.max(0,+c.weightedLoad||0);c.courseSeq=Math.max(0,Math.floor(+c.courseSeq||0));c.extraSeq=Math.max(0,Math.floor(+c.extraSeq||0));c.history=Array.isArray(c.history)?c.history:[];c.tests=Array.isArray(c.tests)?c.tests:[];c.masteryTests=Array.isArray(c.masteryTests)?c.masteryTests:[];c.pendingTransition=c.pendingTransition&&typeof c.pendingTransition==='object'?c.pendingTransition:null;c.advancedChoices=c.advancedChoices&&typeof c.advancedChoices==='object'?c.advancedChoices:{onearm:[],muscleup:[]};c.advancedChoices.onearm=Array.isArray(c.advancedChoices.onearm)?c.advancedChoices.onearm:[];c.advancedChoices.muscleup=Array.isArray(c.advancedChoices.muscleup)?c.advancedChoices.muscleup:[];c.auxEnabled=c.auxEnabled&&typeof c.auxEnabled==='object'?c.auxEnabled:{3:false,6:false};c.auxEnabled[3]=c.auxEnabled[3]===true;c.auxEnabled[6]=c.auxEnabled[6]===true;c.auxInterval3=[7,10].includes(+c.auxInterval3)?+c.auxInterval3:10;c.exerciseMax=c.exerciseMax&&typeof c.exerciseMax==='object'&&!Array.isArray(c.exerciseMax)?c.exerciseMax:{};c.equipment='bar';c.testPeriodWeeks=[2,3,4].includes(+c.testPeriodWeeks)?+c.testPeriodWeeks:3;c.weeklySessions=[2,3,4].includes(+c.weeklySessions)?+c.weeklySessions:3;c.cycleStartDate=/^\d{4}-\d{2}-\d{2}$/.test(c.cycleStartDate||'')?c.cycleStartDate:'';c.targetMax=Math.max(1,Math.floor(+c.targetMax||30));c.testAnchorDate=/^\d{4}-\d{2}-\d{2}$/.test(c.testAnchorDate||'')?c.testAnchorDate:'';c.lastTestDate=/^\d{4}-\d{2}-\d{2}$/.test(c.lastTestDate||'')?c.lastTestDate:'';c.testDeferredUntil=/^\d{4}-\d{2}-\d{2}$/.test(c.testDeferredUntil||'')?c.testDeferredUntil:'';c.scheduleEvents=Array.isArray(c.scheduleEvents)?c.scheduleEvents.filter(e=>e&&/^\d{4}-\d{2}-\d{2}$/.test(e.plannedDate||'')&&['completed','missed','rescheduled','recovery_shift'].includes(e.status)).slice(-240):[];c.transferRestDates=Array.isArray(c.transferRestDates)?c.transferRestDates.filter(k=>/^\d{4}-\d{2}-\d{2}$/.test(k||'')).slice(-60):[];
+      c.level=tcClamp(Math.floor(+c.level||1),1,7);c.pullMax=Math.max(1,Math.floor(+c.pullMax||1));c.weightedLoad=Math.max(0,+c.weightedLoad||0);c.courseSeq=Math.max(0,Math.floor(+c.courseSeq||0));c.extraSeq=Math.max(0,Math.floor(+c.extraSeq||0));c.history=Array.isArray(c.history)?c.history:[];c.tests=Array.isArray(c.tests)?c.tests:[];c.masteryTests=Array.isArray(c.masteryTests)?c.masteryTests:[];c.pendingTransition=c.pendingTransition&&typeof c.pendingTransition==='object'?c.pendingTransition:null;c.advancedChoices=c.advancedChoices&&typeof c.advancedChoices==='object'?c.advancedChoices:{onearm:[],muscleup:[]};c.advancedChoices.onearm=Array.isArray(c.advancedChoices.onearm)?c.advancedChoices.onearm:[];c.advancedChoices.muscleup=Array.isArray(c.advancedChoices.muscleup)?c.advancedChoices.muscleup:[];c.auxEnabled=c.auxEnabled&&typeof c.auxEnabled==='object'?c.auxEnabled:{3:false,6:false};c.auxEnabled[3]=c.auxEnabled[3]===true;c.auxEnabled[6]=c.auxEnabled[6]===true;c.auxInterval3=[7,10].includes(+c.auxInterval3)?+c.auxInterval3:10;c.exerciseMax=c.exerciseMax&&typeof c.exerciseMax==='object'&&!Array.isArray(c.exerciseMax)?c.exerciseMax:{};c.equipment='bar';c.testPeriodWeeks=[2,3,4].includes(+c.testPeriodWeeks)?+c.testPeriodWeeks:3;c.weeklySessions=[2,3,4].includes(+c.weeklySessions)?+c.weeklySessions:3;c.cycleStartDate=/^\d{4}-\d{2}-\d{2}$/.test(c.cycleStartDate||'')?c.cycleStartDate:'';c.targetMax=Math.max(1,Math.floor(+c.targetMax||30));c.testAnchorDate=/^\d{4}-\d{2}-\d{2}$/.test(c.testAnchorDate||'')?c.testAnchorDate:'';c.lastTestDate=/^\d{4}-\d{2}-\d{2}$/.test(c.lastTestDate||'')?c.lastTestDate:'';c.testDeferredUntil=/^\d{4}-\d{2}-\d{2}$/.test(c.testDeferredUntil||'')?c.testDeferredUntil:'';c.scheduleEvents=Array.isArray(c.scheduleEvents)?c.scheduleEvents.filter(e=>e&&/^\d{4}-\d{2}-\d{2}$/.test(e.plannedDate||'')&&['completed','missed','rescheduled','recovery_shift'].includes(e.status)).slice(-240):[];c.transferRestDates=Array.isArray(c.transferRestDates)?c.transferRestDates.filter(k=>/^\d{4}-\d{2}-\d{2}$/.test(k||'')).slice(-60):[];c.scheduleRuleChangedOn=/^\d{4}-\d{2}-\d{2}$/.test(c.scheduleRuleChangedOn||'')?c.scheduleRuleChangedOn:'';
       return c;
     }
     let TC_course=tcLoadCourse();
@@ -326,7 +326,7 @@ return '';
 function tcSyncScheduleEvents(){
 if(!tcWeeklyMode())return false;
 const today=dateKey(),end=tcDateFromKey(today),start=new Date(end);start.setDate(start.getDate()-28);
-if(TC_course.cycleStartDate){const c=tcDateFromKey(TC_course.cycleStartDate);if(c>start)start.setTime(c.getTime())}
+if(TC_course.cycleStartDate){const c=tcDateFromKey(TC_course.cycleStartDate);if(c>start)start.setTime(c.getTime())}if(TC_course.scheduleRuleChangedOn){const r=tcDateFromKey(TC_course.scheduleRuleChangedOn);if(r>start)start.setTime(r.getTime())}
 let changed=false;
 for(let d=new Date(start);d<end;d.setDate(d.getDate()+1)){
 const k=dateKey(d);if(!tcScheduledOn(k))continue;
@@ -778,7 +778,7 @@ function tcCalendarMonday(){
       };
     };
     window.tcSaveCourseSettings=function(){
-      const oldLevel=TC_course.level,oldGoal=TC_course.goal;
+      const oldLevel=TC_course.level,oldGoal=TC_course.goal,oldWeekly=TC_course.weeklySessions,oldStart=TC_course.cycleStartDate;
       const fail=(message,el)=>{
         if(el){
           const group=el.closest&&el.closest('details.tcSettingsGroup');if(group)group.open=true;
@@ -877,6 +877,12 @@ function tcCalendarMonday(){
       TC_course.targetMax=nextTarget;
       TC_course.testPeriodWeeks=nextWeeks;
       TC_course.auxInterval3=nextAuxInterval;
+      const scheduleChanged=oldStart!==startRaw||oldWeekly!==nextWeekly||oldLevel!==nextLevel||oldGoal!==nextGoal;
+      if(scheduleChanged){
+        TC_course.scheduleRuleChangedOn=dateKey();
+        TC_course.scheduleEvents=(TC_course.scheduleEvents||[]).filter(e=>['completed','rescheduled'].includes(e.status));
+        TC_course.transferRestDates=[];
+      }
       if(auxEl&&[3,6].includes(oldLevel))TC_course.auxEnabled[oldLevel]=!!auxEl.checked;
       const sup=document.getElementById('tcCourseSupplement');
       if(sup)TC_course.authorSupplement=!!sup.checked;
