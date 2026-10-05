@@ -326,13 +326,13 @@ def launch():
 launch()
 dismiss_system_anr()
 
-# Exact update path: packaged 5.14 + cached 5.16.41 are active first; staged 5.16.42 must be offered explicitly.
+# Exact update path: packaged 5.14 + cached 5.16.42 are active first; staged 5.16.43 must be offered explicitly.
 time.sleep(3)
 screenshot("00-before-update-assert")
 adb("shell","uiautomator","dump","/sdcard/uxb3-before-update.xml",check=False)
 adb("pull","/sdcard/uxb3-before-update.xml",OUT+"/00-before-update.xml",check=False)
 try:
-    wait_text("Доступно обновление TurnikCoach 5.16.42",timeout=20)
+    wait_text("Доступно обновление TurnikCoach 5.16.43",timeout=20)
 except Exception:
     log=adb("logcat","-d","-t","500",check=False)
     with open(OUT+"/00-logcat.txt","w",encoding="utf-8") as fp:
@@ -342,7 +342,7 @@ wait_text("Обновить",contains=False)
 screenshot("01-update-offered")
 
 tap_clickable_text("Обновить")
-wait_text("TurnikCoach обновлён до 5.16.42",timeout=25)
+wait_text("TurnikCoach обновлён до 5.16.43",timeout=25)
 assert_accessibility_target("План",48)
 assert_accessibility_target("Прогресс",48)
 screenshot("02-update-installed")
@@ -362,6 +362,12 @@ assert summary["screen"]=="historyScreen" and summary["present"] and summary["it
 assert not summary["blocked"], "Obsolete cached update must not cover the Progress screen"
 assert summary["labels"] and all(x in "|".join(summary["labels"]) for x in ["За 7 дней","Всего тренировок","MAX подтяг."]), "Progress cards need accessible value labels"
 screenshot("02b-progress-summary")
+course_stats=test_eval_json("(function(){var w=document.getElementById('tcCourseHistoryWrap'),c=JSON.parse(localStorage.getItem('tc_morozov_course_v1')||'{}'),r=(c.courseRuns||[]).find(x=>x.id===c.activeRunId),h=(c.history||[])[0];return {present:!!w,text:w&&w.textContent||'',runs:(c.courseRuns||[]).length,active:c.activeRunId||'',baseline:r&&r.baselinePullMax,historyRun:h&&h.runId||''};})()","morozov-course-stats")
+print("TC_DIAG morozov-course-stats",course_stats,flush=True)
+stats_text=course_stats["text"].lower()
+assert course_stats["present"] and "курс морозова" in stats_text and "выполнение курса" in stats_text and "вовремя" in stats_text and "пропущено" in stats_text, "Progress must show compact Morozov course statistics"
+assert course_stats["runs"]>=1 and course_stats["active"] and course_stats["historyRun"]==course_stats["active"] and course_stats["baseline"]==20, "5.16.43 must migrate the seeded current course into one active run without losing history"
+screenshot("02c-morozov-course-stats")
 tap_clickable_text("Сегодня",timeout=20)
 
 
@@ -439,9 +445,9 @@ adb("shell","am","force-stop",PKG)
 time.sleep(1)
 launch()
 dismiss_system_anr()
-upgrade_install=wait_log_tokens(["TC_NAV_UPGRADE",'"phase":"install"','"version":"5.16.42-flexible-course-schedule"'],timeout=20)
+upgrade_install=wait_log_tokens(["TC_NAV_UPGRADE",'"phase":"install"','"version":"5.16.43-morozov-stats"'],timeout=20)
 restore_line=wait_log_tokens(["TC_WORKOUT_STATE",'"phase":"restored"','"name":"Подъём коленей в висе"','"mode":"extra"'],timeout=20)
-upgrade_arm=wait_log_tokens(["TC_NAV_UPGRADE",'"phase":"arm-restore-guard"','"version":"5.16.42-flexible-course-schedule"','"surface":"workout"'],timeout=20)
+upgrade_arm=wait_log_tokens(["TC_NAV_UPGRADE",'"phase":"arm-restore-guard"','"version":"5.16.43-morozov-stats"','"surface":"workout"'],timeout=20)
 print("TC_DIAG nav-upgrade-install",upgrade_install,flush=True)
 print("TC_DIAG restore",restore_line,flush=True)
 print("TC_DIAG nav-upgrade-arm",upgrade_arm,flush=True)

@@ -10,7 +10,7 @@ const manifest=fs.readFileSync('app/src/main/AndroidManifest.xml','utf8');
 const mainActivity=fs.readFileSync('app/src/main/java/ru/turnikcoach/app/MainActivity.java','utf8');
 new vm.Script(course,{filename:'live/course.js'});
 new vm.Script(hotfix,{filename:'live/hotfix.js'});
-const bundled=hotfix.match(/const COURSE_MODULE_BUNDLED=("(?:\\.|[^"\\])*");\n  function tcValidCourseModule/);
+const bundled=hotfix.match(/const COURSE_MODULE_BUNDLED=("(?:\\.|[^"\\])*");\n\s*function tcValidCourseModule/);
 assert(bundled,'embedded course module must exist');
 assert.equal(JSON.parse(bundled[1]),course,'APK update must use the same course module');
 function extractFrom(source,name){
@@ -117,19 +117,60 @@ assert(course.includes('Выполнить сегодня')&&course.includes('О
  'Today must expose explicit transfer and rest choices');
 assert(course.includes("rec.plannedDate=W.coursePlannedDate||rec.date")&&course.includes("rec.transferred=rec.plannedDate!==rec.date"),
  'completed transfer must persist both planned and actual dates');
+assert(course.includes("courseRuns:[]")&&course.includes("activeRunId:''")&&course.includes('function tcEnsureCourseRun()'),
+ 'course state must persist versioned Morozov course periods');
+assert(course.includes("rec.runId=run&&run.id||''")&&course.includes("runId:run&&run.id||''"),
+ 'workouts and control results must link to their course run');
+const statsState={
+ pullMax:21,activeRunId:'r1',
+ courseRuns:[{id:'r1',startedDate:'2026-09-01',level:4,goal:'quantity',baselinePullMax:17,targetMax:25}],
+ history:[
+  {runId:'r1',courseMode:'course',transferred:false,details:[{metric:'reps',actual:[10,9]}]},
+  {runId:'r1',courseMode:'course',transferred:true,scheduleOriginStatus:'recovery_shift',details:[{metric:'reps',actual:[8,8]}]},
+  {runId:'r1',courseMode:'auxCourse',details:[{metric:'time',actual:[30]},{metric:'reps',actual:[5]}]}
+ ],
+ scheduleEvents:[
+  {runId:'r1',status:'missed'},{runId:'r1',status:'recovery_shift'}
+ ],
+ tests:[{runId:'r1',ts:1,value:19},{runId:'r1',ts:2,value:21}]
+};
+const statsApi=new Function('TC_course',
+ extract('tcCourseRunById')+'\n'+extract('tcCurrentCourseRun')+
+ '\nfunction tcEnsureCourseRun(){return tcCurrentCourseRun()}\n'+extract('tcCourseRunStats')+
+ '\nreturn tcCourseRunStats;')(statsState);
+const statsResult=statsApi();
+assert.equal(statsResult.completed,2,'stats count only completed main course sessions');
+assert.equal(statsResult.on,1);assert.equal(statsResult.moved,1);
+assert.equal(statsResult.missed,1);assert.equal(statsResult.recovery,2,'recovery count must retain a shifted slot even after it is completed by transfer');
+assert.equal(statsResult.rate,67,'recovery shifts must be excluded from course completion denominator');
+assert.equal(statsResult.sets,6);assert.equal(statsResult.reps,40,'timed seconds must not be added to repetition volume');
+assert.equal(statsResult.base,17);assert.equal(statsResult.cur,21);
+assert.equal(statsResult.delta,4);assert.equal(statsResult.pct,24);
+assert.deepEqual(statsResult.tests,[19,21]);
+const resumedStart=new Function('TC_course','dateKey',extract('tcRunStartDate')+';return tcRunStartDate;')(
+ {courseRuns:[{id:'old'}],history:[],cycleStartDate:'2026-09-01',level:4,goal:'quantity'},()=> '2026-10-05');
+assert.equal(resumedStart(),'2026-10-05','a resumed/new course period must start today instead of reusing the legacy cycle anchor');
+const legacyStart=new Function('TC_course','dateKey',extract('tcRunStartDate')+';return tcRunStartDate;')(
+ {courseRuns:[],history:[
+  {courseMode:'course',date:'2026-08-10',courseLevel:3,courseGoal:'quantity'},
+  {courseMode:'course',date:'2026-09-20',courseLevel:4,courseGoal:'quantity'}
+ ],cycleStartDate:'2026-08-01',level:4,goal:'quantity'},()=> '2026-10-05');
+assert.equal(legacyStart(),'2026-09-20','legacy migration must start at the first compatible current-level/goal workout, not the whole-course anchor');
+assert(course.includes('Выполнение курса:')&&course.includes('Контрольные максимумы:'),
+ 'Progress must render the compact Morozov course statistics card');
 assert(course.includes('tcPreviewCourseCard(tcSelectedDate)'),
  'choosing another date must show a read-only plan');
 assert(course.includes('id="tcCycleStartDate"'),
  'settings must expose a cycle start date');
-assert(hotfix.includes("const VERSION='5.16.42-flexible-course-schedule'"),
- 'release hotfix version must be 5.16.42');
-assert(course.includes("const COURSE_MODULE_VERSION='1.0.36-flex-schedule'"),
- 'course module version must be 1.0.36');
+assert(hotfix.includes("const VERSION='5.16.43-morozov-stats'"),
+ 'release hotfix version must be 5.16.43');
+assert(course.includes("const COURSE_MODULE_VERSION='1.0.37-course-stats'"),
+ 'course module version must be 1.0.37');
 assert(!course.includes('TC_EXTRA_START'),
  'temporary extra-workout trace logging must not ship');
 assert(!course.includes('window.confirm('),'course module must not depend on unsupported WebView JS dialogs');
 assert(!hotfix.includes('window.confirm('),'hotfix navigation/discard must not depend on unsupported WebView JS dialogs');
-assert(!hotfix.includes('forceHandover'),'5.16.42 must use an explicit user-visible update prompt');
+assert(!hotfix.includes('forceHandover'),'5.16.43 must use an explicit user-visible update prompt');
 assert(hotfix.includes("showRuntimeNotice('TurnikCoach обновлён до '+LABEL)"),
  'successful activation must give visible feedback');
 assert(hotfix.includes("localStorage.setItem('tc_hotfix_active_version',VERSION)"),
@@ -391,7 +432,7 @@ assert(formBodies.saveSettings.includes("tcShowRuntimeNotice('Настройки
  'course settings save must confirm success');
 assert(!formBodies.saveSettings.includes("Math.max(1,Math.floor(+(mx&&mx.value)||TC_course.pullMax))"),
  'invalid current maximum must not be silently coerced');
-assert(formBodies.saveSettings.indexOf("const parsed=")<formBodies.saveSettings.indexOf("TC_course.enabled=!!enabled.checked"),
+assert(formBodies.saveSettings.indexOf("const parsed=")<formBodies.saveSettings.indexOf("TC_course.enabled=nextEnabled"),
  'settings must validate the cycle date before mutating course state');
 assert(formBodies.saveSettings.indexOf("const allowedGoals=")<formBodies.saveSettings.indexOf("TC_course.goal=nextGoal"),
  'settings must validate the goal before mutating course state');
@@ -476,7 +517,7 @@ assert(hotfix.includes("const hadActiveWorkout=typeof W!=='undefined'&&!!W")&&
  'new hotfix must reassert durable workout state when an older hotfix already restored W');
 assert(hotfix.includes('function tcInstallNavigationUpgrades()')&&
  hotfix.includes('window.__TC_NAV_UPGRADE_VERSION=VERSION')&&
- hotfix.includes('tcInstallNavigationFoundation();\n    tcInstallNavigationUpgrades();\n    tcInstallCompletionFlow();\n    tcInstallHapticFeedback();\n    tcInstallWorkoutCorrection();\n    tcInstallProgressSummary();\n    tcInstallWorkoutPersistence();'),
+ /tcInstallNavigationFoundation\(\);\s*tcInstallNavigationUpgrades\(\);\s*tcInstallCompletionFlow\(\);\s*tcInstallHapticFeedback\(\);\s*tcInstallWorkoutCorrection\(\);\s*tcInstallProgressSummary\(\);\s*tcInstallWorkoutPersistence\(\);/.test(hotfix),
  'hotfix upgrades must run after the one-time navigation core and before persistence restore');
 assert(hotfix.includes('window.tcRefreshActiveTrainingSurface=function(id)')&&
  hotfix.includes('window.tcArmRestoreSurfaceGuard=function(surface)')&&
