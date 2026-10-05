@@ -1199,7 +1199,8 @@ function tcCalendarMonday(){
     }
 
     function tcRenderToday(){
-      const now=new Date(),due=tcCourseDue(),l=tcCourseLevel(),c=tcCourseComplex(),items=tcBuildCourseItems(),extras=tcBuildExtraItems();
+      if(tcSyncScheduleEvents())tcSaveCourse();
+      const now=new Date(),due=tcCourseDue(),l=tcCourseLevel(),c=tcCourseComplex(),items=tcBuildCourseItems(),extras=tcBuildExtraItems(),transfer=tcTransferCandidate();
       const week=()=>'<div class="tcWeekSection"><div class="tcWeekSectionTitle">ПЛАН НЕДЕЛИ</div>'+tcWeeklyCalendarHtml()+'</div>';
       q('todayTitle').textContent=fmtDate(now);
       if(tcSelectedDate&&tcSelectedDate!==dateKey()){
@@ -1224,6 +1225,17 @@ function tcCalendarMonday(){
         q('todaySub').textContent='Сегодня · контроль уровня';
         q('todayList').innerHTML=tcPendingLevelHtml()+tcMasteryCardHtml()+week();
         return;
+      }
+
+      if(tcRecoveryShiftToday()){
+        q('todaySub').textContent='Сегодня · восстановление';
+        q('todayList').innerHTML=tcRecoveryShiftCardHtml()+week();
+        tcQueueDecorate();return;
+      }
+      if(transfer){
+        q('todaySub').textContent=transfer.ready?'Сегодня · перенос основной тренировки':'Сегодня · восстановление';
+        q('todayList').innerHTML=tcTransferCardHtml(transfer)+week();
+        tcQueueDecorate();return;
       }
 
       if(due&&TC_course.level===7&&!tcAdvancedSelected()){
@@ -1792,17 +1804,26 @@ function tcCalendarMonday(){
       W=null;go('today');
     };
 
-    window.tcStartCourseWorkout=function(){
-      if(W){tcActionMessage('Тренировка уже запущена','Сначала завершите текущую тренировку или выйдите из неё без сохранения.');return;}
-      if(!tcCourseDue()){tcActionMessage('Сегодня основной комплекс не назначен','Откройте календарь курса, чтобы посмотреть ближайший тренировочный день.');return;}
-      if(!tcRunnableDefs(tcOriginalCourseDefs()).length){tcActionMessage('Нет доступных упражнений','Текущий комплекс требует оборудования, которого нет в выбранной конфигурации.');return;}
-      if(tcCalibrationDefs('main').length){tcOpenCourseCalibration('main');return;}
-      if(tcNeedsWorkingWeight('main')){tcOpenWorkingWeight('main');return;}
-      if(TC_course.level===7&&!tcAdvancedSelected()){tcOpenAdvancedChoiceSheet();return;}
-      const items=tcBuildCourseItems();
-      if(!items.length){tcActionMessage('Не удалось собрать тренировку','Проверьте выбранные упражнения и настройки курса.');return;}
-      tcPrimeAudio();
-      const c=tcCourseComplex();W={mode:'course',sessionIndex:0,exerciseIndex:0,setIndex:0,items,actual:tcSchemeTarget(items[0].def),early:false,courseLevel:TC_course.level,courseComplex:c.no,courseGoal:TC_course.goal,adapted:tcUnavailableDefs(tcOriginalCourseDefs()).length>0};go('workout');
+    function tcBeginCourseWorkout(plannedDate,transferred,originStatus){
+      if(W){tcActionMessage('Тренировка уже запущена','Сначала завершите текущую тренировку или выйдите из неё без сохранения.');return false}
+      if(transferred){
+        const c=tcTransferCandidateRaw(dateKey());
+        if(!c||c.plannedDate!==plannedDate||(TC_course.transferRestDates||[]).includes(dateKey())){tcActionMessage('Перенос больше не доступен','Наступило другое тренировочное окно или на сегодня выбран отдых.');return false}
+        if(!c.ready){tcActionMessage('Сегодня восстановление','После предыдущей тяговой нагрузки требуется день без основной тренировки.');return false}
+      }else if(!tcCourseDue()){tcActionMessage('Сегодня основной комплекс не назначен','Откройте календарь курса, чтобы посмотреть ближайший тренировочный день.');return false}
+      if(!tcRunnableDefs(tcOriginalCourseDefs()).length){tcActionMessage('Нет доступных упражнений','Текущий комплекс требует оборудования, которого нет в выбранной конфигурации.');return false}
+      if(tcCalibrationDefs('main').length){tcOpenCourseCalibration('main');return false}
+      if(tcNeedsWorkingWeight('main')){tcOpenWorkingWeight('main');return false}
+      if(TC_course.level===7&&!tcAdvancedSelected()){tcOpenAdvancedChoiceSheet();return false}
+      const items=tcBuildCourseItems();if(!items.length){tcActionMessage('Не удалось собрать тренировку','Проверьте выбранные упражнения и настройки курса.');return false}
+      tcPrimeAudio();const c=tcCourseComplex();
+      W={mode:'course',sessionIndex:0,exerciseIndex:0,setIndex:0,items,actual:tcSchemeTarget(items[0].def),early:false,courseLevel:TC_course.level,courseComplex:c.no,courseGoal:TC_course.goal,adapted:tcUnavailableDefs(tcOriginalCourseDefs()).length>0,coursePlannedDate:plannedDate||dateKey(),courseTransferred:!!transferred,courseScheduleOrigin:originStatus||''};
+      go('workout');return true;
+    }
+    window.tcStartCourseWorkout=function(){return tcBeginCourseWorkout(dateKey(),false,'')};
+    window.tcStartTransferredCourseWorkout=function(plannedDate){
+      const c=tcTransferCandidateRaw(dateKey());
+      return tcBeginCourseWorkout(plannedDate,true,c&&c.plannedDate===plannedDate?c.status:'missed');
     };
     window.tcStartExtraWorkout=function(){
       try{
@@ -1929,7 +1950,7 @@ function tcCalendarMonday(){
       if(!['course','extra','supplement','auxCourse'].includes(W.mode))return tcBeforeCourseFinishWorkout(feel);
       let total=0,details=[];W.items.forEach(x=>{const actual=x.plan.map((_,i)=>x.actual[i]===undefined?null:x.actual[i]);const sum=actual.reduce((s,v)=>s+(Number.isFinite(+v)?+v:0),0);total+=sum;details.push({id:x.e.id,name:x.e.name,metric:x.e.metric,load:x.e.load||0,plan:x.plan.slice(),planLabels:(x.planLabels||x.plan.map(String)).slice(),actual,sum})});
       const rec={type:'workout',date:dateKey(),ts:Date.now(),feedback:feel,total,details,early:!!W.early,courseMode:W.mode,adapted:!!W.adapted,equipment:'bar',session:W.mode==='extra'?'доп.':'курс'};
-      if(W.mode==='course'){rec.courseLevel=W.courseLevel;rec.courseComplex=W.courseComplex;rec.courseGoal=W.courseGoal;TC_course.history.unshift(rec);TC_course.courseSeq++;TC_course.lastCourseDate=rec.date;TC_course.lastCourseTs=rec.ts;if(!TC_course.testAnchorDate)TC_course.testAnchorDate=rec.date;tcSaveCourse()}
+      if(W.mode==='course'){rec.courseLevel=W.courseLevel;rec.courseComplex=W.courseComplex;rec.courseGoal=W.courseGoal;rec.plannedDate=W.coursePlannedDate||rec.date;rec.transferred=rec.plannedDate!==rec.date;rec.scheduleOriginStatus=W.courseScheduleOrigin||'';TC_course.history.unshift(rec);TC_course.courseSeq++;TC_course.lastCourseDate=rec.date;TC_course.lastCourseTs=rec.ts;tcUpsertScheduleEvent(rec.plannedDate,rec.transferred?'rescheduled':'completed',rec.date);TC_course.transferRestDates=(TC_course.transferRestDates||[]).filter(k=>k!==rec.date);if(!TC_course.testAnchorDate)TC_course.testAnchorDate=rec.date;tcSaveCourse()}
       else if(W.mode==='auxCourse'){rec.courseLevel=W.courseLevel;rec.courseComplex=2;rec.courseGoal=W.courseGoal;TC_course.history.unshift(rec);tcSaveCourse()}
       else if(W.mode==='extra'){TC_course.extraSeq++;tcSaveCourse();state.history.unshift(rec);save()}
       else {rec.courseLevel=TC_course.level;rec.courseComplex='дополнение';TC_course.history.unshift(rec);tcSaveCourse()}
