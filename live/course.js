@@ -156,6 +156,7 @@ let TC_course=tcLoadCourse();
 function tcCourseRunById(id){return (TC_course.courseRuns||[]).find(r=>r.id===id)||null}
 function tcCurrentCourseRun(){return tcCourseRunById(TC_course.activeRunId)}
 function tcRunStartDate(){
+if((TC_course.courseRuns||[]).length)return dateKey();
 const dates=(TC_course.history||[]).filter(h=>h&&h.courseMode==='course'&&h.courseLevel===TC_course.level&&(!h.courseGoal||h.courseGoal===TC_course.goal)).map(h=>h.plannedDate||h.date).filter(Boolean).sort();
 return TC_course.cycleStartDate||dates[0]||dateKey();
 }
@@ -1936,7 +1937,7 @@ function tcCourseRunStats(){
 const r=tcCurrentCourseRun()||tcEnsureCourseRun();if(!r)return null;
 const h=(TC_course.history||[]).filter(x=>x.runId===r.id),m=h.filter(x=>x.courseMode==='course'),e=(TC_course.scheduleEvents||[]).filter(x=>x.runId===r.id);
 const on=m.filter(x=>!x.transferred).length,moved=m.length-on,missed=e.filter(x=>x.status==='missed').length,recovery=e.filter(x=>x.status==='recovery_shift').length,den=on+moved+missed;
-let sets=0,reps=0;h.forEach(x=>(x.details||[]).forEach(d=>(d.actual||[]).forEach(v=>{if(v!==null&&Number.isFinite(+v)){sets++;reps+=+v}})));
+let sets=0,reps=0;h.forEach(x=>(x.details||[]).forEach(d=>(d.actual||[]).forEach(v=>{if(v!==null&&Number.isFinite(+v)){sets++;if(['reps','reps_side','weighted'].includes(d.metric))reps+=+v}})));
 const base=+r.baselinePullMax||TC_course.pullMax,cur=TC_course.pullMax,delta=cur-base,pct=base?Math.round(delta/base*100):0;
 const tests=(TC_course.tests||[]).filter(x=>x.runId===r.id).sort((a,b)=>(a.ts||0)-(b.ts||0)).map(x=>x.value);
 return{r,on,moved,missed,recovery,completed:m.length,rate:den?Math.round((on+moved)/den*100):null,sets,reps,base,cur,delta,pct,tests};
