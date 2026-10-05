@@ -834,8 +834,9 @@ assert.equal(weightFeedback[0][0],'Вес не сохранён');
 
 const undoState={enabled:true,level:4,goal:'quantity',weeklySessions:3,cycleStartDate:'2026-09-25',
   courseSeq:1,lastCourseDate:'2026-09-25',lastCourseTs:123,testAnchorDate:'2026-09-25',
-  lastTestDate:'',history:[{courseMode:'course',date:'2026-09-25',ts:123,courseComplex:3}]};
+  lastTestDate:'',history:[{courseMode:'course',date:'2026-09-25',ts:123,courseComplex:3}],scheduleEvents:[]};
 const undoApi=new Function('TC_course',
+  extract('tcScheduleEventFor')+'\n'+extract('tcUpsertScheduleEvent')+'\n'+extract('tcRemoveScheduleEvent')+'\n'+
   extract('tcUndoLatestTodayCourseRecord')+'\nreturn {tcUndoLatestTodayCourseRecord};')(undoState);
 assert.equal(undoApi.tcUndoLatestTodayCourseRecord('2026-09-25'),true);
 assert.equal(undoState.courseSeq,0);
