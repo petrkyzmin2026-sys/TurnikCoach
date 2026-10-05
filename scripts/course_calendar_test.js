@@ -423,7 +423,7 @@ assert(formBodies.saveSettings.includes("tcShowRuntimeNotice('Настройки
  'course settings save must confirm success');
 assert(!formBodies.saveSettings.includes("Math.max(1,Math.floor(+(mx&&mx.value)||TC_course.pullMax))"),
  'invalid current maximum must not be silently coerced');
-assert(formBodies.saveSettings.indexOf("const parsed=")<formBodies.saveSettings.indexOf("TC_course.enabled=!!enabled.checked"),
+assert(formBodies.saveSettings.indexOf("const parsed=")<formBodies.saveSettings.indexOf("TC_course.enabled=nextEnabled"),
  'settings must validate the cycle date before mutating course state');
 assert(formBodies.saveSettings.indexOf("const allowedGoals=")<formBodies.saveSettings.indexOf("TC_course.goal=nextGoal"),
  'settings must validate the goal before mutating course state');
