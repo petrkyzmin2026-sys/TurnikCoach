@@ -88,7 +88,7 @@ const flexState={enabled:true,level:4,goal:'quantity',weeklySessions:4,cycleStar
   transferRestDates:[]};
 const flexApi=new Function('TC_course','dateKey','tcDayDiff','tcTestDue','tcMasteryDue',
   flexNames.map(extract).join('\n')+'\nreturn {tcTransferCandidateRaw,tcTransferCandidate,tcRecoveryReadyOn,tcCourseDue,tcRecoveryShiftToday};')(
-  flexState,()=> '2026-09-28',
+  flexState,d=>d instanceof Date?key(d):'2026-09-28',
   (a,b)=>Math.round((new Date(b+'T12:00:00')-new Date(a+'T12:00:00'))/86400000),
   ()=>false,()=>false
 );
@@ -105,7 +105,7 @@ flexState.lastCourseDate='2026-09-28';
 assert.equal(flexApi.tcRecoveryReadyOn('2026-09-29'),false,'day after a transferred main workout must be recovery');
 const tuesdayApi=new Function('TC_course','dateKey','tcDayDiff','tcTestDue','tcMasteryDue',
   flexNames.map(extract).join('\n')+'\nreturn {tcCourseDue,tcRecoveryShiftToday};')(
-  flexState,()=> '2026-09-29',
+  flexState,x=>x instanceof Date?key(x):'2026-09-29',
   (a,b)=>Math.round((new Date(b+'T12:00:00')-new Date(a+'T12:00:00'))/86400000),
   ()=>false,()=>false
 );
