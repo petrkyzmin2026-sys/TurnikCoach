@@ -28,6 +28,7 @@ on:
       - fix/workout-two-buttons-20261003
       - fix/workout-top-back-exit-20261004
       - fix/exit-finish-without-save-20261004
+      - feature/flexible-course-schedule-20261005
   pull_request:
   workflow_dispatch:
 
@@ -58,9 +59,9 @@ jobs:
           done
           base64 --decode /tmp/v513.b64 | gzip -dc > app/src/main/assets/index.html
           grep -q 'v5.13 — modern Android package' app/src/main/assets/index.html
-      - name: Reproduce packaged 5.14 + cached 5.16.40 + tested 5.16.41
+      - name: Reproduce packaged 5.14 + cached 5.16.41 + tested 5.16.42
         run: |
-          PREV_COMMIT="2bc4f07d0d551601e6e2b49ca2dc5794b168d18d"
+          PREV_COMMIT="2fe6e9cf890f1274dbcea09dea08c5cdb63accf2"
           grep -q 'TURNIKCOACH_HOTFIX 5.14.0-adaptive-rest' app/src/main/assets/hotfix.js
           curl -fsSL "https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/${PREV_COMMIT}/live/hotfix.js" > app/src/main/assets/hotfix-prev.js
           cp live/hotfix.js app/src/main/assets/hotfix-next.js
@@ -73,10 +74,10 @@ jobs:
           s=s.replace(needle,"function tcAudio(){\nif(window.__TC_DISABLE_AUDIO_FOR_SMOKE)return null;\ntry{",1)
           p.write_text(s)
           PY
-          grep -q 'TURNIKCOACH_HOTFIX 5.16.40-top-back-exit' app/src/main/assets/hotfix-prev.js
-          grep -q 'TURNIKCOACH_HOTFIX 5.16.41-finish-without-save' app/src/main/assets/hotfix-next.js
-          grep -q 'TURNIKCOACH_COURSE 1.0.35-touch-release' app/src/main/assets/hotfix-next.js
-      - name: Seed installed 5.16.40 approval and completed main-course state
+          grep -q 'TURNIKCOACH_HOTFIX 5.16.41-finish-without-save' app/src/main/assets/hotfix-prev.js
+          grep -q 'TURNIKCOACH_HOTFIX 5.16.42-flexible-course-schedule' app/src/main/assets/hotfix-next.js
+          grep -q 'TURNIKCOACH_COURSE 1.0.36-flex-schedule' app/src/main/assets/hotfix-next.js
+      - name: Seed installed 5.16.41 approval and completed main-course state
         run: |
           python3 - <<'PY'
           from pathlib import Path
@@ -89,7 +90,7 @@ jobs:
             window.__TC_DISABLE_AUDIO_FOR_SMOKE=true;
             if(localStorage.getItem('__tcForcedHandoverSmokeSeeded')) return;
             var d=new Date(),k=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
-            localStorage.setItem('tc_hotfix_approved_version','5.16.40-top-back-exit');
+            localStorage.setItem('tc_hotfix_approved_version','5.16.41-finish-without-save');
             localStorage.setItem('tc_morozov_course_v1',JSON.stringify({
               enabled:true,level:4,goal:'quantity',pullMax:20,courseSeq:1,extraSeq:0,
               lastCourseDate:k,lastCourseTs:Date.now(),weeklySessions:3,cycleStartDate:k,
@@ -289,10 +290,10 @@ jobs:
       - name: Build isolated DEBUG preview APK
         run: |
           gradle --no-daemon :app:assembleDebug
-          cp app/build/outputs/apk/debug/app-debug.apk TurnikCoach-UX2-Accessibility-Preview-v5.16.41.apk
+          cp app/build/outputs/apk/debug/app-debug.apk TurnikCoach-UX2-Accessibility-Preview-v5.16.42.apk
       - name: Enable KVM
         run: sudo chmod 666 /dev/kvm || true
-      - name: Verify 5.16.41 UX2 accessibility baseline in real Android WebView
+      - name: Verify 5.16.42 UX2 accessibility baseline in real Android WebView
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 35
@@ -301,16 +302,16 @@ jobs:
           disable-animations: true
           emulator-options: -no-snapshot-save -no-window -gpu swiftshader -noaudio -no-boot-anim
           script: |
-            adb install -r TurnikCoach-UX2-Accessibility-Preview-v5.16.41.apk
+            adb install -r TurnikCoach-UX2-Accessibility-Preview-v5.16.42.apk
             TC_TEST_PKG=ru.turnikcoach.v52tr.calendarpreview python3 scripts/course_undo_ui_smoke.py
       - name: Upload UX2 accessibility baseline screenshots
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: TurnikCoach-5.16.41-ux2-accessibility-baseline-screenshots
+          name: TurnikCoach-5.16.42-ux2-accessibility-baseline-screenshots
           path: undo-ui-test-output
           if-no-files-found: warn
-      - name: Verify 5.16.41 UX2 at 200% system font scale
+      - name: Verify 5.16.42 UX2 at 200% system font scale
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 35
@@ -321,17 +322,17 @@ jobs:
           script: |
             adb shell settings put system font_scale 2.0
             test "$(adb shell settings get system font_scale | tr -d '\r')" = "2.0"
-            adb install -r TurnikCoach-UX2-Accessibility-Preview-v5.16.41.apk
+            adb install -r TurnikCoach-UX2-Accessibility-Preview-v5.16.42.apk
             TC_TEST_PKG=ru.turnikcoach.v52tr.calendarpreview TC_OUT_DIR="$GITHUB_WORKSPACE/undo-ui-font200-output" TC_FONT_SCALE=2.0 python3 scripts/course_undo_ui_smoke.py
       - name: Upload UX2 200% font-scale screenshots
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: TurnikCoach-5.16.41-ux2-font200-screenshots
+          name: TurnikCoach-5.16.42-ux2-font200-screenshots
           path: undo-ui-font200-output
           if-no-files-found: warn
       - uses: actions/upload-artifact@v4
         with:
-          name: TurnikCoach-5.16.41-ux2-accessibility-isolated-preview
-          path: TurnikCoach-UX2-Accessibility-Preview-v5.16.41.apk
+          name: TurnikCoach-5.16.42-ux2-accessibility-isolated-preview
+          path: TurnikCoach-UX2-Accessibility-Preview-v5.16.42.apk
           if-no-files-found: error
