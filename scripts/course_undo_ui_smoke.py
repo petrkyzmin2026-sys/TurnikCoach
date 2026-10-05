@@ -364,7 +364,8 @@ assert summary["labels"] and all(x in "|".join(summary["labels"]) for x in ["З�
 screenshot("02b-progress-summary")
 course_stats=test_eval_json("(function(){var w=document.getElementById('tcCourseHistoryWrap'),c=JSON.parse(localStorage.getItem('tc_morozov_course_v1')||'{}'),r=(c.courseRuns||[]).find(x=>x.id===c.activeRunId),h=(c.history||[])[0];return {present:!!w,text:w&&w.textContent||'',runs:(c.courseRuns||[]).length,active:c.activeRunId||'',baseline:r&&r.baselinePullMax,historyRun:h&&h.runId||''};})()","morozov-course-stats")
 print("TC_DIAG morozov-course-stats",course_stats,flush=True)
-assert course_stats["present"] and "Курс Морозова" in course_stats["text"] and "Выполнение курса" in course_stats["text"] and "Вовремя" in course_stats["text"] and "Пропущено" in course_stats["text"], "Progress must show compact Morozov course statistics"
+stats_text=course_stats["text"].lower()
+assert course_stats["present"] and "курс морозова" in stats_text and "выполнение курса" in stats_text and "вовремя" in stats_text and "пропущено" in stats_text, "Progress must show compact Morozov course statistics"
 assert course_stats["runs"]>=1 and course_stats["active"] and course_stats["historyRun"]==course_stats["active"] and course_stats["baseline"]==20, "5.16.43 must migrate the seeded current course into one active run without losing history"
 screenshot("02c-morozov-course-stats")
 tap_clickable_text("Сегодня",timeout=20)
