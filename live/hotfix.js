@@ -905,7 +905,6 @@ if(!tcDomainCacheReady()||!tcCourseCacheReady()){
 tcEnsureRequiredModules().then(ok=>{if(ok)installUpdate();else showRuntimeNotice('Модули приложения недоступны. Повторите обновление при подключении к интернету.','danger')});
 return;
 }
-if(!tcLoadDomainModule()||!tcLoadCourseModule()){showRuntimeNotice('Не удалось активировать слой состояний приложения. Текущая версия оставлена без изменений.','danger');return}
 
 const previousVersion=String(window.__TC_HOTFIX_ACTIVE_VERSION||window.__TC_HOTFIX_VERSION||'');
 window.__TC_HOTFIX_ACTIVE_VERSION=VERSION;
