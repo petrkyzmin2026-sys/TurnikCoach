@@ -326,13 +326,13 @@ def launch():
 launch()
 dismiss_system_anr()
 
-# Exact update path: packaged 5.14 + cached 5.16.47 is active first; staged 5.16.48 must be offered explicitly.
+# Exact update path: packaged 5.14 + cached 5.16.47 is active first; staged 5.16.49 must be offered explicitly.
 time.sleep(3)
 screenshot("00-before-update-assert")
 adb("shell","uiautomator","dump","/sdcard/uxb3-before-update.xml",check=False)
 adb("pull","/sdcard/uxb3-before-update.xml",OUT+"/00-before-update.xml",check=False)
 try:
-    wait_text("Доступно обновление TurnikCoach 5.16.48",timeout=20)
+    wait_text("Доступно обновление TurnikCoach 5.16.49",timeout=20)
 except Exception:
     log=adb("logcat","-d","-t","500",check=False)
     with open(OUT+"/00-logcat.txt","w",encoding="utf-8") as fp:
@@ -342,10 +342,23 @@ wait_text("Обновить",contains=False)
 screenshot("01-update-offered")
 
 tap_clickable_text("Обновить")
-wait_text("TurnikCoach обновлён до 5.16.48",timeout=25)
+wait_text("TurnikCoach обновлён до 5.16.49",timeout=25)
 assert_accessibility_target("План",48)
 assert_accessibility_target("Прогресс",48)
 screenshot("02-update-installed")
+
+# Plan must now be a plan, not a flat exercise catalog.
+tap_clickable_text("План",timeout=20)
+plan_probe=test_eval_json("(function(){var p=document.getElementById('tcPlanPrimary'),c=document.getElementById('tcCourseCard'),u=document.getElementById('tcPlanScheduleCard'),e=document.getElementById('tcExtrasDetails'),h=document.querySelector('#exercise .head .sub');var pr=p&&p.getBoundingClientRect(),er=e&&e.getBoundingClientRect();return {screen:(document.querySelector('.screen.on')||{}).id||'',primary:!!p,course:!!c,upcoming:!!u,extras:!!e,extrasOpen:!!(e&&e.open),primaryBeforeExtras:!!pr&&!!er&&pr.top<er.top,head:h&&h.textContent||'',courseText:c&&c.textContent||'',upcomingText:u&&u.textContent||'',extrasText:e&&e.querySelector('summary')&&e.querySelector('summary').textContent||''};})()","plan-information-architecture")
+print("TC_DIAG plan-information-architecture",plan_probe,flush=True)
+assert plan_probe["screen"]=="exercise" and plan_probe["primary"] and plan_probe["course"] and plan_probe["upcoming"] and plan_probe["extras"], "Plan must render three separated semantic regions"
+assert plan_probe["primaryBeforeExtras"] and not plan_probe["extrasOpen"], "Course/upcoming plan must precede a collapsed extras catalog"
+assert "Курс Морозова" in plan_probe["courseText"] and "БЛИЖАЙШИЕ ТРЕНИРОВКИ" in plan_probe["upcomingText"] and "Дополнительные упражнения" in plan_probe["extrasText"], "Plan sections need clear user-facing labels"
+assert "основной курс" in plan_probe["head"].lower() and "дополнительные упражнения" in plan_probe["head"].lower(), "Plan header must describe the separated hierarchy"
+assert_accessibility_target("Настроить курс",48)
+screenshot("02-plan-information-architecture")
+tap_clickable_text("Прогресс",timeout=20)
+
 nav_hit=test_eval_json("(function(){var b=document.getElementById('n3'),r=b.getBoundingClientRect(),x=(r.left+r.right)/2,y=(r.top+r.bottom)/2,h=document.elementFromPoint(x,y),n=document.getElementById('nav');return {rect:{top:r.top,bottom:r.bottom},hit:h&&h.id||h&&h.tagName||'',inNav:!!(h&&n.contains(h)),sheetOpen:!!document.querySelector('#sheet.open')};})()","progress-nav-real-hit-test")
 print("TC_DIAG bottom-nav-hit",nav_hit,flush=True)
 assert nav_hit["inNav"] and not nav_hit["sheetOpen"], "Progress nav center must not be covered by the Today undo action at large text"
@@ -366,9 +379,9 @@ course_stats=test_eval_json("(function(){var w=document.getElementById('tcCourse
 print("TC_DIAG morozov-course-stats",course_stats,flush=True)
 stats_text=course_stats["text"].lower()
 assert course_stats["present"] and "курс морозова" in stats_text and "выполнение курса" in stats_text and "вовремя" in stats_text and "пропущено" in stats_text, "Progress must show compact Morozov course statistics"
-assert course_stats["runs"]>=1 and course_stats["active"] and course_stats["historyRun"]==course_stats["active"] and course_stats["baseline"]==20, "5.16.48 must preserve the seeded active course run and history"
+assert course_stats["runs"]>=1 and course_stats["active"] and course_stats["historyRun"]==course_stats["active"] and course_stats["baseline"]==20, "5.16.49 must preserve the seeded active course run and history"
 screenshot("02c-morozov-course-stats")
-core_probe=test_eval_json("(function(){var c=window.TurnikCore&&TurnikCore.debug?TurnikCore.debug():null;var d=window.TurnikDomain&&TurnikDomain.debug?TurnikDomain.debug():null;var u=window.TurnikUI&&TurnikUI.debug?TurnikUI.debug():null;var st=window.TurnikWorkoutStore&&TurnikWorkoutStore.debug?TurnikWorkoutStore.debug():null;var ss=window.TurnikWorkoutStore&&TurnikWorkoutStore.summary?TurnikWorkoutStore.summary({now:Date.now()}):null;var f=window.__TC_CORE_FOUNDATION||null;var dc=localStorage.getItem('tc_module_domain_1.0.0')||'',uc=localStorage.getItem('tc_module_ui_1.0.0')||'',sc=localStorage.getItem('tc_module_store_1.1.0-write-path')||'',cc=localStorage.getItem('tc_module_course_1.0.40-unified-writes')||'';var v=typeof window.tcGetCourseViewState==='function'?window.tcGetCourseViewState():null;return {core:c,domain:d,ui:u,store:st,storeSummary:ss,foundation:f,domainCache:dc.length,uiCache:uc.length,storeCache:sc.length,courseCache:cc.length,today:v&&v.today&&v.today.kind||'',plan:v&&v.plan&&v.plan.kind||'',progress:v&&v.progress&&v.progress.kind||'',active:window.__TC_HOTFIX_ACTIVE_VERSION};})()","unified-workout-store")
+core_probe=test_eval_json("(function(){var c=window.TurnikCore&&TurnikCore.debug?TurnikCore.debug():null;var d=window.TurnikDomain&&TurnikDomain.debug?TurnikDomain.debug():null;var u=window.TurnikUI&&TurnikUI.debug?TurnikUI.debug():null;var st=window.TurnikWorkoutStore&&TurnikWorkoutStore.debug?TurnikWorkoutStore.debug():null;var ss=window.TurnikWorkoutStore&&TurnikWorkoutStore.summary?TurnikWorkoutStore.summary({now:Date.now()}):null;var f=window.__TC_CORE_FOUNDATION||null;var dc=localStorage.getItem('tc_module_domain_1.0.0')||'',uc=localStorage.getItem('tc_module_ui_1.0.0')||'',sc=localStorage.getItem('tc_module_store_1.1.0-write-path')||'',cc=localStorage.getItem('tc_module_course_1.0.41-plan-ia')||'';var v=typeof window.tcGetCourseViewState==='function'?window.tcGetCourseViewState():null;return {core:c,domain:d,ui:u,store:st,storeSummary:ss,foundation:f,domainCache:dc.length,uiCache:uc.length,storeCache:sc.length,courseCache:cc.length,today:v&&v.today&&v.today.kind||'',plan:v&&v.plan&&v.plan.kind||'',progress:v&&v.progress&&v.progress.kind||'',active:window.__TC_HOTFIX_ACTIVE_VERSION};})()","unified-workout-store")
 print("TC_DIAG unified-workout-store",core_probe,flush=True)
 assert core_probe["core"] and core_probe["core"]["version"]=="1.0.0", "TurnikCore must be active in the real WebView"
 assert sorted(core_probe["core"]["sources"])==["course","generic"], "TurnikCore must register both state sources"
@@ -379,11 +392,11 @@ assert any(x["name"]=="morozov" for x in core_probe["domain"]["areas"]["today"])
 assert core_probe["store"] and core_probe["store"]["version"]=="1.1.0-write-path", "TurnikWorkoutStore must be active in the real WebView"
 assert core_probe["store"].get("writePath") is True, "WorkoutStore write path must be active in the real WebView"
 assert core_probe["storeSummary"] and core_probe["storeSummary"]["total"]>=1 and core_probe["storeSummary"]["bySource"].get("course",0)>=1, "WorkoutStore must expose the seeded course workout through the unified read model"
-assert core_probe["foundation"] and core_probe["foundation"]["domainModule"]=="1.0.0" and core_probe["foundation"]["uiModule"]=="1.0.0" and core_probe["foundation"]["storeModule"]=="1.1.0-write-path" and core_probe["foundation"]["courseModule"]=="1.0.40-unified-writes", "runtime diagnostics must expose compatible Core/Domain/UI/Store/Course versions"
+assert core_probe["foundation"] and core_probe["foundation"]["domainModule"]=="1.0.0" and core_probe["foundation"]["uiModule"]=="1.0.0" and core_probe["foundation"]["storeModule"]=="1.1.0-write-path" and core_probe["foundation"]["courseModule"]=="1.0.41-plan-ia", "runtime diagnostics must expose compatible Core/Domain/UI/Store/Course versions"
 assert core_probe["domainCache"]>500 and core_probe["storeCache"]>500 and core_probe["courseCache"]>1000, "Domain, Store and Course modules must survive in separate offline caches"
 assert core_probe["today"]=="COURSE_DONE" and core_probe["plan"]=="COURSE_ACTIVE" and core_probe["progress"]=="COURSE_PROGRESS", "view state must be resolved before rendering"
 assert core_probe["uiCache"]>500, "UI presenter must survive in the offline module cache"
-assert core_probe["active"]=="5.16.48-unified-workout-writes", "5.16.48 must be the active OTA shell"
+assert core_probe["active"]=="5.16.49-plan-ia", "5.16.49 must be the active OTA shell"
 screenshot("02d-unified-workout-store")
 tap_clickable_text("Сегодня",timeout=20)
 
@@ -462,9 +475,9 @@ adb("shell","am","force-stop",PKG)
 time.sleep(1)
 launch()
 dismiss_system_anr()
-upgrade_install=wait_log_tokens(["TC_NAV_UPGRADE",'"phase":"install"','"version":"5.16.48-unified-workout-writes"'],timeout=20)
+upgrade_install=wait_log_tokens(["TC_NAV_UPGRADE",'"phase":"install"','"version":"5.16.49-plan-ia"'],timeout=20)
 restore_line=wait_log_tokens(["TC_WORKOUT_STATE",'"phase":"restored"','"name":"Подъём коленей в висе"','"mode":"extra"'],timeout=20)
-upgrade_arm=wait_log_tokens(["TC_NAV_UPGRADE",'"phase":"arm-restore-guard"','"version":"5.16.48-unified-workout-writes"','"surface":"workout"'],timeout=20)
+upgrade_arm=wait_log_tokens(["TC_NAV_UPGRADE",'"phase":"arm-restore-guard"','"version":"5.16.49-plan-ia"','"surface":"workout"'],timeout=20)
 print("TC_DIAG nav-upgrade-install",upgrade_install,flush=True)
 print("TC_DIAG restore",restore_line,flush=True)
 print("TC_DIAG nav-upgrade-arm",upgrade_arm,flush=True)
