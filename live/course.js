@@ -1,7 +1,7 @@
-/* TURNIKCOACH_COURSE 1.0.40-unified-writes */
+/* TURNIKCOACH_COURSE 1.0.41-ia-cleanup */
 (function(){
 'use strict';
-const COURSE_MODULE_VERSION='1.0.40-unified-writes';
+const COURSE_MODULE_VERSION='1.0.41-ia-cleanup';
 if(window.__TC_COURSE_MODULE_VERSION===COURSE_MODULE_VERSION)return;
 window.__TC_COURSE_MODULE_VERSION=COURSE_MODULE_VERSION;
 function tcClamp(v,a,b){return Math.max(a,Math.min(b,v))}
@@ -693,13 +693,24 @@ const ratio=(+actual||0)/target;if(ratio<.9)sec=r.max;else if(ratio>1.2)sec=r.mi
 sec=tcClamp(sec,r.min,r.max);
 return{manual:false,seconds:sec,note:'Диапазон курса '+tcCourseRestText(r)+' · TurnikCoach выбрал '+Math.floor(sec/60)+':'+String(sec%60).padStart(2,'0')};
 }
+function tcUpcomingCourseDates(limit=3){
+const out=[],today=dateKey(),start=tcDateFromKey(today),max=Math.max(1,+limit||3);
+for(let i=0;i<35&&out.length<max;i++){
+const d=new Date(start);d.setDate(start.getDate()+i);const k=dateKey(d);
+if(!tcScheduledOn(k))continue;
+if(k===today&&TC_course.lastCourseDate===today)continue;
+out.push(k);
+}
+return out;
+}
 function tcCoursePlanState(){
 const l=tcCourseLevel(),c=tcCourseComplex();
 return{
 kind:TC_course.enabled?'COURSE_ACTIVE':'COURSE_DISABLED',
 enabled:!!TC_course.enabled,level:TC_course.level,levelTitle:l.title,goal:TC_course.goal,goalName:tcCourseGoalName(TC_course.goal),
 nextComplex:c.no,nextComplexName:c.def?c.def.name:'—',pullMax:TC_course.pullMax,weeklySessions:TC_course.weeklySessions,
-frequency:l.frequency,cycleStartDate:TC_course.cycleStartDate||'',extras:tcExtraExercises().map(e=>({id:e.id,name:e.name}))
+frequency:l.frequency,cycleStartDate:TC_course.cycleStartDate||'',extras:tcExtraExercises().map(e=>({id:e.id,name:e.name})),
+upcomingDates:tcUpcomingCourseDates(3)
 };
 }
 function tcResolvedPlanState(){
@@ -707,11 +718,16 @@ if(window.TurnikDomain){const x=window.TurnikDomain.plan();if(x&&x.source==='mor
 return tcCoursePlanState();
 }
 function tcCourseCardHtml(view){
-const p=view||tcResolvedPlanState(),enabled=p.enabled;
-return '<div class="card" id="tcCourseCard" style="margin-bottom:12px;border-color:'+(enabled?'#ffd84d':'#2c3945')+'">'+
-'<div class="row between"><div class="grow"><div class="k">ПРОГРАММА</div><div class="strong" style="font-size:18px;margin-top:3px">Курс Морозова</div><div class="meta">«Подтягивания с нуля до киборга»</div></div><span class="tag '+(enabled?'':'stage4')+'">'+(enabled?'ВКЛЮЧЁН':'ВЫКЛЮЧЕН')+'</span></div>'+
-(enabled?'<div class="tcInfoBlock"><h3>Оборудование: только турник</h3><p>В тренировочный план не включаются упражнения, требующие резины, отягощения, полотенца, стула или низкой перекладины.</p></div><div class="tcInfoBlock"><h3>'+p.levelTitle+'</h3><p><b>Цель:</b> '+p.goalName+'<br><b>Следующий:</b> '+p.nextComplexName+'<br><b>Текущий максимум:</b> '+p.pullMax+'<br><b>Частота по курсу:</b> '+p.frequency+'</p></div>':'<div class="sub" style="margin-top:10px">Отдельная система тренировок: уровни, комплексы, проценты, MAX, отдых и контрольные критерии берутся из курса. Остальные упражнения TurnikCoach можно использовать отдельно.</div>')+
-'<button class="btn yellow full" style="margin-top:12px" onclick="tcOpenCourseProgram()">Программа курса</button>'+ '<button class="btn ghost full" style="margin-top:8px" onclick="tcOpenCourseSettings()">'+(enabled?'Настройки курса':'Подключить курс')+'</button></div>';
+const p=view||tcResolvedPlanState(),enabled=p.enabled,dates=(p.upcomingDates||[]);
+const schedule=dates.length?'<div class="tcPlanUpcoming"><div class="tcPlanSectionLabel">БЛИЖАЙШИЕ ТРЕНИРОВКИ</div><div class="tcPlanDateChips">'+dates.map((d,i)=>'<span><b>'+(i?fmtKeyDate(d,false):'Следующая · '+fmtKeyDate(d,false))+'</b></span>').join('')+'</div></div>':'';
+return '<div class="card tcPlanCourseCard" id="tcCourseCard" style="margin-bottom:12px;border-color:'+(enabled?'#ffd84d':'#2c3945')+'">'+
+'<div class="row between"><div class="grow"><div class="k">ОСНОВНОЙ ПЛАН</div><div class="strong" style="font-size:19px;margin-top:3px">Курс Морозова</div>'+
+(enabled?'<div class="meta">'+p.levelTitle+' · '+p.goalName+'</div>':'<div class="meta">Курс подтягиваний по уровням и комплексам</div>')+
+'</div><span class="tag '+(enabled?'':'stage4')+'">'+(enabled?'АКТИВЕН':'ВЫКЛ.')+'</span></div>'+
+(enabled?'<div class="tcPlanKpis"><div><b>'+p.pullMax+'</b><span>текущий MAX</span></div><div><b>№'+p.nextComplex+'</b><span>следующий комплекс</span></div><div><b>'+p.weeklySessions+'</b><span>тренировок / нед.</span></div></div>'+schedule:
+'<div class="sub" style="margin-top:10px">Подключите курс, если хотите, чтобы подтягивания планировались отдельно от дополнительных упражнений.</div>')+
+'<div class="tcPlanActions"><button class="btn yellow full" onclick="tcOpenCourseSettings()">'+(enabled?'Настроить курс':'Подключить курс')+'</button>'+
+'<button class="btn ghost full" onclick="tcOpenCourseProgram()">Программа курса</button></div></div>';
 }
 function tcActionMessage(title,text){
 const box=q('sheetbox'),sheet=q('sheet');
@@ -761,7 +777,7 @@ append('main','Основное',true);
 append('schedule','Расписание',false);
 append('extra','Дополнительная работа',false);
 append('control','Контроль прогресса',false);
-append('system','Система и оборудование',false);
+append('system','Оборудование',false);
 box.insertBefore(wrap,error);
 }
 window.tcOpenCourseSettings=function(){
@@ -785,7 +801,6 @@ box.innerHTML='<div class="sheettitle">Курс Морозова</div><div class
 (l.supplement?'<div class="tcInfoBlock"><h3>Дополнительные подтягивания по курсу</h3><p><label class="tcCheckRow" style="display:flex;gap:9px;align-items:flex-start"><input id="tcCourseSupplement" type="checkbox" '+(TC_course.authorSupplement?'checked':'')+'><span>'+l.supplement+'</span></label></p></div>':'')+
 (TC_course.level===4&&TC_course.goal==='quantity'?'<div class="tcInfoBlock"><h3>Контроль максимума · TurnikCoach</h3><p>Цель: <input id="tcTargetMax" type="number" min="1" step="1" value="'+TC_course.targetMax+'" style="width:65px;background:#0c1218;color:#fff;border:1px solid #3a4653;border-radius:8px;padding:7px"> повторений.<br><br>Проверять каждые <select id="tcTestWeeks" style="background:#0c1218;color:#fff;border:1px solid #3a4653;border-radius:8px;padding:7px">'+[2,3,4].map(n=>'<option value="'+n+'" '+(TC_course.testPeriodWeeks===n?'selected':'')+'>'+n+' недели</option>').join('')+'</select><br><br>Контроль назначается после восстановления; результат сохраняется отдельно от основной тренировки.</p></div>':'')+
 (TC_course.level===7?'<button class="btn ghost full" style="margin-top:8px" onclick="tcOpenAdvancedChoiceSheet()">Выбрать два упражнения 7-го уровня</button>':'')+
-'<div class="tcInfoBlock"><h3>Версия</h3><p>Hotfix: <b>'+(window.__TC_HOTFIX_LABEL||window.__TC_HOTFIX_VERSION||'не определён')+'</b><br>Модуль курса: <b>'+COURSE_MODULE_VERSION+'</b>'+(window.__TC_HOTFIX_INSTALLED_AT?'<br>Активирован: '+new Date(window.__TC_HOTFIX_INSTALLED_AT).toLocaleString('ru-RU'):'')+'</p></div>'+
 '<div id="tcSettingsError" class="meta" style="color:#ff9b9b;margin-top:10px"></div>'+
 '<button class="btn yellow full" style="margin-top:14px" onclick="tcSaveCourseSettings()">Сохранить</button><button class="btn ghost full" style="margin-top:8px" onclick="closeSheet()">Отмена</button>';
 tcGroupCourseSettings(box);
@@ -927,6 +942,7 @@ st.textContent="#sheet.open{overflow:hidden!important}#sheet .sheetbox{max-heigh
 st.textContent+='.tcWeekCalendar{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;margin:10px 0 12px}.tcWeekDay{min-width:0;min-height:64px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;border:1px solid #33414b;background:#151f28;border-radius:9px;padding:6px 1px;color:#c6d1db;font-size:10px;touch-action:manipulation}.tcWeekDay b{font-size:10px}.tcWeekDay span{font-size:13px;font-weight:850}.tcWeekDay small{font-size:8px;font-weight:800;color:#a5b4c1}.tcWeekToday{border-color:#ffd84d;background:#2a281b;color:#ffd84d}.tcWeekToday small{color:#ffd84d}';
 st.textContent+='.tcWeekNav{display:flex;align-items:center;gap:6px;margin-top:12px;color:#b9c4cf;font-size:11px}.tcWeekNav span{flex:1;min-width:0;text-align:center}.tcWeekNav button{border:1px solid #354351;border-radius:10px;background:#202b34;color:#fff;min-width:48px;min-height:48px;font-size:20px;cursor:pointer;touch-action:manipulation}.tcWeekNav button.tcWeekReset{min-width:72px;font-size:11px;padding:0 10px}.tcWeekDay{font-family:inherit;appearance:none;cursor:pointer}.tcWeekDay.tcWeekSelected{border:2px solid #ffd84d;box-shadow:inset 0 0 0 1px rgba(255,216,77,.35);background:#352f1e;color:#ffe18a}.tcWeekDay.tcWeekSelected small{color:#ffe18a}.tcCoursePreview .dateBig{overflow-wrap:break-word}.tcCheckRow{min-height:48px;box-sizing:border-box;touch-action:manipulation}.tcCheckRow input[type=checkbox],.tcAdvancedSelect{width:24px!important;height:24px!important;min-width:24px!important;flex:0 0 24px}.tcAdvancedSelect{touch-action:manipulation}.tcExerciseCheckTarget{width:48px;height:48px;min-width:48px;flex:0 0 48px;display:grid;place-items:center;cursor:pointer;touch-action:manipulation}.tcExerciseCheckTarget input[type=checkbox]{width:24px!important;height:24px!important;margin:0!important}.tcExerciseNumberTarget{min-height:48px!important;touch-action:manipulation}.tcExerciseMainTarget{width:48px!important;height:48px!important;min-width:48px!important;min-height:48px!important;padding:0!important;touch-action:manipulation}#sheet .sheetbox input:not([type=checkbox]),#sheet .sheetbox select{min-height:48px!important;box-sizing:border-box;touch-action:manipulation}#sheet .sheetbox input[type=checkbox]{width:24px!important;height:24px!important;min-width:24px!important;flex:0 0 24px}#sheet .sheetbox .tcCheckRow{min-height:48px!important;padding-top:6px;padding-bottom:6px;cursor:pointer}';
 st.textContent+='.tcTodayPlanDetails{margin-top:10px;border:1px solid #34414d;border-radius:12px;background:#111820;overflow:hidden}.tcTodayPlanDetails>summary{list-style:none;min-height:48px;display:flex;align-items:center;justify-content:center;padding:0 12px;cursor:pointer;font-size:13px;font-weight:850;color:#d8e0e8;touch-action:manipulation}.tcTodayPlanDetails>summary::-webkit-details-marker{display:none}.tcTodayPlanBody{padding:0 12px 10px}.tcTodayPrimaryMeta{margin-top:6px;color:#aeb8c2;font-size:12px;line-height:1.4}.tcWeekSection{margin-top:14px}.tcWeekSectionTitle{font-size:11px;font-weight:900;letter-spacing:.08em;color:#8f9aa6;margin:0 2px 6px}.tcSettingsGroups{margin-top:12px}.tcSettingsGroup{border:1px solid #34414d;border-radius:14px;background:#10171d;margin:9px 0;overflow:hidden}.tcSettingsGroup>summary{list-style:none;min-height:54px;display:flex;align-items:center;padding:0 14px;font-size:14px;font-weight:900;color:#f3f6f8;cursor:pointer;touch-action:manipulation}.tcSettingsGroup>summary::-webkit-details-marker{display:none}.tcSettingsGroup>summary:after{content:"›";margin-left:auto;color:#ffd84d;font-size:22px;transform:rotate(90deg);transition:transform .15s ease}.tcSettingsGroup[open]>summary:after{transform:rotate(-90deg)}.tcSettingsGroupBody{padding:0 12px 12px}.tcSettingsGroupBody>.tcInfoBlock:first-child{margin-top:0}.tcDoneStrip{margin:8px 0 12px;padding:13px 14px 14px;border:1px solid #3d5b46;border-radius:16px;background:#171d23;box-shadow:none}.tcDoneStripHead{display:flex;align-items:flex-start;gap:10px}.tcDoneStripHead>div{flex:1;min-width:0}.tcDoneStripTitle{font-size:17px;line-height:1.2;font-weight:900;color:#f6f7f9}.tcDoneStripText{margin-top:5px;font-size:12px;line-height:1.38;color:#aeb8c2}.tcDoneBadge{flex:0 0 auto;font-size:9px;font-weight:900;letter-spacing:.04em;color:#d9ffe2;border:1px solid #3d5b46;background:#17251b;border-radius:999px;padding:5px 7px}.tcUndoTodayCourseBtn,.tcAfterMainCard .btn{position:relative;z-index:42;pointer-events:auto!important;touch-action:manipulation;min-height:48px!important}.tcUndoTodayCourseBtn{margin-top:11px!important;border-radius:12px!important;font-size:13px!important}.tcAfterMainCard{position:relative;z-index:40;margin-top:10px;isolation:isolate}';
+st.textContent+='.tcPlanKpis,.tcCourseKpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(92px,1fr));gap:8px;margin-top:12px}.tcPlanKpis>div,.tcCourseKpis>div{min-width:0;background:#111920;border:1px solid #2d3945;border-radius:12px;padding:10px 8px;text-align:center}.tcPlanKpis b,.tcCourseKpis b{display:block;color:#ffd84d;font-size:18px;line-height:1.15;overflow-wrap:anywhere}.tcPlanKpis span,.tcCourseKpis span{display:block;color:#9eabb7;font-size:10px;line-height:1.3;margin-top:4px}.tcPlanUpcoming{margin-top:13px}.tcPlanSectionLabel{font-size:10px;font-weight:900;letter-spacing:.08em;color:#8895a2}.tcPlanDateChips{display:flex;gap:6px;overflow-x:auto;margin-top:7px;padding-bottom:2px}.tcPlanDateChips span{flex:0 0 auto;border:1px solid #354351;background:#151d24;border-radius:10px;padding:8px 10px;color:#dce4eb;font-size:11px}.tcPlanActions{display:grid;grid-template-columns:1fr;gap:8px;margin-top:13px}.tcTodaySecondary,.tcProgressDetails{margin-top:10px;border:1px solid #303d49;border-radius:13px;background:#10171d;overflow:hidden}.tcTodaySecondary>summary,.tcProgressDetails>summary{list-style:none;min-height:50px;display:flex;align-items:center;padding:0 13px;font-size:13px;font-weight:900;color:#d9e1e8;cursor:pointer;touch-action:manipulation}.tcTodaySecondary>summary::-webkit-details-marker,.tcProgressDetails>summary::-webkit-details-marker{display:none}.tcTodaySecondary>summary:after,.tcProgressDetails>summary:after{content:"›";margin-left:auto;color:#ffd84d;font-size:20px;transform:rotate(90deg)}.tcTodaySecondary[open]>summary:after,.tcProgressDetails[open]>summary:after{transform:rotate(-90deg)}.tcTodaySecondaryBody,.tcProgressDetailsBody{padding:0 11px 11px}.tcCourseStatsLine{margin-top:9px;color:#aab5bf;font-size:11px;line-height:1.45}.tcCourseProgressCard>.progressHead{margin-bottom:4px}';
 document.head.appendChild(st);
 }
 function tcCollapseExtraCatalog(host){
@@ -1232,18 +1248,27 @@ if(due){
 const l=tcCourseLevel(),c=tcCourseComplex(),items=tcBuildCourseItems();
 return{kind:'MAIN_WORKOUT',levelTitle:l.title,complexName:c.def?c.def.name:'Основной комплекс',items,totalSets:items.reduce((sum,x)=>sum+(Array.isArray(x.plan)?x.plan.length:0),0),adapted:tcUnavailableDefs(defs).length>0,defs};
 }
+if(tcAuxDue())return{kind:'AUX_WORKOUT'};
 const nextKey=tcWeeklyMode()?tcNextCourseDay():'';
 const next=new Date(TC_course.lastCourseDate+'T12:00:00');next.setDate(next.getDate()+2);
-return{kind:'RECOVERY',auxDue:tcAuxDue(),extras,nextDate:nextKey||dateKey(next)};
+return{kind:'RECOVERY',extras,nextDate:nextKey||dateKey(next)};
 }
 function tcResolvedTodayState(){
 if(window.TurnikDomain){const x=window.TurnikDomain.today({date:dateKey()});if(x&&x.source==='morozov')return x}
 return tcCourseTodayState();
 }
+function tcTodayWeekHtml(){
+const cal=tcWeeklyCalendarHtml();if(!cal)return'';
+return '<details class="tcTodaySecondary"><summary>План недели</summary><div class="tcTodaySecondaryBody">'+cal+'</div></details>';
+}
+function tcTodayMoreHtml(){
+const supplement=tcSupplementHtml(),control=tcCourseControlStatusHtml();
+if(!supplement&&!control)return'';
+return '<details class="tcTodaySecondary"><summary>Дополнительно</summary><div class="tcTodaySecondaryBody">'+supplement+control+'</div></details>';
+}
 function tcRenderToday(view){
 if(tcSyncScheduleEvents())tcSaveCourse();
-const now=new Date();view=view||tcResolvedTodayState();
-const week=()=>'<div class="tcWeekSection"><div class="tcWeekSectionTitle">ПЛАН НЕДЕЛИ</div>'+tcWeeklyCalendarHtml()+'</div>';
+const now=new Date();view=view||tcResolvedTodayState(),week=()=>tcTodayWeekHtml();
 q('todayTitle').textContent=fmtDate(now);
 if(view.kind==='PREVIEW'){
 q('todayTitle').textContent=fmtDate(tcDateFromKey(view.date));q('todaySub').textContent='Просмотр плана';q('todayList').innerHTML=tcPreviewCourseCard(view.date)+week();return;
@@ -1273,18 +1298,21 @@ q('todayList').innerHTML=tcPendingLevelHtml()+tcEquipmentMasteryNote()+
 '<button class="btn ghost full" style="margin-top:8px" onclick="tcOpenCourseInfo()">ⓘ Почему такой план</button></div></details></div>'+tcMasteryCardHtml()+week();
 tcQueueDecorate();return;
 }
-q('todaySub').textContent=view.auxDue?'Сегодня · вспомогательная тренировка':'Сегодня · восстановление';
-let html='<div class="todayCard"><div class="row between"><div class="grow"><div class="dateBig">'+(view.auxDue?'Основной комплекс не назначен':'Сегодня восстановление')+
-'</div><div class="sessionNo">Следующая основная тренировка — '+fmtKeyDate(view.nextDate,false)+'</div></div><span class="tag stage4">ВОССТАНОВЛЕНИЕ</span></div>';
+if(view.kind==='AUX_WORKOUT'){
+q('todaySub').textContent='Сегодня · вспомогательная тренировка';
+q('todayList').innerHTML=tcAuxCardHtml()+week();tcQueueDecorate();return;
+}
+q('todaySub').textContent='Сегодня · восстановление';
+let html='<div class="todayCard tcTodayPrimaryCard"><div class="row between"><div class="grow"><div class="dateBig">Сегодня восстановление</div>'+
+'<div class="sessionNo">Следующая основная тренировка — '+fmtKeyDate(view.nextDate,false)+'</div></div><span class="tag stage4">ОТДЫХ</span></div>';
 if(view.extras.length){
-html+='<div class="tcTodayPrimaryMeta">Можно выполнить выбранные дополнительные упражнения без дополнительной тяговой нагрузки.</div>'+
-'<button class="btn yellow full" style="margin-top:14px;min-height:58px" onclick="tcStartExtraWorkout()">Начать дополнительную тренировку</button>'+
+html+='<div class="tcTodayPrimaryMeta">Если хотите потренироваться, доступен только выбранный нетяговый дополнительный план.</div>'+
+'<button class="btn ghost full" style="margin-top:14px;min-height:52px" onclick="tcStartExtraWorkout()">Дополнительная тренировка</button>'+
 '<details class="tcTodayPlanDetails"><summary>Посмотреть дополнительный план</summary><div class="tcTodayPlanBody">'+tcExtraRowsHtml(view.extras)+'</div></details>';
 }else{
-html+='<div class="empty" style="margin-top:12px">Дополнительные упражнения не выбраны. Можно оставить полный отдых.</div>'+
-'<button class="btn ghost full" style="margin-top:10px" onclick="go(\'exercise\')">Настроить дополнительный план</button>';
+html+='<div class="empty" style="margin-top:12px">Дополнительные упражнения не выбраны. Можно оставить полный отдых.</div>';
 }
-html+='</div>';q('todayList').innerHTML=tcAuxCardHtml()+html+tcSupplementHtml()+tcCourseControlStatusHtml()+week();tcQueueDecorate();
+html+='</div>';q('todayList').innerHTML=html+tcTodayMoreHtml()+week();tcQueueDecorate();
 }
 function tcAuthorLevelText(level){
 if(level===1)return 'Автор относит сюда тех, кто делает 0–1 обычное подтягивание или работает с резиной. Основная задача уровня — увеличить силу тянущих мышц комплексно. Для сохранения правильной техники предлагается использовать помощь ног и резину.';
@@ -1974,10 +2002,25 @@ return tcCourseProgressState();
 }
 function tcCourseStatsHtml(view){
 view=view||tcResolvedProgressState();const x=view.stats;if(!x)return'';
-const sign=x.delta>0?'+':'',rate=x.rate==null?'—':x.rate+'%',trend=x.tests.length?x.tests.slice(-5).join(' → '):'контролей пока нет';
-return '<div class="tcInfoBlock"><h3>Текущий период · с '+fmtKeyDate(x.r.startedDate,false)+'</h3><p><b>'+x.base+' → '+x.cur+'</b> подтягиваний · '+sign+x.delta+' ('+sign+x.pct+'%)<br>Выполнение курса: <b>'+rate+'</b> · выполнено '+x.completed+'<br>Вовремя '+x.on+' · перенесено '+x.moved+' · пропущено '+x.missed+' · восстановление '+x.recovery+'<br>Объём курса: '+x.sets+' подходов · '+x.reps+' повторений<br>Контрольные максимумы: '+trend+'</p></div>';
+const sign=x.delta>0?'+':'',rate=x.rate==null?'—':x.rate+'%';
+return '<div class="tcCourseKpis"><div><b>'+x.base+' → '+x.cur+'</b><span>максимум · '+sign+x.delta+' ('+sign+x.pct+'%)</span></div>'+
+'<div><b>'+rate+'</b><span>выполнение курса</span></div><div><b>'+x.completed+'</b><span>основных тренировок</span></div>'+
+'<div><b>'+x.reps+'</b><span>повторений</span></div></div>'+
+'<div class="tcCourseStatsLine">Вовремя '+x.on+' · перенесено '+x.moved+' · пропущено '+x.missed+' · восстановление '+x.recovery+' · '+x.sets+' подходов</div>';
 }
-function tcCourseHistoryHtml(view){if(!TC_course.enabled&&!TC_course.history.length)return'';const rows=TC_course.history.slice(0,8).map(h=>'<div class="historyitem"><div class="row between"><div><div class="strong" style="font-size:14px">'+(h.courseMode==='supplement'?'Дополнительные подтягивания по курсу':h.courseMode==='auxCourse'?'Вспомогательный комплекс №2 · уровень '+h.courseLevel:'Курс Морозова · уровень '+h.courseLevel+' · комплекс '+h.courseComplex)+(h.adapted?' · адаптация: только турник':'')+'</div><div class="meta">'+fmtRecordDate(h)+' · '+(h.feedback||'—')+'</div></div><span class="badge">КУРС</span></div>'+(h.details||[]).map(d=>'<div class="meta" style="margin-top:6px">'+d.name+': '+d.actual.map(v=>v===null?'—':v).join(' · ')+'</div>').join('')+'</div>').join('');return '<div class="exerciseProgressCard"><div class="progressHead"><div><div class="progressName">Курс Морозова</div><div class="meta">Статистика и история текущего периода</div></div><span class="badge">ур. '+TC_course.level+'</span></div>'+tcCourseStatsHtml(view)+'<div class="tcInfoBlock"><h3>Критерий текущего уровня</h3><p>'+tcCourseLevel().mastery+'</p></div>'+tcCourseTestsHtml()+rows+'</div>'}
+function tcCourseHistoryHtml(view){
+if(!TC_course.enabled&&!TC_course.history.length)return'';
+view=view||tcResolvedProgressState();
+const rows=TC_course.history.slice(0,8).map(h=>'<div class="historyitem"><div class="row between"><div><div class="strong" style="font-size:14px">'+
+(h.courseMode==='supplement'?'Дополнительные подтягивания по курсу':h.courseMode==='auxCourse'?'Вспомогательный комплекс №2 · уровень '+h.courseLevel:'Курс Морозова · уровень '+h.courseLevel+' · комплекс '+h.courseComplex)+
+(h.adapted?' · адаптация: только турник':'')+'</div><div class="meta">'+fmtRecordDate(h)+' · '+(h.feedback||'—')+'</div></div><span class="badge">КУРС</span></div>'+
+(h.details||[]).map(d=>'<div class="meta" style="margin-top:6px">'+d.name+': '+d.actual.map(v=>v===null?'—':v).join(' · ')+'</div>').join('')+'</div>').join('');
+return '<div class="exerciseProgressCard tcCourseProgressCard"><div class="progressHead"><div><div class="progressName">Курс Морозова</div>'+
+'<div class="meta">Текущий период · уровень '+TC_course.level+'</div></div><span class="badge">КУРС</span></div>'+
+tcCourseStatsHtml(view)+
+'<details class="tcProgressDetails"><summary>Контроль и нормативы</summary><div class="tcProgressDetailsBody"><div class="tcInfoBlock"><h3>Критерий текущего уровня</h3><p>'+tcCourseLevel().mastery+'</p></div>'+tcCourseTestsHtml()+'</div></details>'+
+'<details class="tcProgressDetails"><summary>История курса</summary><div class="tcProgressDetailsBody">'+(rows||'<div class="empty">Истории пока нет.</div>')+'</div></details></div>';
+}
 function tcRenderCourseProgress(view){
 const host=q('exerciseProgress');if(!host)return false;
 const old=document.getElementById('tcCourseHistoryWrap');if(old)old.remove();
