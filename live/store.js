@@ -1,7 +1,7 @@
-/* TURNIKCOACH_WORKOUT_STORE 1.0.0 */
+/* TURNIKCOACH_WORKOUT_STORE 1.1.0-write-path */
 (function(){
 'use strict';
-const VERSION='1.0.0';
+const VERSION='1.1.0-write-path';
 if(window.TurnikWorkoutStore&&window.TurnikWorkoutStore.version===VERSION)return;
 function core(){return window.TurnikCore||null}
 function rows(){
@@ -58,9 +58,56 @@ function course(runId){
 const a=list(runId?{runId}:null),main=a.filter(x=>x.mode==='course');
 return{all:a,main,transferred:main.filter(x=>x.transferred),onTime:main.filter(x=>!x.transferred)};
 }
-function debug(){
-const a=rows();return{version:VERSION,total:a.length,sources:[...new Set(a.map(x=>x.source))],modes:[...new Set(a.map(x=>x.mode))]};
+function sourceSnapshot(name){
+const c=core();return c&&typeof c.sourceSnapshot==='function'?c.sourceSnapshot(name):null;
 }
-window.TurnikWorkoutStore={version:VERSION,list,get,summary,course,debug};
+function transact(sourceName,mutator){
+const c=core();if(!c||typeof c.transact!=='function'||typeof mutator!=='function')return false;
+return c.transact(sourceName,mutator);
+}
+function append(sourceName,record,prepend=true){
+if(!record||typeof record!=='object')return false;
+return transact(sourceName,draft=>{
+if(!draft||!Array.isArray(draft.history))return false;
+const row=JSON.parse(JSON.stringify(record));
+if(prepend!==false)draft.history.unshift(row);else draft.history.push(row);
+});
+}
+function removeWhere(sourceName,predicate){
+if(typeof predicate!=='function')return false;
+return transact(sourceName,draft=>{
+if(!draft||!Array.isArray(draft.history))return false;
+const before=draft.history.length;
+draft.history=draft.history.filter((x,i)=>!predicate(x,i));
+return draft.history.length!==before;
+});
+}
+function batch(steps){
+const c=core();if(!c||typeof c.sourceSnapshot!=='function'||typeof c.replaceSource!=='function'||!Array.isArray(steps)||!steps.length)return false;
+const prepared=[],before=new Map();
+for(const step of steps){
+if(!step||!step.source||typeof step.mutate!=='function')return false;
+if(!before.has(step.source)){
+const snap=c.sourceSnapshot(step.source);if(snap==null)return false;before.set(step.source,snap);
+}
+const base=prepared.find(x=>x.source===step.source);
+const draft=base?base.next:JSON.parse(JSON.stringify(before.get(step.source)));
+let result=false;
+try{result=step.mutate(draft)}catch(e){console.error('TurnikWorkoutStore batch mutate',step.source,e);return false}
+if(result===false)return false;
+if(base)base.next=draft;else prepared.push({source:step.source,next:draft});
+}
+const applied=[];
+for(const p of prepared){
+if(c.replaceSource(p.source,p.next)){applied.push(p.source);continue}
+for(let i=applied.length-1;i>=0;i--)try{c.replaceSource(applied[i],before.get(applied[i]))}catch(e){}
+return false;
+}
+return true;
+}
+function debug(){
+const a=rows();return{version:VERSION,total:a.length,sources:[...new Set(a.map(x=>x.source))],modes:[...new Set(a.map(x=>x.mode))],writePath:true};
+}
+window.TurnikWorkoutStore={version:VERSION,list,get,summary,course,sourceSnapshot,transact,append,removeWhere,batch,debug};
 try{window.dispatchEvent(new CustomEvent('turnikworkoutstore:ready',{detail:{version:VERSION}}))}catch(e){}
 })();
