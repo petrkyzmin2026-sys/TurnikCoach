@@ -239,6 +239,8 @@ assert(installUpdateBody.includes('if(!tcDomainCacheReady()||!tcUiCacheReady()||
 assert(hotfix.includes('function tcRegisterCoreSources()')&&
  hotfix.includes("core.registerSource('generic'")&&hotfix.includes("core.registerSource('course'"),
  'TurnikCore must expose both legacy generic and Morozov stores through one state facade');
+assert(hotfix.includes("localStorage.setItem('tc_v4',JSON.stringify(next))"),
+ 'generic source adapter must persist the exact restored snapshot instead of delegating to legacy save()');
 assert(hotfix.includes("window.__TC_CORE_FOUNDATION={version:core.version,domainModule:window.TurnikDomain&&window.TurnikDomain.version||'',uiModule:window.TurnikUI&&window.TurnikUI.version||'',storeModule:window.TurnikWorkoutStore&&window.TurnikWorkoutStore.version||'',courseModule:TC_COURSE_MODULE_VERSION,modular:true}"),
  'runtime diagnostics must expose Core + Domain + UI + Store + Course modular foundation');
 assert(hotfix.includes("window.TurnikWorkoutStore.summary({now:Date.now()})"),
