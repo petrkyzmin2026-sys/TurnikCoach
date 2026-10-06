@@ -326,13 +326,13 @@ def launch():
 launch()
 dismiss_system_anr()
 
-# Exact update path: packaged 5.14 + cached 5.16.44 is active first; staged 5.16.45 must be offered explicitly.
+# Exact update path: packaged 5.14 + cached 5.16.45 is active first; staged 5.16.46 must be offered explicitly.
 time.sleep(3)
 screenshot("00-before-update-assert")
 adb("shell","uiautomator","dump","/sdcard/uxb3-before-update.xml",check=False)
 adb("pull","/sdcard/uxb3-before-update.xml",OUT+"/00-before-update.xml",check=False)
 try:
-    wait_text("Доступно обновление TurnikCoach 5.16.45",timeout=20)
+    wait_text("Доступно обновление TurnikCoach 5.16.46",timeout=20)
 except Exception:
     log=adb("logcat","-d","-t","500",check=False)
     with open(OUT+"/00-logcat.txt","w",encoding="utf-8") as fp:
@@ -342,7 +342,7 @@ wait_text("Обновить",contains=False)
 screenshot("01-update-offered")
 
 tap_clickable_text("Обновить")
-wait_text("TurnikCoach обновлён до 5.16.45",timeout=25)
+wait_text("TurnikCoach обновлён до 5.16.46",timeout=25)
 assert_accessibility_target("План",48)
 assert_accessibility_target("Прогресс",48)
 screenshot("02-update-installed")
@@ -366,19 +366,28 @@ course_stats=test_eval_json("(function(){var w=document.getElementById('tcCourse
 print("TC_DIAG morozov-course-stats",course_stats,flush=True)
 stats_text=course_stats["text"].lower()
 assert course_stats["present"] and "курс морозова" in stats_text and "выполнение курса" in stats_text and "вовремя" in stats_text and "пропущено" in stats_text, "Progress must show compact Morozov course statistics"
-assert course_stats["runs"]>=1 and course_stats["active"] and course_stats["historyRun"]==course_stats["active"] and course_stats["baseline"]==20, "5.16.45 must preserve the seeded active course run and history"
+assert course_stats["runs"]>=1 and course_stats["active"] and course_stats["historyRun"]==course_stats["active"] and course_stats["baseline"]==20, "5.16.46 must preserve the seeded active course run and history"
 screenshot("02c-morozov-course-stats")
-core_probe=test_eval_json("(function(){var c=window.TurnikCore&&TurnikCore.debug?TurnikCore.debug():null;var d=window.TurnikDomain&&TurnikDomain.debug?TurnikDomain.debug():null;var f=window.__TC_CORE_FOUNDATION||null;var dc=localStorage.getItem('tc_module_domain_1.0.0')||'',cc=localStorage.getItem('tc_module_course_1.0.38-domain-state')||'';var v=typeof window.tcGetCourseViewState==='function'?window.tcGetCourseViewState():null;return {core:c,domain:d,foundation:f,domainCache:dc.length,courseCache:cc.length,today:v&&v.today&&v.today.kind||'',plan:v&&v.plan&&v.plan.kind||'',progress:v&&v.progress&&v.progress.kind||'',active:window.__TC_HOTFIX_ACTIVE_VERSION};})()","domain-state")
+core_probe=test_eval_json("(function(){var c=window.TurnikCore&&TurnikCore.debug?TurnikCore.debug():null;var d=window.TurnikDomain&&TurnikDomain.debug?TurnikDomain.debug():null;var f=window.__TC_CORE_FOUNDATION||null;var dc=localStorage.getItem('tc_module_domain_1.0.0')||'',cc=localStorage.getItem('tc_module_course_1.0.39-plan-hub')||'';var v=typeof window.tcGetCourseViewState==='function'?window.tcGetCourseViewState():null;return {core:c,domain:d,foundation:f,domainCache:dc.length,courseCache:cc.length,today:v&&v.today&&v.today.kind||'',plan:v&&v.plan&&v.plan.kind||'',progress:v&&v.progress&&v.progress.kind||'',active:window.__TC_HOTFIX_ACTIVE_VERSION};})()","domain-state")
 print("TC_DIAG domain-state",core_probe,flush=True)
 assert core_probe["core"] and core_probe["core"]["version"]=="1.0.0", "TurnikCore must be active in the real WebView"
 assert sorted(core_probe["core"]["sources"])==["course","generic"], "TurnikCore must register both state sources"
 assert core_probe["domain"] and core_probe["domain"]["version"]=="1.0.0", "TurnikDomain must be active in the real WebView"
 assert any(x["name"]=="morozov" for x in core_probe["domain"]["areas"]["today"]), "Morozov Today resolver must be registered"
-assert core_probe["foundation"] and core_probe["foundation"]["domainModule"]=="1.0.0" and core_probe["foundation"]["courseModule"]=="1.0.38-domain-state", "runtime diagnostics must expose compatible Core/Domain/Course versions"
+assert core_probe["foundation"] and core_probe["foundation"]["domainModule"]=="1.0.0" and core_probe["foundation"]["courseModule"]=="1.0.39-plan-hub", "runtime diagnostics must expose compatible Core/Domain/Course versions"
 assert core_probe["domainCache"]>500 and core_probe["courseCache"]>1000, "Domain and Course modules must survive in separate offline caches"
 assert core_probe["today"]=="COURSE_DONE" and core_probe["plan"]=="COURSE_ACTIVE" and core_probe["progress"]=="COURSE_PROGRESS", "view state must be resolved before rendering"
-assert core_probe["active"]=="5.16.45-domain-state", "5.16.45 must be the active OTA shell"
+assert core_probe["active"]=="5.16.46-plan-hub", "5.16.46 must be the active OTA shell"
 screenshot("02d-domain-state")
+tap_clickable_text("План",timeout=20)
+plan_probe=test_eval_json("(function(){var h=document.getElementById('exerciseList'),c=document.getElementById('tcCourseCard'),d=document.getElementById('tcExtrasDetails'),sub=document.querySelector('#exercise .head .sub');return {screen:(document.querySelector('.screen.on')||{}).id||'',card:c&&c.innerText||'',details:!!d,open:!!(d&&d.open),summary:d&&d.querySelector('summary')&&d.querySelector('summary').innerText||'',outside:h?[...h.querySelectorAll('.exercise')].filter(e=>!e.closest('#tcExtrasDetails')).length:-1,sub:sub&&sub.textContent||''};})()","plan-hub")
+print("TC_DIAG plan-hub",plan_probe,flush=True)
+assert plan_probe["screen"]=="exercise" and "ОСНОВНОЙ ПЛАН" in plan_probe["card"] and "Следующая тренировка" in plan_probe["card"], "Plan must lead with a compact course/next-workout summary"
+assert "Оборудование: только турник" not in plan_probe["card"], "equipment explanation must not clutter the Plan summary"
+assert plan_probe["details"] and not plan_probe["open"] and "Дополнительный план" in plan_probe["summary"], "additional exercise catalog must be collapsed behind Additional plan"
+assert plan_probe["outside"]==0, "legacy exercise rows must not remain loose on the Plan top level"
+assert "Основной курс" in plan_probe["sub"], "Plan subtitle must describe plan responsibilities rather than the old exercise catalog"
+screenshot("02e-plan-hub")
 tap_clickable_text("Сегодня",timeout=20)
 
 
@@ -456,9 +465,9 @@ adb("shell","am","force-stop",PKG)
 time.sleep(1)
 launch()
 dismiss_system_anr()
-upgrade_install=wait_log_tokens(["TC_NAV_UPGRADE",'"phase":"install"','"version":"5.16.45-domain-state"'],timeout=20)
+upgrade_install=wait_log_tokens(["TC_NAV_UPGRADE",'"phase":"install"','"version":"5.16.46-plan-hub"'],timeout=20)
 restore_line=wait_log_tokens(["TC_WORKOUT_STATE",'"phase":"restored"','"name":"Подъём коленей в висе"','"mode":"extra"'],timeout=20)
-upgrade_arm=wait_log_tokens(["TC_NAV_UPGRADE",'"phase":"arm-restore-guard"','"version":"5.16.45-domain-state"','"surface":"workout"'],timeout=20)
+upgrade_arm=wait_log_tokens(["TC_NAV_UPGRADE",'"phase":"arm-restore-guard"','"version":"5.16.46-plan-hub"','"surface":"workout"'],timeout=20)
 print("TC_DIAG nav-upgrade-install",upgrade_install,flush=True)
 print("TC_DIAG restore",restore_line,flush=True)
 print("TC_DIAG nav-upgrade-arm",upgrade_arm,flush=True)
