@@ -120,6 +120,7 @@ return tcEvalModule(CORE_MODULE_BUNDLED,'core')&&!!window.TurnikCore;
 }
 function tcReadCourseCache(){try{return localStorage.getItem(TC_COURSE_CACHE_KEY)||''}catch(e){return''}}
 function tcWriteCourseCache(js){try{localStorage.setItem(TC_COURSE_CACHE_KEY,js);return true}catch(e){return false}}
+function tcCourseCacheReady(){return tcValidCourseModule(tcReadCourseCache())}
 function tcLoadCourseModule(){
 if(window.__TC_COURSE_MODULE_VERSION===TC_COURSE_MODULE_VERSION)return true;
 const cached=tcReadCourseCache();
@@ -135,15 +136,9 @@ return tcCoursePrimePromise;
 }
 async function tcEnsureRequiredModules(){
 if(!tcLoadCoreModule())return false;
-let cached=tcReadCourseCache();
-if(!tcValidCourseModule(cached)){
+if(tcCourseCacheReady())return true;
 const ready=await tcPrimeCourseModule();
-if(!ready)return false;
-cached=tcReadCourseCache();
-if(!tcValidCourseModule(cached))return false;
-}
-if(window.__TC_COURSE_MODULE_VERSION===TC_COURSE_MODULE_VERSION)return true;
-return tcLoadCourseModule();
+return !!ready&&tcCourseCacheReady();
 }
 function tcRegisterCoreSources(){
 const core=window.TurnikCore;if(!core)return false;
@@ -886,8 +881,8 @@ window.__tcBackControlObserver=mo;
 function installUpdate(){
 if(window.__TC_HOTFIX_ACTIVE_VERSION===VERSION)return;
 if(!tcLoadCoreModule()){showRuntimeNotice('Не удалось загрузить ядро TurnikCore. Текущая версия оставлена без изменений.','danger');return}
-if(!tcLoadCourseModule()){
-tcPrimeCourseModule().then(ok=>{if(ok&&tcLoadCourseModule())installUpdate();else showRuntimeNotice('Модуль курса недоступен. Повторите обновление при подключении к интернету.','danger')});
+if(!tcCourseCacheReady()){
+tcPrimeCourseModule().then(ok=>{if(ok&&tcCourseCacheReady())installUpdate();else showRuntimeNotice('Модуль курса недоступен. Повторите обновление при подключении к интернету.','danger')});
 return;
 }
 const previousVersion=String(window.__TC_HOTFIX_ACTIVE_VERSION||window.__TC_HOTFIX_VERSION||'');
