@@ -583,10 +583,10 @@ W.actual=(W.items[W.exerciseIndex].plan||[])[W.setIndex]||0;
 window.finishWorkout('Нормально');
 })();""","complete-extra-through-real-finish")
 wait_text("Дополнительная тренировка завершена",timeout=18)
-write_probe=test_eval_json("(function(){var c=JSON.parse(localStorage.getItem('tc_morozov_course_v1')||'{}'),g=JSON.parse(localStorage.getItem('tc_v4')||'{}'),st=window.TurnikWorkoutStore&&TurnikWorkoutStore.debug?TurnikWorkoutStore.debug():null,top=g&&g.history&&g.history[0];return {extraSeq:c.extraSeq||0,genericMode:top&&top.courseMode||'',genericType:top&&top.type||'',store:st};})()","workout-store-write")
+write_probe=test_eval_json("(function(){var c=JSON.parse(localStorage.getItem('tc_morozov_course_v1')||'{}'),g=JSON.parse(localStorage.getItem('tc_v4')||'{}'),st=window.TurnikWorkoutStore&&TurnikWorkoutStore.debug?TurnikWorkoutStore.debug():null,gs=window.TurnikCore&&TurnikCore.sourceSnapshot?TurnikCore.sourceSnapshot('generic'):null,raw=(g.history||[]).find(x=>x&&x.courseMode==='extra'&&x.type==='workout'),mem=(gs&&gs.history||[]).find(x=>x&&x.courseMode==='extra'&&x.type==='workout');return {extraSeq:c.extraSeq||0,persisted:!!raw,memory:!!mem,genericCount:(g.history||[]).length,store:st};})()","workout-store-write")
 print("TC_DIAG workout-store-write",write_probe,flush=True)
-assert write_probe["extraSeq"]==1 and write_probe["genericMode"]=="extra" and write_probe["genericType"]=="workout", "extra workout must commit both source mutations"
-assert write_probe["store"] and write_probe["store"].get("writePath") is True, "real completion must run with transactional WorkoutStore"
+assert write_probe["extraSeq"]==1 and write_probe["memory"] and write_probe["persisted"], "extra workout must commit both source mutations and persist generic history"
+assert write_probe["store"] and write_probe["store"].get("writePath") is True and "generic" in write_probe["store"].get("sources",[]), "real completion must run with transactional WorkoutStore"
 screenshot("09-extra-completed-through-store")
 tap_clickable_text("Отменить сохранение",timeout=18)
 time.sleep(1)
