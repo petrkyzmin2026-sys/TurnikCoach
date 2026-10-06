@@ -723,6 +723,8 @@ assert(hotfix.includes("#workout .controls{height:auto!important;min-height:246p
 assert(hotfix.includes('function tcSyncScreenVisibility(id)')&&
  hotfix.includes('tcSyncScreenVisibility(id);'),
  'WebView navigation must explicitly synchronize screen visibility after go()');
+assert(hotfix.includes("window.TurnikUI.renderActive({reason:'navigation',screen:id})"),
+ 'screen navigation must explicitly render the newly active presenter instead of relying on the legacy render side effect');
 assert(hotfix.includes("tcSyncScreenVisibility(target||'today');")&&
  hotfix.includes("replaceRoute(target||'today',false);"),
  'discard must unhide Today and synchronize the visible WebView surface');
