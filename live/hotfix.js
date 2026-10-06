@@ -1,8 +1,8 @@
-/* TURNIKCOACH_HOTFIX 5.16.45-domain-state */
+/* TURNIKCOACH_HOTFIX 5.16.46-plan-hub */
 (function(){
 'use strict';
-const VERSION='5.16.45-domain-state';
-const LABEL='5.16.45';
+const VERSION='5.16.46-plan-hub';
+const LABEL='5.16.46';
 const APPROVED_KEY='tc_hotfix_approved_version';
 const LEGACY_ASSET_VERSION='5.14.0-adaptive-rest';
 const stalePrompt=document.getElementById('tcUpdatePrompt');
@@ -68,7 +68,7 @@ title.style.cssText='font-size:22px;font-weight:800;margin-bottom:10px;flex:0 0 
 title.textContent='Доступно обновление TurnikCoach '+LABEL;
 const text=document.createElement('div');
 text.style.cssText='font-size:15px;line-height:1.45;color:#cfd8e3;margin-bottom:18px;min-height:0;flex:1 1 0;overflow-y:auto;overscroll-behavior:contain;padding-right:4px';
-text.innerHTML="Продолжена переработка архитектуры без изменения привычного управления. Добавлен отдельный слой TurnikDomain: сначала приложение определяет состояние «Сегодня / План / Прогресс», и только затем экран его отображает. Курс Морозова больше не принимает основные решения прямо внутри рендера. История, расписание и настройки сохраняются.<br><br>Установить обновление сейчас?";
+text.innerHTML="Переработан раздел «План». Основной экран больше не выглядит как каталог упражнений: сверху показаны курс Морозова, ближайшая тренировка и ключевые параметры, а дополнительные упражнения вынесены в отдельный раскрываемый блок «Дополнительный план». Тяговая часть курса и дополнительные упражнения больше не смешиваются визуально. История и настройки сохраняются.<br><br>Установить обновление сейчас?";
 const row=document.createElement('div');
 row.style.cssText='display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;flex:0 0 auto';
 const later=document.createElement('button');
@@ -111,8 +111,8 @@ const TC_DOMAIN_MODULE_VERSION='1.0.0';
 const TC_DOMAIN_MODULE_MARKER='TURNIKCOACH_DOMAIN 1.0.0';
 const TC_DOMAIN_MODULE_URL='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/domain.js?v='+encodeURIComponent(TC_DOMAIN_MODULE_VERSION);
 const TC_DOMAIN_CACHE_KEY='tc_module_domain_'+TC_DOMAIN_MODULE_VERSION;
-const TC_COURSE_MODULE_VERSION='1.0.38-domain-state';
-const TC_COURSE_MODULE_MARKER='TURNIKCOACH_COURSE 1.0.38-domain-state';
+const TC_COURSE_MODULE_VERSION='1.0.39-plan-hub';
+const TC_COURSE_MODULE_MARKER='TURNIKCOACH_COURSE 1.0.39-plan-hub';
 const TC_COURSE_MODULE_URL='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/course.js?v='+encodeURIComponent(TC_COURSE_MODULE_VERSION);
 const TC_COURSE_CACHE_KEY='tc_module_course_'+TC_COURSE_MODULE_VERSION;
 let tcDomainPrimePromise=null,tcCoursePrimePromise=null;
