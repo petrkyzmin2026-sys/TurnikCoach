@@ -1,8 +1,8 @@
-/* TURNIKCOACH_HOTFIX 5.16.46-ui-presenter */
+/* TURNIKCOACH_HOTFIX 5.16.47-render-cleanup */
 (function(){
 'use strict';
-const VERSION='5.16.46-ui-presenter';
-const LABEL='5.16.46';
+const VERSION='5.16.47-render-cleanup';
+const LABEL='5.16.47';
 const APPROVED_KEY='tc_hotfix_approved_version';
 const LEGACY_ASSET_VERSION='5.14.0-adaptive-rest';
 const stalePrompt=document.getElementById('tcUpdatePrompt');
@@ -68,7 +68,7 @@ title.style.cssText='font-size:22px;font-weight:800;margin-bottom:10px;flex:0 0 
 title.textContent='Доступно обновление TurnikCoach '+LABEL;
 const text=document.createElement('div');
 text.style.cssText='font-size:15px;line-height:1.45;color:#cfd8e3;margin-bottom:18px;min-height:0;flex:1 1 0;overflow-y:auto;overscroll-behavior:contain;padding-right:4px';
-text.innerHTML="Продолжена архитектурная переработка без изменения привычного управления. Добавлен единый UI-диспетчер TurnikUI: «Сегодня», «План» и «Прогресс» теперь получают готовое состояние от TurnikDomain и отрисовываются через зарегистрированные представления. Модуль курса больше не перехватывает глобальные render() и renderHistory(). Это уменьшает связанность экранов и готовит их дальнейшее разнесение.<br><br>Установить обновление сейчас?";
+text.innerHTML="Продолжена очистка архитектуры без изменения сценариев тренировки. TurnikUI теперь управляет не только основными представлениями «Сегодня / План / Прогресс», но и пост-рендер эффектами. Сводка прогресса и служебные UI-декораторы больше не создают собственные перехваты render()/renderHistory(). В приложении остаётся один глобальный render-диспетчер.<br><br>Установить обновление сейчас?";
 const row=document.createElement('div');
 row.style.cssText='display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;flex:0 0 auto';
 const later=document.createElement('button');
@@ -111,8 +111,8 @@ const TC_DOMAIN_MODULE_VERSION='1.0.0';
 const TC_DOMAIN_MODULE_MARKER='TURNIKCOACH_DOMAIN 1.0.0';
 const TC_DOMAIN_MODULE_URL='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/domain.js?v='+encodeURIComponent(TC_DOMAIN_MODULE_VERSION);
 const TC_DOMAIN_CACHE_KEY='tc_module_domain_'+TC_DOMAIN_MODULE_VERSION;
-const TC_UI_MODULE_VERSION='1.0.0';
-const TC_UI_MODULE_MARKER='TURNIKCOACH_UI 1.0.0';
+const TC_UI_MODULE_VERSION='1.1.0';
+const TC_UI_MODULE_MARKER='TURNIKCOACH_UI 1.1.0';
 const TC_UI_MODULE_URL='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/ui.js?v='+encodeURIComponent(TC_UI_MODULE_VERSION);
 const TC_UI_CACHE_KEY='tc_module_ui_'+TC_UI_MODULE_VERSION;
 const TC_COURSE_MODULE_VERSION='1.0.39-ui-presenter';
@@ -285,10 +285,9 @@ cell.setAttribute('role','group');
 cell.setAttribute('aria-label',entry[0]+': '+entry[1]);
 });
 };
-const base=window.renderHistory;
-if(typeof base==='function')window.renderHistory=function(){
-const result=base.apply(this,arguments);renderSummary();return result;
-};
+if(window.TurnikUI&&typeof window.TurnikUI.effect==='function'){
+window.TurnikUI.effect('progress','progress-summary',50,()=>{renderSummary();return true});
+}
 window.tcRenderProgressSummary=renderSummary;
 renderSummary();
 }
@@ -1624,10 +1623,6 @@ try{
 const oldGo=window.go;
 window.go=function(id){const r=oldGo(id);tcQueueDecorate();return r};
 }catch(e){}
-try{
-const oldRender=window.render;
-window.render=function(){const r=oldRender();tcQueueDecorate();return r};
-}catch(e){}
 const tcApp=document.getElementById('app');
 if(tcApp){
 const mo=new MutationObserver(tcQueueDecorate);
@@ -1640,6 +1635,7 @@ restReasonEl();
 if(!tcLoadDomainModule())throw new Error('TurnikCoach domain module unavailable after preflight');
 if(!tcLoadUiModule())throw new Error('TurnikCoach UI module unavailable after preflight');
 if(!window.TurnikUI.install())throw new Error('TurnikCoach UI dispatcher install failed');
+if(typeof window.TurnikUI.effect==='function')window.TurnikUI.effect('*','product-decorate',-100,()=>{tcQueueDecorate();return true});
 if(!tcLoadCourseModule())throw new Error('TurnikCoach course module unavailable after preflight');
 tcRegisterCoreSources();
 tcInstallUx2InformationArchitecture();
