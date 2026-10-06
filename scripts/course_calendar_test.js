@@ -28,7 +28,7 @@ assert(hotfix.includes("TC_DOMAIN_MODULE_URL='https://raw.githubusercontent.com/
  hotfix.includes("TC_DOMAIN_CACHE_KEY='tc_module_domain_'+TC_DOMAIN_MODULE_VERSION"),
  'domain state must ship as a separately versioned/offline-cached module');
 assert(hotfix.includes("TC_DOMAIN_MODULE_VERSION='1.0.0'")&&
- hotfix.includes("TC_UI_MODULE_VERSION='1.0.0'")&&
+ hotfix.includes("TC_UI_MODULE_VERSION='1.1.0'")&&
  hotfix.includes("TC_COURSE_MODULE_VERSION='1.0.39-ui-presenter'"),
  'OTA shell must pin exact compatible Domain, UI and Course module versions');
 assert(hotfix.includes("TC_UI_MODULE_URL='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/ui.js")&&
@@ -198,13 +198,20 @@ assert(!course.includes('window.render=function()')&&!course.includes('window.re
  'course module must not own global render lifecycle after the UI presenter split');
 assert(ui.includes('function renderArea(area,context)')&&ui.includes('function renderActive(context)')&&ui.includes('function install()'),
  'TurnikUI must own one domain-to-screen dispatch path');
+assert(ui.includes('function runEffects(area,state,context)')&&ui.includes('function effect(area,name,priority,handler)'),
+ 'TurnikUI 1.1 must own post-render effects');
+assert(!hotfix.includes('window.renderHistory=function()')&&!hotfix.includes('window.render=function()'),
+ 'hotfix must not create independent render/renderHistory override chains');
+assert(hotfix.includes("TurnikUI.effect('progress','progress-summary',50")&&
+ hotfix.includes("TurnikUI.effect('*','product-decorate',-100"),
+ 'progress summary and product decorators must run as TurnikUI post-render effects');
 assert(hotfix.includes("if(!window.TurnikUI.install())throw new Error('TurnikCoach UI dispatcher install failed')")&&
  hotfix.indexOf("if(!window.TurnikUI.install())")<hotfix.indexOf("if(!tcLoadCourseModule())"),
  'UI dispatcher must install before course presenters execute');
 assert(course.includes('id="tcCycleStartDate"'),
  'settings must expose a cycle start date');
-assert(hotfix.includes("const VERSION='5.16.46-ui-presenter'"),
- 'release hotfix version must be 5.16.46');
+assert(hotfix.includes("const VERSION='5.16.47-render-cleanup'"),
+ 'release hotfix version must be 5.16.47');
 assert(course.includes("const COURSE_MODULE_VERSION='1.0.39-ui-presenter'"),
  'course module version must be 1.0.39');
 assert(domain.includes("const VERSION='1.0.0'"),
@@ -213,7 +220,7 @@ assert(!course.includes('TC_EXTRA_START'),
  'temporary extra-workout trace logging must not ship');
 assert(!course.includes('window.confirm('),'course module must not depend on unsupported WebView JS dialogs');
 assert(!hotfix.includes('window.confirm('),'hotfix navigation/discard must not depend on unsupported WebView JS dialogs');
-assert(!hotfix.includes('forceHandover'),'5.16.46 must use an explicit user-visible update prompt');
+assert(!hotfix.includes('forceHandover'),'5.16.47 must use an explicit user-visible update prompt');
 assert(hotfix.includes("showRuntimeNotice('TurnikCoach обновлён до '+LABEL)"),
  'successful activation must give visible feedback');
 assert(hotfix.includes("localStorage.setItem('tc_hotfix_active_version',VERSION)"),
@@ -1007,6 +1014,6 @@ uiSandbox.TurnikUI.register('today','morozov',100,state=>{presented.push(state.k
 assert(uiSandbox.TurnikUI.install(),'TurnikUI must install around the existing base render');
 assert.equal(uiSandbox.TurnikUI.renderArea('today').presenter,'morozov');
 assert.deepEqual(Array.from(presented),['TEST']);
-assert.equal(uiSandbox.TurnikUI.debug().version,'1.0.0');
+assert.equal(uiSandbox.TurnikUI.debug().version,'1.1.0');
 
 console.log('PASS: Core + Domain + UI presenter, syntax, UX2 persistence/IA/completion, critical actions, forms and touch targets');
