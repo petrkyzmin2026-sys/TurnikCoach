@@ -3,16 +3,23 @@
 // Pure functions are extracted from the actual shipped source, not duplicated.
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
 const course=fs.readFileSync('live/course.js','utf8');
+const core=fs.readFileSync('live/core.js','utf8');
 const hotfix=fs.readFileSync('live/hotfix.js','utf8');
-assert(Buffer.byteLength(hotfix,'utf8')<=256*1024,
- 'Android native hotfix downloader must receive at most 256 KiB of UTF-8');
+assert(Buffer.byteLength(hotfix,'utf8')<=128*1024,
+ 'modular OTA shell must stay comfortably below the native 256 KiB ceiling');
 const manifest=fs.readFileSync('app/src/main/AndroidManifest.xml','utf8');
 const mainActivity=fs.readFileSync('app/src/main/java/ru/turnikcoach/app/MainActivity.java','utf8');
 new vm.Script(course,{filename:'live/course.js'});
+new vm.Script(core,{filename:'live/core.js'});
 new vm.Script(hotfix,{filename:'live/hotfix.js'});
-const bundled=hotfix.match(/const COURSE_MODULE_BUNDLED=("(?:\\.|[^"\\])*");\n\s*function tcValidCourseModule/);
-assert(bundled,'embedded course module must exist');
-assert.equal(JSON.parse(bundled[1]),course,'APK update must use the same course module');
+const coreBundled=hotfix.match(/const CORE_MODULE_BUNDLED=("(?:\\.|[^"\\])*");\nconst TC_COURSE_MODULE_VERSION/);
+assert(coreBundled,'small TurnikCore bootstrap must remain embedded in the OTA shell');
+assert.equal(JSON.parse(coreBundled[1]),core,'embedded TurnikCore bootstrap must match live/core.js');
+assert(!hotfix.includes('COURSE_MODULE_BUNDLED='),'course module must no longer be duplicated inside the OTA shell');
+assert(hotfix.includes("TC_COURSE_MODULE_URL='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/course.js"),
+ 'course module must load as a separately versioned live module');
+assert(hotfix.includes("TC_COURSE_CACHE_KEY='tc_module_course_'+TC_COURSE_MODULE_VERSION"),
+ 'course module must have a versioned offline cache');
 function extractFrom(source,name){
   const start=source.indexOf('function '+name+'(');
   assert(start>=0,'function missing: '+name);
@@ -162,19 +169,30 @@ assert(course.includes('tcPreviewCourseCard(tcSelectedDate)'),
  'choosing another date must show a read-only plan');
 assert(course.includes('id="tcCycleStartDate"'),
  'settings must expose a cycle start date');
-assert(hotfix.includes("const VERSION='5.16.43-morozov-stats'"),
- 'release hotfix version must be 5.16.43');
+assert(hotfix.includes("const VERSION='5.16.44-core-foundation'"),
+ 'release hotfix version must be 5.16.44');
 assert(course.includes("const COURSE_MODULE_VERSION='1.0.37-course-stats'"),
  'course module version must be 1.0.37');
 assert(!course.includes('TC_EXTRA_START'),
  'temporary extra-workout trace logging must not ship');
 assert(!course.includes('window.confirm('),'course module must not depend on unsupported WebView JS dialogs');
 assert(!hotfix.includes('window.confirm('),'hotfix navigation/discard must not depend on unsupported WebView JS dialogs');
-assert(!hotfix.includes('forceHandover'),'5.16.43 must use an explicit user-visible update prompt');
+assert(!hotfix.includes('forceHandover'),'5.16.44 must use an explicit user-visible update prompt');
 assert(hotfix.includes("showRuntimeNotice('TurnikCoach обновлён до '+LABEL)"),
  'successful activation must give visible feedback');
 assert(hotfix.includes("localStorage.setItem('tc_hotfix_active_version',VERSION)"),
  'active hotfix version must be persisted for diagnostics');
+assert(hotfix.includes('async function tcEnsureRequiredModules()')&&
+ hotfix.includes('const modulesReady=await tcEnsureRequiredModules()')&&
+ hotfix.includes("localStorage.setItem(APPROVED_KEY,VERSION)"),
+ 'update approval must happen only after required modules are available and cached');
+assert(hotfix.includes('function tcRegisterCoreSources()')&&
+ hotfix.includes("core.registerSource('generic'")&&hotfix.includes("core.registerSource('course'"),
+ 'TurnikCore must expose both legacy generic and Morozov stores through one state facade');
+assert(hotfix.includes("window.__TC_CORE_FOUNDATION={version:core.version,courseModule:TC_COURSE_MODULE_VERSION,modular:true}"),
+ 'runtime diagnostics must expose the modular core foundation');
+assert(hotfix.includes("window.TurnikCore.history.all().map(x=>x.raw)"),
+ 'Progress summary must consume unified history through TurnikCore instead of manually joining stores');
 assert(hotfix.includes("const LEGACY_ASSET_VERSION='5.14.0-adaptive-rest'"),
  'live hotfix must know the immutable packaged asset version');
 assert(hotfix.includes('window.__TC_HOTFIX_ACTIVE_VERSION=VERSION'),
@@ -887,4 +905,24 @@ assert.equal(undoState.lastCourseTs,0);
 assert.equal(undoState.testAnchorDate,'');
 assert.equal(undoApi.tcUndoLatestTodayCourseRecord('2026-09-25'),false,
  'undo must not remove anything twice');
-console.log('PASS: syntax, bundle, UX2 persistence/IA/completion, critical actions, forms and touch targets');
+const memory=new Map();
+const sandbox={
+ console,
+ localStorage:{getItem:k=>memory.has(k)?memory.get(k):null,setItem:(k,v)=>memory.set(k,String(v)),removeItem:k=>memory.delete(k)},
+ CustomEvent:function(type,init){this.type=type;this.detail=init&&init.detail},
+ dispatchEvent:()=>true
+};
+sandbox.window=sandbox;
+vm.runInNewContext(core,sandbox,{filename:'live/core.js'});
+assert.equal(sandbox.TurnikCore.version,'1.0.0');
+let generic={history:[{type:'workout',date:'2026-10-01',ts:1,total:10}]};
+let courseData={history:[{type:'workout',date:'2026-10-02',ts:2,courseMode:'course',total:12}]};
+sandbox.TurnikCore.registerSource('generic',{snapshot:()=>generic,history:()=>generic.history,restore:x=>{generic=x;return true}});
+sandbox.TurnikCore.registerSource('course',{snapshot:()=>courseData,history:()=>courseData.history,restore:x=>{courseData=x;return true}});
+assert.equal(sandbox.TurnikCore.history.all().length,2,'unified history must expose both stores without copying them');
+assert(sandbox.TurnikCore.transact('generic',x=>{x.seq=9}),
+ 'TurnikCore transactions must restore through the registered source adapter');
+assert.equal(generic.seq,9);
+assert.equal(sandbox.TurnikCore.snapshot().sources.course.history.length,1);
+
+console.log('PASS: modular core, syntax, UX2 persistence/IA/completion, critical actions, forms and touch targets');
