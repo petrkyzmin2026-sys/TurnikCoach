@@ -83,10 +83,11 @@ jobs:
           grep -q 'TURNIKCOACH_HOTFIX 5.16.46-ui-presenter' app/src/main/assets/hotfix-next.js
           grep -q 'TURNIKCOACH_CORE 1.0.0' app/src/main/assets/hotfix-next.js
           grep -q 'TURNIKCOACH_DOMAIN 1.0.0' live/domain.js
-          grep -q 'TURNIKCOACH_COURSE 1.0.38-domain-state' live/course.js
-          grep -q 'TURNIKCOACH_COURSE 1.0.37-course-stats' app/src/main/assets/course-prev.js
+          grep -q 'TURNIKCOACH_UI 1.0.0' live/ui.js
+          grep -q 'TURNIKCOACH_COURSE 1.0.39-ui-presenter' live/course.js
+          grep -q 'TURNIKCOACH_COURSE 1.0.38-domain-state' app/src/main/assets/course-prev.js
           ! grep -q 'COURSE_MODULE_BUNDLED=' app/src/main/assets/hotfix-next.js
-      - name: Seed installed 5.16.44 approval, old/new module caches and completed main-course state
+      - name: Seed installed 5.16.45 approval, Domain/UI/Course caches and completed main-course state
         run: |
           python3 - <<'PY'
           from pathlib import Path
@@ -95,6 +96,7 @@ jobs:
           html=p.read_text()
           prev_course_cache=json.dumps(Path('app/src/main/assets/course-prev.js').read_text())
           domain_cache=json.dumps(Path('live/domain.js').read_text())
+          ui_cache=json.dumps(Path('live/ui.js').read_text())
           next_course_cache=json.dumps(Path('live/course.js').read_text())
           marker='</head>'
           assert html.count(marker)==1
