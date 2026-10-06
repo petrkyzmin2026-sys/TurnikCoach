@@ -33,6 +33,7 @@ on:
       - refactor/core-foundation-5.16.44
       - refactor/domain-state-5.16.45
       - refactor/ui-presenter-5.16.46
+      - refactor/render-cleanup-5.16.47
   pull_request:
   workflow_dispatch:
 
@@ -63,9 +64,9 @@ jobs:
           done
           base64 --decode /tmp/v513.b64 | gzip -dc > app/src/main/assets/index.html
           grep -q 'v5.13 — modern Android package' app/src/main/assets/index.html
-      - name: Reproduce packaged 5.14 + cached 5.16.45 + tested 5.16.46
+      - name: Reproduce packaged 5.14 + cached 5.16.46 + tested 5.16.47
         run: |
-          PREV_COMMIT="d1c88b0a46c35120bf6ad39361ccfb7fd93a333d"
+          PREV_COMMIT="ab88036953fa34a517b22228b56c9453a339f585"
           grep -q 'TURNIKCOACH_HOTFIX 5.14.0-adaptive-rest' app/src/main/assets/hotfix.js
           curl -fsSL "https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/${PREV_COMMIT}/live/hotfix.js" > app/src/main/assets/hotfix-prev.js
           curl -fsSL "https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/${PREV_COMMIT}/live/course.js" > app/src/main/assets/course-prev.js
