@@ -1,7 +1,7 @@
-/* TURNIKCOACH_COURSE 1.0.38-domain-state */
+/* TURNIKCOACH_COURSE 1.0.39-ui-presenter */
 (function(){
 'use strict';
-const COURSE_MODULE_VERSION='1.0.38-domain-state';
+const COURSE_MODULE_VERSION='1.0.39-ui-presenter';
 if(window.__TC_COURSE_MODULE_VERSION===COURSE_MODULE_VERSION)return;
 window.__TC_COURSE_MODULE_VERSION=COURSE_MODULE_VERSION;
 function tcClamp(v,a,b){return Math.max(a,Math.min(b,v))}
@@ -704,8 +704,8 @@ function tcResolvedPlanState(){
 if(window.TurnikDomain){const x=window.TurnikDomain.plan();if(x&&x.source==='morozov')return x}
 return tcCoursePlanState();
 }
-function tcCourseCardHtml(){
-const p=tcResolvedPlanState(),enabled=p.enabled;
+function tcCourseCardHtml(view){
+const p=view||tcResolvedPlanState(),enabled=p.enabled;
 return '<div class="card" id="tcCourseCard" style="margin-bottom:12px;border-color:'+(enabled?'#ffd84d':'#2c3945')+'">'+
 '<div class="row between"><div class="grow"><div class="k">ПРОГРАММА</div><div class="strong" style="font-size:18px;margin-top:3px">Курс Морозова</div><div class="meta">«Подтягивания с нуля до киборга»</div></div><span class="tag '+(enabled?'':'stage4')+'">'+(enabled?'ВКЛЮЧЁН':'ВЫКЛЮЧЕН')+'</span></div>'+
 (enabled?'<div class="tcInfoBlock"><h3>Оборудование: только турник</h3><p>В тренировочный план не включаются упражнения, требующие резины, отягощения, полотенца, стула или низкой перекладины.</p></div><div class="tcInfoBlock"><h3>'+p.levelTitle+'</h3><p><b>Цель:</b> '+p.goalName+'<br><b>Следующий:</b> '+p.nextComplexName+'<br><b>Текущий максимум:</b> '+p.pullMax+'<br><b>Частота по курсу:</b> '+p.frequency+'</p></div>':'<div class="sub" style="margin-top:10px">Отдельная система тренировок: уровни, комплексы, проценты, MAX, отдых и контрольные критерии берутся из курса. Остальные упражнения TurnikCoach можно использовать отдельно.</div>')+
@@ -981,14 +981,14 @@ const main=children.find(el=>el&&el.tagName==='BUTTON');
 if(main)main.classList.add('tcExerciseMainTarget');
 });
 }
-function tcDecorateCourseCatalog(){
+function tcDecorateCourseCatalog(view){
 const host=q('exerciseList');if(!host)return;
 tcExpandExerciseTouchTargets(host);
 tcDisableUnavailableCatalog(host);
 const old=document.getElementById('tcCourseCard');if(old)old.remove();
 const oldDetails=document.getElementById('tcExtrasDetails');
 if(oldDetails&&oldDetails.parentNode===host){const body=oldDetails.querySelector('.tcExtrasBody');if(body){[...body.children].forEach(n=>host.appendChild(n))}oldDetails.remove()}
-host.insertAdjacentHTML('afterbegin',tcCourseCardHtml());
+host.insertAdjacentHTML('afterbegin',tcCourseCardHtml(view));
 const head=document.querySelector('#exercise .head .sub');if(head)head.textContent=TC_course.enabled?'Подтягивания ведёт отдельный курс Морозова. Дополнительные упражнения ниже свернуты и не вмешиваются в структуру курса.':'Можно использовать обычный конструктор либо подключить отдельный курс Морозова для подтягиваний.';
 if(TC_course.enabled){
 host.querySelectorAll('.catalogGroup').forEach(g=>{const name=g.querySelector('.catalogHead .strong');if(name&&(name.textContent||'').trim()==='Турник')g.style.display='none'});
@@ -1229,9 +1229,9 @@ function tcResolvedTodayState(){
 if(window.TurnikDomain){const x=window.TurnikDomain.today({date:dateKey()});if(x&&x.source==='morozov')return x}
 return tcCourseTodayState();
 }
-function tcRenderToday(){
+function tcRenderToday(view){
 if(tcSyncScheduleEvents())tcSaveCourse();
-const now=new Date(),view=tcResolvedTodayState();
+const now=new Date();view=view||tcResolvedTodayState();
 const week=()=>'<div class="tcWeekSection"><div class="tcWeekSectionTitle">ПЛАН НЕДЕЛИ</div>'+tcWeeklyCalendarHtml()+'</div>';
 q('todayTitle').textContent=fmtDate(now);
 if(view.kind==='PREVIEW'){
@@ -1940,16 +1940,25 @@ function tcResolvedProgressState(){
 if(window.TurnikDomain){const x=window.TurnikDomain.progress();if(x&&x.source==='morozov')return x}
 return tcCourseProgressState();
 }
-function tcCourseStatsHtml(){
-const view=tcResolvedProgressState(),x=view.stats;if(!x)return'';
+function tcCourseStatsHtml(view){
+view=view||tcResolvedProgressState();const x=view.stats;if(!x)return'';
 const sign=x.delta>0?'+':'',rate=x.rate==null?'—':x.rate+'%',trend=x.tests.length?x.tests.slice(-5).join(' → '):'контролей пока нет';
 return '<div class="tcInfoBlock"><h3>Текущий период · с '+fmtKeyDate(x.r.startedDate,false)+'</h3><p><b>'+x.base+' → '+x.cur+'</b> подтягиваний · '+sign+x.delta+' ('+sign+x.pct+'%)<br>Выполнение курса: <b>'+rate+'</b> · выполнено '+x.completed+'<br>Вовремя '+x.on+' · перенесено '+x.moved+' · пропущено '+x.missed+' · восстановление '+x.recovery+'<br>Объём курса: '+x.sets+' подходов · '+x.reps+' повторений<br>Контрольные максимумы: '+trend+'</p></div>';
 }
-function tcCourseHistoryHtml(){if(!TC_course.enabled&&!TC_course.history.length)return'';const rows=TC_course.history.slice(0,8).map(h=>'<div class="historyitem"><div class="row between"><div><div class="strong" style="font-size:14px">'+(h.courseMode==='supplement'?'Дополнительные подтягивания по курсу':h.courseMode==='auxCourse'?'Вспомогательный комплекс №2 · уровень '+h.courseLevel:'Курс Морозова · уровень '+h.courseLevel+' · комплекс '+h.courseComplex)+(h.adapted?' · адаптация: только турник':'')+'</div><div class="meta">'+fmtRecordDate(h)+' · '+(h.feedback||'—')+'</div></div><span class="badge">КУРС</span></div>'+(h.details||[]).map(d=>'<div class="meta" style="margin-top:6px">'+d.name+': '+d.actual.map(v=>v===null?'—':v).join(' · ')+'</div>').join('')+'</div>').join('');return '<div class="exerciseProgressCard"><div class="progressHead"><div><div class="progressName">Курс Морозова</div><div class="meta">Статистика и история текущего периода</div></div><span class="badge">ур. '+TC_course.level+'</span></div>'+tcCourseStatsHtml()+'<div class="tcInfoBlock"><h3>Критерий текущего уровня</h3><p>'+tcCourseLevel().mastery+'</p></div>'+tcCourseTestsHtml()+rows+'</div>'}
-const tcBeforeCourseRenderHistory=window.renderHistory;
-window.renderHistory=function(){const r=tcBeforeCourseRenderHistory();const host=q('exerciseProgress');if(host){const old=document.getElementById('tcCourseHistoryWrap');if(old)old.remove();const wrap=document.createElement('div');wrap.id='tcCourseHistoryWrap';wrap.innerHTML=tcCourseHistoryHtml();host.parentNode.insertBefore(wrap,host)}return r};
-const tcBeforeCourseRender=window.render;
-window.render=function(){const r=tcBeforeCourseRender();tcDecorateCourseCatalog();if(TC_course.enabled&&q('today').classList.contains('on'))tcRenderToday();return r};
+function tcCourseHistoryHtml(view){if(!TC_course.enabled&&!TC_course.history.length)return'';const rows=TC_course.history.slice(0,8).map(h=>'<div class="historyitem"><div class="row between"><div><div class="strong" style="font-size:14px">'+(h.courseMode==='supplement'?'Дополнительные подтягивания по курсу':h.courseMode==='auxCourse'?'Вспомогательный комплекс №2 · уровень '+h.courseLevel:'Курс Морозова · уровень '+h.courseLevel+' · комплекс '+h.courseComplex)+(h.adapted?' · адаптация: только турник':'')+'</div><div class="meta">'+fmtRecordDate(h)+' · '+(h.feedback||'—')+'</div></div><span class="badge">КУРС</span></div>'+(h.details||[]).map(d=>'<div class="meta" style="margin-top:6px">'+d.name+': '+d.actual.map(v=>v===null?'—':v).join(' · ')+'</div>').join('')+'</div>').join('');return '<div class="exerciseProgressCard"><div class="progressHead"><div><div class="progressName">Курс Морозова</div><div class="meta">Статистика и история текущего периода</div></div><span class="badge">ур. '+TC_course.level+'</span></div>'+tcCourseStatsHtml(view)+'<div class="tcInfoBlock"><h3>Критерий текущего уровня</h3><p>'+tcCourseLevel().mastery+'</p></div>'+tcCourseTestsHtml()+rows+'</div>'}
+function tcRenderCourseProgress(view){
+const host=q('exerciseProgress');if(!host)return false;
+const old=document.getElementById('tcCourseHistoryWrap');if(old)old.remove();
+const wrap=document.createElement('div');wrap.id='tcCourseHistoryWrap';wrap.innerHTML=tcCourseHistoryHtml(view);
+host.parentNode.insertBefore(wrap,host);return true;
+}
+function tcRegisterCoursePresenters(){
+if(!window.TurnikUI)return false;
+window.TurnikUI.register('today','morozov',100,view=>{if(!TC_course.enabled)return false;tcRenderToday(view);return true});
+window.TurnikUI.register('plan','morozov',100,view=>{tcDecorateCourseCatalog(view);return true});
+window.TurnikUI.register('progress','morozov',100,view=>tcRenderCourseProgress(view));
+return true;
+}
 function tcRegisterCourseDomainResolvers(){
 if(!window.TurnikDomain)return false;
 window.TurnikDomain.register('today','morozov',100,()=>TC_course.enabled?tcCourseTodayState():null);
@@ -1965,6 +1974,7 @@ progress:tcResolvedProgressState()
 };
 };
 tcRegisterCourseDomainResolvers();
+tcRegisterCoursePresenters();
 tcSanitizeSelectedEquipment();
 if(TC_course.enabled&&tcEnsureCourseRun())tcSaveCourse();
 tcInjectCourseUiStyles();
