@@ -937,7 +937,7 @@ assert.equal(domainSandbox.TurnikDomain.today().kind,'GENERIC_REST','null high-p
 domainSandbox.TurnikDomain.register('today','morozov',100,()=>({kind:'MAIN_WORKOUT'}));
 assert.equal(domainSandbox.TurnikDomain.today().kind,'MAIN_WORKOUT','higher-priority course state must win');
 assert.equal(domainSandbox.TurnikDomain.today().source,'morozov');
-assert.deepEqual(domainSandbox.TurnikDomain.debug().areas.today.map(x=>x.name),['morozov','generic']);
+assert.equal(Array.from(domainSandbox.TurnikDomain.debug().areas.today,x=>x.name).join(','),'morozov,generic');
 
 const todaySource=extract('tcCourseTodayState');
 function resolveCourseToday(overrides={}){
