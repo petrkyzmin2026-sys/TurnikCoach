@@ -688,6 +688,9 @@ assert(!course.includes('<h3>Версия</h3><p>Hotfix:')&&
  'course settings must contain training/equipment settings only, not application diagnostics');
 assert(hotfix.includes('window.tcOpenAppInfo=function()')&&hotfix.includes("info.id='tcAppInfoButton'"),
  'application versions and architecture diagnostics must live outside course settings');
+assert(hotfix.includes('onclick="tcNavigateBack()">Закрыть</button>')&&
+ hotfix.includes('tcSyncScreenVisibility(target);\nrestoreScroll(target);'),
+ 'app-info close and browser history navigation must use the unified navigation/render boundary');
 assert(course.includes("style=\"margin-top:14px;min-height:58px\" onclick=\"tcStartCourseWorkout()"),
  'primary Start workout action must be larger than the 48dp minimum');
 assert(course.includes('function tcGroupCourseSettings(box)'),
