@@ -693,6 +693,9 @@ screen.style.display=active?'flex':'none';
 });
 const target=document.getElementById(id);
 if(target){void target.offsetHeight}
+if(window.TurnikUI&&typeof window.TurnikUI.renderActive==='function'){
+setTimeout(()=>{try{window.TurnikUI.renderActive({reason:'navigation',screen:id})}catch(e){console.error('TurnikCoach navigation render',e)}},0);
+}
 }
 function tcForceWebViewRepaint(){
 const app=document.getElementById('app');
