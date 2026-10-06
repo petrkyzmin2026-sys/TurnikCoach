@@ -86,9 +86,10 @@ const key=(date=new Date('2026-09-25T12:00:00'))=>
   date.getFullYear()+'-'+String(date.getMonth()+1).padStart(2,'0')+'-'+String(date.getDate()).padStart(2,'0');
 const courseState={enabled:true,level:4,goal:'quantity',weeklySessions:4,
   cycleStartDate:'2026-09-25',courseSeq:5,lastCourseDate:'',history:[],scheduleEvents:[]};
-const api=new Function('TC_course','dateKey','tcCourseLevel',
+const api=new Function('TC_course','dateKey','tcCourseLevel','tcRequireWorkoutStore',
   names.map(extract).join('\n')+'\nreturn {tcScheduledOn,tcProjectedCourseSeq,tcCourseComplex,tcUndoLatestTodayCourseRecord};')(
-  courseState,key,()=>({complexes:{1:{name:'№1'},2:{name:'№2'},3:{name:'№3'}}})
+  courseState,key,()=>({complexes:{1:{name:'№1'},2:{name:'№2'},3:{name:'№3'}}}),
+  ()=>({transact:(source,mutator)=>source==='course'&&mutator(courseState)!==false})
 );
 const dates=['2026-09-25','2026-09-26','2026-09-27','2026-09-28',
  '2026-09-29','2026-09-30','2026-10-01','2026-10-02'];
@@ -1000,9 +1001,11 @@ assert.equal(weightFeedback[0][0],'Вес не сохранён');
 const undoState={enabled:true,level:4,goal:'quantity',weeklySessions:3,cycleStartDate:'2026-09-25',
   courseSeq:1,lastCourseDate:'2026-09-25',lastCourseTs:123,testAnchorDate:'2026-09-25',
   lastTestDate:'',history:[{courseMode:'course',date:'2026-09-25',ts:123,courseComplex:3}],scheduleEvents:[]};
-const undoApi=new Function('TC_course',
+const undoApi=new Function('TC_course','tcRequireWorkoutStore',
   extract('tcScheduleEventFor')+'\n'+extract('tcUpsertScheduleEvent')+'\n'+extract('tcRemoveScheduleEvent')+'\n'+
-  extract('tcUndoLatestTodayCourseRecord')+'\nreturn {tcUndoLatestTodayCourseRecord};')(undoState);
+  extract('tcUndoLatestTodayCourseRecord')+'\nreturn {tcUndoLatestTodayCourseRecord};')(
+  undoState,()=>({transact:(source,mutator)=>source==='course'&&mutator(undoState)!==false})
+);
 assert.equal(undoApi.tcUndoLatestTodayCourseRecord('2026-09-25'),true);
 assert.equal(undoState.courseSeq,0);
 assert.equal(undoState.history.length,0);
