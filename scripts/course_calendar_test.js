@@ -4,6 +4,7 @@
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
 const course=fs.readFileSync('live/course.js','utf8');
 const core=fs.readFileSync('live/core.js','utf8');
+const domain=fs.readFileSync('live/domain.js','utf8');
 const hotfix=fs.readFileSync('live/hotfix.js','utf8');
 assert(Buffer.byteLength(hotfix,'utf8')<=128*1024,
  'modular OTA shell must stay comfortably below the native 256 KiB ceiling');
@@ -11,8 +12,9 @@ const manifest=fs.readFileSync('app/src/main/AndroidManifest.xml','utf8');
 const mainActivity=fs.readFileSync('app/src/main/java/ru/turnikcoach/app/MainActivity.java','utf8');
 new vm.Script(course,{filename:'live/course.js'});
 new vm.Script(core,{filename:'live/core.js'});
+new vm.Script(domain,{filename:'live/domain.js'});
 new vm.Script(hotfix,{filename:'live/hotfix.js'});
-const coreBundled=hotfix.match(/const CORE_MODULE_BUNDLED=("(?:\\.|[^"\\])*");\nconst TC_COURSE_MODULE_VERSION/);
+const coreBundled=hotfix.match(/const CORE_MODULE_BUNDLED=("(?:\\.|[^"\\])*");\nconst TC_DOMAIN_MODULE_VERSION/);
 assert(coreBundled,'small TurnikCore bootstrap must remain embedded in the OTA shell');
 assert.equal(JSON.parse(coreBundled[1]),core,'embedded TurnikCore bootstrap must match live/core.js');
 assert(!hotfix.includes('COURSE_MODULE_BUNDLED='),'course module must no longer be duplicated inside the OTA shell');
@@ -20,6 +22,11 @@ assert(hotfix.includes("TC_COURSE_MODULE_URL='https://raw.githubusercontent.com/
  'course module must load as a separately versioned live module');
 assert(hotfix.includes("TC_COURSE_CACHE_KEY='tc_module_course_'+TC_COURSE_MODULE_VERSION"),
  'course module must have a versioned offline cache');
+assert(hotfix.includes("TC_DOMAIN_MODULE_URL='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/domain.js")&&
+ hotfix.includes("TC_DOMAIN_CACHE_KEY='tc_module_domain_'+TC_DOMAIN_MODULE_VERSION"),
+ 'domain state must ship as a separately versioned/offline-cached module');
+assert(hotfix.includes("TC_DOMAIN_MODULE_VERSION='1.0.0'")&&hotfix.includes("TC_COURSE_MODULE_VERSION='1.0.38-domain-state'"),
+ 'OTA shell must pin exact compatible Domain and Course module versions');
 function extractFrom(source,name){
   const start=source.indexOf('function '+name+'(');
   assert(start>=0,'function missing: '+name);
@@ -165,19 +172,29 @@ const legacyStart=new Function('TC_course','dateKey',extract('tcRunStartDate')+'
 assert.equal(legacyStart(),'2026-09-20','legacy migration must start at the first compatible current-level/goal workout, not the whole-course anchor');
 assert(course.includes('Выполнение курса:')&&course.includes('Контрольные максимумы:'),
  'Progress must render the compact Morozov course statistics card');
-assert(course.includes('tcPreviewCourseCard(tcSelectedDate)'),
- 'choosing another date must show a read-only plan');
+assert(course.includes("view.kind==='PREVIEW'")&&course.includes('tcPreviewCourseCard(view.date)'),
+ 'choosing another date must resolve PREVIEW state and show a read-only plan');
+assert(course.includes('function tcCourseTodayState()')&&course.includes('function tcResolvedTodayState()'),
+ 'Today business state must be resolved before DOM rendering');
+assert(course.includes("view.kind==='MAIN_WORKOUT'")&&course.includes("view.kind==='RECOVERY_SHIFT'")&&course.includes("view.kind==='TRANSFER'||view.kind==='TRANSFER_RECOVERY'"),
+ 'Today renderer must render explicit domain states instead of recomputing the scenario');
+assert(course.includes("window.TurnikDomain.register('today','morozov',100")&&
+ course.includes("window.TurnikDomain.register('plan','morozov',100")&&
+ course.includes("window.TurnikDomain.register('progress','morozov',100"),
+ 'Morozov must register Today / Plan / Progress resolvers in TurnikDomain');
 assert(course.includes('id="tcCycleStartDate"'),
  'settings must expose a cycle start date');
-assert(hotfix.includes("const VERSION='5.16.44-core-foundation'"),
- 'release hotfix version must be 5.16.44');
-assert(course.includes("const COURSE_MODULE_VERSION='1.0.37-course-stats'"),
- 'course module version must be 1.0.37');
+assert(hotfix.includes("const VERSION='5.16.45-domain-state'"),
+ 'release hotfix version must be 5.16.45');
+assert(course.includes("const COURSE_MODULE_VERSION='1.0.38-domain-state'"),
+ 'course module version must be 1.0.38');
+assert(domain.includes("const VERSION='1.0.0'"),
+ 'domain module version must be 1.0.0');
 assert(!course.includes('TC_EXTRA_START'),
  'temporary extra-workout trace logging must not ship');
 assert(!course.includes('window.confirm('),'course module must not depend on unsupported WebView JS dialogs');
 assert(!hotfix.includes('window.confirm('),'hotfix navigation/discard must not depend on unsupported WebView JS dialogs');
-assert(!hotfix.includes('forceHandover'),'5.16.44 must use an explicit user-visible update prompt');
+assert(!hotfix.includes('forceHandover'),'5.16.45 must use an explicit user-visible update prompt');
 assert(hotfix.includes("showRuntimeNotice('TurnikCoach обновлён до '+LABEL)"),
  'successful activation must give visible feedback');
 assert(hotfix.includes("localStorage.setItem('tc_hotfix_active_version',VERSION)"),
@@ -187,14 +204,15 @@ assert(hotfix.includes('async function tcEnsureRequiredModules()')&&
  hotfix.includes("localStorage.setItem(APPROVED_KEY,VERSION)"),
  'update approval must happen only after required modules are available and cached');
 const installUpdateBody=extractFrom(hotfix,'installUpdate');
-assert(installUpdateBody.includes('if(!tcCourseCacheReady())')&&
- !installUpdateBody.slice(0,installUpdateBody.indexOf("const previousVersion=")).includes('tcLoadCourseModule()'),
- 'install preflight must verify the module cache without executing course.js ahead of the legacy patch order');
+assert(installUpdateBody.includes('if(!tcDomainCacheReady()||!tcCourseCacheReady())')&&
+ !installUpdateBody.slice(0,installUpdateBody.indexOf("const previousVersion=")).includes('tcLoadCourseModule()')&&
+ !installUpdateBody.slice(0,installUpdateBody.indexOf("const previousVersion=")).includes('tcLoadDomainModule()'),
+ 'install preflight must verify Domain/Course caches without executing modules ahead of the legacy patch order');
 assert(hotfix.includes('function tcRegisterCoreSources()')&&
  hotfix.includes("core.registerSource('generic'")&&hotfix.includes("core.registerSource('course'"),
  'TurnikCore must expose both legacy generic and Morozov stores through one state facade');
-assert(hotfix.includes("window.__TC_CORE_FOUNDATION={version:core.version,courseModule:TC_COURSE_MODULE_VERSION,modular:true}"),
- 'runtime diagnostics must expose the modular core foundation');
+assert(hotfix.includes("window.__TC_CORE_FOUNDATION={version:core.version,domainModule:window.TurnikDomain&&window.TurnikDomain.version||'',courseModule:TC_COURSE_MODULE_VERSION,modular:true}"),
+ 'runtime diagnostics must expose Core + Domain + Course modular foundation');
 assert(hotfix.includes("window.TurnikCore.history.all().map(x=>x.raw)"),
  'Progress summary must consume unified history through TurnikCore instead of manually joining stores');
 assert(hotfix.includes("const LEGACY_ASSET_VERSION='5.14.0-adaptive-rest'"),
@@ -909,6 +927,37 @@ assert.equal(undoState.lastCourseTs,0);
 assert.equal(undoState.testAnchorDate,'');
 assert.equal(undoApi.tcUndoLatestTodayCourseRecord('2026-09-25'),false,
  'undo must not remove anything twice');
+const domainSandbox={console,CustomEvent:function(type,init){this.type=type;this.detail=init&&init.detail},dispatchEvent:()=>true};
+domainSandbox.window=domainSandbox;
+vm.runInNewContext(domain,domainSandbox,{filename:'live/domain.js'});
+assert.equal(domainSandbox.TurnikDomain.version,'1.0.0');
+domainSandbox.TurnikDomain.register('today','generic',10,()=>({kind:'GENERIC_REST'}));
+domainSandbox.TurnikDomain.register('today','morozov',100,()=>null);
+assert.equal(domainSandbox.TurnikDomain.today().kind,'GENERIC_REST','null high-priority resolver must fall through');
+domainSandbox.TurnikDomain.register('today','morozov',100,()=>({kind:'MAIN_WORKOUT'}));
+assert.equal(domainSandbox.TurnikDomain.today().kind,'MAIN_WORKOUT','higher-priority course state must win');
+assert.equal(domainSandbox.TurnikDomain.today().source,'morozov');
+assert.equal(Array.from(domainSandbox.TurnikDomain.debug().areas.today,x=>x.name).join(','),'morozov,generic');
+
+const todaySource=extract('tcCourseTodayState');
+function resolveCourseToday(overrides={}){
+  const deps=Object.assign({
+    tcSelectedDate:'',dateKey:()=> '2026-10-06',tcDateFromKey:k=>new Date(k+'T12:00:00'),
+    tcBuildExtraItems:()=>[],tcTodayCourseRecord:()=>null,tcWeeklyMode:()=>true,tcTestDue:()=>false,
+    tcMasteryDue:()=>false,tcRecoveryShiftToday:()=>false,tcTransferCandidate:()=>null,tcCourseDue:()=>false,
+    TC_course:{level:4,lastCourseDate:'2026-10-04'},tcAdvancedSelected:()=>true,tcOriginalCourseDefs:()=>[{}],
+    tcRunnableDefs:x=>x,tcCalibrationDefs:()=>[],tcNeedsWorkingWeight:()=>false,
+    tcCourseLevel:()=>({title:'Fourth'}),tcCourseComplex:()=>({no:3,def:{name:'Complex 3'}}),
+    tcBuildCourseItems:()=>[{plan:[1,2]}],tcUnavailableDefs:()=>[],tcAuxDue:()=>false,tcNextCourseDay:()=> '2026-10-08'
+  },overrides);
+  return new Function('deps','with(deps){return ('+todaySource+')();}')(deps);
+}
+assert.equal(resolveCourseToday({tcTodayCourseRecord:()=>({date:'2026-10-06'})}).kind,'COURSE_DONE');
+assert.equal(resolveCourseToday({tcTestDue:()=>true}).kind,'COURSE_TEST');
+const mainState=resolveCourseToday({tcCourseDue:()=>true});
+assert.equal(mainState.kind,'MAIN_WORKOUT');assert.equal(mainState.totalSets,2);
+assert.equal(resolveCourseToday().kind,'RECOVERY');
+
 const memory=new Map();
 const sandbox={
  console,
@@ -929,4 +978,4 @@ assert(sandbox.TurnikCore.transact('generic',x=>{x.seq=9}),
 assert.equal(generic.seq,9);
 assert.equal(sandbox.TurnikCore.snapshot().sources.course.history.length,1);
 
-console.log('PASS: modular core, syntax, UX2 persistence/IA/completion, critical actions, forms and touch targets');
+console.log('PASS: Core + Domain state, syntax, UX2 persistence/IA/completion, critical actions, forms and touch targets');
