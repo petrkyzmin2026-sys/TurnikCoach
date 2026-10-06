@@ -32,7 +32,7 @@ assert(hotfix.includes("TC_DOMAIN_MODULE_URL='https://raw.githubusercontent.com/
 assert(hotfix.includes("TC_DOMAIN_MODULE_VERSION='1.0.0'")&&
  hotfix.includes("TC_UI_MODULE_VERSION='1.0.0'")&&
  hotfix.includes("TC_STORE_MODULE_VERSION='1.1.0-write-path'")&&
- hotfix.includes("TC_COURSE_MODULE_VERSION='1.0.40-unified-writes'"),
+ hotfix.includes("TC_COURSE_MODULE_VERSION='1.0.41-plan-ia'"),
  'OTA shell must pin exact compatible Domain, UI, Store and Course module versions');
 assert(hotfix.includes("TC_UI_MODULE_URL='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/ui.js")&&
  hotfix.includes("TC_UI_CACHE_KEY='tc_module_ui_'+TC_UI_MODULE_VERSION"),
@@ -210,17 +210,26 @@ assert(hotfix.includes("if(!window.TurnikUI.install())throw new Error('TurnikCoa
  'UI dispatcher must install before course presenters execute');
 assert(course.includes('id="tcCycleStartDate"'),
  'settings must expose a cycle start date');
-assert(hotfix.includes("const VERSION='5.16.48-unified-workout-writes'"),
- 'release hotfix version must be 5.16.48');
-assert(course.includes("const COURSE_MODULE_VERSION='1.0.40-unified-writes'"),
- 'course module version must be 1.0.40');
+assert(course.includes('function tcPlanUpcomingSlots(limit=3)')&&course.includes("upcoming:tcPlanUpcomingSlots(3)"),
+ 'Plan domain state must own the next-session list before presentation');
+assert(course.includes('id="tcPlanPrimary"')&&course.includes('id="tcPlanScheduleCard"')&&course.includes("details.id='tcExtrasDetails'"),
+ 'Plan must expose separate course, upcoming-session and extras regions');
+assert(course.includes("tcExtrasSummaryTitle\">Дополнительные упражнения")&&
+ course.includes("[...host.children].forEach(node=>{if(node.id!=='tcPlanPrimary')body.appendChild(node)}"),
+ 'the legacy exercise catalog must live only inside the extras disclosure when the course is enabled');
+assert(!course.includes('<h3>Версия</h3>')&&course.includes("append('system','Оборудование',false)"),
+ 'course settings must not mix runtime version diagnostics with training settings');
+assert(hotfix.includes("const VERSION='5.16.49-plan-ia'"),
+ 'release hotfix version must be 5.16.49');
+assert(course.includes("const COURSE_MODULE_VERSION='1.0.41-plan-ia'"),
+ 'course module version must be 1.0.41');
 assert(domain.includes("const VERSION='1.0.0'"),
  'domain module version must be 1.0.0');
 assert(!course.includes('TC_EXTRA_START'),
  'temporary extra-workout trace logging must not ship');
 assert(!course.includes('window.confirm('),'course module must not depend on unsupported WebView JS dialogs');
 assert(!hotfix.includes('window.confirm('),'hotfix navigation/discard must not depend on unsupported WebView JS dialogs');
-assert(!hotfix.includes('forceHandover'),'5.16.48 must use an explicit user-visible update prompt');
+assert(!hotfix.includes('forceHandover'),'5.16.49 must use an explicit user-visible update prompt');
 assert(hotfix.includes("showRuntimeNotice('TurnikCoach обновлён до '+LABEL)"),
  'successful activation must give visible feedback');
 assert(hotfix.includes("localStorage.setItem('tc_hotfix_active_version',VERSION)"),
