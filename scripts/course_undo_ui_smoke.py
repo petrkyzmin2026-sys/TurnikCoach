@@ -574,7 +574,7 @@ assert restarted["hasW"] and restarted["mode"]=="extra" and restarted["workoutOn
 screenshot("08-restart-after-discard")
 # Complete the restarted extra workout through the real finish path. This must commit
 # course extraSeq + generic history as one WorkoutStore batch.
-tap_clickable_text("TC COMPLETE",timeout=18,contains=False)
+tap_clickable_text("TC COMPLETE",timeout=18)
 wait_text("Дополнительная тренировка завершена",timeout=18)
 write_probe=test_eval_json("(function(){var c=JSON.parse(localStorage.getItem('tc_morozov_course_v1')||'{}'),g=JSON.parse(localStorage.getItem('tc_v4')||'{}'),st=window.TurnikWorkoutStore&&TurnikWorkoutStore.debug?TurnikWorkoutStore.debug():null,top=g&&g.history&&g.history[0];return {extraSeq:c.extraSeq||0,genericMode:top&&top.courseMode||'',genericType:top&&top.type||'',store:st};})()","workout-store-write")
 print("TC_DIAG workout-store-write",write_probe,flush=True)
