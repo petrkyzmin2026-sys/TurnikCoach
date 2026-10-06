@@ -1,8 +1,8 @@
-/* TURNIKCOACH_HOTFIX 5.16.48-unified-workout-writes */
+/* TURNIKCOACH_HOTFIX 5.16.49-ia-cleanup */
 (function(){
 'use strict';
-const VERSION='5.16.48-unified-workout-writes';
-const LABEL='5.16.48';
+const VERSION='5.16.49-ia-cleanup';
+const LABEL='5.16.49';
 const APPROVED_KEY='tc_hotfix_approved_version';
 const LEGACY_ASSET_VERSION='5.14.0-adaptive-rest';
 const stalePrompt=document.getElementById('tcUpdatePrompt');
@@ -68,7 +68,7 @@ title.style.cssText='font-size:22px;font-weight:800;margin-bottom:10px;flex:0 0 
 title.textContent='Доступно обновление TurnikCoach '+LABEL;
 const text=document.createElement('div');
 text.style.cssText='font-size:15px;line-height:1.45;color:#cfd8e3;margin-bottom:18px;min-height:0;flex:1 1 0;overflow-y:auto;overscroll-behavior:contain;padding-right:4px';
-text.innerHTML="Продолжена архитектурная переработка без изменения экранов. WorkoutStore теперь отвечает не только за чтение, но и за запись тренировок курса: основная, вспомогательная, авторское дополнение и дополнительная тренировка сохраняются через единый транзакционный слой. Операции между двумя хранилищами выполняются с откатом при ошибке. История и существующие данные не переносятся и не удаляются.<br><br>Установить обновление сейчас?";
+text.innerHTML="Приложение разделено по назначению экранов. «Сегодня» теперь показывает одну главную задачу дня, а план недели и вторичные действия убраны под раскрытие. «План» показывает курс, ближайшие тренировки и отдельно дополнительные упражнения. «Прогресс» сначала показывает ключевые показатели, а историю и контрольные данные — по раскрытию. Технические версии убраны из настроек курса.<br><br>Установить обновление сейчас?";
 const row=document.createElement('div');
 row.style.cssText='display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;flex:0 0 auto';
 const later=document.createElement('button');
@@ -119,8 +119,8 @@ const TC_STORE_MODULE_VERSION='1.1.0-write-path';
 const TC_STORE_MODULE_MARKER='TURNIKCOACH_WORKOUT_STORE 1.1.0-write-path';
 const TC_STORE_MODULE_URL='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/store.js?v='+encodeURIComponent(TC_STORE_MODULE_VERSION);
 const TC_STORE_CACHE_KEY='tc_module_store_'+TC_STORE_MODULE_VERSION;
-const TC_COURSE_MODULE_VERSION='1.0.40-unified-writes';
-const TC_COURSE_MODULE_MARKER='TURNIKCOACH_COURSE 1.0.40-unified-writes';
+const TC_COURSE_MODULE_VERSION='1.0.41-ia-cleanup';
+const TC_COURSE_MODULE_MARKER='TURNIKCOACH_COURSE 1.0.41-ia-cleanup';
 const TC_COURSE_MODULE_URL='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/course.js?v='+encodeURIComponent(TC_COURSE_MODULE_VERSION);
 const TC_COURSE_CACHE_KEY='tc_module_course_'+TC_COURSE_MODULE_VERSION;
 let tcDomainPrimePromise=null,tcUiPrimePromise=null,tcStorePrimePromise=null,tcCoursePrimePromise=null;
@@ -211,6 +211,15 @@ tcPrimeDomainModule();
 tcPrimeUiModule();
 tcPrimeStoreModule();
 tcPrimeCourseModule();
+window.tcOpenAppInfo=function(){
+const sheet=document.getElementById('sheet'),box=document.getElementById('sheetbox');if(!sheet||!box)return false;
+const f=window.__TC_CORE_FOUNDATION||{},active=window.__TC_HOTFIX_LABEL||LABEL;
+box.innerHTML='<div class="sheettitle">О приложении</div>'+
+'<div class="tcInfoBlock"><h3>TurnikCoach</h3><p>Версия: <b>'+active+'</b></p></div>'+
+'<div class="tcInfoBlock"><h3>Архитектура</h3><p>Core: <b>'+(f.version||'—')+'</b><br>Domain: <b>'+(f.domainModule||'—')+'</b><br>UI: <b>'+(f.uiModule||'—')+'</b><br>WorkoutStore: <b>'+(f.storeModule||'—')+'</b><br>Course: <b>'+(f.courseModule||TC_COURSE_MODULE_VERSION)+'</b></p></div>'+
+'<button class="btn yellow full" style="margin-top:14px" onclick="closeSheet()">Закрыть</button>';
+sheet.classList.add('open');return true;
+};
 function tcInstallUx2InformationArchitecture(){
 if(window.__TC_UX2_IA)return;
 window.__TC_UX2_IA=true;
@@ -223,17 +232,20 @@ setNav('n2','●','Сегодня');
 setNav('n3','⌁','Прогресс');
 const exercise=document.getElementById('exercise');
 if(exercise){
-const k=exercise.querySelector('.head .k'),h1=exercise.querySelector('.head h1'),sub=exercise.querySelector('.head .sub');
+const head=exercise.querySelector('.head'),k=exercise.querySelector('.head .k'),h1=exercise.querySelector('.head h1'),sub=exercise.querySelector('.head .sub');
 if(k)k.textContent='ПЛАН';
 if(h1)h1.textContent='План';
-if(sub)sub.textContent='Программа, упражнения и параметры, по которым TurnikCoach строит тренировки.';
+if(sub)sub.textContent='Основной курс, ближайшие тренировки и дополнительные упражнения.';
+if(head&&!document.getElementById('tcAppInfoButton')){
+const info=document.createElement('button');info.id='tcAppInfoButton';info.type='button';info.className='btn ghost';info.textContent='О приложении';info.style.cssText='min-height:42px;margin-top:10px;padding:8px 12px;font-size:12px';info.onclick=window.tcOpenAppInfo;head.appendChild(info);
+}
 }
 const history=document.getElementById('historyScreen');
 if(history){
 const k=history.querySelector('.head .k'),h1=history.querySelector('.head h1'),sub=history.querySelector('.head .sub');
 if(k)k.textContent='ПРОГРЕСС';
 if(h1)h1.textContent='Прогресс';
-if(sub)sub.textContent='История тренировок, объём, максимумы и контрольные результаты.';
+if(sub)sub.textContent='Ключевые показатели курса и история тренировок.';
 }
 const today=document.getElementById('today');
 if(today){
