@@ -196,7 +196,7 @@ const core=window.TurnikCore;if(!core)return false;
 core.registerSource('generic',{
 snapshot:()=>typeof state!=='undefined'?state:null,
 history:()=>typeof state!=='undefined'&&state&&Array.isArray(state.history)?state.history:[],
-restore:next=>{if(typeof state==='undefined'||!next)return false;state=next;if(typeof save==='function')save();return true}
+restore:next=>{if(typeof state==='undefined'||!next)return false;state=next;try{localStorage.setItem('tc_v4',JSON.stringify(next));return true}catch(e){console.error('TurnikCoach generic state restore',e);return false}}
 });
 core.registerSource('course',{
 snapshot:()=>typeof window.tcGetCourseStateSnapshot==='function'?window.tcGetCourseStateSnapshot():null,
