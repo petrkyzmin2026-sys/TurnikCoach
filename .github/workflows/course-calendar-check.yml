@@ -34,6 +34,7 @@ on:
       - refactor/domain-state-5.16.45
       - refactor/ui-presenter-5.16.46
       - refactor/unified-workout-store-5.16.47
+      - refactor/progress-cleanup-5.16.48
   pull_request:
   workflow_dispatch:
 
@@ -64,11 +65,13 @@ jobs:
           done
           base64 --decode /tmp/v513.b64 | gzip -dc > app/src/main/assets/index.html
           grep -q 'v5.13 — modern Android package' app/src/main/assets/index.html
-      - name: Reproduce packaged 5.14 + cached 5.16.46 + tested 5.16.47
+      - name: Reproduce packaged 5.14 + cached 5.16.47 + tested 5.16.48
         run: |
-          PREV_COMMIT="ab88036953fa34a517b22228b56c9453a339f585"
+          PREV_COMMIT="8c2be96905bdaa37543e92371854094320df24b9"
           grep -q 'TURNIKCOACH_HOTFIX 5.14.0-adaptive-rest' app/src/main/assets/hotfix.js
           curl -fsSL "https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/${PREV_COMMIT}/live/hotfix.js" > app/src/main/assets/hotfix-prev.js
+          curl -fsSL "https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/${PREV_COMMIT}/live/ui.js" > app/src/main/assets/ui-prev.js
+          curl -fsSL "https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/${PREV_COMMIT}/live/store.js" > app/src/main/assets/store-prev.js
           curl -fsSL "https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/${PREV_COMMIT}/live/course.js" > app/src/main/assets/course-prev.js
           cp live/hotfix.js app/src/main/assets/hotfix-next.js
           python3 - <<'PY'
@@ -80,40 +83,49 @@ jobs:
           s=s.replace(needle,"function tcAudio(){\nif(window.__TC_DISABLE_AUDIO_FOR_SMOKE)return null;\ntry{",1)
           p.write_text(s)
           PY
-          grep -q 'TURNIKCOACH_HOTFIX 5.16.46-ui-presenter' app/src/main/assets/hotfix-prev.js
-          grep -q 'TURNIKCOACH_HOTFIX 5.16.47-unified-workout-store' app/src/main/assets/hotfix-next.js
+          grep -q 'TURNIKCOACH_HOTFIX 5.16.47-unified-workout-store' app/src/main/assets/hotfix-prev.js
+          grep -q 'TURNIKCOACH_HOTFIX 5.16.48-progress-cleanup' app/src/main/assets/hotfix-next.js
           grep -q 'TURNIKCOACH_CORE 1.0.0' app/src/main/assets/hotfix-next.js
           grep -q 'TURNIKCOACH_DOMAIN 1.0.0' live/domain.js
-          grep -q 'TURNIKCOACH_UI 1.0.0' live/ui.js
-          grep -q 'TURNIKCOACH_WORKOUT_STORE 1.0.0' live/store.js
-          grep -q 'TURNIKCOACH_COURSE 1.0.39-ui-presenter' live/course.js
+          grep -q 'TURNIKCOACH_UI 1.1.0' live/ui.js
+          grep -q 'TURNIKCOACH_WORKOUT_STORE 1.1.0' live/store.js
+          grep -q 'TURNIKCOACH_PROGRESS 1.0.0' live/progress.js
+          grep -q 'TURNIKCOACH_COURSE 1.0.40-progress-cleanup' live/course.js
+          grep -q 'TURNIKCOACH_UI 1.0.0' app/src/main/assets/ui-prev.js
+          grep -q 'TURNIKCOACH_WORKOUT_STORE 1.0.0' app/src/main/assets/store-prev.js
           grep -q 'TURNIKCOACH_COURSE 1.0.39-ui-presenter' app/src/main/assets/course-prev.js
           ! grep -q 'COURSE_MODULE_BUNDLED=' app/src/main/assets/hotfix-next.js
-      - name: Seed installed 5.16.46 approval, Domain/UI/Store/Course caches and completed main-course state
+      - name: Seed installed 5.16.47 approval, old/new module caches and completed main-course state
         run: |
           python3 - <<'PY'
           from pathlib import Path
           import json
           p=Path('app/src/main/assets/index.html')
           html=p.read_text()
+          prev_ui_cache=json.dumps(Path('app/src/main/assets/ui-prev.js').read_text())
+          prev_store_cache=json.dumps(Path('app/src/main/assets/store-prev.js').read_text())
           prev_course_cache=json.dumps(Path('app/src/main/assets/course-prev.js').read_text())
           domain_cache=json.dumps(Path('live/domain.js').read_text())
           ui_cache=json.dumps(Path('live/ui.js').read_text())
           store_cache=json.dumps(Path('live/store.js').read_text())
+          progress_cache=json.dumps(Path('live/progress.js').read_text())
           next_course_cache=json.dumps(Path('live/course.js').read_text())
           marker='</head>'
           assert html.count(marker)==1
           seed=r'''<script>
           (function(){
             window.__TC_DISABLE_AUDIO_FOR_SMOKE=true;
-            localStorage.setItem('tc_module_course_1.0.38-domain-state',__PREV_COURSE_CACHE__);
             localStorage.setItem('tc_module_domain_1.0.0',__DOMAIN_CACHE__);
-            localStorage.setItem('tc_module_ui_1.0.0',__UI_CACHE__);
-            localStorage.setItem('tc_module_store_1.0.0',__STORE_CACHE__);
-            localStorage.setItem('tc_module_course_1.0.39-ui-presenter',__NEXT_COURSE_CACHE__);
+            localStorage.setItem('tc_module_ui_1.0.0',__PREV_UI_CACHE__);
+            localStorage.setItem('tc_module_store_1.0.0',__PREV_STORE_CACHE__);
+            localStorage.setItem('tc_module_course_1.0.39-ui-presenter',__PREV_COURSE_CACHE__);
+            localStorage.setItem('tc_module_ui_1.1.0',__UI_CACHE__);
+            localStorage.setItem('tc_module_store_1.1.0',__STORE_CACHE__);
+            localStorage.setItem('tc_module_progress_1.0.0',__PROGRESS_CACHE__);
+            localStorage.setItem('tc_module_course_1.0.40-progress-cleanup',__NEXT_COURSE_CACHE__);
             if(localStorage.getItem('__tcForcedHandoverSmokeSeeded')) return;
             var d=new Date(),k=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
-            localStorage.setItem('tc_hotfix_approved_version','5.16.46-ui-presenter');
+            localStorage.setItem('tc_hotfix_approved_version','5.16.47-unified-workout-store');
             localStorage.setItem('tc_morozov_course_v1',JSON.stringify({
               enabled:true,level:4,goal:'quantity',pullMax:20,courseSeq:1,extraSeq:0,
               lastCourseDate:k,lastCourseTs:Date.now(),weeklySessions:3,cycleStartDate:k,
@@ -192,7 +204,7 @@ jobs:
             else tcInstallTestDriver();
           })();
           </script>'''
-          seed=seed.replace('__PREV_COURSE_CACHE__',prev_course_cache).replace('__DOMAIN_CACHE__',domain_cache).replace('__UI_CACHE__',ui_cache).replace('__STORE_CACHE__',store_cache).replace('__NEXT_COURSE_CACHE__',next_course_cache)
+          seed=seed.replace('__PREV_UI_CACHE__',prev_ui_cache).replace('__PREV_STORE_CACHE__',prev_store_cache).replace('__PREV_COURSE_CACHE__',prev_course_cache).replace('__DOMAIN_CACHE__',domain_cache).replace('__UI_CACHE__',ui_cache).replace('__STORE_CACHE__',store_cache).replace('__PROGRESS_CACHE__',progress_cache).replace('__NEXT_COURSE_CACHE__',next_course_cache)
           p.write_text(html.replace(marker,seed+marker))
           PY
       - name: Isolate test application from installed production data
@@ -314,10 +326,10 @@ jobs:
       - name: Build isolated DEBUG preview APK
         run: |
           gradle --no-daemon :app:assembleDebug
-          cp app/build/outputs/apk/debug/app-debug.apk TurnikCoach-Unified-Store-Preview-v5.16.47.apk
+          cp app/build/outputs/apk/debug/app-debug.apk TurnikCoach-Progress-Cleanup-Preview-v5.16.48.apk
       - name: Enable KVM
         run: sudo chmod 666 /dev/kvm || true
-      - name: Verify 5.16.47 Unified Workout Store accessibility baseline in real Android WebView
+      - name: Verify 5.16.48 Progress Cleanup accessibility baseline in real Android WebView
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 35
@@ -326,16 +338,16 @@ jobs:
           disable-animations: true
           emulator-options: -no-snapshot-save -no-window -gpu swiftshader -noaudio -no-boot-anim
           script: |
-            adb install -r TurnikCoach-Unified-Store-Preview-v5.16.47.apk
+            adb install -r TurnikCoach-Progress-Cleanup-Preview-v5.16.48.apk
             TC_TEST_PKG=ru.turnikcoach.v52tr.calendarpreview python3 scripts/course_undo_ui_smoke.py
       - name: Upload UX2 accessibility baseline screenshots
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: TurnikCoach-5.16.47-store-accessibility-baseline-screenshots
+          name: TurnikCoach-5.16.48-progress-accessibility-baseline-screenshots
           path: undo-ui-test-output
           if-no-files-found: warn
-      - name: Verify 5.16.47 Unified Workout Store at 200% system font scale
+      - name: Verify 5.16.48 Progress Cleanup at 200% system font scale
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 35
@@ -346,17 +358,17 @@ jobs:
           script: |
             adb shell settings put system font_scale 2.0
             test "$(adb shell settings get system font_scale | tr -d '\r')" = "2.0"
-            adb install -r TurnikCoach-Unified-Store-Preview-v5.16.47.apk
+            adb install -r TurnikCoach-Progress-Cleanup-Preview-v5.16.48.apk
             TC_TEST_PKG=ru.turnikcoach.v52tr.calendarpreview TC_OUT_DIR="$GITHUB_WORKSPACE/undo-ui-font200-output" TC_FONT_SCALE=2.0 python3 scripts/course_undo_ui_smoke.py
       - name: Upload UX2 200% font-scale screenshots
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: TurnikCoach-5.16.47-store-font200-screenshots
+          name: TurnikCoach-5.16.48-progress-font200-screenshots
           path: undo-ui-font200-output
           if-no-files-found: warn
       - uses: actions/upload-artifact@v4
         with:
-          name: TurnikCoach-5.16.47-store-accessibility-isolated-preview
-          path: TurnikCoach-Unified-Store-Preview-v5.16.47.apk
+          name: TurnikCoach-5.16.48-progress-accessibility-isolated-preview
+          path: TurnikCoach-Progress-Cleanup-Preview-v5.16.48.apk
           if-no-files-found: error
