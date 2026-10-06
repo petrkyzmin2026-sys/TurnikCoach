@@ -135,9 +135,15 @@ return tcCoursePrimePromise;
 }
 async function tcEnsureRequiredModules(){
 if(!tcLoadCoreModule())return false;
-if(tcLoadCourseModule())return true;
+let cached=tcReadCourseCache();
+if(!tcValidCourseModule(cached)){
 const ready=await tcPrimeCourseModule();
-return !!ready&&tcLoadCourseModule();
+if(!ready)return false;
+cached=tcReadCourseCache();
+if(!tcValidCourseModule(cached))return false;
+}
+if(window.__TC_COURSE_MODULE_VERSION===TC_COURSE_MODULE_VERSION)return true;
+return tcLoadCourseModule();
 }
 function tcRegisterCoreSources(){
 const core=window.TurnikCore;if(!core)return false;
