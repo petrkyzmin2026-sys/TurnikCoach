@@ -614,7 +614,7 @@ assert(hotfix.includes("setNav('n1','◫','План')")&&hotfix.includes("setNav
  'top-level navigation must expose Today / Plan / Progress');
 assert(hotfix.includes("viewport.setAttribute('content','width=device-width,initial-scale=1')"),
  'UX2 must remove the legacy zoom lock');
-assert(course.includes("const week=()=>'<div class=\"tcWeekSection\""),
+assert(/week=\(\)=>'<div class="tcWeekSection"/.test(course),
  'Today must treat the weekly calendar as a secondary section');
 assert(course.includes('<details class="tcTodayPlanDetails"><summary>Посмотреть план</summary>'),
  'Today must progressively disclose the detailed set plan');
