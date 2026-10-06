@@ -1,9 +1,9 @@
-/* TURNIKCOACH_CORE 1.0.0 */
+/* TURNIKCOACH_CORE 1.1.0 */
 (function(){
 'use strict';
-const VERSION='1.0.0';
+const VERSION='1.1.0';
 if(window.TurnikCore&&window.TurnikCore.version===VERSION)return;
-const listeners=new Map(),sources=new Map();
+const listeners=new Map(),sources=new Map(),selectors=new Map();
 function clone(v){try{return JSON.parse(JSON.stringify(v))}catch(e){return null}}
 function readText(key,fallback=''){try{const v=localStorage.getItem(key);return v==null?fallback:v}catch(e){return fallback}}
 function writeText(key,value){try{localStorage.setItem(key,String(value));return true}catch(e){return false}}
@@ -85,13 +85,23 @@ try{result=mutator(next)}catch(e){console.error('TurnikCore transaction',name,e)
 if(result===false)return false;
 return replaceSource(name,next);
 }
+function registerSelector(name,fn){
+if(!name||typeof fn!=='function')return false;
+selectors.set(String(name),fn);emit('selector:registered',{name:String(name)});return true;
+}
+function select(name,input){
+const fn=selectors.get(String(name));if(!fn)return null;
+try{return clone(fn(input))}catch(e){console.error('TurnikCore selector',name,e);return null}
+}
+function selectorNames(){return[...selectors.keys()]}
 window.TurnikCore={
 version:VERSION,
 storage:{readText,writeText,readJSON,writeJSON,remove},
 events:{on,emit},
-registerSource,source,sourceSnapshot,snapshot,replaceSource,transact,
+registerSource,source,sourceSnapshot,snapshot,replaceSource,transact,registerSelector,select,
+selectors:{register:registerSelector,run:select,list:selectorNames},
 history:{all:allHistory,from:historyFrom,normalize:normalizeWorkout},
-debug(){return{version:VERSION,sources:[...sources.keys()],historyCount:allHistory().length}}
+debug(){return{version:VERSION,sources:[...sources.keys()],selectors:selectorNames(),historyCount:allHistory().length}}
 };
 try{window.dispatchEvent(new CustomEvent('turnikcore:ready',{detail:{version:VERSION}}))}catch(e){}
 })();
