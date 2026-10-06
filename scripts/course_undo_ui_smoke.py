@@ -326,13 +326,13 @@ def launch():
 launch()
 dismiss_system_anr()
 
-# Exact update path: packaged 5.14 + cached 5.16.43 is active first; staged 5.16.44 must be offered explicitly.
+# Exact update path: packaged 5.14 + cached 5.16.44 is active first; staged 5.16.45 must be offered explicitly.
 time.sleep(3)
 screenshot("00-before-update-assert")
 adb("shell","uiautomator","dump","/sdcard/uxb3-before-update.xml",check=False)
 adb("pull","/sdcard/uxb3-before-update.xml",OUT+"/00-before-update.xml",check=False)
 try:
-    wait_text("Доступно обновление TurnikCoach 5.16.44",timeout=20)
+    wait_text("Доступно обновление TurnikCoach 5.16.45",timeout=20)
 except Exception:
     log=adb("logcat","-d","-t","500",check=False)
     with open(OUT+"/00-logcat.txt","w",encoding="utf-8") as fp:
@@ -342,7 +342,7 @@ wait_text("Обновить",contains=False)
 screenshot("01-update-offered")
 
 tap_clickable_text("Обновить")
-wait_text("TurnikCoach обновлён до 5.16.44",timeout=25)
+wait_text("TurnikCoach обновлён до 5.16.45",timeout=25)
 assert_accessibility_target("План",48)
 assert_accessibility_target("Прогресс",48)
 screenshot("02-update-installed")
@@ -366,16 +366,18 @@ course_stats=test_eval_json("(function(){var w=document.getElementById('tcCourse
 print("TC_DIAG morozov-course-stats",course_stats,flush=True)
 stats_text=course_stats["text"].lower()
 assert course_stats["present"] and "курс морозова" in stats_text and "выполнение курса" in stats_text and "вовремя" in stats_text and "пропущено" in stats_text, "Progress must show compact Morozov course statistics"
-assert course_stats["runs"]>=1 and course_stats["active"] and course_stats["historyRun"]==course_stats["active"] and course_stats["baseline"]==20, "5.16.44 must preserve the seeded active course run and history"
+assert course_stats["runs"]>=1 and course_stats["active"] and course_stats["historyRun"]==course_stats["active"] and course_stats["baseline"]==20, "5.16.45 must preserve the seeded active course run and history"
 screenshot("02c-morozov-course-stats")
-core_probe=test_eval_json("(function(){var d=window.TurnikCore&&TurnikCore.debug?TurnikCore.debug():null;var f=window.__TC_CORE_FOUNDATION||null;var cache=localStorage.getItem('tc_module_course_1.0.37-course-stats')||'';return {core:d,foundation:f,cacheBytes:cache.length,active:window.__TC_HOTFIX_ACTIVE_VERSION};})()","core-foundation")
-print("TC_DIAG core-foundation",core_probe,flush=True)
-assert core_probe["core"] and core_probe["core"]["version"]=="1.0.0", "TurnikCore must be active in the real WebView"
+core_probe=test_eval_json("(function(){var d=window.TurnikCore&&TurnikCore.debug?TurnikCore.debug():null;var f=window.__TC_CORE_FOUNDATION||null;var cache=localStorage.getItem('tc_module_course_1.0.38-today-state')||'';var today=window.TurnikCore&&TurnikCore.select?TurnikCore.select('today'):null;return {core:d,foundation:f,cacheBytes:cache.length,active:window.__TC_HOTFIX_ACTIVE_VERSION,today:today};})()","today-state")
+print("TC_DIAG today-state",core_probe,flush=True)
+assert core_probe["core"] and core_probe["core"]["version"]=="1.1.0", "TurnikCore 1.1 must be active in the real WebView"
 assert sorted(core_probe["core"]["sources"])==["course","generic"], "TurnikCore must register both state sources"
-assert core_probe["foundation"] and core_probe["foundation"]["modular"] is True, "runtime must expose modular core diagnostics"
-assert core_probe["cacheBytes"]>1000, "course module must survive as a separate offline cache"
-assert core_probe["active"]=="5.16.44-core-foundation", "5.16.44 must be the active OTA shell"
-screenshot("02d-core-foundation")
+assert "today" in core_probe["core"]["selectors"], "TodayState selector must be registered"
+assert core_probe["foundation"] and core_probe["foundation"]["modular"] is True and core_probe["foundation"]["todayState"] is True, "runtime must expose TodayState diagnostics"
+assert core_probe["cacheBytes"]>1000, "versioned TodayState course module must survive as a separate offline cache"
+assert core_probe["today"] and core_probe["today"]["kind"]=="completed", "seeded completed course day must classify as completed before rendering"
+assert core_probe["active"]=="5.16.45-today-state", "5.16.45 must be the active OTA shell"
+screenshot("02d-today-state")
 tap_clickable_text("Сегодня",timeout=20)
 
 
@@ -453,9 +455,9 @@ adb("shell","am","force-stop",PKG)
 time.sleep(1)
 launch()
 dismiss_system_anr()
-upgrade_install=wait_log_tokens(["TC_NAV_UPGRADE",'"phase":"install"','"version":"5.16.44-core-foundation"'],timeout=20)
+upgrade_install=wait_log_tokens(["TC_NAV_UPGRADE",'"phase":"install"','"version":"5.16.45-today-state"'],timeout=20)
 restore_line=wait_log_tokens(["TC_WORKOUT_STATE",'"phase":"restored"','"name":"Подъём коленей в висе"','"mode":"extra"'],timeout=20)
-upgrade_arm=wait_log_tokens(["TC_NAV_UPGRADE",'"phase":"arm-restore-guard"','"version":"5.16.44-core-foundation"','"surface":"workout"'],timeout=20)
+upgrade_arm=wait_log_tokens(["TC_NAV_UPGRADE",'"phase":"arm-restore-guard"','"version":"5.16.45-today-state"','"surface":"workout"'],timeout=20)
 print("TC_DIAG nav-upgrade-install",upgrade_install,flush=True)
 print("TC_DIAG restore",restore_line,flush=True)
 print("TC_DIAG nav-upgrade-arm",upgrade_arm,flush=True)
