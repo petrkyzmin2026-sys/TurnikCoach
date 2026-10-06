@@ -1,8 +1,8 @@
-/* TURNIKCOACH_HOTFIX 5.16.45-domain-state */
+/* TURNIKCOACH_HOTFIX 5.16.46-ui-presenter */
 (function(){
 'use strict';
-const VERSION='5.16.45-domain-state';
-const LABEL='5.16.45';
+const VERSION='5.16.46-ui-presenter';
+const LABEL='5.16.46';
 const APPROVED_KEY='tc_hotfix_approved_version';
 const LEGACY_ASSET_VERSION='5.14.0-adaptive-rest';
 const stalePrompt=document.getElementById('tcUpdatePrompt');
@@ -68,7 +68,7 @@ title.style.cssText='font-size:22px;font-weight:800;margin-bottom:10px;flex:0 0 
 title.textContent='Доступно обновление TurnikCoach '+LABEL;
 const text=document.createElement('div');
 text.style.cssText='font-size:15px;line-height:1.45;color:#cfd8e3;margin-bottom:18px;min-height:0;flex:1 1 0;overflow-y:auto;overscroll-behavior:contain;padding-right:4px';
-text.innerHTML="Продолжена переработка архитектуры без изменения привычного управления. Добавлен отдельный слой TurnikDomain: сначала приложение определяет состояние «Сегодня / План / Прогресс», и только затем экран его отображает. Курс Морозова больше не принимает основные решения прямо внутри рендера. История, расписание и настройки сохраняются.<br><br>Установить обновление сейчас?";
+text.innerHTML="Продолжена архитектурная переработка без изменения привычного управления. Добавлен единый UI-диспетчер TurnikUI: «Сегодня», «План» и «Прогресс» теперь получают готовое состояние от TurnikDomain и отрисовываются через зарегистрированные представления. Модуль курса больше не перехватывает глобальные render() и renderHistory(). Это уменьшает связанность экранов и готовит их дальнейшее разнесение.<br><br>Установить обновление сейчас?";
 const row=document.createElement('div');
 row.style.cssText='display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;flex:0 0 auto';
 const later=document.createElement('button');
@@ -111,11 +111,15 @@ const TC_DOMAIN_MODULE_VERSION='1.0.0';
 const TC_DOMAIN_MODULE_MARKER='TURNIKCOACH_DOMAIN 1.0.0';
 const TC_DOMAIN_MODULE_URL='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/domain.js?v='+encodeURIComponent(TC_DOMAIN_MODULE_VERSION);
 const TC_DOMAIN_CACHE_KEY='tc_module_domain_'+TC_DOMAIN_MODULE_VERSION;
-const TC_COURSE_MODULE_VERSION='1.0.38-domain-state';
-const TC_COURSE_MODULE_MARKER='TURNIKCOACH_COURSE 1.0.38-domain-state';
+const TC_UI_MODULE_VERSION='1.0.0';
+const TC_UI_MODULE_MARKER='TURNIKCOACH_UI 1.0.0';
+const TC_UI_MODULE_URL='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/ui.js?v='+encodeURIComponent(TC_UI_MODULE_VERSION);
+const TC_UI_CACHE_KEY='tc_module_ui_'+TC_UI_MODULE_VERSION;
+const TC_COURSE_MODULE_VERSION='1.0.39-ui-presenter';
+const TC_COURSE_MODULE_MARKER='TURNIKCOACH_COURSE 1.0.39-ui-presenter';
 const TC_COURSE_MODULE_URL='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/course.js?v='+encodeURIComponent(TC_COURSE_MODULE_VERSION);
 const TC_COURSE_CACHE_KEY='tc_module_course_'+TC_COURSE_MODULE_VERSION;
-let tcDomainPrimePromise=null,tcCoursePrimePromise=null;
+let tcDomainPrimePromise=null,tcUiPrimePromise=null,tcCoursePrimePromise=null;
 function tcEvalModule(js,label){try{(0,eval)(js);return true}catch(e){console.error('TurnikCoach module '+label,e);return false}}
 function tcLoadCoreModule(){
 if(window.TurnikCore&&window.TurnikCore.version==='1.0.0')return true;
@@ -124,13 +128,20 @@ return tcEvalModule(CORE_MODULE_BUNDLED,'core')&&!!window.TurnikCore;
 function tcReadModuleCache(key){try{return localStorage.getItem(key)||''}catch(e){return''}}
 function tcWriteModuleCache(key,js){try{localStorage.setItem(key,js);return true}catch(e){return false}}
 function tcValidDomainModule(js){return typeof js==='string'&&js.length>500&&js.length<64000&&js.includes(TC_DOMAIN_MODULE_MARKER)}
+function tcValidUiModule(js){return typeof js==='string'&&js.length>500&&js.length<64000&&js.includes(TC_UI_MODULE_MARKER)}
 function tcValidCourseModule(js){return typeof js==='string'&&js.length>1000&&js.length<256000&&js.includes(TC_COURSE_MODULE_MARKER)}
 function tcDomainCacheReady(){return tcValidDomainModule(tcReadModuleCache(TC_DOMAIN_CACHE_KEY))}
+function tcUiCacheReady(){return tcValidUiModule(tcReadModuleCache(TC_UI_CACHE_KEY))}
 function tcCourseCacheReady(){return tcValidCourseModule(tcReadModuleCache(TC_COURSE_CACHE_KEY))}
 function tcLoadDomainModule(){
 if(window.TurnikDomain&&window.TurnikDomain.version===TC_DOMAIN_MODULE_VERSION)return true;
 const cached=tcReadModuleCache(TC_DOMAIN_CACHE_KEY);
 return tcValidDomainModule(cached)&&tcEvalModule(cached,'domain')&&!!window.TurnikDomain;
+}
+function tcLoadUiModule(){
+if(window.TurnikUI&&window.TurnikUI.version===TC_UI_MODULE_VERSION)return true;
+const cached=tcReadModuleCache(TC_UI_CACHE_KEY);
+return tcValidUiModule(cached)&&tcEvalModule(cached,'ui')&&!!window.TurnikUI;
 }
 function tcLoadCourseModule(){
 if(window.__TC_COURSE_MODULE_VERSION===TC_COURSE_MODULE_VERSION)return true;
@@ -147,6 +158,10 @@ function tcPrimeDomainModule(){
 if(!tcDomainPrimePromise)tcDomainPrimePromise=tcPrimeModule(TC_DOMAIN_MODULE_URL,TC_DOMAIN_CACHE_KEY,tcValidDomainModule,'domain');
 return tcDomainPrimePromise;
 }
+function tcPrimeUiModule(){
+if(!tcUiPrimePromise)tcUiPrimePromise=tcPrimeModule(TC_UI_MODULE_URL,TC_UI_CACHE_KEY,tcValidUiModule,'ui');
+return tcUiPrimePromise;
+}
 function tcPrimeCourseModule(){
 if(!tcCoursePrimePromise)tcCoursePrimePromise=tcPrimeModule(TC_COURSE_MODULE_URL,TC_COURSE_CACHE_KEY,tcValidCourseModule,'course');
 return tcCoursePrimePromise;
@@ -155,9 +170,10 @@ async function tcEnsureRequiredModules(){
 if(!tcLoadCoreModule())return false;
 const tasks=[];
 if(!tcDomainCacheReady())tasks.push(tcPrimeDomainModule());
+if(!tcUiCacheReady())tasks.push(tcPrimeUiModule());
 if(!tcCourseCacheReady())tasks.push(tcPrimeCourseModule());
 if(tasks.length){const ready=await Promise.all(tasks);if(ready.some(x=>!x))return false}
-return tcDomainCacheReady()&&tcCourseCacheReady();
+return tcDomainCacheReady()&&tcUiCacheReady()&&tcCourseCacheReady();
 }
 function tcRegisterCoreSources(){
 const core=window.TurnikCore;if(!core)return false;
@@ -171,11 +187,12 @@ snapshot:()=>typeof window.tcGetCourseStateSnapshot==='function'?window.tcGetCou
 history:()=>{const x=typeof window.tcGetCourseStateSnapshot==='function'?window.tcGetCourseStateSnapshot():null;return x&&Array.isArray(x.history)?x.history:[]},
 restore:next=>typeof window.tcRestoreCourseStateSnapshot==='function'?window.tcRestoreCourseStateSnapshot(next):false
 });
-window.__TC_CORE_FOUNDATION={version:core.version,domainModule:window.TurnikDomain&&window.TurnikDomain.version||'',courseModule:TC_COURSE_MODULE_VERSION,modular:true};
+window.__TC_CORE_FOUNDATION={version:core.version,domainModule:window.TurnikDomain&&window.TurnikDomain.version||'',uiModule:window.TurnikUI&&window.TurnikUI.version||'',courseModule:TC_COURSE_MODULE_VERSION,modular:true};
 return true;
 }
 tcLoadCoreModule();
 tcPrimeDomainModule();
+tcPrimeUiModule();
 tcPrimeCourseModule();
 function tcInstallUx2InformationArchitecture(){
 if(window.__TC_UX2_IA)return;
@@ -901,7 +918,7 @@ window.__tcBackControlObserver=mo;
 function installUpdate(){
 if(window.__TC_HOTFIX_ACTIVE_VERSION===VERSION)return;
 if(!tcLoadCoreModule()){showRuntimeNotice('Не удалось загрузить ядро TurnikCore. Текущая версия оставлена без изменений.','danger');return}
-if(!tcDomainCacheReady()||!tcCourseCacheReady()){
+if(!tcDomainCacheReady()||!tcUiCacheReady()||!tcCourseCacheReady()){
 tcEnsureRequiredModules().then(ok=>{if(ok)installUpdate();else showRuntimeNotice('Модули приложения недоступны. Повторите обновление при подключении к интернету.','danger')});
 return;
 }
@@ -1621,6 +1638,8 @@ try{render()}catch(e){tcQueueDecorate()}
 tcQueueDecorate();
 restReasonEl();
 if(!tcLoadDomainModule())throw new Error('TurnikCoach domain module unavailable after preflight');
+if(!tcLoadUiModule())throw new Error('TurnikCoach UI module unavailable after preflight');
+if(!window.TurnikUI.install())throw new Error('TurnikCoach UI dispatcher install failed');
 if(!tcLoadCourseModule())throw new Error('TurnikCoach course module unavailable after preflight');
 tcRegisterCoreSources();
 tcInstallUx2InformationArchitecture();

@@ -5,6 +5,7 @@ const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/st
 const course=fs.readFileSync('live/course.js','utf8');
 const core=fs.readFileSync('live/core.js','utf8');
 const domain=fs.readFileSync('live/domain.js','utf8');
+const ui=fs.readFileSync('live/ui.js','utf8');
 const hotfix=fs.readFileSync('live/hotfix.js','utf8');
 assert(Buffer.byteLength(hotfix,'utf8')<=128*1024,
  'modular OTA shell must stay comfortably below the native 256 KiB ceiling');
@@ -13,6 +14,7 @@ const mainActivity=fs.readFileSync('app/src/main/java/ru/turnikcoach/app/MainAct
 new vm.Script(course,{filename:'live/course.js'});
 new vm.Script(core,{filename:'live/core.js'});
 new vm.Script(domain,{filename:'live/domain.js'});
+new vm.Script(ui,{filename:'live/ui.js'});
 new vm.Script(hotfix,{filename:'live/hotfix.js'});
 const coreBundled=hotfix.match(/const CORE_MODULE_BUNDLED=("(?:\\.|[^"\\])*");\nconst TC_DOMAIN_MODULE_VERSION/);
 assert(coreBundled,'small TurnikCore bootstrap must remain embedded in the OTA shell');
@@ -25,8 +27,13 @@ assert(hotfix.includes("TC_COURSE_CACHE_KEY='tc_module_course_'+TC_COURSE_MODULE
 assert(hotfix.includes("TC_DOMAIN_MODULE_URL='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/domain.js")&&
  hotfix.includes("TC_DOMAIN_CACHE_KEY='tc_module_domain_'+TC_DOMAIN_MODULE_VERSION"),
  'domain state must ship as a separately versioned/offline-cached module');
-assert(hotfix.includes("TC_DOMAIN_MODULE_VERSION='1.0.0'")&&hotfix.includes("TC_COURSE_MODULE_VERSION='1.0.38-domain-state'"),
- 'OTA shell must pin exact compatible Domain and Course module versions');
+assert(hotfix.includes("TC_DOMAIN_MODULE_VERSION='1.0.0'")&&
+ hotfix.includes("TC_UI_MODULE_VERSION='1.0.0'")&&
+ hotfix.includes("TC_COURSE_MODULE_VERSION='1.0.39-ui-presenter'"),
+ 'OTA shell must pin exact compatible Domain, UI and Course module versions');
+assert(hotfix.includes("TC_UI_MODULE_URL='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/ui.js")&&
+ hotfix.includes("TC_UI_CACHE_KEY='tc_module_ui_'+TC_UI_MODULE_VERSION"),
+ 'UI presenter must ship as a separately versioned/offline-cached module');
 function extractFrom(source,name){
   const start=source.indexOf('function '+name+'(');
   assert(start>=0,'function missing: '+name);
@@ -182,19 +189,31 @@ assert(course.includes("window.TurnikDomain.register('today','morozov',100")&&
  course.includes("window.TurnikDomain.register('plan','morozov',100")&&
  course.includes("window.TurnikDomain.register('progress','morozov',100"),
  'Morozov must register Today / Plan / Progress resolvers in TurnikDomain');
+assert(course.includes("window.TurnikUI.register('today','morozov',100")&&
+ course.includes("window.TurnikUI.register('plan','morozov',100")&&
+ course.includes("window.TurnikUI.register('progress','morozov',100"),
+ 'Morozov must register Today / Plan / Progress presenters in TurnikUI');
+assert(!course.includes('window.render=function()')&&!course.includes('window.renderHistory=function()')&&
+ !course.includes('tcBeforeCourseRender=window.render')&&!course.includes('tcBeforeCourseRenderHistory=window.renderHistory'),
+ 'course module must not own global render lifecycle after the UI presenter split');
+assert(ui.includes('function renderArea(area,context)')&&ui.includes('function renderActive(context)')&&ui.includes('function install()'),
+ 'TurnikUI must own one domain-to-screen dispatch path');
+assert(hotfix.includes("if(!window.TurnikUI.install())throw new Error('TurnikCoach UI dispatcher install failed')")&&
+ hotfix.indexOf("if(!window.TurnikUI.install())")<hotfix.indexOf("if(!tcLoadCourseModule())"),
+ 'UI dispatcher must install before course presenters execute');
 assert(course.includes('id="tcCycleStartDate"'),
  'settings must expose a cycle start date');
-assert(hotfix.includes("const VERSION='5.16.45-domain-state'"),
- 'release hotfix version must be 5.16.45');
-assert(course.includes("const COURSE_MODULE_VERSION='1.0.38-domain-state'"),
- 'course module version must be 1.0.38');
+assert(hotfix.includes("const VERSION='5.16.46-ui-presenter'"),
+ 'release hotfix version must be 5.16.46');
+assert(course.includes("const COURSE_MODULE_VERSION='1.0.39-ui-presenter'"),
+ 'course module version must be 1.0.39');
 assert(domain.includes("const VERSION='1.0.0'"),
  'domain module version must be 1.0.0');
 assert(!course.includes('TC_EXTRA_START'),
  'temporary extra-workout trace logging must not ship');
 assert(!course.includes('window.confirm('),'course module must not depend on unsupported WebView JS dialogs');
 assert(!hotfix.includes('window.confirm('),'hotfix navigation/discard must not depend on unsupported WebView JS dialogs');
-assert(!hotfix.includes('forceHandover'),'5.16.45 must use an explicit user-visible update prompt');
+assert(!hotfix.includes('forceHandover'),'5.16.46 must use an explicit user-visible update prompt');
 assert(hotfix.includes("showRuntimeNotice('TurnikCoach обновлён до '+LABEL)"),
  'successful activation must give visible feedback');
 assert(hotfix.includes("localStorage.setItem('tc_hotfix_active_version',VERSION)"),
@@ -204,15 +223,16 @@ assert(hotfix.includes('async function tcEnsureRequiredModules()')&&
  hotfix.includes("localStorage.setItem(APPROVED_KEY,VERSION)"),
  'update approval must happen only after required modules are available and cached');
 const installUpdateBody=extractFrom(hotfix,'installUpdate');
-assert(installUpdateBody.includes('if(!tcDomainCacheReady()||!tcCourseCacheReady())')&&
+assert(installUpdateBody.includes('if(!tcDomainCacheReady()||!tcUiCacheReady()||!tcCourseCacheReady())')&&
  !installUpdateBody.slice(0,installUpdateBody.indexOf("const previousVersion=")).includes('tcLoadCourseModule()')&&
- !installUpdateBody.slice(0,installUpdateBody.indexOf("const previousVersion=")).includes('tcLoadDomainModule()'),
- 'install preflight must verify Domain/Course caches without executing modules ahead of the legacy patch order');
+ !installUpdateBody.slice(0,installUpdateBody.indexOf("const previousVersion=")).includes('tcLoadDomainModule()')&&
+ !installUpdateBody.slice(0,installUpdateBody.indexOf("const previousVersion=")).includes('tcLoadUiModule()'),
+ 'install preflight must verify Domain/UI/Course caches without executing modules ahead of the legacy patch order');
 assert(hotfix.includes('function tcRegisterCoreSources()')&&
  hotfix.includes("core.registerSource('generic'")&&hotfix.includes("core.registerSource('course'"),
  'TurnikCore must expose both legacy generic and Morozov stores through one state facade');
-assert(hotfix.includes("window.__TC_CORE_FOUNDATION={version:core.version,domainModule:window.TurnikDomain&&window.TurnikDomain.version||'',courseModule:TC_COURSE_MODULE_VERSION,modular:true}"),
- 'runtime diagnostics must expose Core + Domain + Course modular foundation');
+assert(hotfix.includes("window.__TC_CORE_FOUNDATION={version:core.version,domainModule:window.TurnikDomain&&window.TurnikDomain.version||'',uiModule:window.TurnikUI&&window.TurnikUI.version||'',courseModule:TC_COURSE_MODULE_VERSION,modular:true}"),
+ 'runtime diagnostics must expose Core + Domain + UI + Course modular foundation');
 assert(hotfix.includes("window.TurnikCore.history.all().map(x=>x.raw)"),
  'Progress summary must consume unified history through TurnikCore instead of manually joining stores');
 assert(hotfix.includes("const LEGACY_ASSET_VERSION='5.14.0-adaptive-rest'"),
@@ -978,4 +998,15 @@ assert(sandbox.TurnikCore.transact('generic',x=>{x.seq=9}),
 assert.equal(generic.seq,9);
 assert.equal(sandbox.TurnikCore.snapshot().sources.course.history.length,1);
 
-console.log('PASS: Core + Domain state, syntax, UX2 persistence/IA/completion, critical actions, forms and touch targets');
+const uiSandbox={console,document:{querySelector:()=>null},CustomEvent:function(){},dispatchEvent:()=>true};uiSandbox.window=uiSandbox;
+uiSandbox.TurnikDomain={resolve:(area)=>({area,source:'morozov',kind:'TEST'})};
+uiSandbox.render=function(){uiSandbox.baseCalls=(uiSandbox.baseCalls||0)+1};
+vm.runInNewContext(ui,uiSandbox,{filename:'live/ui.js'});
+const presented=[];
+uiSandbox.TurnikUI.register('today','morozov',100,state=>{presented.push(state.kind);return true});
+assert(uiSandbox.TurnikUI.install(),'TurnikUI must install around the existing base render');
+assert.equal(uiSandbox.TurnikUI.renderArea('today').presenter,'morozov');
+assert.deepEqual(Array.from(presented),['TEST']);
+assert.equal(uiSandbox.TurnikUI.debug().version,'1.0.0');
+
+console.log('PASS: Core + Domain + UI presenter, syntax, UX2 persistence/IA/completion, critical actions, forms and touch targets');
