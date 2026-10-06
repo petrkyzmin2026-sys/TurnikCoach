@@ -326,13 +326,13 @@ def launch():
 launch()
 dismiss_system_anr()
 
-# Exact update path: packaged 5.14 + cached 5.16.46 is active first; staged 5.16.47 must be offered explicitly.
+# Exact update path: packaged 5.14 + cached 5.16.47 is active first; staged 5.16.48 must be offered explicitly.
 time.sleep(3)
 screenshot("00-before-update-assert")
 adb("shell","uiautomator","dump","/sdcard/uxb3-before-update.xml",check=False)
 adb("pull","/sdcard/uxb3-before-update.xml",OUT+"/00-before-update.xml",check=False)
 try:
-    wait_text("Доступно обновление TurnikCoach 5.16.47",timeout=20)
+    wait_text("Доступно обновление TurnikCoach 5.16.48",timeout=20)
 except Exception:
     log=adb("logcat","-d","-t","500",check=False)
     with open(OUT+"/00-logcat.txt","w",encoding="utf-8") as fp:
@@ -342,7 +342,7 @@ wait_text("Обновить",contains=False)
 screenshot("01-update-offered")
 
 tap_clickable_text("Обновить")
-wait_text("TurnikCoach обновлён до 5.16.47",timeout=25)
+wait_text("TurnikCoach обновлён до 5.16.48",timeout=25)
 assert_accessibility_target("План",48)
 assert_accessibility_target("Прогресс",48)
 screenshot("02-update-installed")
@@ -366,9 +366,9 @@ course_stats=test_eval_json("(function(){var w=document.getElementById('tcCourse
 print("TC_DIAG morozov-course-stats",course_stats,flush=True)
 stats_text=course_stats["text"].lower()
 assert course_stats["present"] and "курс морозова" in stats_text and "выполнение курса" in stats_text and "вовремя" in stats_text and "пропущено" in stats_text, "Progress must show compact Morozov course statistics"
-assert course_stats["runs"]>=1 and course_stats["active"] and course_stats["historyRun"]==course_stats["active"] and course_stats["baseline"]==20, "5.16.47 must preserve the seeded active course run and history"
+assert course_stats["runs"]>=1 and course_stats["active"] and course_stats["historyRun"]==course_stats["active"] and course_stats["baseline"]==20, "5.16.48 must preserve the seeded active course run and history"
 screenshot("02c-morozov-course-stats")
-core_probe=test_eval_json("(function(){var c=window.TurnikCore&&TurnikCore.debug?TurnikCore.debug():null;var d=window.TurnikDomain&&TurnikDomain.debug?TurnikDomain.debug():null;var u=window.TurnikUI&&TurnikUI.debug?TurnikUI.debug():null;var st=window.TurnikWorkoutStore&&TurnikWorkoutStore.debug?TurnikWorkoutStore.debug():null;var ss=window.TurnikWorkoutStore&&TurnikWorkoutStore.summary?TurnikWorkoutStore.summary({now:Date.now()}):null;var f=window.__TC_CORE_FOUNDATION||null;var dc=localStorage.getItem('tc_module_domain_1.0.0')||'',uc=localStorage.getItem('tc_module_ui_1.0.0')||'',sc=localStorage.getItem('tc_module_store_1.0.0')||'',cc=localStorage.getItem('tc_module_course_1.0.39-ui-presenter')||'';var v=typeof window.tcGetCourseViewState==='function'?window.tcGetCourseViewState():null;return {core:c,domain:d,ui:u,store:st,storeSummary:ss,foundation:f,domainCache:dc.length,uiCache:uc.length,storeCache:sc.length,courseCache:cc.length,today:v&&v.today&&v.today.kind||'',plan:v&&v.plan&&v.plan.kind||'',progress:v&&v.progress&&v.progress.kind||'',active:window.__TC_HOTFIX_ACTIVE_VERSION};})()","unified-workout-store")
+core_probe=test_eval_json("(function(){var c=window.TurnikCore&&TurnikCore.debug?TurnikCore.debug():null;var d=window.TurnikDomain&&TurnikDomain.debug?TurnikDomain.debug():null;var u=window.TurnikUI&&TurnikUI.debug?TurnikUI.debug():null;var st=window.TurnikWorkoutStore&&TurnikWorkoutStore.debug?TurnikWorkoutStore.debug():null;var ss=window.TurnikWorkoutStore&&TurnikWorkoutStore.summary?TurnikWorkoutStore.summary({now:Date.now()}):null;var f=window.__TC_CORE_FOUNDATION||null;var dc=localStorage.getItem('tc_module_domain_1.0.0')||'',uc=localStorage.getItem('tc_module_ui_1.0.0')||'',sc=localStorage.getItem('tc_module_store_1.1.0-write-path')||'',cc=localStorage.getItem('tc_module_course_1.0.40-unified-writes')||'';var v=typeof window.tcGetCourseViewState==='function'?window.tcGetCourseViewState():null;return {core:c,domain:d,ui:u,store:st,storeSummary:ss,foundation:f,domainCache:dc.length,uiCache:uc.length,storeCache:sc.length,courseCache:cc.length,today:v&&v.today&&v.today.kind||'',plan:v&&v.plan&&v.plan.kind||'',progress:v&&v.progress&&v.progress.kind||'',active:window.__TC_HOTFIX_ACTIVE_VERSION};})()","unified-workout-store")
 print("TC_DIAG unified-workout-store",core_probe,flush=True)
 assert core_probe["core"] and core_probe["core"]["version"]=="1.0.0", "TurnikCore must be active in the real WebView"
 assert sorted(core_probe["core"]["sources"])==["course","generic"], "TurnikCore must register both state sources"
@@ -376,13 +376,14 @@ assert core_probe["domain"] and core_probe["domain"]["version"]=="1.0.0", "Turni
 assert core_probe["ui"] and core_probe["ui"]["version"]=="1.0.0" and core_probe["ui"]["installed"] is True, "TurnikUI must be active and installed in the real WebView"
 assert set(core_probe["ui"]["areas"].keys())=={"today","plan","progress"}, "TurnikUI must own Today / Plan / Progress presenter areas"
 assert any(x["name"]=="morozov" for x in core_probe["domain"]["areas"]["today"]), "Morozov Today resolver must be registered"
-assert core_probe["store"] and core_probe["store"]["version"]=="1.0.0", "TurnikWorkoutStore must be active in the real WebView"
+assert core_probe["store"] and core_probe["store"]["version"]=="1.1.0-write-path", "TurnikWorkoutStore must be active in the real WebView"
+assert core_probe["store"].get("writePath") is True, "WorkoutStore write path must be active in the real WebView"
 assert core_probe["storeSummary"] and core_probe["storeSummary"]["total"]>=1 and core_probe["storeSummary"]["bySource"].get("course",0)>=1, "WorkoutStore must expose the seeded course workout through the unified read model"
-assert core_probe["foundation"] and core_probe["foundation"]["domainModule"]=="1.0.0" and core_probe["foundation"]["uiModule"]=="1.0.0" and core_probe["foundation"]["storeModule"]=="1.0.0" and core_probe["foundation"]["courseModule"]=="1.0.39-ui-presenter", "runtime diagnostics must expose compatible Core/Domain/UI/Store/Course versions"
+assert core_probe["foundation"] and core_probe["foundation"]["domainModule"]=="1.0.0" and core_probe["foundation"]["uiModule"]=="1.0.0" and core_probe["foundation"]["storeModule"]=="1.1.0-write-path" and core_probe["foundation"]["courseModule"]=="1.0.40-unified-writes", "runtime diagnostics must expose compatible Core/Domain/UI/Store/Course versions"
 assert core_probe["domainCache"]>500 and core_probe["storeCache"]>500 and core_probe["courseCache"]>1000, "Domain, Store and Course modules must survive in separate offline caches"
 assert core_probe["today"]=="COURSE_DONE" and core_probe["plan"]=="COURSE_ACTIVE" and core_probe["progress"]=="COURSE_PROGRESS", "view state must be resolved before rendering"
 assert core_probe["uiCache"]>500, "UI presenter must survive in the offline module cache"
-assert core_probe["active"]=="5.16.47-unified-workout-store", "5.16.47 must be the active OTA shell"
+assert core_probe["active"]=="5.16.48-unified-workout-writes", "5.16.48 must be the active OTA shell"
 screenshot("02d-unified-workout-store")
 tap_clickable_text("Сегодня",timeout=20)
 
@@ -461,9 +462,9 @@ adb("shell","am","force-stop",PKG)
 time.sleep(1)
 launch()
 dismiss_system_anr()
-upgrade_install=wait_log_tokens(["TC_NAV_UPGRADE",'"phase":"install"','"version":"5.16.47-unified-workout-store"'],timeout=20)
+upgrade_install=wait_log_tokens(["TC_NAV_UPGRADE",'"phase":"install"','"version":"5.16.48-unified-workout-writes"'],timeout=20)
 restore_line=wait_log_tokens(["TC_WORKOUT_STATE",'"phase":"restored"','"name":"Подъём коленей в висе"','"mode":"extra"'],timeout=20)
-upgrade_arm=wait_log_tokens(["TC_NAV_UPGRADE",'"phase":"arm-restore-guard"','"version":"5.16.47-unified-workout-store"','"surface":"workout"'],timeout=20)
+upgrade_arm=wait_log_tokens(["TC_NAV_UPGRADE",'"phase":"arm-restore-guard"','"version":"5.16.48-unified-workout-writes"','"surface":"workout"'],timeout=20)
 print("TC_DIAG nav-upgrade-install",upgrade_install,flush=True)
 print("TC_DIAG restore",restore_line,flush=True)
 print("TC_DIAG nav-upgrade-arm",upgrade_arm,flush=True)
@@ -571,5 +572,19 @@ wait_text("Сделано",timeout=18,contains=False)
 restarted=test_eval_json("(function(){return {hasW:!!W,mode:W&&W.mode||null,workoutOn:!!document.querySelector('#workout.screen.on')};})()","exit-restart")
 assert restarted["hasW"] and restarted["mode"]=="extra" and restarted["workoutOn"], "Discarded extra workout must remain immediately restartable"
 screenshot("08-restart-after-discard")
+# Complete the restarted extra workout through the real finish path. This must commit
+# course extraSeq + generic history as one WorkoutStore batch.
+tap_clickable_text("TC COMPLETE",timeout=18,contains=False)
+wait_text("Дополнительная тренировка завершена",timeout=18)
+write_probe=test_eval_json("(function(){var c=JSON.parse(localStorage.getItem('tc_morozov_course_v1')||'{}'),g=JSON.parse(localStorage.getItem('tc_v4')||'{}'),st=window.TurnikWorkoutStore&&TurnikWorkoutStore.debug?TurnikWorkoutStore.debug():null,top=g&&g.history&&g.history[0];return {extraSeq:c.extraSeq||0,genericMode:top&&top.courseMode||'',genericType:top&&top.type||'',store:st};})()","workout-store-write")
+print("TC_DIAG workout-store-write",write_probe,flush=True)
+assert write_probe["extraSeq"]==1 and write_probe["genericMode"]=="extra" and write_probe["genericType"]=="workout", "extra workout must commit both source mutations"
+assert write_probe["store"] and write_probe["store"].get("writePath") is True, "real completion must run with transactional WorkoutStore"
+screenshot("09-extra-completed-through-store")
+tap_clickable_text("Отменить сохранение",timeout=18)
+time.sleep(1)
+undo_write=test_eval_json("(function(){var c=JSON.parse(localStorage.getItem('tc_morozov_course_v1')||'{}'),g=JSON.parse(localStorage.getItem('tc_v4')||'{}');return {extraSeq:c.extraSeq||0,extra:(g.history||[]).some(x=>x&&x.courseMode==='extra'&&x.type==='workout')};})()","workout-store-write-undo")
+assert undo_write["extraSeq"]==0 and not undo_write["extra"], "completion undo must restore both sources after transactional save"
+print("UX2_UNIFIED_WRITE_PATH_OK")
 print("UX2_EXIT_WITHOUT_SAVE_OK")
 print("UX2_ACCESSIBILITY_SCALE_BASELINE_OK")
