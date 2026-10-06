@@ -212,7 +212,7 @@ assert(course.includes('id="tcCycleStartDate"'),
  'settings must expose a cycle start date');
 assert(course.includes('function tcPlanUpcomingSlots(limit=3)')&&course.includes("upcoming:tcPlanUpcomingSlots(3)"),
  'Plan domain state must own the next-session list before presentation');
-assert(course.includes('id="tcPlanPrimary"')&&course.includes('id="tcPlanScheduleCard"')&&course.includes('id="tcExtrasDetails"'),
+assert(course.includes('id="tcPlanPrimary"')&&course.includes('id="tcPlanScheduleCard"')&&course.includes("details.id='tcExtrasDetails'"),
  'Plan must expose separate course, upcoming-session and extras regions');
 assert(course.includes("tcExtrasSummaryTitle\">Дополнительные упражнения")&&
  course.includes("[...host.children].forEach(node=>{if(node.id!=='tcPlanPrimary')body.appendChild(node)}"),
