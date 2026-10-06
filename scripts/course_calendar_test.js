@@ -223,15 +223,16 @@ assert(hotfix.includes('async function tcEnsureRequiredModules()')&&
  hotfix.includes("localStorage.setItem(APPROVED_KEY,VERSION)"),
  'update approval must happen only after required modules are available and cached');
 const installUpdateBody=extractFrom(hotfix,'installUpdate');
-assert(installUpdateBody.includes('if(!tcDomainCacheReady()||!tcCourseCacheReady())')&&
+assert(installUpdateBody.includes('if(!tcDomainCacheReady()||!tcUiCacheReady()||!tcCourseCacheReady())')&&
  !installUpdateBody.slice(0,installUpdateBody.indexOf("const previousVersion=")).includes('tcLoadCourseModule()')&&
- !installUpdateBody.slice(0,installUpdateBody.indexOf("const previousVersion=")).includes('tcLoadDomainModule()'),
- 'install preflight must verify Domain/Course caches without executing modules ahead of the legacy patch order');
+ !installUpdateBody.slice(0,installUpdateBody.indexOf("const previousVersion=")).includes('tcLoadDomainModule()')&&
+ !installUpdateBody.slice(0,installUpdateBody.indexOf("const previousVersion=")).includes('tcLoadUiModule()'),
+ 'install preflight must verify Domain/UI/Course caches without executing modules ahead of the legacy patch order');
 assert(hotfix.includes('function tcRegisterCoreSources()')&&
  hotfix.includes("core.registerSource('generic'")&&hotfix.includes("core.registerSource('course'"),
  'TurnikCore must expose both legacy generic and Morozov stores through one state facade');
 assert(hotfix.includes("window.__TC_CORE_FOUNDATION={version:core.version,domainModule:window.TurnikDomain&&window.TurnikDomain.version||'',uiModule:window.TurnikUI&&window.TurnikUI.version||'',courseModule:TC_COURSE_MODULE_VERSION,modular:true}"),
- 'runtime diagnostics must expose Core + Domain + Course modular foundation');
+ 'runtime diagnostics must expose Core + Domain + UI + Course modular foundation');
 assert(hotfix.includes("window.TurnikCore.history.all().map(x=>x.raw)"),
  'Progress summary must consume unified history through TurnikCore instead of manually joining stores');
 assert(hotfix.includes("const LEGACY_ASSET_VERSION='5.14.0-adaptive-rest'"),
