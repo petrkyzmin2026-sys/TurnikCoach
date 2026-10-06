@@ -6,6 +6,7 @@ const course=fs.readFileSync('live/course.js','utf8');
 const core=fs.readFileSync('live/core.js','utf8');
 const domain=fs.readFileSync('live/domain.js','utf8');
 const ui=fs.readFileSync('live/ui.js','utf8');
+const store=fs.readFileSync('live/store.js','utf8');
 const hotfix=fs.readFileSync('live/hotfix.js','utf8');
 assert(Buffer.byteLength(hotfix,'utf8')<=128*1024,
  'modular OTA shell must stay comfortably below the native 256 KiB ceiling');
@@ -15,6 +16,7 @@ new vm.Script(course,{filename:'live/course.js'});
 new vm.Script(core,{filename:'live/core.js'});
 new vm.Script(domain,{filename:'live/domain.js'});
 new vm.Script(ui,{filename:'live/ui.js'});
+new vm.Script(store,{filename:'live/store.js'});
 new vm.Script(hotfix,{filename:'live/hotfix.js'});
 const coreBundled=hotfix.match(/const CORE_MODULE_BUNDLED=("(?:\\.|[^"\\])*");\nconst TC_DOMAIN_MODULE_VERSION/);
 assert(coreBundled,'small TurnikCore bootstrap must remain embedded in the OTA shell');
@@ -29,11 +31,15 @@ assert(hotfix.includes("TC_DOMAIN_MODULE_URL='https://raw.githubusercontent.com/
  'domain state must ship as a separately versioned/offline-cached module');
 assert(hotfix.includes("TC_DOMAIN_MODULE_VERSION='1.0.0'")&&
  hotfix.includes("TC_UI_MODULE_VERSION='1.0.0'")&&
+ hotfix.includes("TC_STORE_MODULE_VERSION='1.0.0'")&&
  hotfix.includes("TC_COURSE_MODULE_VERSION='1.0.39-ui-presenter'"),
- 'OTA shell must pin exact compatible Domain, UI and Course module versions');
+ 'OTA shell must pin exact compatible Domain, UI, Store and Course module versions');
 assert(hotfix.includes("TC_UI_MODULE_URL='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/ui.js")&&
  hotfix.includes("TC_UI_CACHE_KEY='tc_module_ui_'+TC_UI_MODULE_VERSION"),
  'UI presenter must ship as a separately versioned/offline-cached module');
+assert(hotfix.includes("TC_STORE_MODULE_URL='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/store.js")&&
+ hotfix.includes("TC_STORE_CACHE_KEY='tc_module_store_'+TC_STORE_MODULE_VERSION"),
+ 'WorkoutStore must ship as a separately versioned/offline-cached module');
 function extractFrom(source,name){
   const start=source.indexOf('function '+name+'(');
   assert(start>=0,'function missing: '+name);
@@ -203,8 +209,8 @@ assert(hotfix.includes("if(!window.TurnikUI.install())throw new Error('TurnikCoa
  'UI dispatcher must install before course presenters execute');
 assert(course.includes('id="tcCycleStartDate"'),
  'settings must expose a cycle start date');
-assert(hotfix.includes("const VERSION='5.16.46-ui-presenter'"),
- 'release hotfix version must be 5.16.46');
+assert(hotfix.includes("const VERSION='5.16.47-unified-workout-store'"),
+ 'release hotfix version must be 5.16.47');
 assert(course.includes("const COURSE_MODULE_VERSION='1.0.39-ui-presenter'"),
  'course module version must be 1.0.39');
 assert(domain.includes("const VERSION='1.0.0'"),
@@ -213,7 +219,7 @@ assert(!course.includes('TC_EXTRA_START'),
  'temporary extra-workout trace logging must not ship');
 assert(!course.includes('window.confirm('),'course module must not depend on unsupported WebView JS dialogs');
 assert(!hotfix.includes('window.confirm('),'hotfix navigation/discard must not depend on unsupported WebView JS dialogs');
-assert(!hotfix.includes('forceHandover'),'5.16.46 must use an explicit user-visible update prompt');
+assert(!hotfix.includes('forceHandover'),'5.16.47 must use an explicit user-visible update prompt');
 assert(hotfix.includes("showRuntimeNotice('TurnikCoach обновлён до '+LABEL)"),
  'successful activation must give visible feedback');
 assert(hotfix.includes("localStorage.setItem('tc_hotfix_active_version',VERSION)"),
@@ -223,18 +229,39 @@ assert(hotfix.includes('async function tcEnsureRequiredModules()')&&
  hotfix.includes("localStorage.setItem(APPROVED_KEY,VERSION)"),
  'update approval must happen only after required modules are available and cached');
 const installUpdateBody=extractFrom(hotfix,'installUpdate');
-assert(installUpdateBody.includes('if(!tcDomainCacheReady()||!tcUiCacheReady()||!tcCourseCacheReady())')&&
+assert(installUpdateBody.includes('if(!tcDomainCacheReady()||!tcUiCacheReady()||!tcStoreCacheReady()||!tcCourseCacheReady())')&&
  !installUpdateBody.slice(0,installUpdateBody.indexOf("const previousVersion=")).includes('tcLoadCourseModule()')&&
  !installUpdateBody.slice(0,installUpdateBody.indexOf("const previousVersion=")).includes('tcLoadDomainModule()')&&
- !installUpdateBody.slice(0,installUpdateBody.indexOf("const previousVersion=")).includes('tcLoadUiModule()'),
- 'install preflight must verify Domain/UI/Course caches without executing modules ahead of the legacy patch order');
+ !installUpdateBody.slice(0,installUpdateBody.indexOf("const previousVersion=")).includes('tcLoadUiModule()')&&
+ !installUpdateBody.slice(0,installUpdateBody.indexOf("const previousVersion=")).includes('tcLoadStoreModule()'),
+ 'install preflight must verify Domain/UI/Store/Course caches without executing modules ahead of the legacy patch order');
 assert(hotfix.includes('function tcRegisterCoreSources()')&&
  hotfix.includes("core.registerSource('generic'")&&hotfix.includes("core.registerSource('course'"),
  'TurnikCore must expose both legacy generic and Morozov stores through one state facade');
-assert(hotfix.includes("window.__TC_CORE_FOUNDATION={version:core.version,domainModule:window.TurnikDomain&&window.TurnikDomain.version||'',uiModule:window.TurnikUI&&window.TurnikUI.version||'',courseModule:TC_COURSE_MODULE_VERSION,modular:true}"),
- 'runtime diagnostics must expose Core + Domain + UI + Course modular foundation');
-assert(hotfix.includes("window.TurnikCore.history.all().map(x=>x.raw)"),
- 'Progress summary must consume unified history through TurnikCore instead of manually joining stores');
+assert(hotfix.includes("window.__TC_CORE_FOUNDATION={version:core.version,domainModule:window.TurnikDomain&&window.TurnikDomain.version||'',uiModule:window.TurnikUI&&window.TurnikUI.version||'',storeModule:window.TurnikWorkoutStore&&window.TurnikWorkoutStore.version||'',courseModule:TC_COURSE_MODULE_VERSION,modular:true}"),
+ 'runtime diagnostics must expose Core + Domain + UI + Store + Course modular foundation');
+assert(hotfix.includes("window.TurnikWorkoutStore.summary({now:Date.now()})"),
+ 'Progress summary must consume unified workouts through TurnikWorkoutStore instead of manually joining stores');
+const storeSandbox={console,CustomEvent:function(type,init){this.type=type;this.detail=init&&init.detail},dispatchEvent:()=>true};
+storeSandbox.window=storeSandbox;
+storeSandbox.TurnikCore={history:{all:()=>[
+ {id:'generic:1',source:'generic',ts:1,date:'2026-10-01',mode:'1',runId:'',transferred:false,details:[{actual:[10,9]}],raw:{type:'workout'}},
+ {id:'course:2',source:'course',ts:2,date:'2026-10-02',mode:'course',runId:'r1',transferred:true,details:[{metric:'reps',actual:[8,8]}],raw:{type:'workout'}},
+ {id:'generic:3',source:'generic',ts:3,date:'2026-10-03',mode:'skip',runId:'',transferred:false,details:[],raw:{type:'skip'}}
+]}};
+vm.runInNewContext(store,storeSandbox,{filename:'live/store.js'});
+assert.equal(storeSandbox.TurnikWorkoutStore.version,'1.0.0');
+assert.equal(storeSandbox.TurnikWorkoutStore.list().length,2,'WorkoutStore must exclude non-workout history events');
+assert.equal(storeSandbox.TurnikWorkoutStore.list({source:'course'}).length,1);
+assert.equal(storeSandbox.TurnikWorkoutStore.list({runId:'r1'}).length,1);
+const storeSummary=storeSandbox.TurnikWorkoutStore.summary({now:Date.parse('2026-10-04T12:00:00')});
+assert.equal(storeSummary.total,2);
+assert.equal(storeSummary.sets,4);
+assert.equal(storeSummary.reps,35);
+assert.equal(storeSummary.bySource.generic,1);
+assert.equal(storeSummary.bySource.course,1);
+assert.equal(storeSandbox.TurnikWorkoutStore.course('r1').transferred.length,1);
+
 assert(hotfix.includes("const LEGACY_ASSET_VERSION='5.14.0-adaptive-rest'"),
  'live hotfix must know the immutable packaged asset version');
 assert(hotfix.includes('window.__TC_HOTFIX_ACTIVE_VERSION=VERSION'),
@@ -1009,4 +1036,4 @@ assert.equal(uiSandbox.TurnikUI.renderArea('today').presenter,'morozov');
 assert.deepEqual(Array.from(presented),['TEST']);
 assert.equal(uiSandbox.TurnikUI.debug().version,'1.0.0');
 
-console.log('PASS: Core + Domain + UI presenter, syntax, UX2 persistence/IA/completion, critical actions, forms and touch targets');
+console.log('PASS: Core + Domain + UI + WorkoutStore, syntax, UX2 persistence/IA/completion, critical actions, forms and touch targets');
