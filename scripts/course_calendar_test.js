@@ -241,8 +241,9 @@ assert(installUpdateBody.includes('if(!tcCourseCacheReady())')&&
 assert(hotfix.includes('function tcRegisterCoreSources()')&&
  hotfix.includes("core.registerSource('generic'")&&hotfix.includes("core.registerSource('course'"),
  'TurnikCore must expose both legacy generic and Morozov stores through one state facade');
-assert(hotfix.includes("window.__TC_CORE_FOUNDATION={version:core.version,courseModule:TC_COURSE_MODULE_VERSION,modular:true}"),
- 'runtime diagnostics must expose the modular core foundation');
+assert(hotfix.includes("window.__TC_CORE_FOUNDATION={version:core.version,courseModule:TC_COURSE_MODULE_VERSION,modular:true,todayState:")&&
+ hotfix.includes("core.selectors&&core.selectors.list().includes('today')"),
+ 'runtime diagnostics must expose the modular core foundation and TodayState selector');
 assert(hotfix.includes("window.TurnikCore.history.all().map(x=>x.raw)"),
  'Progress summary must consume unified history through TurnikCore instead of manually joining stores');
 assert(hotfix.includes("const LEGACY_ASSET_VERSION='5.14.0-adaptive-rest'"),
