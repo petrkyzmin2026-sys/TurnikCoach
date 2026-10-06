@@ -31,8 +31,8 @@ assert(hotfix.includes("TC_DOMAIN_MODULE_URL='https://raw.githubusercontent.com/
  'domain state must ship as a separately versioned/offline-cached module');
 assert(hotfix.includes("TC_DOMAIN_MODULE_VERSION='1.0.0'")&&
  hotfix.includes("TC_UI_MODULE_VERSION='1.0.0'")&&
- hotfix.includes("TC_STORE_MODULE_VERSION='1.0.0'")&&
- hotfix.includes("TC_COURSE_MODULE_VERSION='1.0.39-ui-presenter'"),
+ hotfix.includes("TC_STORE_MODULE_VERSION='1.1.0-write-path'")&&
+ hotfix.includes("TC_COURSE_MODULE_VERSION='1.0.40-unified-writes'"),
  'OTA shell must pin exact compatible Domain, UI, Store and Course module versions');
 assert(hotfix.includes("TC_UI_MODULE_URL='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/ui.js")&&
  hotfix.includes("TC_UI_CACHE_KEY='tc_module_ui_'+TC_UI_MODULE_VERSION"),
@@ -86,9 +86,10 @@ const key=(date=new Date('2026-09-25T12:00:00'))=>
   date.getFullYear()+'-'+String(date.getMonth()+1).padStart(2,'0')+'-'+String(date.getDate()).padStart(2,'0');
 const courseState={enabled:true,level:4,goal:'quantity',weeklySessions:4,
   cycleStartDate:'2026-09-25',courseSeq:5,lastCourseDate:'',history:[],scheduleEvents:[]};
-const api=new Function('TC_course','dateKey','tcCourseLevel',
+const api=new Function('TC_course','dateKey','tcCourseLevel','tcRequireWorkoutStore',
   names.map(extract).join('\n')+'\nreturn {tcScheduledOn,tcProjectedCourseSeq,tcCourseComplex,tcUndoLatestTodayCourseRecord};')(
-  courseState,key,()=>({complexes:{1:{name:'№1'},2:{name:'№2'},3:{name:'№3'}}})
+  courseState,key,()=>({complexes:{1:{name:'№1'},2:{name:'№2'},3:{name:'№3'}}}),
+  ()=>({transact:(source,mutator)=>source==='course'&&mutator(courseState)!==false})
 );
 const dates=['2026-09-25','2026-09-26','2026-09-27','2026-09-28',
  '2026-09-29','2026-09-30','2026-10-01','2026-10-02'];
@@ -209,17 +210,17 @@ assert(hotfix.includes("if(!window.TurnikUI.install())throw new Error('TurnikCoa
  'UI dispatcher must install before course presenters execute');
 assert(course.includes('id="tcCycleStartDate"'),
  'settings must expose a cycle start date');
-assert(hotfix.includes("const VERSION='5.16.47-unified-workout-store'"),
- 'release hotfix version must be 5.16.47');
-assert(course.includes("const COURSE_MODULE_VERSION='1.0.39-ui-presenter'"),
- 'course module version must be 1.0.39');
+assert(hotfix.includes("const VERSION='5.16.48-unified-workout-writes'"),
+ 'release hotfix version must be 5.16.48');
+assert(course.includes("const COURSE_MODULE_VERSION='1.0.40-unified-writes'"),
+ 'course module version must be 1.0.40');
 assert(domain.includes("const VERSION='1.0.0'"),
  'domain module version must be 1.0.0');
 assert(!course.includes('TC_EXTRA_START'),
  'temporary extra-workout trace logging must not ship');
 assert(!course.includes('window.confirm('),'course module must not depend on unsupported WebView JS dialogs');
 assert(!hotfix.includes('window.confirm('),'hotfix navigation/discard must not depend on unsupported WebView JS dialogs');
-assert(!hotfix.includes('forceHandover'),'5.16.47 must use an explicit user-visible update prompt');
+assert(!hotfix.includes('forceHandover'),'5.16.48 must use an explicit user-visible update prompt');
 assert(hotfix.includes("showRuntimeNotice('TurnikCoach обновлён до '+LABEL)"),
  'successful activation must give visible feedback');
 assert(hotfix.includes("localStorage.setItem('tc_hotfix_active_version',VERSION)"),
@@ -238,29 +239,68 @@ assert(installUpdateBody.includes('if(!tcDomainCacheReady()||!tcUiCacheReady()||
 assert(hotfix.includes('function tcRegisterCoreSources()')&&
  hotfix.includes("core.registerSource('generic'")&&hotfix.includes("core.registerSource('course'"),
  'TurnikCore must expose both legacy generic and Morozov stores through one state facade');
+assert(hotfix.includes("localStorage.setItem('tc_v4',JSON.stringify(next))"),
+ 'generic source adapter must persist the exact restored snapshot instead of delegating to legacy save()');
 assert(hotfix.includes("window.__TC_CORE_FOUNDATION={version:core.version,domainModule:window.TurnikDomain&&window.TurnikDomain.version||'',uiModule:window.TurnikUI&&window.TurnikUI.version||'',storeModule:window.TurnikWorkoutStore&&window.TurnikWorkoutStore.version||'',courseModule:TC_COURSE_MODULE_VERSION,modular:true}"),
  'runtime diagnostics must expose Core + Domain + UI + Store + Course modular foundation');
 assert(hotfix.includes("window.TurnikWorkoutStore.summary({now:Date.now()})"),
  'Progress summary must consume unified workouts through TurnikWorkoutStore instead of manually joining stores');
+assert(store.includes('function transact(sourceName,mutator)')&&store.includes('function batch(steps)')&&store.includes('function append(sourceName,record,prepend=true)'),
+ 'WorkoutStore must own the shared write primitives');
+assert(course.includes("store.transact('course'")&&course.includes("store.batch([")&&course.includes("store.append('course',rec)"),
+ 'Morozov main/extra/aux/supplement saves must use WorkoutStore write transactions');
+assert(!course.includes('TC_course.history.unshift(rec)')&&!course.includes('state.history.unshift(rec)'),
+ 'course module must not bypass WorkoutStore when saving workout records');
+assert(course.includes("return store.transact('course',draft=>"),
+ 'same-day Morozov undo must use the same transactional write layer');
 const storeSandbox={console,CustomEvent:function(type,init){this.type=type;this.detail=init&&init.detail},dispatchEvent:()=>true};
 storeSandbox.window=storeSandbox;
-storeSandbox.TurnikCore={history:{all:()=>[
- {id:'generic:1',source:'generic',ts:1,date:'2026-10-01',mode:'1',runId:'',transferred:false,details:[{actual:[10,9]}],raw:{type:'workout'}},
- {id:'course:2',source:'course',ts:2,date:'2026-10-02',mode:'course',runId:'r1',transferred:true,details:[{metric:'reps',actual:[8,8]}],raw:{type:'workout'}},
- {id:'generic:3',source:'generic',ts:3,date:'2026-10-03',mode:'skip',runId:'',transferred:false,details:[],raw:{type:'skip'}}
-]}};
+const storeSources={
+ generic:{history:[
+  {type:'workout',date:'2026-10-01',ts:1,session:1,details:[{actual:[10,9]}]},
+  {type:'skip',date:'2026-10-03',ts:3,session:1}
+ ]},
+ course:{history:[
+  {type:'workout',date:'2026-10-02',ts:2,courseMode:'course',runId:'r1',transferred:true,details:[{metric:'reps',actual:[8,8]}]}
+ ]}
+};
+let failReplace='';
+const cloneStore=x=>JSON.parse(JSON.stringify(x));
+const normalizedAll=()=>[
+ ...storeSources.generic.history.map(x=>({id:'generic:'+x.ts,source:'generic',ts:x.ts,date:x.date,mode:x.courseMode||x.session||x.type,runId:x.runId||'',transferred:!!x.transferred,details:x.details||[],raw:x})),
+ ...storeSources.course.history.map(x=>({id:'course:'+x.ts,source:'course',ts:x.ts,date:x.date,mode:x.courseMode||x.session||x.type,runId:x.runId||'',transferred:!!x.transferred,details:x.details||[],raw:x}))
+];
+storeSandbox.TurnikCore={
+ history:{all:normalizedAll},
+ sourceSnapshot:name=>cloneStore(storeSources[name]),
+ replaceSource:(name,next)=>{if(name===failReplace)return false;storeSources[name]=cloneStore(next);return true},
+ transact:(name,mutator)=>{const next=cloneStore(storeSources[name]);if(mutator(next)===false)return false;storeSources[name]=next;return true}
+};
 vm.runInNewContext(store,storeSandbox,{filename:'live/store.js'});
-assert.equal(storeSandbox.TurnikWorkoutStore.version,'1.0.0');
+assert.equal(storeSandbox.TurnikWorkoutStore.version,'1.1.0-write-path');
 assert.equal(storeSandbox.TurnikWorkoutStore.list().length,2,'WorkoutStore must exclude non-workout history events');
 assert.equal(storeSandbox.TurnikWorkoutStore.list({source:'course'}).length,1);
 assert.equal(storeSandbox.TurnikWorkoutStore.list({runId:'r1'}).length,1);
 const storeSummary=storeSandbox.TurnikWorkoutStore.summary({now:Date.parse('2026-10-04T12:00:00')});
-assert.equal(storeSummary.total,2);
-assert.equal(storeSummary.sets,4);
-assert.equal(storeSummary.reps,35);
-assert.equal(storeSummary.bySource.generic,1);
-assert.equal(storeSummary.bySource.course,1);
+assert.equal(storeSummary.total,2);assert.equal(storeSummary.sets,4);assert.equal(storeSummary.reps,35);
+assert.equal(storeSummary.bySource.generic,1);assert.equal(storeSummary.bySource.course,1);
 assert.equal(storeSandbox.TurnikWorkoutStore.course('r1').transferred.length,1);
+assert(storeSandbox.TurnikWorkoutStore.append('course',{type:'workout',date:'2026-10-04',ts:4,courseMode:'supplement',details:[]}),
+ 'WorkoutStore append must write through the registered source');
+assert.equal(storeSources.course.history[0].ts,4);
+assert(storeSandbox.TurnikWorkoutStore.batch([
+ {source:'course',mutate:d=>{d.extraSeq=7;return true}},
+ {source:'generic',mutate:d=>{d.history.unshift({type:'workout',date:'2026-10-04',ts:5,courseMode:'extra',details:[]});return true}}
+]),'cross-store batch must commit both source mutations');
+assert.equal(storeSources.course.extraSeq,7);assert.equal(storeSources.generic.history[0].ts,5);
+const beforeRollback=cloneStore(storeSources);
+failReplace='generic';
+assert.equal(storeSandbox.TurnikWorkoutStore.batch([
+ {source:'course',mutate:d=>{d.extraSeq=99;return true}},
+ {source:'generic',mutate:d=>{d.history.unshift({type:'workout',date:'2026-10-05',ts:6,details:[]});return true}}
+]),false,'failed cross-store batch must report failure');
+failReplace='';
+assert.deepEqual(storeSources.course,beforeRollback.course,'failed batch must roll back an already-applied source');
 
 assert(hotfix.includes("const LEGACY_ASSET_VERSION='5.14.0-adaptive-rest'"),
  'live hotfix must know the immutable packaged asset version');
@@ -963,9 +1003,11 @@ assert.equal(weightFeedback[0][0],'Вес не сохранён');
 const undoState={enabled:true,level:4,goal:'quantity',weeklySessions:3,cycleStartDate:'2026-09-25',
   courseSeq:1,lastCourseDate:'2026-09-25',lastCourseTs:123,testAnchorDate:'2026-09-25',
   lastTestDate:'',history:[{courseMode:'course',date:'2026-09-25',ts:123,courseComplex:3}],scheduleEvents:[]};
-const undoApi=new Function('TC_course',
+const undoApi=new Function('TC_course','tcRequireWorkoutStore',
   extract('tcScheduleEventFor')+'\n'+extract('tcUpsertScheduleEvent')+'\n'+extract('tcRemoveScheduleEvent')+'\n'+
-  extract('tcUndoLatestTodayCourseRecord')+'\nreturn {tcUndoLatestTodayCourseRecord};')(undoState);
+  extract('tcUndoLatestTodayCourseRecord')+'\nreturn {tcUndoLatestTodayCourseRecord};')(
+  undoState,()=>({transact:(source,mutator)=>source==='course'&&mutator(undoState)!==false})
+);
 assert.equal(undoApi.tcUndoLatestTodayCourseRecord('2026-09-25'),true);
 assert.equal(undoState.courseSeq,0);
 assert.equal(undoState.history.length,0);
@@ -1036,4 +1078,4 @@ assert.equal(uiSandbox.TurnikUI.renderArea('today').presenter,'morozov');
 assert.deepEqual(Array.from(presented),['TEST']);
 assert.equal(uiSandbox.TurnikUI.debug().version,'1.0.0');
 
-console.log('PASS: Core + Domain + UI + WorkoutStore, syntax, UX2 persistence/IA/completion, critical actions, forms and touch targets');
+console.log('PASS: Core + Domain + UI + transactional WorkoutStore, syntax, UX2 persistence/IA/completion, critical actions, forms and touch targets');

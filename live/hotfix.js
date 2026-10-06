@@ -1,8 +1,8 @@
-/* TURNIKCOACH_HOTFIX 5.16.47-unified-workout-store */
+/* TURNIKCOACH_HOTFIX 5.16.48-unified-workout-writes */
 (function(){
 'use strict';
-const VERSION='5.16.47-unified-workout-store';
-const LABEL='5.16.47';
+const VERSION='5.16.48-unified-workout-writes';
+const LABEL='5.16.48';
 const APPROVED_KEY='tc_hotfix_approved_version';
 const LEGACY_ASSET_VERSION='5.14.0-adaptive-rest';
 const stalePrompt=document.getElementById('tcUpdatePrompt');
@@ -68,7 +68,7 @@ title.style.cssText='font-size:22px;font-weight:800;margin-bottom:10px;flex:0 0 
 title.textContent='Доступно обновление TurnikCoach '+LABEL;
 const text=document.createElement('div');
 text.style.cssText='font-size:15px;line-height:1.45;color:#cfd8e3;margin-bottom:18px;min-height:0;flex:1 1 0;overflow-y:auto;overscroll-behavior:contain;padding-right:4px';
-text.innerHTML="Продолжена архитектурная переработка без переноса или удаления истории. Добавлен единый WorkoutStore: обычные тренировки и курс Морозова теперь читаются через один нормализованный слой данных. Общая сводка «Прогресс» больше не склеивает два хранилища вручную. Физическая запись пока остаётся в прежних проверенных местах — это безопасный промежуточный этап перед объединением истории на экране.<br><br>Установить обновление сейчас?";
+text.innerHTML="Продолжена архитектурная переработка без изменения экранов. WorkoutStore теперь отвечает не только за чтение, но и за запись тренировок курса: основная, вспомогательная, авторское дополнение и дополнительная тренировка сохраняются через единый транзакционный слой. Операции между двумя хранилищами выполняются с откатом при ошибке. История и существующие данные не переносятся и не удаляются.<br><br>Установить обновление сейчас?";
 const row=document.createElement('div');
 row.style.cssText='display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;flex:0 0 auto';
 const later=document.createElement('button');
@@ -115,12 +115,12 @@ const TC_UI_MODULE_VERSION='1.0.0';
 const TC_UI_MODULE_MARKER='TURNIKCOACH_UI 1.0.0';
 const TC_UI_MODULE_URL='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/ui.js?v='+encodeURIComponent(TC_UI_MODULE_VERSION);
 const TC_UI_CACHE_KEY='tc_module_ui_'+TC_UI_MODULE_VERSION;
-const TC_STORE_MODULE_VERSION='1.0.0';
-const TC_STORE_MODULE_MARKER='TURNIKCOACH_WORKOUT_STORE 1.0.0';
+const TC_STORE_MODULE_VERSION='1.1.0-write-path';
+const TC_STORE_MODULE_MARKER='TURNIKCOACH_WORKOUT_STORE 1.1.0-write-path';
 const TC_STORE_MODULE_URL='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/store.js?v='+encodeURIComponent(TC_STORE_MODULE_VERSION);
 const TC_STORE_CACHE_KEY='tc_module_store_'+TC_STORE_MODULE_VERSION;
-const TC_COURSE_MODULE_VERSION='1.0.39-ui-presenter';
-const TC_COURSE_MODULE_MARKER='TURNIKCOACH_COURSE 1.0.39-ui-presenter';
+const TC_COURSE_MODULE_VERSION='1.0.40-unified-writes';
+const TC_COURSE_MODULE_MARKER='TURNIKCOACH_COURSE 1.0.40-unified-writes';
 const TC_COURSE_MODULE_URL='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/course.js?v='+encodeURIComponent(TC_COURSE_MODULE_VERSION);
 const TC_COURSE_CACHE_KEY='tc_module_course_'+TC_COURSE_MODULE_VERSION;
 let tcDomainPrimePromise=null,tcUiPrimePromise=null,tcStorePrimePromise=null,tcCoursePrimePromise=null;
@@ -196,7 +196,7 @@ const core=window.TurnikCore;if(!core)return false;
 core.registerSource('generic',{
 snapshot:()=>typeof state!=='undefined'?state:null,
 history:()=>typeof state!=='undefined'&&state&&Array.isArray(state.history)?state.history:[],
-restore:next=>{if(typeof state==='undefined'||!next)return false;state=next;if(typeof save==='function')save();return true}
+restore:next=>{if(typeof state==='undefined'||!next)return false;state=next;try{localStorage.setItem('tc_v4',JSON.stringify(next));return true}catch(e){console.error('TurnikCoach generic state restore',e);return false}}
 });
 core.registerSource('course',{
 snapshot:()=>typeof window.tcGetCourseStateSnapshot==='function'?window.tcGetCourseStateSnapshot():null,
