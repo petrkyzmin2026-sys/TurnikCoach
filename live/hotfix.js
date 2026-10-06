@@ -68,7 +68,7 @@ title.style.cssText='font-size:22px;font-weight:800;margin-bottom:10px;flex:0 0 
 title.textContent='Доступно обновление TurnikCoach '+LABEL;
 const text=document.createElement('div');
 text.style.cssText='font-size:15px;line-height:1.45;color:#cfd8e3;margin-bottom:18px;min-height:0;flex:1 1 0;overflow-y:auto;overscroll-behavior:contain;padding-right:4px';
-text.innerHTML="Добавлена статистика курса Морозова. Приложение теперь хранит периоды прохождения курса и связывает с ними основные тренировки, переносы, пропуски, восстановление, контрольные максимумы и нормативы. В разделе «Прогресс» показываются стартовый и текущий максимум, прирост, процент выполнения курса, тренировки вовремя/переносом/пропуском, восстановление и общий объём. Восстановление не считается пропуском, перенос считается выполненной тренировкой.<br><br>Установить обновление сейчас?";
+text.innerHTML="Архитектурное обновление без изменения привычных экранов. TurnikCoach получает единое ядро состояния TurnikCore, а модуль курса Морозова отделяется от основного OTA и кэшируется отдельно. Это убирает прежний предел развития одного 256-КБ файла и готовит безопасное разделение «Сегодня / План / Прогресс». История и настройки сохраняются.<br><br>Установить обновление сейчас?";
 const row=document.createElement('div');
 row.style.cssText='display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;flex:0 0 auto';
 const later=document.createElement('button');
@@ -80,9 +80,17 @@ yes.type='button';
 yes.textContent='Обновить';
 yes.style.cssText='min-height:48px;border:0;border-radius:12px;padding:14px 12px;background:#ffc400;color:#111;font-size:16px;font-weight:800;white-space:normal;overflow-wrap:anywhere';
 later.onclick=()=>{window.__TC_UPDATE_DISMISSED_VERSION=VERSION;removeUpdatePrompt()};
-yes.onclick=()=>{
+yes.onclick=async()=>{
 if(typeof W!=='undefined'&&W){
 text.textContent='Сначала завершите или отмените текущую тренировку. Обновление перезапустит экран, чтобы не потерять незаписанные подходы.';
+return;
+}
+yes.disabled=true;later.disabled=true;yes.textContent='Подготовка…';
+text.textContent='Проверяю и сохраняю модули обновления. История тренировок не изменяется.';
+const modulesReady=await tcEnsureRequiredModules();
+if(!modulesReady){
+yes.disabled=false;later.disabled=false;yes.textContent='Повторить';
+text.textContent='Не удалось подготовить модуль курса. Проверьте интернет и повторите — текущая версия приложения остаётся без изменений.';
 return;
 }
 const currentVersion=String(window.__TC_HOTFIX_ACTIVE_VERSION||window.__TC_HOTFIX_VERSION||'');
@@ -215,8 +223,9 @@ const course=typeof window.tcGetCourseStateSnapshot==='function'?window.tcGetCou
 const generic=typeof state!=='undefined'&&state?state:null;
 const pulled=course&&course.pullMax>0?course.pullMax:
 (generic&&Array.isArray(generic.ex)&&generic.ex.find(e=>e.id==='pull')||{}).max;
-const metrics=tcProgressMetrics(generic&&generic.history,
-course&&course.history,pulled,Date.now());
+const unified=window.TurnikCore&&window.TurnikCore.history?window.TurnikCore.history.all().map(x=>x.raw):null;
+const metrics=Array.isArray(unified)?tcProgressMetrics(unified,[],pulled,Date.now()):
+tcProgressMetrics(generic&&generic.history,course&&course.history,pulled,Date.now());
 let host=document.getElementById('tcProgressSummary');
 if(!host){
 host=document.createElement('div');host.id='tcProgressSummary';
@@ -870,6 +879,11 @@ window.__tcBackControlObserver=mo;
 }
 function installUpdate(){
 if(window.__TC_HOTFIX_ACTIVE_VERSION===VERSION)return;
+if(!tcLoadCoreModule()){showRuntimeNotice('Не удалось загрузить ядро TurnikCore. Текущая версия оставлена без изменений.','danger');return}
+if(!tcLoadCourseModule()){
+tcPrimeCourseModule().then(ok=>{if(ok&&tcLoadCourseModule())installUpdate();else showRuntimeNotice('Модуль курса недоступен. Повторите обновление при подключении к интернету.','danger')});
+return;
+}
 const previousVersion=String(window.__TC_HOTFIX_ACTIVE_VERSION||window.__TC_HOTFIX_VERSION||'');
 window.__TC_HOTFIX_ACTIVE_VERSION=VERSION;
 const stalePendingVersion=String(window.__TC_UPDATE_PENDING_VERSION||'');
@@ -1584,7 +1598,8 @@ window.__tcProductObserver=mo;
 try{render()}catch(e){tcQueueDecorate()}
 tcQueueDecorate();
 restReasonEl();
-tcLoadCourseModule();
+if(!tcLoadCourseModule())throw new Error('TurnikCoach course module unavailable after preflight');
+tcRegisterCoreSources();
 tcInstallUx2InformationArchitecture();
 tcInstallNavigationFoundation();
 tcInstallNavigationUpgrades();
