@@ -217,7 +217,7 @@ const f=window.__TC_CORE_FOUNDATION||{},active=window.__TC_HOTFIX_LABEL||LABEL;
 box.innerHTML='<div class="sheettitle">О приложении</div>'+
 '<div class="tcInfoBlock"><h3>TurnikCoach</h3><p>Версия: <b>'+active+'</b></p></div>'+
 '<div class="tcInfoBlock"><h3>Архитектура</h3><p>Core: <b>'+(f.version||'—')+'</b><br>Domain: <b>'+(f.domainModule||'—')+'</b><br>UI: <b>'+(f.uiModule||'—')+'</b><br>WorkoutStore: <b>'+(f.storeModule||'—')+'</b><br>Course: <b>'+(f.courseModule||TC_COURSE_MODULE_VERSION)+'</b></p></div>'+
-'<button class="btn yellow full" style="margin-top:14px" onclick="closeSheet()">Закрыть</button>';
+'<button class="btn yellow full" style="margin-top:14px" onclick="tcNavigateBack()">Закрыть</button>';
 sheet.classList.add('open');return true;
 };
 function tcInstallUx2InformationArchitecture(){
@@ -836,6 +836,7 @@ window.tcDiscardWorkout();return;
 if(history.length>1){history.back();return}
 if(scr!=='today'){
 internal=true;try{baseGo('today')}finally{internal=false}
+tcSyncScreenVisibility('today');
 replaceRoute('today',false);
 }
 };
@@ -865,6 +866,7 @@ return;
 }
 internal=true;
 try{baseGo(target)}finally{internal=false}
+tcSyncScreenVisibility(target);
 restoreScroll(target);
 setTimeout(tcDecorateBackControls,0);
 });
