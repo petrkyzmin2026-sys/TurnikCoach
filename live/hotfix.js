@@ -682,6 +682,20 @@ function pushRoute(screen,sheet){
 try{history.pushState({tcNav:true,tcScreen:screen,tcSheet:!!sheet},'',routeUrl(screen,sheet))}catch(e){}
 }
 function tcHasWorkout(){return typeof W!=='undefined'&&!!W}
+function tcRenderActiveAreaAfterNavigation(id){
+if(!window.TurnikUI||typeof window.TurnikUI.renderActive!=='function')return false;
+const run=()=>{
+try{
+const result=window.TurnikUI.renderActive({reason:'navigation',screen:id});
+window.__TC_NAV_LAST_RENDER={screen:id,at:Date.now(),presenter:result&&result.presenter||'',kind:result&&result.state&&result.state.kind||''};
+return result;
+}catch(e){console.error('TurnikCoach navigation render',e);return null}
+};
+run();
+if(typeof requestAnimationFrame==='function')requestAnimationFrame(run);
+setTimeout(run,80);
+return true;
+}
 function tcSyncScreenVisibility(id){
 const screens=[...document.querySelectorAll('.screen')];
 screens.forEach(screen=>{
@@ -693,9 +707,7 @@ screen.style.display=active?'flex':'none';
 });
 const target=document.getElementById(id);
 if(target){void target.offsetHeight}
-if(window.TurnikUI&&typeof window.TurnikUI.renderActive==='function'){
-setTimeout(()=>{try{window.TurnikUI.renderActive({reason:'navigation',screen:id})}catch(e){console.error('TurnikCoach navigation render',e)}},0);
-}
+tcRenderActiveAreaAfterNavigation(id);
 }
 function tcForceWebViewRepaint(){
 const app=document.getElementById('app');
