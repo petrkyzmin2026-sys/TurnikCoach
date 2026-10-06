@@ -1,7 +1,7 @@
-/* TURNIKCOACH_WORKOUT_STORE 1.0.0 */
+/* TURNIKCOACH_WORKOUT_STORE 1.1.0 */
 (function(){
 'use strict';
-const VERSION='1.0.0';
+const VERSION='1.1.0';
 if(window.TurnikWorkoutStore&&window.TurnikWorkoutStore.version===VERSION)return;
 function core(){return window.TurnikCore||null}
 function rows(){
@@ -31,28 +31,33 @@ const a=rows().filter(x=>match(x,o)).sort((x,y)=>dateTs(y)-dateTs(x));
 return limit?a.slice(0,limit):a;
 }
 function get(id){return rows().find(x=>x.id===id)||null}
-function completedSets(row){
-let n=0;(row.details||[]).forEach(d=>(d.actual||[]).forEach(v=>{if(v!==undefined&&v!==null)n++}));
-return n;
+function metricOf(d){
+if(d&&d.metric)return d.metric;
+const id=String(d&&d.id||'').toLowerCase(),name=String(d&&d.name||'').toLowerCase();
+if(id==='plank'||name.includes('планк')||name.includes('вис')||name.includes('удерж'))return'time';
+return'reps';
 }
-function repVolume(row){
-let n=0;(row.details||[]).forEach(d=>{
-const metric=d.metric||'';
-(d.actual||[]).forEach(v=>{if(v!==undefined&&v!==null&&Number.isFinite(+v)&&['reps','reps_side','weighted',''].includes(metric))n+=+v});
-});
-return n;
+function metrics(row){
+let sets=0,reps=0,seconds=0;
+(row.details||[]).forEach(d=>(d.actual||[]).forEach(v=>{
+if(v===undefined||v===null||!Number.isFinite(+v))return;
+sets++;const m=metricOf(d);
+if(m==='time'||m==='time_side')seconds+=+v;
+else if(['reps','reps_side','weighted'].includes(m))reps+=+v;
+}));
+return{sets,reps,seconds};
 }
 function summary(opt){
 const o=opt||{},now=Number(o.now)||Date.now(),weekStart=now-7*86400000,a=list(o.filter);
-let sets=0,reps=0,week=0;
+let sets=0,reps=0,seconds=0,week=0;
 const bySource={},byMode={};
 for(const x of a){
 const ts=dateTs(x);if(ts>=weekStart&&ts<=now)week++;
-sets+=completedSets(x);reps+=repVolume(x);
+const m=metrics(x);sets+=m.sets;reps+=m.reps;seconds+=m.seconds;
 bySource[x.source]=(bySource[x.source]||0)+1;
 byMode[x.mode]=(byMode[x.mode]||0)+1;
 }
-return{total:a.length,week,sets,reps,bySource,byMode,last:a[0]||null};
+return{total:a.length,week,sets,reps,seconds,bySource,byMode,last:a[0]||null};
 }
 function course(runId){
 const a=list(runId?{runId}:null),main=a.filter(x=>x.mode==='course');
@@ -61,6 +66,6 @@ return{all:a,main,transferred:main.filter(x=>x.transferred),onTime:main.filter(x
 function debug(){
 const a=rows();return{version:VERSION,total:a.length,sources:[...new Set(a.map(x=>x.source))],modes:[...new Set(a.map(x=>x.mode))]};
 }
-window.TurnikWorkoutStore={version:VERSION,list,get,summary,course,debug};
+window.TurnikWorkoutStore={version:VERSION,list,get,metrics,summary,course,debug};
 try{window.dispatchEvent(new CustomEvent('turnikworkoutstore:ready',{detail:{version:VERSION}}))}catch(e){}
 })();
