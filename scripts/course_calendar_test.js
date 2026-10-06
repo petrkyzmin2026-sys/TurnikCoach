@@ -1049,11 +1049,15 @@ const uiSandbox={console,document:{querySelector:()=>null},CustomEvent:function(
 uiSandbox.TurnikDomain={resolve:(area)=>({area,source:'morozov',kind:'TEST'})};
 uiSandbox.render=function(){uiSandbox.baseCalls=(uiSandbox.baseCalls||0)+1};
 vm.runInNewContext(ui,uiSandbox,{filename:'live/ui.js'});
-const presented=[];
+const presented=[],addons=[];
 uiSandbox.TurnikUI.register('today','morozov',100,state=>{presented.push(state.kind);return true});
+uiSandbox.TurnikUI.registerAddon('today','audit',10,state=>{addons.push(state.kind);return true});
 assert(uiSandbox.TurnikUI.install(),'TurnikUI must install around the existing base render');
-assert.equal(uiSandbox.TurnikUI.renderArea('today').presenter,'morozov');
+const uiResult=uiSandbox.TurnikUI.renderArea('today');
+assert.equal(uiResult.presenter,'morozov');
+assert.deepEqual(Array.from(uiResult.addons),['audit']);
 assert.deepEqual(Array.from(presented),['TEST']);
-assert.equal(uiSandbox.TurnikUI.debug().version,'1.0.0');
+assert.deepEqual(Array.from(addons),['TEST']);
+assert.equal(uiSandbox.TurnikUI.debug().version,'1.1.0');
 
 console.log('PASS: Core + Domain + UI addons + WorkoutStore + unified Progress, syntax, persistence and touch targets');
