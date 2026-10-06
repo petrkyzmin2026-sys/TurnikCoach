@@ -25,7 +25,7 @@ assert(hotfix.includes("TC_COURSE_CACHE_KEY='tc_module_course_'+TC_COURSE_MODULE
 assert(hotfix.includes("TC_DOMAIN_MODULE_URL='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/domain.js")&&
  hotfix.includes("TC_DOMAIN_CACHE_KEY='tc_module_domain_'+TC_DOMAIN_MODULE_VERSION"),
  'domain state must ship as a separately versioned/offline-cached module');
-assert(hotfix.includes("TC_DOMAIN_MODULE_VERSION='1.0.0'")&&hotfix.includes("TC_COURSE_MODULE_VERSION='1.0.38-domain-state'"),
+assert(hotfix.includes("TC_DOMAIN_MODULE_VERSION='1.0.0'")&&hotfix.includes("TC_COURSE_MODULE_VERSION='1.0.39-plan-hub'"),
  'OTA shell must pin exact compatible Domain and Course module versions');
 function extractFrom(source,name){
   const start=source.indexOf('function '+name+'(');
@@ -182,19 +182,32 @@ assert(course.includes("window.TurnikDomain.register('today','morozov',100")&&
  course.includes("window.TurnikDomain.register('plan','morozov',100")&&
  course.includes("window.TurnikDomain.register('progress','morozov',100"),
  'Morozov must register Today / Plan / Progress resolvers in TurnikDomain');
+const planCardBody=extract('tcCourseCardHtml');
+assert(course.includes("nextDate:TC_course.enabled&&tcWeeklyMode()?tcNextCourseDay():''")&&
+ course.includes("extraCount:extras.length"),
+ 'Plan state must expose next workout date and additional-plan summary data');
+assert(planCardBody.includes('ОСНОВНОЙ ПЛАН')&&planCardBody.includes('Следующая тренировка')&&
+ planCardBody.includes('tcPlanNext')&&!planCardBody.includes('Оборудование: только турник'),
+ 'Plan main card must be a compact course summary instead of settings/catalog content');
+assert(course.includes('tcExtrasSummaryTitle">Дополнительный план')&&
+ course.includes("details.id='tcExtrasDetails'")&&course.includes("details.open=!!window.__tcExtrasOpen"),
+ 'additional exercises must live behind a dedicated collapsed Additional plan section');
+assert(course.includes("host.querySelectorAll(':scope > .info')")&&
+ course.includes("if(summary)summary.style.display='none'"),
+ 'legacy catalog guidance/summary must not remain on the Plan top level');
 assert(course.includes('id="tcCycleStartDate"'),
  'settings must expose a cycle start date');
-assert(hotfix.includes("const VERSION='5.16.45-domain-state'"),
- 'release hotfix version must be 5.16.45');
-assert(course.includes("const COURSE_MODULE_VERSION='1.0.38-domain-state'"),
- 'course module version must be 1.0.38');
+assert(hotfix.includes("const VERSION='5.16.46-plan-hub'"),
+ 'release hotfix version must be 5.16.46');
+assert(course.includes("const COURSE_MODULE_VERSION='1.0.39-plan-hub'"),
+ 'course module version must be 1.0.39');
 assert(domain.includes("const VERSION='1.0.0'"),
  'domain module version must be 1.0.0');
 assert(!course.includes('TC_EXTRA_START'),
  'temporary extra-workout trace logging must not ship');
 assert(!course.includes('window.confirm('),'course module must not depend on unsupported WebView JS dialogs');
 assert(!hotfix.includes('window.confirm('),'hotfix navigation/discard must not depend on unsupported WebView JS dialogs');
-assert(!hotfix.includes('forceHandover'),'5.16.45 must use an explicit user-visible update prompt');
+assert(!hotfix.includes('forceHandover'),'5.16.46 must use an explicit user-visible update prompt');
 assert(hotfix.includes("showRuntimeNotice('TurnikCoach обновлён до '+LABEL)"),
  'successful activation must give visible feedback');
 assert(hotfix.includes("localStorage.setItem('tc_hotfix_active_version',VERSION)"),
@@ -978,4 +991,4 @@ assert(sandbox.TurnikCore.transact('generic',x=>{x.seq=9}),
 assert.equal(generic.seq,9);
 assert.equal(sandbox.TurnikCore.snapshot().sources.course.history.length,1);
 
-console.log('PASS: Core + Domain state, syntax, UX2 persistence/IA/completion, critical actions, forms and touch targets');
+console.log('PASS: Plan hub + Core/Domain state, syntax, UX2 persistence/IA/completion, critical actions, forms and touch targets');
