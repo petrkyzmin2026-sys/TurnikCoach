@@ -32,6 +32,7 @@ on:
       - feature/morozov-course-stats-20261005
       - refactor/core-foundation-5.16.44
       - refactor/domain-state-5.16.45
+      - refactor/ui-presenter-5.16.46
   pull_request:
   workflow_dispatch:
 
@@ -62,9 +63,9 @@ jobs:
           done
           base64 --decode /tmp/v513.b64 | gzip -dc > app/src/main/assets/index.html
           grep -q 'v5.13 — modern Android package' app/src/main/assets/index.html
-      - name: Reproduce packaged 5.14 + cached 5.16.44 + tested 5.16.45
+      - name: Reproduce packaged 5.14 + cached 5.16.45 + tested 5.16.46
         run: |
-          PREV_COMMIT="837c9e326fa2245226d664611a394bb6733a037c"
+          PREV_COMMIT="d1c88b0a46c35120bf6ad39361ccfb7fd93a333d"
           grep -q 'TURNIKCOACH_HOTFIX 5.14.0-adaptive-rest' app/src/main/assets/hotfix.js
           curl -fsSL "https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/${PREV_COMMIT}/live/hotfix.js" > app/src/main/assets/hotfix-prev.js
           curl -fsSL "https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/${PREV_COMMIT}/live/course.js" > app/src/main/assets/course-prev.js
@@ -78,8 +79,8 @@ jobs:
           s=s.replace(needle,"function tcAudio(){\nif(window.__TC_DISABLE_AUDIO_FOR_SMOKE)return null;\ntry{",1)
           p.write_text(s)
           PY
-          grep -q 'TURNIKCOACH_HOTFIX 5.16.44-core-foundation' app/src/main/assets/hotfix-prev.js
-          grep -q 'TURNIKCOACH_HOTFIX 5.16.45-domain-state' app/src/main/assets/hotfix-next.js
+          grep -q 'TURNIKCOACH_HOTFIX 5.16.45-domain-state' app/src/main/assets/hotfix-prev.js
+          grep -q 'TURNIKCOACH_HOTFIX 5.16.46-ui-presenter' app/src/main/assets/hotfix-next.js
           grep -q 'TURNIKCOACH_CORE 1.0.0' app/src/main/assets/hotfix-next.js
           grep -q 'TURNIKCOACH_DOMAIN 1.0.0' live/domain.js
           grep -q 'TURNIKCOACH_COURSE 1.0.38-domain-state' live/course.js
