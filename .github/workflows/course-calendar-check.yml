@@ -70,6 +70,7 @@ jobs:
           grep -q 'TURNIKCOACH_HOTFIX 5.14.0-adaptive-rest' app/src/main/assets/hotfix.js
           curl -fsSL "https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/${PREV_COMMIT}/live/hotfix.js" > app/src/main/assets/hotfix-prev.js
           curl -fsSL "https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/${PREV_COMMIT}/live/course.js" > app/src/main/assets/course-prev.js
+          curl -fsSL "https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/${PREV_COMMIT}/live/ui.js" > app/src/main/assets/ui-prev.js
           cp live/hotfix.js app/src/main/assets/hotfix-next.js
           python3 - <<'PY'
           from pathlib import Path
@@ -80,13 +81,14 @@ jobs:
           s=s.replace(needle,"function tcAudio(){\nif(window.__TC_DISABLE_AUDIO_FOR_SMOKE)return null;\ntry{",1)
           p.write_text(s)
           PY
-          grep -q 'TURNIKCOACH_HOTFIX 5.16.45-domain-state' app/src/main/assets/hotfix-prev.js
-          grep -q 'TURNIKCOACH_HOTFIX 5.16.46-ui-presenter' app/src/main/assets/hotfix-next.js
+          grep -q 'TURNIKCOACH_HOTFIX 5.16.46-ui-presenter' app/src/main/assets/hotfix-prev.js
+          grep -q 'TURNIKCOACH_HOTFIX 5.16.47-render-cleanup' app/src/main/assets/hotfix-next.js
           grep -q 'TURNIKCOACH_CORE 1.0.0' app/src/main/assets/hotfix-next.js
           grep -q 'TURNIKCOACH_DOMAIN 1.0.0' live/domain.js
-          grep -q 'TURNIKCOACH_UI 1.0.0' live/ui.js
+          grep -q 'TURNIKCOACH_UI 1.0.0' app/src/main/assets/ui-prev.js
+          grep -q 'TURNIKCOACH_UI 1.1.0' live/ui.js
           grep -q 'TURNIKCOACH_COURSE 1.0.39-ui-presenter' live/course.js
-          grep -q 'TURNIKCOACH_COURSE 1.0.38-domain-state' app/src/main/assets/course-prev.js
+          grep -q 'TURNIKCOACH_COURSE 1.0.39-ui-presenter' app/src/main/assets/course-prev.js
           ! grep -q 'COURSE_MODULE_BUNDLED=' app/src/main/assets/hotfix-next.js
       - name: Seed installed 5.16.45 approval, Domain/UI/Course caches and completed main-course state
         run: |
