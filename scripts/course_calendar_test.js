@@ -165,19 +165,67 @@ const legacyStart=new Function('TC_course','dateKey',extract('tcRunStartDate')+'
 assert.equal(legacyStart(),'2026-09-20','legacy migration must start at the first compatible current-level/goal workout, not the whole-course anchor');
 assert(course.includes('Выполнение курса:')&&course.includes('Контрольные максимумы:'),
  'Progress must render the compact Morozov course statistics card');
-assert(course.includes('tcPreviewCourseCard(tcSelectedDate)'),
- 'choosing another date must show a read-only plan');
+const kindStart=course.indexOf('const TC_TODAY_KIND=Object.freeze({');
+const buildStart=course.indexOf('function tcBuildTodayState()',kindStart);
+assert(kindStart>=0&&buildStart>kindStart,'TodayState source missing');
+const kindDecl=course.slice(kindStart,buildStart);
+const todayHarness=new Function('cfg',`
+  const TC_course={level:cfg.level||4,goal:'quantity',lastCourseDate:'2026-10-01'};
+  let tcSelectedDate=cfg.selectedDate||'';
+  function dateKey(d){if(d instanceof Date&&!Number.isNaN(d.getTime()))return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');return '2026-10-06'}
+  function tcCourseDue(){return !!cfg.due}
+  function tcCourseLevel(){return {title:'Уровень'}}
+  function tcCourseComplex(){return {no:3,def:{name:'Комплекс'}}}
+  function tcBuildCourseItems(){return [{plan:[1,1]}]}
+  function tcBuildExtraItems(){return []}
+  function tcTransferCandidate(){return cfg.transfer||null}
+  function tcTodayCourseRecord(){return cfg.completed?{}:null}
+  function tcWeeklyMode(){return cfg.weekly!==false}
+  function tcTestDue(){return !!cfg.test}
+  function tcMasteryDue(){return !!cfg.mastery}
+  function tcRecoveryShiftToday(){return !!cfg.recovery}
+  function tcAdvancedSelected(){return cfg.advancedSelected!==false}
+  function tcOriginalCourseDefs(){return [{}]}
+  function tcRunnableDefs(){return cfg.runnable===false?[]:[{}]}
+  function tcCalibrationDefs(){return cfg.calibration?[{}]:[]}
+  function tcNeedsWorkingWeight(){return !!cfg.working}
+  function tcNextCourseDay(){return '2026-10-08'}
+  function tcAuxDue(){return !!cfg.aux}
+  ${kindDecl}
+  ${extract('tcBuildTodayState')}
+  return tcBuildTodayState();
+`);
+const kind=cfg=>todayHarness(cfg).kind;
+assert.equal(kind({selectedDate:'2026-10-07',completed:true,test:true}),'preview','selected date preview has highest display priority');
+assert.equal(kind({completed:true,test:true,recovery:true}),'completed','already completed main session must win over new prompts');
+assert.equal(kind({test:true,mastery:true,recovery:true,transfer:{ready:true}}),'control_progress','control maximum must win over later course states');
+assert.equal(kind({mastery:true,recovery:true,transfer:{ready:true}}),'control_level','level control must win over recovery/transfer');
+assert.equal(kind({recovery:true,transfer:{ready:true}}),'recovery_shift','recovery shift must win over transfer');
+assert.equal(kind({transfer:{plannedDate:'2026-10-05',ready:true},due:true}),'transfer','pending transfer must win over a newly computed main state');
+assert.equal(kind({due:true,level:7,advancedSelected:false}),'advanced_setup');
+assert.equal(kind({due:true,runnable:false}),'no_equipment');
+assert.equal(kind({due:true,calibration:true}),'calibration');
+assert.equal(kind({due:true,working:true}),'working_weight');
+assert.equal(kind({due:true}),'main');
+assert.equal(kind({due:false}),'rest');
+assert(course.includes('tcPreviewCourseCard(state.previewDate)'),
+ 'choosing another date must show a read-only plan through TodayState');
+assert(course.includes('const TC_TODAY_KIND=Object.freeze({')&&
+ course.includes('function tcBuildTodayState()')&&course.includes('switch(state.kind)'),
+ 'Today must classify the day before rendering instead of using one UI-owned decision chain');
+assert(course.includes("window.TurnikCore.selectors.register('today',window.tcGetTodayState)"),
+ 'TodayState must be exposed through the TurnikCore selector registry');
 assert(course.includes('id="tcCycleStartDate"'),
  'settings must expose a cycle start date');
-assert(hotfix.includes("const VERSION='5.16.44-core-foundation'"),
- 'release hotfix version must be 5.16.44');
-assert(course.includes("const COURSE_MODULE_VERSION='1.0.37-course-stats'"),
- 'course module version must be 1.0.37');
+assert(hotfix.includes("const VERSION='5.16.45-today-state'"),
+ 'release hotfix version must be 5.16.45');
+assert(course.includes("const COURSE_MODULE_VERSION='1.0.38-today-state'"),
+ 'course module version must be 1.0.38');
 assert(!course.includes('TC_EXTRA_START'),
  'temporary extra-workout trace logging must not ship');
 assert(!course.includes('window.confirm('),'course module must not depend on unsupported WebView JS dialogs');
 assert(!hotfix.includes('window.confirm('),'hotfix navigation/discard must not depend on unsupported WebView JS dialogs');
-assert(!hotfix.includes('forceHandover'),'5.16.44 must use an explicit user-visible update prompt');
+assert(!hotfix.includes('forceHandover'),'5.16.45 must use an explicit user-visible update prompt');
 assert(hotfix.includes("showRuntimeNotice('TurnikCoach обновлён до '+LABEL)"),
  'successful activation must give visible feedback');
 assert(hotfix.includes("localStorage.setItem('tc_hotfix_active_version',VERSION)"),
@@ -918,7 +966,7 @@ const sandbox={
 };
 sandbox.window=sandbox;
 vm.runInNewContext(core,sandbox,{filename:'live/core.js'});
-assert.equal(sandbox.TurnikCore.version,'1.0.0');
+assert.equal(sandbox.TurnikCore.version,'1.1.0');
 let generic={history:[{type:'workout',date:'2026-10-01',ts:1,total:10}]};
 let courseData={history:[{type:'workout',date:'2026-10-02',ts:2,courseMode:'course',total:12}]};
 sandbox.TurnikCore.registerSource('generic',{snapshot:()=>generic,history:()=>generic.history,restore:x=>{generic=x;return true}});
@@ -928,5 +976,8 @@ assert(sandbox.TurnikCore.transact('generic',x=>{x.seq=9}),
  'TurnikCore transactions must restore through the registered source adapter');
 assert.equal(generic.seq,9);
 assert.equal(sandbox.TurnikCore.snapshot().sources.course.history.length,1);
+assert(sandbox.TurnikCore.selectors.register('probe',input=>({value:Number(input)+1})));
+assert.equal(sandbox.TurnikCore.select('probe',4).value,5,'domain selectors must return cloned derived state');
+assert(sandbox.TurnikCore.selectors.list().includes('probe'),'selector registry must expose registered domain states');
 
 console.log('PASS: modular core, syntax, UX2 persistence/IA/completion, critical actions, forms and touch targets');
