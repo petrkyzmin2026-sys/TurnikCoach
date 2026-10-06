@@ -901,10 +901,12 @@ window.__tcBackControlObserver=mo;
 function installUpdate(){
 if(window.__TC_HOTFIX_ACTIVE_VERSION===VERSION)return;
 if(!tcLoadCoreModule()){showRuntimeNotice('Не удалось загрузить ядро TurnikCore. Текущая версия оставлена без изменений.','danger');return}
-if(!tcCourseCacheReady()){
-tcPrimeCourseModule().then(ok=>{if(ok&&tcCourseCacheReady())installUpdate();else showRuntimeNotice('Модуль курса недоступен. Повторите обновление при подключении к интернету.','danger')});
+if(!tcDomainCacheReady()||!tcCourseCacheReady()){
+tcEnsureRequiredModules().then(ok=>{if(ok)installUpdate();else showRuntimeNotice('Модули приложения недоступны. Повторите обновление при подключении к интернету.','danger')});
 return;
 }
+if(!tcLoadDomainModule()||!tcLoadCourseModule()){showRuntimeNotice('Не удалось активировать слой состояний приложения. Текущая версия оставлена без изменений.','danger');return}
+
 const previousVersion=String(window.__TC_HOTFIX_ACTIVE_VERSION||window.__TC_HOTFIX_VERSION||'');
 window.__TC_HOTFIX_ACTIVE_VERSION=VERSION;
 const stalePendingVersion=String(window.__TC_UPDATE_PENDING_VERSION||'');
@@ -1619,6 +1621,7 @@ window.__tcProductObserver=mo;
 try{render()}catch(e){tcQueueDecorate()}
 tcQueueDecorate();
 restReasonEl();
+if(!tcLoadDomainModule())throw new Error('TurnikCoach domain module unavailable after preflight');
 if(!tcLoadCourseModule())throw new Error('TurnikCoach course module unavailable after preflight');
 tcRegisterCoreSources();
 tcInstallUx2InformationArchitecture();
