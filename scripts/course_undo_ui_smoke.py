@@ -403,10 +403,11 @@ app_info=test_eval_json("(function(){var b=document.getElementById('sheetbox');r
 assert app_info["open"] and "WorkoutStore" in app_info["text"] and "Course" in app_info["text"], "Application diagnostics must live in a separate sheet"
 tap_clickable_text("Закрыть",timeout=12)
 tap_clickable_text("Сегодня",timeout=20)
-today_nav_probe=test_eval_json("(function(){var on=document.querySelector('.screen.on'),t=document.getElementById('today'),d=window.TurnikDomain&&TurnikDomain.today?TurnikDomain.today({date:(new Date()).toISOString().slice(0,10)}):null,u=window.TurnikUI&&TurnikUI.debug?TurnikUI.debug():null;return {screen:on&&on.id||'',todayOn:!!(t&&t.classList.contains('on')),todayText:t&&t.textContent||'',domain:d&&d.kind||'',activeArea:u&&u.activeArea||'',sheet:!!document.querySelector('#sheet.open')};})()","today-after-plan-app-info")
+today_nav_probe=test_eval_json("(function(){var on=document.querySelector('.screen.on'),t=document.getElementById('today'),d=window.TurnikDomain&&TurnikDomain.today?TurnikDomain.today({date:(new Date()).toISOString().slice(0,10)}):null,u=window.TurnikUI&&TurnikUI.debug?TurnikUI.debug():null,n=window.__TC_NAV_LAST_RENDER||null;return {screen:on&&on.id||'',todayOn:!!(t&&t.classList.contains('on')),todayText:t&&t.textContent||'',domain:d&&d.kind||'',activeArea:u&&u.activeArea||'',sheet:!!document.querySelector('#sheet.open'),navRender:n};})()","today-after-plan-app-info")
 print("TC_DIAG today-after-plan-app-info",today_nav_probe,flush=True)
 assert today_nav_probe["screen"]=="today" and today_nav_probe["todayOn"] and not today_nav_probe["sheet"], "Plan/app-info return must land on the visible Today screen"
 assert today_nav_probe["domain"]=="COURSE_DONE" and today_nav_probe["activeArea"]=="today", "Today navigation must preserve Domain state and active presenter area"
+assert today_nav_probe["navRender"] and today_nav_probe["navRender"]["presenter"]=="morozov" and today_nav_probe["navRender"]["kind"]=="COURSE_DONE", "navigation boundary must finish with the Morozov COURSE_DONE presenter"
 
 # Main course is already saved by the seeded user state; extra workout must still be available.
 wait_text("Основной комплекс выполнен",timeout=20)
