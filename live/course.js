@@ -1,7 +1,7 @@
-/* TURNIKCOACH_COURSE 1.0.39-ui-presenter */
+/* TURNIKCOACH_COURSE 1.0.40-progress-cleanup */
 (function(){
 'use strict';
-const COURSE_MODULE_VERSION='1.0.39-ui-presenter';
+const COURSE_MODULE_VERSION='1.0.40-progress-cleanup';
 if(window.__TC_COURSE_MODULE_VERSION===COURSE_MODULE_VERSION)return;
 window.__TC_COURSE_MODULE_VERSION=COURSE_MODULE_VERSION;
 function tcClamp(v,a,b){return Math.max(a,Math.min(b,v))}
@@ -1945,7 +1945,7 @@ view=view||tcResolvedProgressState();const x=view.stats;if(!x)return'';
 const sign=x.delta>0?'+':'',rate=x.rate==null?'—':x.rate+'%',trend=x.tests.length?x.tests.slice(-5).join(' → '):'контролей пока нет';
 return '<div class="tcInfoBlock"><h3>Текущий период · с '+fmtKeyDate(x.r.startedDate,false)+'</h3><p><b>'+x.base+' → '+x.cur+'</b> подтягиваний · '+sign+x.delta+' ('+sign+x.pct+'%)<br>Выполнение курса: <b>'+rate+'</b> · выполнено '+x.completed+'<br>Вовремя '+x.on+' · перенесено '+x.moved+' · пропущено '+x.missed+' · восстановление '+x.recovery+'<br>Объём курса: '+x.sets+' подходов · '+x.reps+' повторений<br>Контрольные максимумы: '+trend+'</p></div>';
 }
-function tcCourseHistoryHtml(view){if(!TC_course.enabled&&!TC_course.history.length)return'';const rows=TC_course.history.slice(0,8).map(h=>'<div class="historyitem"><div class="row between"><div><div class="strong" style="font-size:14px">'+(h.courseMode==='supplement'?'Дополнительные подтягивания по курсу':h.courseMode==='auxCourse'?'Вспомогательный комплекс №2 · уровень '+h.courseLevel:'Курс Морозова · уровень '+h.courseLevel+' · комплекс '+h.courseComplex)+(h.adapted?' · адаптация: только турник':'')+'</div><div class="meta">'+fmtRecordDate(h)+' · '+(h.feedback||'—')+'</div></div><span class="badge">КУРС</span></div>'+(h.details||[]).map(d=>'<div class="meta" style="margin-top:6px">'+d.name+': '+d.actual.map(v=>v===null?'—':v).join(' · ')+'</div>').join('')+'</div>').join('');return '<div class="exerciseProgressCard"><div class="progressHead"><div><div class="progressName">Курс Морозова</div><div class="meta">Статистика и история текущего периода</div></div><span class="badge">ур. '+TC_course.level+'</span></div>'+tcCourseStatsHtml(view)+'<div class="tcInfoBlock"><h3>Критерий текущего уровня</h3><p>'+tcCourseLevel().mastery+'</p></div>'+tcCourseTestsHtml()+rows+'</div>'}
+function tcCourseHistoryHtml(view){if(!TC_course.enabled&&!TC_course.history.length)return'';return '<div class="exerciseProgressCard"><div class="progressHead"><div><div class="progressName">Курс Морозова</div><div class="meta">Статистика текущего периода и контрольные результаты</div></div><span class="badge">ур. '+TC_course.level+'</span></div>'+tcCourseStatsHtml(view)+'<div class="tcInfoBlock"><h3>Критерий текущего уровня</h3><p>'+tcCourseLevel().mastery+'</p></div>'+tcCourseTestsHtml()+'</div>'}
 function tcRenderCourseProgress(view){
 const host=q('exerciseProgress');if(!host)return false;
 const old=document.getElementById('tcCourseHistoryWrap');if(old)old.remove();
