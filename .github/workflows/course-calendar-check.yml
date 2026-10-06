@@ -314,10 +314,10 @@ jobs:
       - name: Build isolated DEBUG preview APK
         run: |
           gradle --no-daemon :app:assembleDebug
-          cp app/build/outputs/apk/debug/app-debug.apk TurnikCoach-UI-Presenter-Preview-v5.16.46.apk
+          cp app/build/outputs/apk/debug/app-debug.apk TurnikCoach-Render-Cleanup-Preview-v5.16.47.apk
       - name: Enable KVM
         run: sudo chmod 666 /dev/kvm || true
-      - name: Verify 5.16.46 UI Presenter accessibility baseline in real Android WebView
+      - name: Verify 5.16.47 Render Cleanup accessibility baseline in real Android WebView
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 35
@@ -326,16 +326,16 @@ jobs:
           disable-animations: true
           emulator-options: -no-snapshot-save -no-window -gpu swiftshader -noaudio -no-boot-anim
           script: |
-            adb install -r TurnikCoach-UI-Presenter-Preview-v5.16.46.apk
+            adb install -r TurnikCoach-Render-Cleanup-Preview-v5.16.47.apk
             TC_TEST_PKG=ru.turnikcoach.v52tr.calendarpreview python3 scripts/course_undo_ui_smoke.py
       - name: Upload UX2 accessibility baseline screenshots
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: TurnikCoach-5.16.46-ui-accessibility-baseline-screenshots
+          name: TurnikCoach-5.16.47-render-accessibility-baseline-screenshots
           path: undo-ui-test-output
           if-no-files-found: warn
-      - name: Verify 5.16.46 UI Presenter at 200% system font scale
+      - name: Verify 5.16.47 Render Cleanup at 200% system font scale
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 35
@@ -346,17 +346,17 @@ jobs:
           script: |
             adb shell settings put system font_scale 2.0
             test "$(adb shell settings get system font_scale | tr -d '\r')" = "2.0"
-            adb install -r TurnikCoach-UI-Presenter-Preview-v5.16.46.apk
+            adb install -r TurnikCoach-Render-Cleanup-Preview-v5.16.47.apk
             TC_TEST_PKG=ru.turnikcoach.v52tr.calendarpreview TC_OUT_DIR="$GITHUB_WORKSPACE/undo-ui-font200-output" TC_FONT_SCALE=2.0 python3 scripts/course_undo_ui_smoke.py
       - name: Upload UX2 200% font-scale screenshots
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: TurnikCoach-5.16.46-ui-font200-screenshots
+          name: TurnikCoach-5.16.47-render-font200-screenshots
           path: undo-ui-font200-output
           if-no-files-found: warn
       - uses: actions/upload-artifact@v4
         with:
-          name: TurnikCoach-5.16.46-ui-accessibility-isolated-preview
-          path: TurnikCoach-UI-Presenter-Preview-v5.16.46.apk
+          name: TurnikCoach-5.16.47-render-accessibility-isolated-preview
+          path: TurnikCoach-Render-Cleanup-Preview-v5.16.47.apk
           if-no-files-found: error
