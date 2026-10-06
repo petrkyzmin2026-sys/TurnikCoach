@@ -1,7 +1,7 @@
-/* TURNIKCOACH_COURSE 1.0.37-course-stats */
+/* TURNIKCOACH_COURSE 1.0.38-domain-state */
 (function(){
 'use strict';
-const COURSE_MODULE_VERSION='1.0.37-course-stats';
+const COURSE_MODULE_VERSION='1.0.38-domain-state';
 if(window.__TC_COURSE_MODULE_VERSION===COURSE_MODULE_VERSION)return;
 window.__TC_COURSE_MODULE_VERSION=COURSE_MODULE_VERSION;
 function tcClamp(v,a,b){return Math.max(a,Math.min(b,v))}
@@ -691,11 +691,24 @@ const ratio=(+actual||0)/target;if(ratio<.9)sec=r.max;else if(ratio>1.2)sec=r.mi
 sec=tcClamp(sec,r.min,r.max);
 return{manual:false,seconds:sec,note:'Диапазон курса '+tcCourseRestText(r)+' · TurnikCoach выбрал '+Math.floor(sec/60)+':'+String(sec%60).padStart(2,'0')};
 }
+function tcCoursePlanState(){
+const l=tcCourseLevel(),c=tcCourseComplex();
+return{
+kind:TC_course.enabled?'COURSE_ACTIVE':'COURSE_DISABLED',
+enabled:!!TC_course.enabled,level:TC_course.level,levelTitle:l.title,goal:TC_course.goal,goalName:tcCourseGoalName(TC_course.goal),
+nextComplex:c.no,nextComplexName:c.def?c.def.name:'—',pullMax:TC_course.pullMax,weeklySessions:TC_course.weeklySessions,
+frequency:l.frequency,cycleStartDate:TC_course.cycleStartDate||'',extras:tcExtraExercises().map(e=>({id:e.id,name:e.name}))
+};
+}
+function tcResolvedPlanState(){
+if(window.TurnikDomain){const x=window.TurnikDomain.plan();if(x&&x.source==='morozov')return x}
+return tcCoursePlanState();
+}
 function tcCourseCardHtml(){
-const l=tcCourseLevel(),c=tcCourseComplex(),enabled=TC_course.enabled;
+const p=tcResolvedPlanState(),enabled=p.enabled;
 return '<div class="card" id="tcCourseCard" style="margin-bottom:12px;border-color:'+(enabled?'#ffd84d':'#2c3945')+'">'+
 '<div class="row between"><div class="grow"><div class="k">ПРОГРАММА</div><div class="strong" style="font-size:18px;margin-top:3px">Курс Морозова</div><div class="meta">«Подтягивания с нуля до киборга»</div></div><span class="tag '+(enabled?'':'stage4')+'">'+(enabled?'ВКЛЮЧЁН':'ВЫКЛЮЧЕН')+'</span></div>'+
-(enabled?'<div class="tcInfoBlock"><h3>Оборудование: только турник</h3><p>В тренировочный план не включаются упражнения, требующие резины, отягощения, полотенца, стула или низкой перекладины.</p></div><div class="tcInfoBlock"><h3>'+l.title+'</h3><p><b>Цель:</b> '+tcCourseGoalName(TC_course.goal)+'<br><b>Следующий:</b> '+(c.def?c.def.name:'—')+'<br><b>Текущий максимум:</b> '+TC_course.pullMax+'<br><b>Частота по курсу:</b> '+l.frequency+'</p></div>':'<div class="sub" style="margin-top:10px">Отдельная система тренировок: уровни, комплексы, проценты, MAX, отдых и контрольные критерии берутся из курса. Остальные упражнения TurnikCoach можно использовать отдельно.</div>')+
+(enabled?'<div class="tcInfoBlock"><h3>Оборудование: только турник</h3><p>В тренировочный план не включаются упражнения, требующие резины, отягощения, полотенца, стула или низкой перекладины.</p></div><div class="tcInfoBlock"><h3>'+p.levelTitle+'</h3><p><b>Цель:</b> '+p.goalName+'<br><b>Следующий:</b> '+p.nextComplexName+'<br><b>Текущий максимум:</b> '+p.pullMax+'<br><b>Частота по курсу:</b> '+p.frequency+'</p></div>':'<div class="sub" style="margin-top:10px">Отдельная система тренировок: уровни, комплексы, проценты, MAX, отдых и контрольные критерии берутся из курса. Остальные упражнения TurnikCoach можно использовать отдельно.</div>')+
 '<button class="btn yellow full" style="margin-top:12px" onclick="tcOpenCourseProgram()">Программа курса</button>'+ '<button class="btn ghost full" style="margin-top:8px" onclick="tcOpenCourseSettings()">'+(enabled?'Настройки курса':'Подключить курс')+'</button></div>';
 }
 function tcActionMessage(title,text){
@@ -1187,100 +1200,80 @@ const last=tcLastPullLoadDateBefore(dateKey()),next=tcNextScheduledAfter(dateKey
 return '<div class="todayCard tcTodayPrimaryCard"><div class="row between"><div class="grow"><div class="dateBig">Плановая тренировка сдвинута</div><div class="tcTodayPrimaryMeta">Сегодня был день основного курса, но после фактической тяговой нагрузки'+(last?' '+fmtKeyDate(last,false):'')+' требуется восстановление.</div></div><span class="tag stage4">ВОССТ.</span></div>'+
 '<div class="meta" style="margin-top:9px">Комплекс не сгорает и courseSeq не меняется. Следующее окно будет предложено автоматически'+(next?' до плановой даты '+fmtKeyDate(next,false):'')+'.</div></div>';
 }
-function tcRenderToday(){
-if(tcSyncScheduleEvents())tcSaveCourse();
-const now=new Date(),due=tcCourseDue(),l=tcCourseLevel(),c=tcCourseComplex(),items=tcBuildCourseItems(),extras=tcBuildExtraItems(),transfer=tcTransferCandidate();
-const week=()=>'<div class="tcWeekSection"><div class="tcWeekSectionTitle">ПЛАН НЕДЕЛИ</div>'+tcWeeklyCalendarHtml()+'</div>';
-q('todayTitle').textContent=fmtDate(now);
-if(tcSelectedDate&&tcSelectedDate!==dateKey()){
-q('todayTitle').textContent=fmtDate(tcDateFromKey(tcSelectedDate));
-q('todaySub').textContent='Просмотр плана';
-q('todayList').innerHTML=tcPreviewCourseCard(tcSelectedDate)+week();
-return;
-}
-if(tcTodayCourseRecord()){
-q('todaySub').textContent='Основная тренировка выполнена';
-q('todayList').innerHTML=tcTodayCourseDoneHtml(extras)+week();
-tcBindTodayDoneActions();
-tcQueueDecorate();
-return;
-}
-if(tcWeeklyMode()&&tcTestDue()){
-q('todaySub').textContent='Сегодня · контроль прогресса';
-q('todayList').innerHTML=tcCourseTestCard()+week();
-return;
-}
-if(tcMasteryDue()){
-q('todaySub').textContent='Сегодня · контроль уровня';
-q('todayList').innerHTML=tcPendingLevelHtml()+tcMasteryCardHtml()+week();
-return;
-}
-if(tcRecoveryShiftToday()){
-q('todaySub').textContent='Сегодня · восстановление';
-q('todayList').innerHTML=tcRecoveryShiftCardHtml()+week();
-tcQueueDecorate();return;
-}
-if(transfer){
-q('todaySub').textContent=transfer.ready?'Сегодня · перенос основной тренировки':'Сегодня · восстановление';
-q('todayList').innerHTML=tcTransferCardHtml(transfer)+week();
-tcQueueDecorate();return;
-}
-if(due&&TC_course.level===7&&!tcAdvancedSelected()){
-q('todaySub').textContent='Сегодня · подготовка тренировки';
-q('todayList').innerHTML=
-'<div class="todayCard"><div class="dateBig">Выберите два вспомогательных упражнения</div>'+
-'<div class="meta">Это нужно один раз для комплекса 7-го уровня.</div>'+
-'<button class="btn yellow full" style="margin-top:12px" onclick="tcOpenAdvancedChoiceSheet()">Выбрать упражнения</button></div>'+week();
-return;
-}
-if(due&&!tcRunnableDefs(tcOriginalCourseDefs()).length){
-q('todaySub').textContent='Сегодня · требуется настройка оборудования';
-q('todayList').innerHTML=tcNoEquipmentCard(tcOriginalCourseDefs())+week();
-return;
-}
-if(due&&tcCalibrationDefs('main').length){
-q('todaySub').textContent='Сегодня · требуется контрольный максимум';
-q('todayList').innerHTML=tcCalibrationCard('main')+week();
-return;
-}
-if(due&&tcNeedsWorkingWeight('main')){
-q('todaySub').textContent='Сегодня · требуется рабочий вес';
-q('todayList').innerHTML=tcWorkingWeightCard('main')+week();
-return;
-}
+function tcCourseTodayState(){
+const today=dateKey();
+if(tcSelectedDate&&tcSelectedDate!==today)return{kind:'PREVIEW',date:tcSelectedDate};
+const extras=tcBuildExtraItems(),done=tcTodayCourseRecord();
+if(done)return{kind:'COURSE_DONE',record:done,extras};
+if(tcWeeklyMode()&&tcTestDue())return{kind:'COURSE_TEST'};
+if(tcMasteryDue())return{kind:'MASTERY_TEST'};
+if(tcRecoveryShiftToday())return{kind:'RECOVERY_SHIFT'};
+const transfer=tcTransferCandidate();
+if(transfer)return{kind:transfer.ready?'TRANSFER':'TRANSFER_RECOVERY',transfer};
+const due=tcCourseDue();
+if(due&&TC_course.level===7&&!tcAdvancedSelected())return{kind:'ADVANCED_SETUP'};
+const defs=due?tcOriginalCourseDefs():[];
+if(due&&!tcRunnableDefs(defs).length)return{kind:'EQUIPMENT_SETUP',defs};
+const calibration=due?tcCalibrationDefs('main'):[];
+if(due&&calibration.length)return{kind:'CALIBRATION',calibration};
+if(due&&tcNeedsWorkingWeight('main'))return{kind:'WORKING_WEIGHT'};
 if(due){
-const totalSets=items.reduce((sum,x)=>sum+(Array.isArray(x.plan)?x.plan.length:0),0);
-q('todaySub').textContent='Сегодня · основная тренировка';
-q('todayList').innerHTML=
-tcPendingLevelHtml()+tcEquipmentMasteryNote()+
-'<div class="todayCard tcTodayPrimaryCard"><div class="row between"><div class="grow"><div class="dateBig">'+
-(c.def?c.def.name:'Основной комплекс')+'</div><div class="tcTodayPrimaryMeta">'+items.length+
-' упражн. · '+totalSets+' подходов · '+l.title+'</div></div><span class="tag">КУРС</span></div>'+
-'<button class="btn yellow full" style="margin-top:14px;min-height:58px" onclick="tcStartCourseWorkout()">'+
-(tcUnavailableDefs(tcOriginalCourseDefs()).length?'Начать адаптированную тренировку':'Начать тренировку')+
-'</button><details class="tcTodayPlanDetails"><summary>Посмотреть план</summary><div class="tcTodayPlanBody">'+
-tcCourseRowsHtml(items)+tcAdaptationNote(tcOriginalCourseDefs())+
-'<button class="btn ghost full" style="margin-top:8px" onclick="tcOpenCourseInfo()">ⓘ Почему такой план</button></div></details></div>'+
-tcMasteryCardHtml()+week();
-}else{
+const l=tcCourseLevel(),c=tcCourseComplex(),items=tcBuildCourseItems();
+return{kind:'MAIN_WORKOUT',levelTitle:l.title,complexName:c.def?c.def.name:'Основной комплекс',items,totalSets:items.reduce((sum,x)=>sum+(Array.isArray(x.plan)?x.plan.length:0),0),adapted:tcUnavailableDefs(defs).length>0,defs};
+}
 const nextKey=tcWeeklyMode()?tcNextCourseDay():'';
 const next=new Date(TC_course.lastCourseDate+'T12:00:00');next.setDate(next.getDate()+2);
-q('todaySub').textContent=tcAuxDue()?'Сегодня · вспомогательная тренировка':'Сегодня · восстановление';
-let html='<div class="todayCard"><div class="row between"><div class="grow"><div class="dateBig">'+
-(tcAuxDue()?'Основной комплекс не назначен':'Сегодня восстановление')+'</div><div class="sessionNo">Следующая основная тренировка — '+
-fmtKeyDate(nextKey||dateKey(next),false)+'</div></div><span class="tag stage4">ВОССТАНОВЛЕНИЕ</span></div>';
-if(extras.length){
+return{kind:'RECOVERY',auxDue:tcAuxDue(),extras,nextDate:nextKey||dateKey(next)};
+}
+function tcResolvedTodayState(){
+if(window.TurnikDomain){const x=window.TurnikDomain.today({date:dateKey()});if(x&&x.source==='morozov')return x}
+return tcCourseTodayState();
+}
+function tcRenderToday(){
+if(tcSyncScheduleEvents())tcSaveCourse();
+const now=new Date(),view=tcResolvedTodayState();
+const week=()=>'<div class="tcWeekSection"><div class="tcWeekSectionTitle">ПЛАН НЕДЕЛИ</div>'+tcWeeklyCalendarHtml()+'</div>';
+q('todayTitle').textContent=fmtDate(now);
+if(view.kind==='PREVIEW'){
+q('todayTitle').textContent=fmtDate(tcDateFromKey(view.date));q('todaySub').textContent='Просмотр плана';q('todayList').innerHTML=tcPreviewCourseCard(view.date)+week();return;
+}
+if(view.kind==='COURSE_DONE'){
+q('todaySub').textContent='Основная тренировка выполнена';q('todayList').innerHTML=tcTodayCourseDoneHtml(view.extras)+week();tcBindTodayDoneActions();tcQueueDecorate();return;
+}
+if(view.kind==='COURSE_TEST'){q('todaySub').textContent='Сегодня · контроль прогресса';q('todayList').innerHTML=tcCourseTestCard()+week();return}
+if(view.kind==='MASTERY_TEST'){q('todaySub').textContent='Сегодня · контроль уровня';q('todayList').innerHTML=tcPendingLevelHtml()+tcMasteryCardHtml()+week();return}
+if(view.kind==='RECOVERY_SHIFT'){q('todaySub').textContent='Сегодня · восстановление';q('todayList').innerHTML=tcRecoveryShiftCardHtml()+week();tcQueueDecorate();return}
+if(view.kind==='TRANSFER'||view.kind==='TRANSFER_RECOVERY'){
+q('todaySub').textContent=view.kind==='TRANSFER'?'Сегодня · перенос основной тренировки':'Сегодня · восстановление';q('todayList').innerHTML=tcTransferCardHtml(view.transfer)+week();tcQueueDecorate();return;
+}
+if(view.kind==='ADVANCED_SETUP'){
+q('todaySub').textContent='Сегодня · подготовка тренировки';q('todayList').innerHTML='<div class="todayCard"><div class="dateBig">Выберите два вспомогательных упражнения</div><div class="meta">Это нужно один раз для комплекса 7-го уровня.</div><button class="btn yellow full" style="margin-top:12px" onclick="tcOpenAdvancedChoiceSheet()">Выбрать упражнения</button></div>'+week();return;
+}
+if(view.kind==='EQUIPMENT_SETUP'){q('todaySub').textContent='Сегодня · требуется настройка оборудования';q('todayList').innerHTML=tcNoEquipmentCard(view.defs)+week();return}
+if(view.kind==='CALIBRATION'){q('todaySub').textContent='Сегодня · требуется контрольный максимум';q('todayList').innerHTML=tcCalibrationCard('main')+week();return}
+if(view.kind==='WORKING_WEIGHT'){q('todaySub').textContent='Сегодня · требуется рабочий вес';q('todayList').innerHTML=tcWorkingWeightCard('main')+week();return}
+if(view.kind==='MAIN_WORKOUT'){
+q('todaySub').textContent='Сегодня · основная тренировка';
+q('todayList').innerHTML=tcPendingLevelHtml()+tcEquipmentMasteryNote()+
+'<div class="todayCard tcTodayPrimaryCard"><div class="row between"><div class="grow"><div class="dateBig">'+view.complexName+'</div><div class="tcTodayPrimaryMeta">'+view.items.length+
+' упражн. · '+view.totalSets+' подходов · '+view.levelTitle+'</div></div><span class="tag">КУРС</span></div>'+
+'<button class="btn yellow full" style="margin-top:14px;min-height:58px" onclick="tcStartCourseWorkout()">'+(view.adapted?'Начать адаптированную тренировку':'Начать тренировку')+
+'</button><details class="tcTodayPlanDetails"><summary>Посмотреть план</summary><div class="tcTodayPlanBody">'+tcCourseRowsHtml(view.items)+tcAdaptationNote(view.defs)+
+'<button class="btn ghost full" style="margin-top:8px" onclick="tcOpenCourseInfo()">ⓘ Почему такой план</button></div></details></div>'+tcMasteryCardHtml()+week();
+tcQueueDecorate();return;
+}
+q('todaySub').textContent=view.auxDue?'Сегодня · вспомогательная тренировка':'Сегодня · восстановление';
+let html='<div class="todayCard"><div class="row between"><div class="grow"><div class="dateBig">'+(view.auxDue?'Основной комплекс не назначен':'Сегодня восстановление')+
+'</div><div class="sessionNo">Следующая основная тренировка — '+fmtKeyDate(view.nextDate,false)+'</div></div><span class="tag stage4">ВОССТАНОВЛЕНИЕ</span></div>';
+if(view.extras.length){
 html+='<div class="tcTodayPrimaryMeta">Можно выполнить выбранные дополнительные упражнения без дополнительной тяговой нагрузки.</div>'+
 '<button class="btn yellow full" style="margin-top:14px;min-height:58px" onclick="tcStartExtraWorkout()">Начать дополнительную тренировку</button>'+
-'<details class="tcTodayPlanDetails"><summary>Посмотреть дополнительный план</summary><div class="tcTodayPlanBody">'+tcExtraRowsHtml(extras)+'</div></details>';
+'<details class="tcTodayPlanDetails"><summary>Посмотреть дополнительный план</summary><div class="tcTodayPlanBody">'+tcExtraRowsHtml(view.extras)+'</div></details>';
 }else{
 html+='<div class="empty" style="margin-top:12px">Дополнительные упражнения не выбраны. Можно оставить полный отдых.</div>'+
 '<button class="btn ghost full" style="margin-top:10px" onclick="go(\'exercise\')">Настроить дополнительный план</button>';
 }
-html+='</div>';
-q('todayList').innerHTML=tcAuxCardHtml()+html+tcSupplementHtml()+tcCourseControlStatusHtml()+week();
-}
-tcQueueDecorate();
+html+='</div>';q('todayList').innerHTML=tcAuxCardHtml()+html+tcSupplementHtml()+tcCourseControlStatusHtml()+week();tcQueueDecorate();
 }
 function tcAuthorLevelText(level){
 if(level===1)return 'Автор относит сюда тех, кто делает 0–1 обычное подтягивание или работает с резиной. Основная задача уровня — увеличить силу тянущих мышц комплексно. Для сохранения правильной техники предлагается использовать помощь ног и резину.';
@@ -1942,8 +1935,13 @@ const base=+r.baselinePullMax||TC_course.pullMax,cur=TC_course.pullMax,delta=cur
 const tests=(TC_course.tests||[]).filter(x=>x.runId===r.id).sort((a,b)=>(a.ts||0)-(b.ts||0)).map(x=>x.value);
 return{r,on,moved,missed,recovery,completed:m.length,rate:den?Math.round((on+moved)/den*100):null,sets,reps,base,cur,delta,pct,tests};
 }
+function tcCourseProgressState(){return{kind:'COURSE_PROGRESS',stats:tcCourseRunStats(),level:TC_course.level,mastery:tcCourseLevel().mastery}}
+function tcResolvedProgressState(){
+if(window.TurnikDomain){const x=window.TurnikDomain.progress();if(x&&x.source==='morozov')return x}
+return tcCourseProgressState();
+}
 function tcCourseStatsHtml(){
-const x=tcCourseRunStats();if(!x)return'';
+const view=tcResolvedProgressState(),x=view.stats;if(!x)return'';
 const sign=x.delta>0?'+':'',rate=x.rate==null?'—':x.rate+'%',trend=x.tests.length?x.tests.slice(-5).join(' → '):'контролей пока нет';
 return '<div class="tcInfoBlock"><h3>Текущий период · с '+fmtKeyDate(x.r.startedDate,false)+'</h3><p><b>'+x.base+' → '+x.cur+'</b> подтягиваний · '+sign+x.delta+' ('+sign+x.pct+'%)<br>Выполнение курса: <b>'+rate+'</b> · выполнено '+x.completed+'<br>Вовремя '+x.on+' · перенесено '+x.moved+' · пропущено '+x.missed+' · восстановление '+x.recovery+'<br>Объём курса: '+x.sets+' подходов · '+x.reps+' повторений<br>Контрольные максимумы: '+trend+'</p></div>';
 }
@@ -1952,6 +1950,21 @@ const tcBeforeCourseRenderHistory=window.renderHistory;
 window.renderHistory=function(){const r=tcBeforeCourseRenderHistory();const host=q('exerciseProgress');if(host){const old=document.getElementById('tcCourseHistoryWrap');if(old)old.remove();const wrap=document.createElement('div');wrap.id='tcCourseHistoryWrap';wrap.innerHTML=tcCourseHistoryHtml();host.parentNode.insertBefore(wrap,host)}return r};
 const tcBeforeCourseRender=window.render;
 window.render=function(){const r=tcBeforeCourseRender();tcDecorateCourseCatalog();if(TC_course.enabled&&q('today').classList.contains('on'))tcRenderToday();return r};
+function tcRegisterCourseDomainResolvers(){
+if(!window.TurnikDomain)return false;
+window.TurnikDomain.register('today','morozov',100,()=>TC_course.enabled?tcCourseTodayState():null);
+window.TurnikDomain.register('plan','morozov',100,()=>tcCoursePlanState());
+window.TurnikDomain.register('progress','morozov',100,()=>tcCourseProgressState());
+return true;
+}
+window.tcGetCourseViewState=function(){
+return{
+today:TC_course.enabled?tcResolvedTodayState():null,
+plan:tcResolvedPlanState(),
+progress:tcResolvedProgressState()
+};
+};
+tcRegisterCourseDomainResolvers();
 tcSanitizeSelectedEquipment();
 if(TC_course.enabled&&tcEnsureCourseRun())tcSaveCourse();
 tcInjectCourseUiStyles();
