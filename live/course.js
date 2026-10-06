@@ -1,7 +1,7 @@
-/* TURNIKCOACH_COURSE 1.0.39-ui-presenter */
+/* TURNIKCOACH_COURSE 1.0.40-unified-writes */
 (function(){
 'use strict';
-const COURSE_MODULE_VERSION='1.0.39-ui-presenter';
+const COURSE_MODULE_VERSION='1.0.40-unified-writes';
 if(window.__TC_COURSE_MODULE_VERSION===COURSE_MODULE_VERSION)return;
 window.__TC_COURSE_MODULE_VERSION=COURSE_MODULE_VERSION;
 function tcClamp(v,a,b){return Math.max(a,Math.min(b,v))}
@@ -182,6 +182,8 @@ const r=tcCurrentCourseRun();if(!r||r.endedDate)return;
 r.endedDate=dateKey();r.endPullMax=TC_course.pullMax;r.endReason=reason||'changed';TC_course.activeRunId='';
 }
 function tcSaveCourse(){try{localStorage.setItem(TC_COURSE_KEY,JSON.stringify(TC_course));return true}catch(e){console.error('course save',e);return false}}
+function tcWorkoutStore(){return window.TurnikWorkoutStore&&window.TurnikWorkoutStore.version?window.TurnikWorkoutStore:null}
+function tcRequireWorkoutStore(){const x=tcWorkoutStore();if(!x)throw new Error('TurnikWorkoutStore unavailable');return x}
 window.tcGetCourseStateSnapshot=function(){
 try{return JSON.parse(JSON.stringify(TC_course))}catch(e){return null}
 };
@@ -1146,14 +1148,23 @@ tcInstallTodayActionDelegation();
 function tcUndoLatestTodayCourseRecord(today){
 const rec=TC_course.history.find(h=>h.courseMode==='course');
 if(!rec||rec.date!==today)return false;
-const idx=TC_course.history.indexOf(rec);if(idx>=0)TC_course.history.splice(idx,1);
-TC_course.courseSeq=Math.max(0,(+TC_course.courseSeq||0)-1);
-const previous=TC_course.history.find(h=>h.courseMode==='course');
-TC_course.lastCourseDate=previous&&previous.date||'';TC_course.lastCourseTs=previous&&previous.ts||0;
-const planned=rec.plannedDate||rec.date;
-if(planned<today)tcUpsertScheduleEvent(planned,rec.scheduleOriginStatus||'missed','');else tcRemoveScheduleEvent(planned);
-if(TC_course.testAnchorDate===rec.date&&!TC_course.lastTestDate&&!previous)TC_course.testAnchorDate='';
+const planned=rec.plannedDate||rec.date,store=tcRequireWorkoutStore();
+return store.transact('course',draft=>{
+const idx=(draft.history||[]).findIndex(h=>h.ts===rec.ts&&h.date===rec.date&&h.courseMode==='course');
+if(idx<0)return false;
+draft.history.splice(idx,1);
+draft.courseSeq=Math.max(0,(+draft.courseSeq||0)-1);
+const previous=(draft.history||[]).find(h=>h.courseMode==='course');
+draft.lastCourseDate=previous&&previous.date||'';draft.lastCourseTs=previous&&previous.ts||0;
+draft.scheduleEvents=Array.isArray(draft.scheduleEvents)?draft.scheduleEvents:[];
+if(planned<today){
+let e=draft.scheduleEvents.find(x=>x.plannedDate===planned);
+if(!e){e={plannedDate:planned,status:rec.scheduleOriginStatus||'missed',actualDate:'',updatedAt:Date.now(),runId:rec.runId||''};draft.scheduleEvents.push(e)}
+else{e.status=rec.scheduleOriginStatus||'missed';e.actualDate='';e.updatedAt=Date.now()}
+}else draft.scheduleEvents=draft.scheduleEvents.filter(x=>x.plannedDate!==planned);
+if(draft.testAnchorDate===rec.date&&!draft.lastTestDate&&!previous)draft.testAnchorDate='';
 return true;
+});
 }
 window.tcOpenUndoTodayCourseConfirm=function(){
 if(!tcTodayCourseRecord())return;
@@ -1175,7 +1186,7 @@ if(!rec)return;
 if(!tcUndoLatestTodayCourseRecord(dateKey()))return;
 tcSelectedDate='';tcWeekOffset=0;
 const sheet=q('sheet');if(sheet)sheet.classList.remove('open');
-tcSaveCourse();render();
+render();
 };
 function tcTransferCardHtml(candidate){
 const c=tcCourseComplex(),items=tcBuildCourseItems(),total=items.reduce((n,x)=>n+(x.plan||[]).length,0);
@@ -1897,10 +1908,31 @@ if(!W)return;
 if(!['course','extra','supplement','auxCourse'].includes(W.mode))return tcBeforeCourseFinishWorkout(feel);
 let total=0,details=[];W.items.forEach(x=>{const actual=x.plan.map((_,i)=>x.actual[i]===undefined?null:x.actual[i]);const sum=actual.reduce((s,v)=>s+(Number.isFinite(+v)?+v:0),0);total+=sum;details.push({id:x.e.id,name:x.e.name,metric:x.e.metric,load:x.e.load||0,plan:x.plan.slice(),planLabels:(x.planLabels||x.plan.map(String)).slice(),actual,sum})});
 const rec={type:'workout',date:dateKey(),ts:Date.now(),feedback:feel,total,details,early:!!W.early,courseMode:W.mode,adapted:!!W.adapted,equipment:'bar',session:W.mode==='extra'?'доп.':'курс'};
-if(W.mode==='course'){const run=tcEnsureCourseRun();rec.runId=run&&run.id||'';rec.courseLevel=W.courseLevel;rec.courseComplex=W.courseComplex;rec.courseGoal=W.courseGoal;rec.plannedDate=W.coursePlannedDate||rec.date;rec.transferred=rec.plannedDate!==rec.date;rec.scheduleOriginStatus=W.courseScheduleOrigin||'';TC_course.history.unshift(rec);TC_course.courseSeq++;TC_course.lastCourseDate=rec.date;TC_course.lastCourseTs=rec.ts;tcUpsertScheduleEvent(rec.plannedDate,rec.transferred?'rescheduled':'completed',rec.date);TC_course.transferRestDates=(TC_course.transferRestDates||[]).filter(k=>k!==rec.date);if(!TC_course.testAnchorDate)TC_course.testAnchorDate=rec.date;tcSaveCourse()}
-else if(W.mode==='auxCourse'){const run=tcEnsureCourseRun();rec.runId=run&&run.id||'';rec.courseLevel=W.courseLevel;rec.courseComplex=2;rec.courseGoal=W.courseGoal;TC_course.history.unshift(rec);tcSaveCourse()}
-else if(W.mode==='extra'){TC_course.extraSeq++;tcSaveCourse();state.history.unshift(rec);save()}
-else {const run=tcEnsureCourseRun();rec.runId=run&&run.id||'';rec.courseLevel=TC_course.level;rec.courseComplex='дополнение';TC_course.history.unshift(rec);tcSaveCourse()}
+const store=tcRequireWorkoutStore();
+if(W.mode==='course'){
+const run=tcEnsureCourseRun();rec.runId=run&&run.id||'';rec.courseLevel=W.courseLevel;rec.courseComplex=W.courseComplex;rec.courseGoal=W.courseGoal;rec.plannedDate=W.coursePlannedDate||rec.date;rec.transferred=rec.plannedDate!==rec.date;rec.scheduleOriginStatus=W.courseScheduleOrigin||'';
+if(!store.transact('course',draft=>{
+draft.history=Array.isArray(draft.history)?draft.history:[];draft.history.unshift(rec);draft.courseSeq=(+draft.courseSeq||0)+1;draft.lastCourseDate=rec.date;draft.lastCourseTs=rec.ts;
+draft.scheduleEvents=Array.isArray(draft.scheduleEvents)?draft.scheduleEvents:[];let e=draft.scheduleEvents.find(x=>x.plannedDate===rec.plannedDate);
+const status=rec.transferred?'rescheduled':'completed';
+if(!e){draft.scheduleEvents.push({plannedDate:rec.plannedDate,status,actualDate:rec.date,updatedAt:Date.now(),runId:rec.runId||''})}else{e.status=status;e.actualDate=rec.date;e.updatedAt=Date.now();if(!e.runId)e.runId=rec.runId||''}
+draft.transferRestDates=(draft.transferRestDates||[]).filter(k=>k!==rec.date);if(!draft.testAnchorDate)draft.testAnchorDate=rec.date;return true;
+}))throw new Error('course workout transaction failed');
+}
+else if(W.mode==='auxCourse'){
+const run=tcEnsureCourseRun();rec.runId=run&&run.id||'';rec.courseLevel=W.courseLevel;rec.courseComplex=2;rec.courseGoal=W.courseGoal;
+if(!store.append('course',rec))throw new Error('aux workout transaction failed');
+}
+else if(W.mode==='extra'){
+if(!store.batch([
+{source:'course',mutate:d=>{d.extraSeq=(+d.extraSeq||0)+1;return true}},
+{source:'generic',mutate:d=>{d.history=Array.isArray(d.history)?d.history:[];d.history.unshift(rec);return true}}
+]))throw new Error('extra workout batch failed');
+}
+else {
+const run=tcEnsureCourseRun();rec.runId=run&&run.id||'';rec.courseLevel=TC_course.level;rec.courseComplex='дополнение';
+if(!store.append('course',rec))throw new Error('supplement workout transaction failed');
+}
 q('sheet').classList.remove('open');W=null;go('today');
 };
 const tcBeforeCourseInfo=window.tcOpenTrainingInfo;
