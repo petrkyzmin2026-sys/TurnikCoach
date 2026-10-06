@@ -32,7 +32,7 @@ assert(hotfix.includes("TC_DOMAIN_MODULE_URL='https://raw.githubusercontent.com/
 assert(hotfix.includes("TC_DOMAIN_MODULE_VERSION='1.0.0'")&&
  hotfix.includes("TC_UI_MODULE_VERSION='1.0.0'")&&
  hotfix.includes("TC_STORE_MODULE_VERSION='1.1.0-write-path'")&&
- hotfix.includes("TC_COURSE_MODULE_VERSION='1.0.40-unified-writes'"),
+ hotfix.includes("TC_COURSE_MODULE_VERSION='1.0.41-ia-cleanup'"),
  'OTA shell must pin exact compatible Domain, UI, Store and Course module versions');
 assert(hotfix.includes("TC_UI_MODULE_URL='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/ui.js")&&
  hotfix.includes("TC_UI_CACHE_KEY='tc_module_ui_'+TC_UI_MODULE_VERSION"),
@@ -210,9 +210,9 @@ assert(hotfix.includes("if(!window.TurnikUI.install())throw new Error('TurnikCoa
  'UI dispatcher must install before course presenters execute');
 assert(course.includes('id="tcCycleStartDate"'),
  'settings must expose a cycle start date');
-assert(hotfix.includes("const VERSION='5.16.48-unified-workout-writes'"),
- 'release hotfix version must be 5.16.48');
-assert(course.includes("const COURSE_MODULE_VERSION='1.0.40-unified-writes'"),
+assert(hotfix.includes("const VERSION='5.16.49-ia-cleanup'"),
+ 'release hotfix version must be 5.16.49');
+assert(course.includes("const COURSE_MODULE_VERSION='1.0.41-ia-cleanup'"),
  'course module version must be 1.0.40');
 assert(domain.includes("const VERSION='1.0.0'"),
  'domain module version must be 1.0.0');
@@ -220,7 +220,7 @@ assert(!course.includes('TC_EXTRA_START'),
  'temporary extra-workout trace logging must not ship');
 assert(!course.includes('window.confirm('),'course module must not depend on unsupported WebView JS dialogs');
 assert(!hotfix.includes('window.confirm('),'hotfix navigation/discard must not depend on unsupported WebView JS dialogs');
-assert(!hotfix.includes('forceHandover'),'5.16.48 must use an explicit user-visible update prompt');
+assert(!hotfix.includes('forceHandover'),'5.16.49 must use an explicit user-visible update prompt');
 assert(hotfix.includes("showRuntimeNotice('TurnikCoach обновлён до '+LABEL)"),
  'successful activation must give visible feedback');
 assert(hotfix.includes("localStorage.setItem('tc_hotfix_active_version',VERSION)"),
@@ -670,10 +670,24 @@ assert(hotfix.includes("setNav('n1','◫','План')")&&hotfix.includes("setNav
  'top-level navigation must expose Today / Plan / Progress');
 assert(hotfix.includes("viewport.setAttribute('content','width=device-width,initial-scale=1')"),
  'UX2 must remove the legacy zoom lock');
-assert(course.includes("const week=()=>'<div class=\"tcWeekSection\""),
- 'Today must treat the weekly calendar as a secondary section');
+assert(course.includes('function tcTodayWeekHtml()')&&course.includes('<details class="tcTodaySecondary"><summary>План недели</summary>'),
+ 'Today must hide the weekly calendar under a secondary disclosure instead of mixing it with the primary task');
 assert(course.includes('<details class="tcTodayPlanDetails"><summary>Посмотреть план</summary>'),
  'Today must progressively disclose the detailed set plan');
+assert(course.includes("if(tcAuxDue())return{kind:'AUX_WORKOUT'}")&&
+ course.includes("if(view.kind==='AUX_WORKOUT')"),
+ 'auxiliary Morozov work must resolve to one explicit Today state instead of competing with a recovery card');
+assert(course.includes('upcomingDates:tcUpcomingCourseDates(3)')&&
+ course.includes('ОСНОВНОЙ ПЛАН')&&course.includes('БЛИЖАЙШИЕ ТРЕНИРОВКИ'),
+ 'Plan must lead with the active course and its nearest scheduled dates');
+assert(course.includes('<details class="tcProgressDetails"><summary>Контроль и нормативы</summary>')&&
+ course.includes('<details class="tcProgressDetails"><summary>История курса</summary>'),
+ 'Progress must show KPIs first and disclose detailed course records on demand');
+assert(!course.includes('<h3>Версия</h3><p>Hotfix:')&&
+ course.includes("append('system','Оборудование',false)"),
+ 'course settings must contain training/equipment settings only, not application diagnostics');
+assert(hotfix.includes('window.tcOpenAppInfo=function()')&&hotfix.includes("info.id='tcAppInfoButton'"),
+ 'application versions and architecture diagnostics must live outside course settings');
 assert(course.includes("style=\"margin-top:14px;min-height:58px\" onclick=\"tcStartCourseWorkout()"),
  'primary Start workout action must be larger than the 48dp minimum');
 assert(course.includes('function tcGroupCourseSettings(box)'),
