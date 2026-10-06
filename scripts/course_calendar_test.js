@@ -184,8 +184,8 @@ const legacyStart=new Function('TC_course','dateKey',extract('tcRunStartDate')+'
   {courseMode:'course',date:'2026-09-20',courseLevel:4,courseGoal:'quantity'}
  ],cycleStartDate:'2026-08-01',level:4,goal:'quantity'},()=> '2026-10-05');
 assert.equal(legacyStart(),'2026-09-20','legacy migration must start at the first compatible current-level/goal workout, not the whole-course anchor');
-assert(course.includes('Выполнение курса:')&&course.includes('Контрольные максимумы:'),
- 'Progress must render the compact Morozov course statistics card');
+assert(course.includes('Выполнение курса:')&&course.includes('<details class="tcProgressDetails"><summary>Контроль и нормативы</summary>'),
+ 'Progress must render compact Morozov KPIs first and keep control details under disclosure');
 assert(course.includes("view.kind==='PREVIEW'")&&course.includes('tcPreviewCourseCard(view.date)'),
  'choosing another date must resolve PREVIEW state and show a read-only plan');
 assert(course.includes('function tcCourseTodayState()')&&course.includes('function tcResolvedTodayState()'),
