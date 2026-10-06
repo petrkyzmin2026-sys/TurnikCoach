@@ -1,8 +1,8 @@
-/* TURNIKCOACH_HOTFIX 5.16.44-core-foundation */
+/* TURNIKCOACH_HOTFIX 5.16.45-domain-state */
 (function(){
 'use strict';
-const VERSION='5.16.44-core-foundation';
-const LABEL='5.16.44';
+const VERSION='5.16.45-domain-state';
+const LABEL='5.16.45';
 const APPROVED_KEY='tc_hotfix_approved_version';
 const LEGACY_ASSET_VERSION='5.14.0-adaptive-rest';
 const stalePrompt=document.getElementById('tcUpdatePrompt');
@@ -68,7 +68,7 @@ title.style.cssText='font-size:22px;font-weight:800;margin-bottom:10px;flex:0 0 
 title.textContent='Доступно обновление TurnikCoach '+LABEL;
 const text=document.createElement('div');
 text.style.cssText='font-size:15px;line-height:1.45;color:#cfd8e3;margin-bottom:18px;min-height:0;flex:1 1 0;overflow-y:auto;overscroll-behavior:contain;padding-right:4px';
-text.innerHTML="Архитектурное обновление без изменения привычных экранов. TurnikCoach получает единое ядро состояния TurnikCore, а модуль курса Морозова отделяется от основного OTA и кэшируется отдельно. Это убирает прежний предел развития одного 256-КБ файла и готовит безопасное разделение «Сегодня / План / Прогресс». История и настройки сохраняются.<br><br>Установить обновление сейчас?";
+text.innerHTML="Продолжена переработка архитектуры без изменения привычного управления. Добавлен отдельный слой TurnikDomain: сначала приложение определяет состояние «Сегодня / План / Прогресс», и только затем экран его отображает. Курс Морозова больше не принимает основные решения прямо внутри рендера. История, расписание и настройки сохраняются.<br><br>Установить обновление сейчас?";
 const row=document.createElement('div');
 row.style.cssText='display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;flex:0 0 auto';
 const later=document.createElement('button');
@@ -107,38 +107,57 @@ card.appendChild(title);card.appendChild(text);card.appendChild(row);overlay.app
 document.body.appendChild(overlay);
 }
 const CORE_MODULE_BUNDLED="/* TURNIKCOACH_CORE 1.0.0 */\n(function(){\n'use strict';\nconst VERSION='1.0.0';\nif(window.TurnikCore&&window.TurnikCore.version===VERSION)return;\nconst listeners=new Map(),sources=new Map();\nfunction clone(v){try{return JSON.parse(JSON.stringify(v))}catch(e){return null}}\nfunction readText(key,fallback=''){try{const v=localStorage.getItem(key);return v==null?fallback:v}catch(e){return fallback}}\nfunction writeText(key,value){try{localStorage.setItem(key,String(value));return true}catch(e){return false}}\nfunction readJSON(key,fallback=null){try{const raw=localStorage.getItem(key);if(raw==null)return clone(fallback);const v=JSON.parse(raw);return v==null?clone(fallback):v}catch(e){return clone(fallback)}}\nfunction writeJSON(key,value){try{localStorage.setItem(key,JSON.stringify(value));return true}catch(e){return false}}\nfunction remove(key){try{localStorage.removeItem(key);return true}catch(e){return false}}\nfunction on(type,fn){\nif(typeof fn!=='function')return()=>{};\nif(!listeners.has(type))listeners.set(type,new Set());\nlisteners.get(type).add(fn);\nreturn()=>{const set=listeners.get(type);if(set)set.delete(fn)};\n}\nfunction emit(type,payload){\nconst set=listeners.get(type);if(!set)return;\n[...set].forEach(fn=>{try{fn(payload)}catch(e){console.error('TurnikCore event',type,e)}});\n}\nfunction registerSource(name,adapter){\nif(!name||!adapter||typeof adapter.snapshot!=='function')return false;\nsources.set(String(name),adapter);emit('source:registered',{name:String(name)});return true;\n}\nfunction source(name){return sources.get(String(name))||null}\nfunction sourceSnapshot(name){\nconst a=source(name);if(!a)return null;\ntry{return clone(a.snapshot())}catch(e){console.error('TurnikCore source snapshot',name,e);return null}\n}\nfunction normalizeWorkout(record,sourceName){\nif(!record||typeof record!=='object')return null;\nconst ts=Number(record.ts||record.timestamp||0)||0;\nconst date=String(record.date||'');\nconst mode=String(record.courseMode||record.mode||record.session||record.type||'workout');\nconst details=Array.isArray(record.details)?record.details:\n Array.isArray(record.exercises)?record.exercises:[];\nreturn{\nid:String(sourceName)+':'+String(ts||date||'0')+':'+mode,\nsource:String(sourceName),\nts,date,mode,\nsession:record.session||'',\nfeedback:record.feedback||record.feel||'',\ncourseLevel:record.courseLevel==null?null:record.courseLevel,\ncourseComplex:record.courseComplex==null?null:record.courseComplex,\ncourseGoal:record.courseGoal||'',\nplannedDate:record.plannedDate||date,\ntransferred:!!record.transferred,\nrunId:record.runId||'',\ndetails:clone(details)||[],\nraw:clone(record)\n};\n}\nfunction historyFrom(name){\nconst a=source(name);if(!a)return[];\nlet rows=[];\ntry{rows=typeof a.history==='function'?a.history():[]}catch(e){console.error('TurnikCore source history',name,e)}\nreturn(Array.isArray(rows)?rows:[]).map(r=>normalizeWorkout(r,name)).filter(Boolean);\n}\nfunction allHistory(){\nconst rows=[];for(const name of sources.keys())rows.push(...historyFrom(name));\nconst seen=new Set(),out=[];\nrows.sort((a,b)=>(b.ts||0)-(a.ts||0));\nfor(const r of rows){\nconst sig=r.source+'|'+r.ts+'|'+r.date+'|'+r.mode+'|'+(r.courseComplex??'');\nif(seen.has(sig))continue;seen.add(sig);out.push(r);\n}\nreturn out;\n}\nfunction snapshot(){\nconst out={version:VERSION,sources:{}};\nfor(const name of sources.keys())out.sources[name]=sourceSnapshot(name);\nreturn out;\n}\nfunction replaceSource(name,next){\nconst a=source(name);if(!a||typeof a.restore!=='function')return false;\ntry{const ok=a.restore(clone(next));if(ok!==false)emit('state:changed',{source:name});return ok!==false}catch(e){console.error('TurnikCore source restore',name,e);return false}\n}\nfunction transact(name,mutator){\nconst a=source(name);if(!a||typeof mutator!=='function')return false;\nconst before=sourceSnapshot(name);if(before==null)return false;\nconst next=clone(before);let result;\ntry{result=mutator(next)}catch(e){console.error('TurnikCore transaction',name,e);return false}\nif(result===false)return false;\nreturn replaceSource(name,next);\n}\nwindow.TurnikCore={\nversion:VERSION,\nstorage:{readText,writeText,readJSON,writeJSON,remove},\nevents:{on,emit},\nregisterSource,source,sourceSnapshot,snapshot,replaceSource,transact,\nhistory:{all:allHistory,from:historyFrom,normalize:normalizeWorkout},\ndebug(){return{version:VERSION,sources:[...sources.keys()],historyCount:allHistory().length}}\n};\ntry{window.dispatchEvent(new CustomEvent('turnikcore:ready',{detail:{version:VERSION}}))}catch(e){}\n})();";
-const TC_COURSE_MODULE_VERSION='1.0.37-course-stats';
-const TC_COURSE_MODULE_MARKER='TURNIKCOACH_COURSE 1.0.37-course-stats';
+const TC_DOMAIN_MODULE_VERSION='1.0.0';
+const TC_DOMAIN_MODULE_MARKER='TURNIKCOACH_DOMAIN 1.0.0';
+const TC_DOMAIN_MODULE_URL='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/domain.js?v='+encodeURIComponent(TC_DOMAIN_MODULE_VERSION);
+const TC_DOMAIN_CACHE_KEY='tc_module_domain_'+TC_DOMAIN_MODULE_VERSION;
+const TC_COURSE_MODULE_VERSION='1.0.38-domain-state';
+const TC_COURSE_MODULE_MARKER='TURNIKCOACH_COURSE 1.0.38-domain-state';
 const TC_COURSE_MODULE_URL='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/course.js?v='+encodeURIComponent(TC_COURSE_MODULE_VERSION);
 const TC_COURSE_CACHE_KEY='tc_module_course_'+TC_COURSE_MODULE_VERSION;
-let tcCoursePrimePromise=null;
-function tcValidCourseModule(js){return typeof js==='string'&&js.length>1000&&js.length<256000&&js.includes(TC_COURSE_MODULE_MARKER)}
+let tcDomainPrimePromise=null,tcCoursePrimePromise=null;
 function tcEvalModule(js,label){try{(0,eval)(js);return true}catch(e){console.error('TurnikCoach module '+label,e);return false}}
 function tcLoadCoreModule(){
 if(window.TurnikCore&&window.TurnikCore.version==='1.0.0')return true;
 return tcEvalModule(CORE_MODULE_BUNDLED,'core')&&!!window.TurnikCore;
 }
-function tcReadCourseCache(){try{return localStorage.getItem(TC_COURSE_CACHE_KEY)||''}catch(e){return''}}
-function tcWriteCourseCache(js){try{localStorage.setItem(TC_COURSE_CACHE_KEY,js);return true}catch(e){return false}}
-function tcCourseCacheReady(){return tcValidCourseModule(tcReadCourseCache())}
+function tcReadModuleCache(key){try{return localStorage.getItem(key)||''}catch(e){return''}}
+function tcWriteModuleCache(key,js){try{localStorage.setItem(key,js);return true}catch(e){return false}}
+function tcValidDomainModule(js){return typeof js==='string'&&js.length>500&&js.length<64000&&js.includes(TC_DOMAIN_MODULE_MARKER)}
+function tcValidCourseModule(js){return typeof js==='string'&&js.length>1000&&js.length<256000&&js.includes(TC_COURSE_MODULE_MARKER)}
+function tcDomainCacheReady(){return tcValidDomainModule(tcReadModuleCache(TC_DOMAIN_CACHE_KEY))}
+function tcCourseCacheReady(){return tcValidCourseModule(tcReadModuleCache(TC_COURSE_CACHE_KEY))}
+function tcLoadDomainModule(){
+if(window.TurnikDomain&&window.TurnikDomain.version===TC_DOMAIN_MODULE_VERSION)return true;
+const cached=tcReadModuleCache(TC_DOMAIN_CACHE_KEY);
+return tcValidDomainModule(cached)&&tcEvalModule(cached,'domain')&&!!window.TurnikDomain;
+}
 function tcLoadCourseModule(){
 if(window.__TC_COURSE_MODULE_VERSION===TC_COURSE_MODULE_VERSION)return true;
-const cached=tcReadCourseCache();
+const cached=tcReadModuleCache(TC_COURSE_CACHE_KEY);
 return tcValidCourseModule(cached)&&tcEvalModule(cached,'course');
 }
-function tcPrimeCourseModule(){
-if(tcCoursePrimePromise)return tcCoursePrimePromise;
-tcCoursePrimePromise=fetch(TC_COURSE_MODULE_URL,{cache:'no-store'})
+function tcPrimeModule(url,key,valid,label){
+return fetch(url,{cache:'no-store'})
 .then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.text()})
-.then(js=>{if(!tcValidCourseModule(js))throw new Error('invalid course module');if(!tcWriteCourseCache(js))throw new Error('course cache write failed');return true})
-.catch(e=>{console.error('TurnikCoach course module download',e);return false});
+.then(js=>{if(!valid(js))throw new Error('invalid '+label+' module');if(!tcWriteModuleCache(key,js))throw new Error(label+' cache write failed');return true})
+.catch(e=>{console.error('TurnikCoach '+label+' module download',e);return false});
+}
+function tcPrimeDomainModule(){
+if(!tcDomainPrimePromise)tcDomainPrimePromise=tcPrimeModule(TC_DOMAIN_MODULE_URL,TC_DOMAIN_CACHE_KEY,tcValidDomainModule,'domain');
+return tcDomainPrimePromise;
+}
+function tcPrimeCourseModule(){
+if(!tcCoursePrimePromise)tcCoursePrimePromise=tcPrimeModule(TC_COURSE_MODULE_URL,TC_COURSE_CACHE_KEY,tcValidCourseModule,'course');
 return tcCoursePrimePromise;
 }
 async function tcEnsureRequiredModules(){
 if(!tcLoadCoreModule())return false;
-if(tcCourseCacheReady())return true;
-const ready=await tcPrimeCourseModule();
-return !!ready&&tcCourseCacheReady();
+const tasks=[];
+if(!tcDomainCacheReady())tasks.push(tcPrimeDomainModule());
+if(!tcCourseCacheReady())tasks.push(tcPrimeCourseModule());
+if(tasks.length){const ready=await Promise.all(tasks);if(ready.some(x=>!x))return false}
+return tcDomainCacheReady()&&tcCourseCacheReady();
 }
 function tcRegisterCoreSources(){
 const core=window.TurnikCore;if(!core)return false;
@@ -152,10 +171,11 @@ snapshot:()=>typeof window.tcGetCourseStateSnapshot==='function'?window.tcGetCou
 history:()=>{const x=typeof window.tcGetCourseStateSnapshot==='function'?window.tcGetCourseStateSnapshot():null;return x&&Array.isArray(x.history)?x.history:[]},
 restore:next=>typeof window.tcRestoreCourseStateSnapshot==='function'?window.tcRestoreCourseStateSnapshot(next):false
 });
-window.__TC_CORE_FOUNDATION={version:core.version,courseModule:TC_COURSE_MODULE_VERSION,modular:true};
+window.__TC_CORE_FOUNDATION={version:core.version,domainModule:window.TurnikDomain&&window.TurnikDomain.version||'',courseModule:TC_COURSE_MODULE_VERSION,modular:true};
 return true;
 }
 tcLoadCoreModule();
+tcPrimeDomainModule();
 tcPrimeCourseModule();
 function tcInstallUx2InformationArchitecture(){
 if(window.__TC_UX2_IA)return;
