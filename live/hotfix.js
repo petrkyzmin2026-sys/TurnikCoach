@@ -1,8 +1,8 @@
-/* TURNIKCOACH_HOTFIX 5.16.51-ui-render-owner */
+/* TURNIKCOACH_HOTFIX 5.16.52-workout-action-owner */
 (function(){
 'use strict';
-const VERSION='5.16.51-ui-render-owner';
-const LABEL='5.16.51';
+const VERSION='5.16.52-workout-action-owner';
+const LABEL='5.16.52';
 const APPROVED_KEY='tc_hotfix_approved_version';
 const LEGACY_ASSET_VERSION='5.14.0-adaptive-rest';
 const stalePrompt=document.getElementById('tcUpdatePrompt');
@@ -68,7 +68,7 @@ title.style.cssText='font-size:22px;font-weight:800;margin-bottom:10px;flex:0 0 
 title.textContent='Доступно обновление TurnikCoach '+LABEL;
 const text=document.createElement('div');
 text.style.cssText='font-size:15px;line-height:1.45;color:#cfd8e3;margin-bottom:18px;min-height:0;flex:1 1 0;overflow-y:auto;overscroll-behavior:contain;padding-right:4px';
-text.innerHTML="Продолжена архитектурная очистка без изменения внешнего интерфейса. Теперь верхнеуровневые экраны «Сегодня / План / Прогресс» имеют одного владельца рендера — TurnikUI. Сводка прогресса и декоративная пост-обработка больше не переопределяют render() и renderHistory() отдельными слоями. Это уменьшает риск повторного рендера, гонок DOM и некликабельных элементов.<br><br>Установить обновление сейчас?";
+text.innerHTML="Продолжена архитектурная очистка без изменения привычного интерфейса. Теперь действие «Сделано / Пропустить» имеет одного владельца — TurnikWorkoutActions. Курс Морозова, виброотклик, исправление предыдущего подхода и сохранение активной тренировки больше не переопределяют setDone друг поверх друга, а подключаются к единому диспетчеру. Это снижает риск некликабельных кнопок и конфликтов между режимами.<br><br>Установить обновление сейчас?";
 const row=document.createElement('div');
 row.style.cssText='display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;flex:0 0 auto';
 const later=document.createElement('button');
@@ -119,11 +119,15 @@ const TC_STORE_MODULE_VERSION='1.2.0-undo-restore';
 const TC_STORE_MODULE_MARKER='TURNIKCOACH_WORKOUT_STORE 1.2.0-undo-restore';
 const TC_STORE_MODULE_URL='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/store.js?v='+encodeURIComponent(TC_STORE_MODULE_VERSION);
 const TC_STORE_CACHE_KEY='tc_module_store_'+TC_STORE_MODULE_VERSION;
-const TC_COURSE_MODULE_VERSION='1.0.41-control-transactions';
-const TC_COURSE_MODULE_MARKER='TURNIKCOACH_COURSE 1.0.41-control-transactions';
+const TC_ACTIONS_MODULE_VERSION='1.0.0';
+const TC_ACTIONS_MODULE_MARKER='TURNIKCOACH_WORKOUT_ACTIONS 1.0.0';
+const TC_ACTIONS_MODULE_URL='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/actions.js?v='+encodeURIComponent(TC_ACTIONS_MODULE_VERSION);
+const TC_ACTIONS_CACHE_KEY='tc_module_actions_'+TC_ACTIONS_MODULE_VERSION;
+const TC_COURSE_MODULE_VERSION='1.0.42-action-owner';
+const TC_COURSE_MODULE_MARKER='TURNIKCOACH_COURSE 1.0.42-action-owner';
 const TC_COURSE_MODULE_URL='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/course.js?v='+encodeURIComponent(TC_COURSE_MODULE_VERSION);
 const TC_COURSE_CACHE_KEY='tc_module_course_'+TC_COURSE_MODULE_VERSION;
-let tcDomainPrimePromise=null,tcUiPrimePromise=null,tcStorePrimePromise=null,tcCoursePrimePromise=null;
+let tcDomainPrimePromise=null,tcUiPrimePromise=null,tcStorePrimePromise=null,tcActionsPrimePromise=null,tcCoursePrimePromise=null;
 function tcEvalModule(js,label){try{(0,eval)(js);return true}catch(e){console.error('TurnikCoach module '+label,e);return false}}
 function tcLoadCoreModule(){
 if(window.TurnikCore&&window.TurnikCore.version==='1.0.0')return true;
@@ -134,10 +138,12 @@ function tcWriteModuleCache(key,js){try{localStorage.setItem(key,js);return true
 function tcValidDomainModule(js){return typeof js==='string'&&js.length>500&&js.length<64000&&js.includes(TC_DOMAIN_MODULE_MARKER)}
 function tcValidUiModule(js){return typeof js==='string'&&js.length>500&&js.length<64000&&js.includes(TC_UI_MODULE_MARKER)}
 function tcValidStoreModule(js){return typeof js==='string'&&js.length>500&&js.length<64000&&js.includes(TC_STORE_MODULE_MARKER)}
+function tcValidActionsModule(js){return typeof js==='string'&&js.length>500&&js.length<64000&&js.includes(TC_ACTIONS_MODULE_MARKER)}
 function tcValidCourseModule(js){return typeof js==='string'&&js.length>1000&&js.length<256000&&js.includes(TC_COURSE_MODULE_MARKER)}
 function tcDomainCacheReady(){return tcValidDomainModule(tcReadModuleCache(TC_DOMAIN_CACHE_KEY))}
 function tcUiCacheReady(){return tcValidUiModule(tcReadModuleCache(TC_UI_CACHE_KEY))}
 function tcStoreCacheReady(){return tcValidStoreModule(tcReadModuleCache(TC_STORE_CACHE_KEY))}
+function tcActionsCacheReady(){return tcValidActionsModule(tcReadModuleCache(TC_ACTIONS_CACHE_KEY))}
 function tcCourseCacheReady(){return tcValidCourseModule(tcReadModuleCache(TC_COURSE_CACHE_KEY))}
 function tcLoadDomainModule(){
 if(window.TurnikDomain&&window.TurnikDomain.version===TC_DOMAIN_MODULE_VERSION)return true;
@@ -153,6 +159,11 @@ function tcLoadStoreModule(){
 if(window.TurnikWorkoutStore&&window.TurnikWorkoutStore.version===TC_STORE_MODULE_VERSION)return true;
 const cached=tcReadModuleCache(TC_STORE_CACHE_KEY);
 return tcValidStoreModule(cached)&&tcEvalModule(cached,'store')&&!!window.TurnikWorkoutStore;
+}
+function tcLoadActionsModule(){
+if(window.TurnikWorkoutActions&&window.TurnikWorkoutActions.version===TC_ACTIONS_MODULE_VERSION)return true;
+const cached=tcReadModuleCache(TC_ACTIONS_CACHE_KEY);
+return tcValidActionsModule(cached)&&tcEvalModule(cached,'actions')&&!!window.TurnikWorkoutActions;
 }
 function tcLoadCourseModule(){
 if(window.__TC_COURSE_MODULE_VERSION===TC_COURSE_MODULE_VERSION)return true;
@@ -177,6 +188,10 @@ function tcPrimeStoreModule(){
 if(!tcStorePrimePromise)tcStorePrimePromise=tcPrimeModule(TC_STORE_MODULE_URL,TC_STORE_CACHE_KEY,tcValidStoreModule,'store');
 return tcStorePrimePromise;
 }
+function tcPrimeActionsModule(){
+if(!tcActionsPrimePromise)tcActionsPrimePromise=tcPrimeModule(TC_ACTIONS_MODULE_URL,TC_ACTIONS_CACHE_KEY,tcValidActionsModule,'actions');
+return tcActionsPrimePromise;
+}
 function tcPrimeCourseModule(){
 if(!tcCoursePrimePromise)tcCoursePrimePromise=tcPrimeModule(TC_COURSE_MODULE_URL,TC_COURSE_CACHE_KEY,tcValidCourseModule,'course');
 return tcCoursePrimePromise;
@@ -187,9 +202,10 @@ const tasks=[];
 if(!tcDomainCacheReady())tasks.push(tcPrimeDomainModule());
 if(!tcUiCacheReady())tasks.push(tcPrimeUiModule());
 if(!tcStoreCacheReady())tasks.push(tcPrimeStoreModule());
+if(!tcActionsCacheReady())tasks.push(tcPrimeActionsModule());
 if(!tcCourseCacheReady())tasks.push(tcPrimeCourseModule());
 if(tasks.length){const ready=await Promise.all(tasks);if(ready.some(x=>!x))return false}
-return tcDomainCacheReady()&&tcUiCacheReady()&&tcStoreCacheReady()&&tcCourseCacheReady();
+return tcDomainCacheReady()&&tcUiCacheReady()&&tcStoreCacheReady()&&tcActionsCacheReady()&&tcCourseCacheReady();
 }
 function tcRegisterCoreSources(){
 const core=window.TurnikCore;if(!core)return false;
@@ -203,13 +219,14 @@ snapshot:()=>typeof window.tcGetCourseStateSnapshot==='function'?window.tcGetCou
 history:()=>{const x=typeof window.tcGetCourseStateSnapshot==='function'?window.tcGetCourseStateSnapshot():null;return x&&Array.isArray(x.history)?x.history:[]},
 restore:next=>typeof window.tcRestoreCourseStateSnapshot==='function'?window.tcRestoreCourseStateSnapshot(next):false
 });
-window.__TC_CORE_FOUNDATION={version:core.version,domainModule:window.TurnikDomain&&window.TurnikDomain.version||'',uiModule:window.TurnikUI&&window.TurnikUI.version||'',storeModule:window.TurnikWorkoutStore&&window.TurnikWorkoutStore.version||'',courseModule:TC_COURSE_MODULE_VERSION,modular:true};
+window.__TC_CORE_FOUNDATION={version:core.version,domainModule:window.TurnikDomain&&window.TurnikDomain.version||'',uiModule:window.TurnikUI&&window.TurnikUI.version||'',storeModule:window.TurnikWorkoutStore&&window.TurnikWorkoutStore.version||'',actionsModule:window.TurnikWorkoutActions&&window.TurnikWorkoutActions.version||'',courseModule:TC_COURSE_MODULE_VERSION,modular:true};
 return true;
 }
 tcLoadCoreModule();
 tcPrimeDomainModule();
 tcPrimeUiModule();
 tcPrimeStoreModule();
+tcPrimeActionsModule();
 tcPrimeCourseModule();
 function tcInstallUx2InformationArchitecture(){
 if(window.__TC_UX2_IA)return;
