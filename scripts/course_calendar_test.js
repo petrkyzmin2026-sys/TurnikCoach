@@ -208,10 +208,22 @@ assert(ui.includes('function renderArea(area,context)')&&ui.includes('function r
 assert(hotfix.includes("if(!window.TurnikUI.install())throw new Error('TurnikCoach UI dispatcher install failed')")&&
  hotfix.indexOf("if(!window.TurnikUI.install())")<hotfix.indexOf("if(!tcLoadCourseModule())"),
  'UI dispatcher must install before course presenters execute');
+assert(ui.includes('window.render=function()'),
+ 'TurnikUI must remain the single owner of the top-level render wrapper');
+assert(!hotfix.includes('const oldRender=window.render')&&!hotfix.includes('window.render=function()')&&
+ !hotfix.includes('const base=window.renderHistory')&&!hotfix.includes('window.renderHistory=function()'),
+ 'hotfix must not add independent top-level render or renderHistory wrappers');
+assert(hotfix.includes("TurnikUI.register('today','*',10000")&&
+ hotfix.includes("TurnikUI.register('plan','*',10000")&&
+ hotfix.includes("TurnikUI.register('progress','*',10000"),
+ 'Today / Plan / Progress post-processing must flow through TurnikUI presenter dispatch');
+assert(hotfix.includes("setTimeout(()=>{renderSummary();tcQueueDecorate()},0)")&&
+ hotfix.includes("setTimeout(tcQueueDecorate,0)"),
+ 'post-render work must be deferred until the owning presenter has finished');
 assert(course.includes('id="tcCycleStartDate"'),
  'settings must expose a cycle start date');
-assert(hotfix.includes("const VERSION='5.16.50-control-transactions'"),
- 'release hotfix version must be 5.16.50');
+assert(hotfix.includes("const VERSION='5.16.51-ui-render-owner'"),
+ 'release hotfix version must be 5.16.51');
 assert(course.includes("const COURSE_MODULE_VERSION='1.0.41-control-transactions'"),
  'course module version must be 1.0.41');
 assert(domain.includes("const VERSION='1.0.0'"),
@@ -220,7 +232,7 @@ assert(!course.includes('TC_EXTRA_START'),
  'temporary extra-workout trace logging must not ship');
 assert(!course.includes('window.confirm('),'course module must not depend on unsupported WebView JS dialogs');
 assert(!hotfix.includes('window.confirm('),'hotfix navigation/discard must not depend on unsupported WebView JS dialogs');
-assert(!hotfix.includes('forceHandover'),'5.16.50 must use an explicit user-visible update prompt');
+assert(!hotfix.includes('forceHandover'),'5.16.51 must use an explicit user-visible update prompt');
 assert(hotfix.includes("showRuntimeNotice('TurnikCoach обновлён до '+LABEL)"),
  'successful activation must give visible feedback');
 assert(hotfix.includes("localStorage.setItem('tc_hotfix_active_version',VERSION)"),
