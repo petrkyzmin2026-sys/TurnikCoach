@@ -37,6 +37,7 @@ on:
       - refactor/unified-workout-writes-5.16.48
       - refactor/transactional-completion-undo-5.16.49
       - refactor/transactional-course-controls-5.16.50
+      - refactor/ui-render-owner-5.16.51
   pull_request:
   workflow_dispatch:
 
@@ -67,9 +68,9 @@ jobs:
           done
           base64 --decode /tmp/v513.b64 | gzip -dc > app/src/main/assets/index.html
           grep -q 'v5.13 — modern Android package' app/src/main/assets/index.html
-      - name: Reproduce packaged 5.14 + cached 5.16.49 + tested 5.16.50
+      - name: Reproduce packaged 5.14 + cached 5.16.50 + tested 5.16.51
         run: |
-          PREV_COMMIT="764a77a5c36148aad444ce71824c5e5598039bb0"
+          PREV_COMMIT="ed8cee636d76461c4a2c7800d32a6373a7089aab"
           grep -q 'TURNIKCOACH_HOTFIX 5.14.0-adaptive-rest' app/src/main/assets/hotfix.js
           curl -fsSL "https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/${PREV_COMMIT}/live/hotfix.js" > app/src/main/assets/hotfix-prev.js
           curl -fsSL "https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/${PREV_COMMIT}/live/course.js" > app/src/main/assets/course-prev.js
@@ -84,17 +85,17 @@ jobs:
           s=s.replace(needle,"function tcAudio(){\nif(window.__TC_DISABLE_AUDIO_FOR_SMOKE)return null;\ntry{",1)
           p.write_text(s)
           PY
-          grep -q 'TURNIKCOACH_HOTFIX 5.16.49-transactional-undo' app/src/main/assets/hotfix-prev.js
-          grep -q 'TURNIKCOACH_HOTFIX 5.16.50-control-transactions' app/src/main/assets/hotfix-next.js
+          grep -q 'TURNIKCOACH_HOTFIX 5.16.50-control-transactions' app/src/main/assets/hotfix-prev.js
+          grep -q 'TURNIKCOACH_HOTFIX 5.16.51-ui-render-owner' app/src/main/assets/hotfix-next.js
           grep -q 'TURNIKCOACH_CORE 1.0.0' app/src/main/assets/hotfix-next.js
           grep -q 'TURNIKCOACH_DOMAIN 1.0.0' live/domain.js
           grep -q 'TURNIKCOACH_UI 1.0.0' live/ui.js
           grep -q 'TURNIKCOACH_WORKOUT_STORE 1.2.0-undo-restore' live/store.js
           grep -q 'TURNIKCOACH_WORKOUT_STORE 1.2.0-undo-restore' app/src/main/assets/store-prev.js
           grep -q 'TURNIKCOACH_COURSE 1.0.41-control-transactions' live/course.js
-          grep -q 'TURNIKCOACH_COURSE 1.0.40-unified-writes' app/src/main/assets/course-prev.js
+          grep -q 'TURNIKCOACH_COURSE 1.0.41-control-transactions' app/src/main/assets/course-prev.js
           ! grep -q 'COURSE_MODULE_BUNDLED=' app/src/main/assets/hotfix-next.js
-      - name: Seed installed 5.16.49 approval, old/new module caches and completed main-course state
+      - name: Seed installed 5.16.50 approval and current module caches with completed main-course state
         run: |
           python3 - <<'PY'
           from pathlib import Path
@@ -112,15 +113,15 @@ jobs:
           seed=r'''<script>
           (function(){
             window.__TC_DISABLE_AUDIO_FOR_SMOKE=true;
-            localStorage.setItem('tc_module_course_1.0.40-unified-writes',__PREV_COURSE_CACHE__);
+            localStorage.setItem('tc_module_course_1.0.41-control-transactions',__PREV_COURSE_CACHE__);
             localStorage.setItem('tc_module_domain_1.0.0',__DOMAIN_CACHE__);
             localStorage.setItem('tc_module_ui_1.0.0',__UI_CACHE__);
-            localStorage.setItem('tc_module_store_1.1.0-write-path',__PREV_STORE_CACHE__);
+            localStorage.setItem('tc_module_store_1.2.0-undo-restore',__PREV_STORE_CACHE__);
             localStorage.setItem('tc_module_store_1.2.0-undo-restore',__NEXT_STORE_CACHE__);
             localStorage.setItem('tc_module_course_1.0.41-control-transactions',__NEXT_COURSE_CACHE__);
             if(localStorage.getItem('__tcForcedHandoverSmokeSeeded')) return;
             var d=new Date(),k=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
-            localStorage.setItem('tc_hotfix_approved_version','5.16.49-transactional-undo');
+            localStorage.setItem('tc_hotfix_approved_version','5.16.50-control-transactions');
             localStorage.setItem('tc_morozov_course_v1',JSON.stringify({
               enabled:true,level:4,goal:'quantity',pullMax:20,courseSeq:1,extraSeq:0,
               lastCourseDate:k,lastCourseTs:Date.now(),weeklySessions:3,cycleStartDate:k,
@@ -321,10 +322,10 @@ jobs:
       - name: Build isolated DEBUG preview APK
         run: |
           gradle --no-daemon :app:assembleDebug
-          cp app/build/outputs/apk/debug/app-debug.apk TurnikCoach-Control-Transactions-Preview-v5.16.50.apk
+          cp app/build/outputs/apk/debug/app-debug.apk TurnikCoach-UI-Render-Owner-Preview-v5.16.51.apk
       - name: Enable KVM
         run: sudo chmod 666 /dev/kvm || true
-      - name: Verify 5.16.50 Control Transactions accessibility baseline in real Android WebView
+      - name: Verify 5.16.51 UI Render Owner accessibility baseline in real Android WebView
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 35
@@ -333,16 +334,16 @@ jobs:
           disable-animations: true
           emulator-options: -no-snapshot-save -no-window -gpu swiftshader -noaudio -no-boot-anim
           script: |
-            adb install -r TurnikCoach-Control-Transactions-Preview-v5.16.50.apk
+            adb install -r TurnikCoach-UI-Render-Owner-Preview-v5.16.51.apk
             TC_TEST_PKG=ru.turnikcoach.v52tr.calendarpreview python3 scripts/course_undo_ui_smoke.py
       - name: Upload UX2 accessibility baseline screenshots
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: TurnikCoach-5.16.50-control-accessibility-baseline-screenshots
+          name: TurnikCoach-5.16.51-ui-render-accessibility-baseline-screenshots
           path: undo-ui-test-output
           if-no-files-found: warn
-      - name: Verify 5.16.50 Control Transactions at 200% system font scale
+      - name: Verify 5.16.51 UI Render Owner at 200% system font scale
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 35
@@ -353,17 +354,17 @@ jobs:
           script: |
             adb shell settings put system font_scale 2.0
             test "$(adb shell settings get system font_scale | tr -d '\r')" = "2.0"
-            adb install -r TurnikCoach-Control-Transactions-Preview-v5.16.50.apk
+            adb install -r TurnikCoach-UI-Render-Owner-Preview-v5.16.51.apk
             TC_TEST_PKG=ru.turnikcoach.v52tr.calendarpreview TC_OUT_DIR="$GITHUB_WORKSPACE/undo-ui-font200-output" TC_FONT_SCALE=2.0 python3 scripts/course_undo_ui_smoke.py
       - name: Upload UX2 200% font-scale screenshots
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: TurnikCoach-5.16.50-control-font200-screenshots
+          name: TurnikCoach-5.16.51-ui-render-font200-screenshots
           path: undo-ui-font200-output
           if-no-files-found: warn
       - uses: actions/upload-artifact@v4
         with:
-          name: TurnikCoach-5.16.50-control-accessibility-isolated-preview
-          path: TurnikCoach-Control-Transactions-Preview-v5.16.50.apk
+          name: TurnikCoach-5.16.51-ui-render-accessibility-isolated-preview
+          path: TurnikCoach-UI-Render-Owner-Preview-v5.16.51.apk
           if-no-files-found: error
