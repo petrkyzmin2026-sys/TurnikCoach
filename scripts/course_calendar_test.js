@@ -210,8 +210,8 @@ assert(hotfix.includes("if(!window.TurnikUI.install())throw new Error('TurnikCoa
  'UI dispatcher must install before course presenters execute');
 assert(course.includes('id="tcCycleStartDate"'),
  'settings must expose a cycle start date');
-assert(hotfix.includes("const VERSION='5.16.49-transactional-undo'"),
- 'release hotfix version must be 5.16.49');
+assert(hotfix.includes("const VERSION='5.16.50-observer-decorators'"),
+ 'release hotfix version must be 5.16.50');
 assert(course.includes("const COURSE_MODULE_VERSION='1.0.40-unified-writes'"),
  'course module version must be 1.0.40');
 assert(domain.includes("const VERSION='1.0.0'"),
@@ -220,7 +220,13 @@ assert(!course.includes('TC_EXTRA_START'),
  'temporary extra-workout trace logging must not ship');
 assert(!course.includes('window.confirm('),'course module must not depend on unsupported WebView JS dialogs');
 assert(!hotfix.includes('window.confirm('),'hotfix navigation/discard must not depend on unsupported WebView JS dialogs');
-assert(!hotfix.includes('forceHandover'),'5.16.49 must use an explicit user-visible update prompt');
+assert(!hotfix.includes('forceHandover'),'5.16.50 must use an explicit user-visible update prompt');
+assert(!hotfix.includes('const oldGo=window.go')&&!hotfix.includes('const oldRender=window.render')&&!hotfix.includes('const oldRenderWork=window.renderWork'),
+ 'decorative controls must not add new go/render/renderWork wrapper layers');
+assert(hotfix.includes("observer.observe(app,{childList:true,subtree:true,attributes:true,attributeFilter:['class']})"),
+ 'correction controls must react to actual screen class changes through MutationObserver');
+assert(hotfix.includes("mo.observe(tcApp,{childList:true,subtree:true,attributes:true,attributeFilter:['class']})"),
+ 'product decorators must react to actual screen class changes through MutationObserver');
 assert(hotfix.includes("showRuntimeNotice('TurnikCoach обновлён до '+LABEL)"),
  'successful activation must give visible feedback');
 assert(hotfix.includes("localStorage.setItem('tc_hotfix_active_version',VERSION)"),
