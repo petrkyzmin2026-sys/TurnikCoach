@@ -956,7 +956,7 @@ const completionHarnessFn=new Function('intervene',
     notices
   };
   `
-)();
+);
 
 const completionHarness=completionHarnessFn(false);
 const conflictHarness=completionHarnessFn(true);
