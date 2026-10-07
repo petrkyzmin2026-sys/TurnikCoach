@@ -394,7 +394,7 @@ assert core_probe["today"]=="COURSE_DONE" and core_probe["plan"]=="COURSE_ACTIVE
 assert core_probe["uiCache"]>500, "UI presenter must survive in the offline module cache"
 assert core_probe["active"]=="5.16.53-workout-finish-owner", "5.16.53 must be the active OTA shell"
 assert core_probe["store"] and core_probe["store"]["writePath"] is True, "transactional WorkoutStore write path must remain active"
-assert core_probe["foundation"] and core_probe["foundation"].get("actionsModule")=="1.0.0" and core_probe["foundation"].get("courseModule")=="1.0.42-action-owner", "5.16.53 must load the dual action/finish owner and matching course module"
+assert core_probe["foundation"] and core_probe["foundation"].get("actionsModule")=="1.1.0" and core_probe["foundation"].get("courseModule")=="1.0.43-finish-owner", "5.16.53 must load the dual action/finish owner and matching course module"
 screenshot("02d-unified-workout-store")
 tap_clickable_text("Сегодня",timeout=20)
 
