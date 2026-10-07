@@ -830,7 +830,7 @@ const order=[];
 actionSandbox.TurnikWorkoutActions.registerBefore('before',10,ctx=>order.push('before:'+ctx.skip));
 actionSandbox.TurnikWorkoutActions.registerHandler('special',100,ctx=>ctx.skip?{handled:true,result:'handled'}:null);
 actionSandbox.TurnikWorkoutActions.registerAfter('after',10,ctx=>order.push('after:'+(ctx.handler||'base')));
-assert(actionSandbox.TurnikWorkoutActions.install());
+assert(actionSandbox.TurnikWorkoutActions.installSetDone());
 assert.equal(actionSandbox.setDone(false),'base');
 assert.equal(actionSandbox.baseCalls,1);
 assert.equal(actionSandbox.setDone(true),'handled');
