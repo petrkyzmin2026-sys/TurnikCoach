@@ -1,8 +1,8 @@
-/* TURNIKCOACH_HOTFIX 5.16.48-unified-workout-writes */
+/* TURNIKCOACH_HOTFIX 5.16.49-transactional-undo */
 (function(){
 'use strict';
-const VERSION='5.16.48-unified-workout-writes';
-const LABEL='5.16.48';
+const VERSION='5.16.49-transactional-undo';
+const LABEL='5.16.49';
 const APPROVED_KEY='tc_hotfix_approved_version';
 const LEGACY_ASSET_VERSION='5.14.0-adaptive-rest';
 const stalePrompt=document.getElementById('tcUpdatePrompt');
@@ -68,7 +68,7 @@ title.style.cssText='font-size:22px;font-weight:800;margin-bottom:10px;flex:0 0 
 title.textContent='Доступно обновление TurnikCoach '+LABEL;
 const text=document.createElement('div');
 text.style.cssText='font-size:15px;line-height:1.45;color:#cfd8e3;margin-bottom:18px;min-height:0;flex:1 1 0;overflow-y:auto;overscroll-behavior:contain;padding-right:4px';
-text.innerHTML="Продолжена архитектурная переработка без изменения экранов. WorkoutStore теперь отвечает не только за чтение, но и за запись тренировок курса: основная, вспомогательная, авторское дополнение и дополнительная тренировка сохраняются через единый транзакционный слой. Операции между двумя хранилищами выполняются с откатом при ошибке. История и существующие данные не переносятся и не удаляются.<br><br>Установить обновление сейчас?";
+text.innerHTML="Усилена защита истории тренировок. Отмена только что сохранённой тренировки теперь восстанавливает оба источника данных одной транзакцией через WorkoutStore. Если после сохранения появились новые записи, приложение не позволит случайно удалить их откатом. Экран и расписание курса не меняются.<br><br>Установить обновление сейчас?";
 const row=document.createElement('div');
 row.style.cssText='display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;flex:0 0 auto';
 const later=document.createElement('button');
@@ -115,8 +115,8 @@ const TC_UI_MODULE_VERSION='1.0.0';
 const TC_UI_MODULE_MARKER='TURNIKCOACH_UI 1.0.0';
 const TC_UI_MODULE_URL='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/ui.js?v='+encodeURIComponent(TC_UI_MODULE_VERSION);
 const TC_UI_CACHE_KEY='tc_module_ui_'+TC_UI_MODULE_VERSION;
-const TC_STORE_MODULE_VERSION='1.1.0-write-path';
-const TC_STORE_MODULE_MARKER='TURNIKCOACH_WORKOUT_STORE 1.1.0-write-path';
+const TC_STORE_MODULE_VERSION='1.2.0-undo-restore';
+const TC_STORE_MODULE_MARKER='TURNIKCOACH_WORKOUT_STORE 1.2.0-undo-restore';
 const TC_STORE_MODULE_URL='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/store.js?v='+encodeURIComponent(TC_STORE_MODULE_VERSION);
 const TC_STORE_CACHE_KEY='tc_module_store_'+TC_STORE_MODULE_VERSION;
 const TC_COURSE_MODULE_VERSION='1.0.40-unified-writes';
@@ -365,13 +365,36 @@ return tx;
 function tcClearCompletionUndo(){
 try{localStorage.removeItem(TC_COMPLETION_UNDO_KEY)}catch(e){}
 }
+function tcCompletionHistoryFingerprint(snapshot){
+const a=snapshot&&Array.isArray(snapshot.history)?snapshot.history:[];
+const json=JSON.stringify(a);let h=2166136261;
+for(let i=0;i<json.length;i++){h^=json.charCodeAt(i);h=Math.imul(h,16777619)}
+return a.length+':'+(h>>>0).toString(16);
+}
+function tcCompletionHistorySignature(){
+const store=window.TurnikWorkoutStore;
+if(!store||typeof store.sourceSnapshot!=='function')return null;
+const generic=store.sourceSnapshot('generic'),course=store.sourceSnapshot('course');
+if(!generic||!course)return null;
+return{generic:tcCompletionHistoryFingerprint(generic),course:tcCompletionHistoryFingerprint(course)};
+}
 window.tcUndoLastCompletion=function(){
 const tx=tcReadCompletionUndo();
 if(!tx){showRuntimeNotice('Срок быстрой отмены истёк.','danger');return false}
 try{
-if(tx.state)state=tx.state;
-if(typeof save==='function')save();
-if(tx.course&&typeof window.tcRestoreCourseStateSnapshot==='function')window.tcRestoreCourseStateSnapshot(tx.course);
+const store=window.TurnikWorkoutStore;
+if(!store||typeof store.restoreSnapshots!=='function'||!tx.state||!tx.course){
+showRuntimeNotice('Хранилище тренировки недоступно. История не изменена.','danger');return false;
+}
+if(tx.after){
+const now=tcCompletionHistorySignature();
+if(!now||now.generic!==tx.after.generic||now.course!==tx.after.course){
+showRuntimeNotice('После сохранения история изменилась. Отмена недоступна, новые записи сохранены.','danger');return false;
+}
+}
+if(!store.restoreSnapshots({generic:tx.state,course:tx.course})){
+showRuntimeNotice('Не удалось восстановить историю. Запись отмены сохранена.','danger');return false;
+}
 if(typeof window.tcClearActiveWorkoutSnapshot==='function')window.tcClearActiveWorkoutSnapshot();
 tcClearCompletionUndo();
 const sheet=document.getElementById('sheet');if(sheet)sheet.classList.remove('open');
@@ -393,15 +416,17 @@ if(typeof baseFinish!=='function')return;
 window.finishWorkout=function(feel){
 if(typeof W==='undefined'||!W)return baseFinish.apply(this,arguments);
 const workoutBefore=tcJsonClone(W);
+const store=window.TurnikWorkoutStore;
 const tx={
 savedAt:Date.now(),
-state:typeof state!=='undefined'?tcJsonClone(state):null,
-course:typeof window.tcGetCourseStateSnapshot==='function'?window.tcGetCourseStateSnapshot():null
+state:store&&store.sourceSnapshot?store.sourceSnapshot('generic'):null,
+course:store&&store.sourceSnapshot?store.sourceSnapshot('course'):null
 };
 const summary=tcWorkoutSummary(workoutBefore,feel);
 const result=baseFinish.apply(this,arguments);
 if(typeof W==='undefined'||!W){
-try{localStorage.setItem(TC_COMPLETION_UNDO_KEY,JSON.stringify(tx))}catch(e){}
+tx.after=tcCompletionHistorySignature();
+if(tx.state&&tx.course&&tx.after)try{localStorage.setItem(TC_COMPLETION_UNDO_KEY,JSON.stringify(tx))}catch(e){}
 if(typeof window.tcClearActiveWorkoutSnapshot==='function')window.tcClearActiveWorkoutSnapshot();
 setTimeout(()=>tcShowCompletionSummary(summary),0);
 }
