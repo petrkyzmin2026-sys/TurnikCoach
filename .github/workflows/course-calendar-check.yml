@@ -90,7 +90,7 @@ jobs:
           grep -q 'TURNIKCOACH_DOMAIN 1.0.0' live/domain.js
           grep -q 'TURNIKCOACH_UI 1.0.0' live/ui.js
           grep -q 'TURNIKCOACH_WORKOUT_STORE 1.2.0-undo-restore' live/store.js
-          grep -q 'TURNIKCOACH_WORKOUT_STORE 1.1.0-write-path' app/src/main/assets/store-prev.js
+          grep -q 'TURNIKCOACH_WORKOUT_STORE 1.2.0-undo-restore' app/src/main/assets/store-prev.js
           grep -q 'TURNIKCOACH_COURSE 1.0.40-unified-writes' live/course.js
           grep -q 'TURNIKCOACH_COURSE 1.0.40-unified-writes' app/src/main/assets/course-prev.js
           ! grep -q 'COURSE_MODULE_BUNDLED=' app/src/main/assets/hotfix-next.js
