@@ -32,7 +32,7 @@ assert(hotfix.includes("TC_DOMAIN_MODULE_URL='https://raw.githubusercontent.com/
 assert(hotfix.includes("TC_DOMAIN_MODULE_VERSION='1.0.0'")&&
  hotfix.includes("TC_UI_MODULE_VERSION='1.0.0'")&&
  hotfix.includes("TC_STORE_MODULE_VERSION='1.2.0-undo-restore'")&&
- hotfix.includes("TC_COURSE_MODULE_VERSION='1.0.40-unified-writes'"),
+ hotfix.includes("TC_COURSE_MODULE_VERSION='1.0.41-control-transactions'"),
  'OTA shell must pin exact compatible Domain, UI, Store and Course module versions');
 assert(hotfix.includes("TC_UI_MODULE_URL='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/ui.js")&&
  hotfix.includes("TC_UI_CACHE_KEY='tc_module_ui_'+TC_UI_MODULE_VERSION"),
@@ -210,17 +210,17 @@ assert(hotfix.includes("if(!window.TurnikUI.install())throw new Error('TurnikCoa
  'UI dispatcher must install before course presenters execute');
 assert(course.includes('id="tcCycleStartDate"'),
  'settings must expose a cycle start date');
-assert(hotfix.includes("const VERSION='5.16.49-transactional-undo'"),
- 'release hotfix version must be 5.16.49');
-assert(course.includes("const COURSE_MODULE_VERSION='1.0.40-unified-writes'"),
- 'course module version must be 1.0.40');
+assert(hotfix.includes("const VERSION='5.16.50-control-transactions'"),
+ 'release hotfix version must be 5.16.50');
+assert(course.includes("const COURSE_MODULE_VERSION='1.0.41-control-transactions'"),
+ 'course module version must be 1.0.41');
 assert(domain.includes("const VERSION='1.0.0'"),
  'domain module version must be 1.0.0');
 assert(!course.includes('TC_EXTRA_START'),
  'temporary extra-workout trace logging must not ship');
 assert(!course.includes('window.confirm('),'course module must not depend on unsupported WebView JS dialogs');
 assert(!hotfix.includes('window.confirm('),'hotfix navigation/discard must not depend on unsupported WebView JS dialogs');
-assert(!hotfix.includes('forceHandover'),'5.16.49 must use an explicit user-visible update prompt');
+assert(!hotfix.includes('forceHandover'),'5.16.50 must use an explicit user-visible update prompt');
 assert(hotfix.includes("showRuntimeNotice('TurnikCoach обновлён до '+LABEL)"),
  'successful activation must give visible feedback');
 assert(hotfix.includes("localStorage.setItem('tc_hotfix_active_version',VERSION)"),
@@ -476,6 +476,7 @@ const actionBodies={
   startTest:windowFunctionBody('tcStartCourseTest'),
   confirmTest:windowFunctionBody('tcConfirmCourseTest'),
   deferTest:windowFunctionBody('tcDeferCourseTest'),
+  transferRest:windowFunctionBody('tcChooseTransferRest'),
   deferMastery:windowFunctionBody('tcDeferMasteryTest'),
   openMastery:windowFunctionBody('tcOpenMasteryTest'),
   saveMastery:windowFunctionBody('tcSaveMasteryTest'),
@@ -503,6 +504,24 @@ assert(actionBodies.openMastery.includes("tcActionMessage('Контроль не
  'mastery open must explain unsupported level');
 assert(actionBodies.saveMastery.includes("tcActionMessage('Результат не сохранён'"),
  'mastery save must explain invalid/stale form state');
+assert(actionBodies.confirmTest.includes("store.batch([")&&
+ !actionBodies.confirmTest.includes("TC_course.tests.unshift")&&
+ !actionBodies.confirmTest.includes("tcSaveCourse()")&&!actionBodies.confirmTest.includes("save()"),
+ 'control maximum must atomically update course + generic maximum through WorkoutStore');
+assert(actionBodies.saveMastery.includes("store.batch(steps)")&&
+ !actionBodies.saveMastery.includes("TC_course.masteryTests.unshift")&&
+ !actionBodies.saveMastery.includes("tcSaveCourse()")&&!actionBodies.saveMastery.includes("save()"),
+ 'mastery result must use transactional course/generic writes');
+assert(actionBodies.deferTest.includes("tcRequireWorkoutStore().transact('course'")&&
+ !actionBodies.deferTest.includes("tcSaveCourse()"),
+ 'control deferral must write through WorkoutStore');
+assert(actionBodies.deferMastery.includes("tcRequireWorkoutStore().transact('course'")&&
+ !actionBodies.deferMastery.includes("tcSaveCourse()"),
+ 'mastery deferral must write through WorkoutStore');
+assert(actionBodies.transferRest.includes("store.transact('course'")&&
+ !actionBodies.transferRest.includes("tcSaveCourse()")&&
+ !actionBodies.transferRest.includes("TC_course.transferRestDates.push"),
+ 'rest-day choice must write through WorkoutStore instead of mutating live course state');
 assert(actionBodies.advance.includes("tcActionMessage('Переход недоступен'"),
  'level advance must explain stale/invalid transition');
 for(const [name,body] of Object.entries(actionBodies)){
