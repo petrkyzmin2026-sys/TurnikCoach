@@ -795,7 +795,7 @@ replaceRoute(id,false);
 }
 restoreScroll(id);
 setTimeout(tcDecorateBackControls,0);
-tcQueueDecorate();
+if(typeof window.tcQueueDecorate==='function')window.tcQueueDecorate();
 return r;
 };
 const sheet=document.getElementById('sheet');
@@ -1664,6 +1664,7 @@ if(tcDecorateQueued)return;
 tcDecorateQueued=true;
 setTimeout(tcDecorate,0);
 }
+window.tcQueueDecorate=tcQueueDecorate;
 tcInjectProductStyles();
 if(window.__tcProductObserver){
 try{window.__tcProductObserver.disconnect()}catch(e){}
