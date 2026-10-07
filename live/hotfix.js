@@ -1,8 +1,8 @@
-/* TURNIKCOACH_HOTFIX 5.16.51-ui-render-owner */
+/* TURNIKCOACH_HOTFIX 5.16.52-deterministic-decorators */
 (function(){
 'use strict';
-const VERSION='5.16.51-ui-render-owner';
-const LABEL='5.16.51';
+const VERSION='5.16.52-deterministic-decorators';
+const LABEL='5.16.52';
 const APPROVED_KEY='tc_hotfix_approved_version';
 const LEGACY_ASSET_VERSION='5.14.0-adaptive-rest';
 const stalePrompt=document.getElementById('tcUpdatePrompt');
@@ -68,7 +68,7 @@ title.style.cssText='font-size:22px;font-weight:800;margin-bottom:10px;flex:0 0 
 title.textContent='Доступно обновление TurnikCoach '+LABEL;
 const text=document.createElement('div');
 text.style.cssText='font-size:15px;line-height:1.45;color:#cfd8e3;margin-bottom:18px;min-height:0;flex:1 1 0;overflow-y:auto;overscroll-behavior:contain;padding-right:4px';
-text.innerHTML="Продолжена архитектурная очистка без изменения внешнего интерфейса. Теперь верхнеуровневые экраны «Сегодня / План / Прогресс» имеют одного владельца рендера — TurnikUI. Сводка прогресса и декоративная пост-обработка больше не переопределяют render() и renderHistory() отдельными слоями. Это уменьшает риск повторного рендера, гонок DOM и некликабельных элементов.<br><br>Установить обновление сейчас?";
+text.innerHTML="Продолжена очистка интерфейсного ядра без изменения внешнего вида. Декоративный слой больше не наблюдает за всем DOM приложения через глобальный MutationObserver и не создаёт отдельную обёртку go(). Кнопки и пост-обработка вызываются детерминированно через основной навигационный маршрут и TurnikUI; старый observer предыдущей версии отключается при обновлении.<br><br>Установить обновление сейчас?";
 const row=document.createElement('div');
 row.style.cssText='display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;flex:0 0 auto';
 const later=document.createElement('button');
@@ -795,6 +795,7 @@ replaceRoute(id,false);
 }
 restoreScroll(id);
 setTimeout(tcDecorateBackControls,0);
+if(typeof window.tcQueueDecorate==='function')window.tcQueueDecorate();
 return r;
 };
 const sheet=document.getElementById('sheet');
@@ -1663,16 +1664,11 @@ if(tcDecorateQueued)return;
 tcDecorateQueued=true;
 setTimeout(tcDecorate,0);
 }
+window.tcQueueDecorate=tcQueueDecorate;
 tcInjectProductStyles();
-try{
-const oldGo=window.go;
-window.go=function(id){const r=oldGo(id);tcQueueDecorate();return r};
-}catch(e){}
-const tcApp=document.getElementById('app');
-if(tcApp){
-const mo=new MutationObserver(tcQueueDecorate);
-mo.observe(tcApp,{childList:true,subtree:true});
-window.__tcProductObserver=mo;
+if(window.__tcProductObserver){
+try{window.__tcProductObserver.disconnect()}catch(e){}
+window.__tcProductObserver=null;
 }
 try{render()}catch(e){tcQueueDecorate()}
 tcQueueDecorate();

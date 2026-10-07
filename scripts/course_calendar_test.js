@@ -220,10 +220,20 @@ assert(hotfix.includes("TurnikUI.register('today','*',10000")&&
 assert(hotfix.includes("setTimeout(()=>{renderSummary();tcQueueDecorate()},0)")&&
  hotfix.includes("setTimeout(tcQueueDecorate,0)"),
  'post-render work must be deferred until the owning presenter has finished');
+assert(!hotfix.includes('new MutationObserver(tcQueueDecorate)')&&
+ !hotfix.includes("const oldGo=window.go;\nwindow.go=function(id){const r=oldGo(id);tcQueueDecorate();return r}"),
+ 'product decoration must not watch the entire app DOM or add its own go() wrapper');
+assert(hotfix.includes("if(window.__tcProductObserver){")&&
+ hotfix.includes("window.__tcProductObserver.disconnect()")&&
+ hotfix.includes("window.__tcProductObserver=null"),
+ '5.16.52 must explicitly disconnect a stale product observer left by the previous runtime');
+assert(hotfix.includes("setTimeout(tcDecorateBackControls,0);\nif(typeof window.tcQueueDecorate==='function')window.tcQueueDecorate();\nreturn r;")&&
+ hotfix.includes("window.tcQueueDecorate=tcQueueDecorate"),
+ 'workout/rest decoration must cross the navigation boundary through one explicit public hook');
 assert(course.includes('id="tcCycleStartDate"'),
  'settings must expose a cycle start date');
-assert(hotfix.includes("const VERSION='5.16.51-ui-render-owner'"),
- 'release hotfix version must be 5.16.51');
+assert(hotfix.includes("const VERSION='5.16.52-deterministic-decorators'"),
+ 'release hotfix version must be 5.16.52');
 assert(course.includes("const COURSE_MODULE_VERSION='1.0.41-control-transactions'"),
  'course module version must be 1.0.41');
 assert(domain.includes("const VERSION='1.0.0'"),
@@ -232,7 +242,7 @@ assert(!course.includes('TC_EXTRA_START'),
  'temporary extra-workout trace logging must not ship');
 assert(!course.includes('window.confirm('),'course module must not depend on unsupported WebView JS dialogs');
 assert(!hotfix.includes('window.confirm('),'hotfix navigation/discard must not depend on unsupported WebView JS dialogs');
-assert(!hotfix.includes('forceHandover'),'5.16.51 must use an explicit user-visible update prompt');
+assert(!hotfix.includes('forceHandover'),'5.16.52 must use an explicit user-visible update prompt');
 assert(hotfix.includes("showRuntimeNotice('TurnikCoach обновлён до '+LABEL)"),
  'successful activation must give visible feedback');
 assert(hotfix.includes("localStorage.setItem('tc_hotfix_active_version',VERSION)"),
