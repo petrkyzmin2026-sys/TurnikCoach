@@ -1,8 +1,8 @@
-/* TURNIKCOACH_HOTFIX 5.16.49-transactional-undo */
+/* TURNIKCOACH_HOTFIX 5.16.50-control-transactions */
 (function(){
 'use strict';
-const VERSION='5.16.49-transactional-undo';
-const LABEL='5.16.49';
+const VERSION='5.16.50-control-transactions';
+const LABEL='5.16.50';
 const APPROVED_KEY='tc_hotfix_approved_version';
 const LEGACY_ASSET_VERSION='5.14.0-adaptive-rest';
 const stalePrompt=document.getElementById('tcUpdatePrompt');
@@ -68,7 +68,7 @@ title.style.cssText='font-size:22px;font-weight:800;margin-bottom:10px;flex:0 0 
 title.textContent='Доступно обновление TurnikCoach '+LABEL;
 const text=document.createElement('div');
 text.style.cssText='font-size:15px;line-height:1.45;color:#cfd8e3;margin-bottom:18px;min-height:0;flex:1 1 0;overflow-y:auto;overscroll-behavior:contain;padding-right:4px';
-text.innerHTML="Усилена защита истории тренировок. Отмена только что сохранённой тренировки теперь восстанавливает оба источника данных одной транзакцией через WorkoutStore. Если после сохранения появились новые записи, приложение не позволит случайно удалить их откатом. Экран и расписание курса не меняются.<br><br>Установить обновление сейчас?";
+text.innerHTML="Продолжена перестройка ядра без изменения интерфейса. Контроль максимума, норматив уровня, перенос контрольного дня и выбор дня отдыха теперь сохраняются через единый транзакционный WorkoutStore. Изменения курса и общего максимума применяются вместе либо не применяются вовсе — частично записанного состояния быть не должно.<br><br>Установить обновление сейчас?";
 const row=document.createElement('div');
 row.style.cssText='display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;flex:0 0 auto';
 const later=document.createElement('button');
@@ -119,8 +119,8 @@ const TC_STORE_MODULE_VERSION='1.2.0-undo-restore';
 const TC_STORE_MODULE_MARKER='TURNIKCOACH_WORKOUT_STORE 1.2.0-undo-restore';
 const TC_STORE_MODULE_URL='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/store.js?v='+encodeURIComponent(TC_STORE_MODULE_VERSION);
 const TC_STORE_CACHE_KEY='tc_module_store_'+TC_STORE_MODULE_VERSION;
-const TC_COURSE_MODULE_VERSION='1.0.40-unified-writes';
-const TC_COURSE_MODULE_MARKER='TURNIKCOACH_COURSE 1.0.40-unified-writes';
+const TC_COURSE_MODULE_VERSION='1.0.41-control-transactions';
+const TC_COURSE_MODULE_MARKER='TURNIKCOACH_COURSE 1.0.41-control-transactions';
 const TC_COURSE_MODULE_URL='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/course.js?v='+encodeURIComponent(TC_COURSE_MODULE_VERSION);
 const TC_COURSE_CACHE_KEY='tc_module_course_'+TC_COURSE_MODULE_VERSION;
 let tcDomainPrimePromise=null,tcUiPrimePromise=null,tcStorePrimePromise=null,tcCoursePrimePromise=null;

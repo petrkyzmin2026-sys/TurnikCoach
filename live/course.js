@@ -1,7 +1,7 @@
-/* TURNIKCOACH_COURSE 1.0.40-unified-writes */
+/* TURNIKCOACH_COURSE 1.0.41-control-transactions */
 (function(){
 'use strict';
-const COURSE_MODULE_VERSION='1.0.40-unified-writes';
+const COURSE_MODULE_VERSION='1.0.41-control-transactions';
 if(window.__TC_COURSE_MODULE_VERSION===COURSE_MODULE_VERSION)return;
 window.__TC_COURSE_MODULE_VERSION=COURSE_MODULE_VERSION;
 function tcClamp(v,a,b){return Math.max(a,Math.min(b,v))}
@@ -1201,9 +1201,14 @@ return '<div class="todayCard tcTodayPrimaryCard"><div class="row between"><div 
 '<details class="tcTodayPlanDetails"><summary>Посмотреть план</summary><div class="tcTodayPlanBody">'+tcCourseRowsHtml(items)+tcAdaptationNote(tcOriginalCourseDefs())+'</div></details></div>';
 }
 window.tcChooseTransferRest=function(plannedDate){
-const c=tcTransferCandidateRaw(dateKey());if(!c||c.plannedDate!==plannedDate)return;
-const today=dateKey();if(!TC_course.transferRestDates.includes(today))TC_course.transferRestDates.push(today);
-TC_course.transferRestDates=TC_course.transferRestDates.slice(-60);tcSaveCourse();render();
+const c=tcTransferCandidateRaw(dateKey());if(!c||c.plannedDate!==plannedDate){tcActionMessage('Перенос больше недоступен','Наступило другое тренировочное окно или состояние курса изменилось.');return;}
+const today=dateKey(),store=tcRequireWorkoutStore();
+if(!store.transact('course',draft=>{
+draft.transferRestDates=Array.isArray(draft.transferRestDates)?draft.transferRestDates:[];
+if(!draft.transferRestDates.includes(today))draft.transferRestDates.push(today);
+draft.transferRestDates=draft.transferRestDates.slice(-60);return true;
+})){tcActionMessage('Не удалось сохранить день отдыха','Состояние курса не изменено. Повторите действие.');return}
+render();
 if(typeof window.tcShowRuntimeNotice==='function')window.tcShowRuntimeNotice('Сегодня оставлен день отдыха. Следующий этап курса не пропущен.');
 };
 function tcRecoveryShiftCardHtml(){
@@ -1549,16 +1554,19 @@ window.tcConfirmCourseTest=function(){
 if(!W||W.mode!=='courseTest'){tcActionMessage('Контроль уже закрыт','Активного контрольного испытания нет.');return;}
 const value=+(W.items[0].actual[0]);
 if(!Number.isInteger(value)||value<1){tcActionMessage('Результат не сохранён','Укажите целое положительное количество выполненных повторений.');return;}
-const previous=TC_course.pullMax,achieved=value>=TC_course.targetMax;
-const run=tcEnsureCourseRun(),rec={date:dateKey(),ts:Date.now(),value,previous,goal:TC_course.targetMax,level:TC_course.level,runId:run&&run.id||''};
-TC_course.tests.unshift(rec);
-TC_course.lastTestDate=rec.date;
-TC_course.testAnchorDate=rec.date;
-TC_course.testDeferredUntil='';
-TC_course.lastCourseDate=rec.date;TC_course.lastCourseTs=rec.ts;
-TC_course.pullMax=value;
-const pull=state.ex.find(e=>e.id==='pull');if(pull)pull.max=value;
-tcSaveCourse();save();
+const previous=TC_course.pullMax,achieved=value>=TC_course.targetMax,target=TC_course.targetMax;
+const run=tcEnsureCourseRun(),rec={date:dateKey(),ts:Date.now(),value,previous,goal:target,level:TC_course.level,runId:run&&run.id||''};
+const store=tcRequireWorkoutStore();
+if(!store.batch([
+{source:'course',mutate:draft=>{
+draft.tests=Array.isArray(draft.tests)?draft.tests:[];draft.tests.unshift(rec);
+draft.lastTestDate=rec.date;draft.testAnchorDate=rec.date;draft.testDeferredUntil='';
+draft.lastCourseDate=rec.date;draft.lastCourseTs=rec.ts;draft.pullMax=value;return true;
+}},
+{source:'generic',mutate:draft=>{
+draft.ex=Array.isArray(draft.ex)?draft.ex:[];const pull=draft.ex.find(e=>e.id==='pull');if(pull)pull.max=value;return true;
+}}
+])){tcActionMessage('Результат не сохранён','Не удалось атомарно обновить курс и общий максимум. Повторите действие.');return;}
 q('sheet').classList.remove('open');
 W=null;go('today');
 const box=q('sheetbox');
@@ -1566,7 +1574,7 @@ box.innerHTML='<div class="sheettitle">Контроль завершён</div>'+
 '<div class="tcInfoBlock"><h3>Результат: '+value+'</h3><p>Предыдущий контроль: '+previous+
 '. Изменение: '+(value-previous>0?'+':'')+(value-previous)+
 '. Следующая нагрузка рассчитывается от '+value+' повторений.</p></div>'+
-(achieved?'<div class="tcInfoBlock"><h3>Цель достигнута</h3><p>Достигнут установленный ориентир '+TC_course.targetMax+
+(achieved?'<div class="tcInfoBlock"><h3>Цель достигнута</h3><p>Достигнут установленный ориентир '+target+
 '. Продолжить увеличение количества либо открыть настройки курса и выбрать дальнейшую цель. Уровень сам не изменяется.</p></div>':'')+
 '<button class="btn yellow full" onclick="closeSheet()">Продолжить</button>'+
 (achieved?'<button class="btn ghost full" style="margin-top:8px" onclick="closeSheet();tcOpenCourseSettings()">Настроить следующую цель</button>':'');
@@ -1574,10 +1582,12 @@ q('sheet').classList.add('open');
 };
 window.tcDeferCourseTest=function(){
 if(!tcTestDue()){tcActionMessage('Перенос не требуется','Контроль максимума сейчас не назначен на сегодня.');return;}
-const until=new Date(dateKey()+'T12:00:00');until.setDate(until.getDate()+7);
-TC_course.testDeferredUntil=dateKey(until);
-tcSaveCourse();render();
-if(typeof window.tcShowRuntimeNotice==='function')window.tcShowRuntimeNotice('Контроль перенесён на '+fmtKeyDate(TC_course.testDeferredUntil,false));
+const until=new Date(dateKey()+'T12:00:00');until.setDate(until.getDate()+7);const untilKey=dateKey(until);
+if(!tcRequireWorkoutStore().transact('course',draft=>{draft.testDeferredUntil=untilKey;return true})){
+tcActionMessage('Не удалось перенести контроль','Состояние курса не изменено. Повторите действие.');return;
+}
+render();
+if(typeof window.tcShowRuntimeNotice==='function')window.tcShowRuntimeNotice('Контроль перенесён на '+fmtKeyDate(untilKey,false));
 };
 function tcRecoveredForTest(){
 const lastLoad=(TC_course.history||[]).find(h=>
@@ -1686,9 +1696,12 @@ return '<div class="todayCard" style="margin-top:12px;border-color:#ffd84d">'+
 window.tcDeferMasteryTest=function(){
 if(!tcMasteryDefinition()){tcActionMessage('Перенос недоступен','Для текущего уровня и оборудования отдельный норматив освоения не назначается.');return;}
 if(!TC_course.lastCourseDate){tcActionMessage('Перенос недоступен','Сначала начните тренировочный цикл курса.');return;}
-const d=new Date(dateKey()+'T12:00:00');d.setDate(d.getDate()+7);
-TC_course.testDeferredUntil=dateKey(d);tcSaveCourse();render();
-if(typeof window.tcShowRuntimeNotice==='function')window.tcShowRuntimeNotice('Проверка норматива перенесена на '+fmtKeyDate(TC_course.testDeferredUntil,false));
+const d=new Date(dateKey()+'T12:00:00');d.setDate(d.getDate()+7);const untilKey=dateKey(d);
+if(!tcRequireWorkoutStore().transact('course',draft=>{draft.testDeferredUntil=untilKey;return true})){
+tcActionMessage('Не удалось перенести норматив','Состояние курса не изменено. Повторите действие.');return;
+}
+render();
+if(typeof window.tcShowRuntimeNotice==='function')window.tcShowRuntimeNotice('Проверка норматива перенесена на '+fmtKeyDate(untilKey,false));
 };
 window.tcOpenMasteryTest=function(){
 const def=tcMasteryDefinition();
@@ -1728,22 +1741,20 @@ return;
 }
 values[field.id]=n;
 }
-const passed=tcMasteryOutcome(TC_course.level,values);
+const passed=tcMasteryOutcome(TC_course.level,values),previousPull=TC_course.pullMax;
 const run=tcEnsureCourseRun(),rec={date:dateKey(),ts:Date.now(),level:TC_course.level,values,passed,sourcePage:def.page,goal:TC_course.goal,runId:run&&run.id||''};
-TC_course.masteryTests.unshift(rec);
-TC_course.lastTestDate=rec.date;
-TC_course.testAnchorDate=rec.date;
-TC_course.testDeferredUntil='';
-TC_course.lastCourseDate=rec.date;
-TC_course.lastCourseTs=rec.ts;
-TC_course.pendingTransition=passed&&TC_course.level<6?
-{from:TC_course.level,to:TC_course.level+1,testTs:rec.ts}:null;
-if(values.regular&&values.regular>TC_course.pullMax){
-TC_course.pullMax=values.regular;
-const pull=state.ex.find(e=>e.id==='pull');if(pull)pull.max=values.regular;
-save();
-}
-tcSaveCourse();
+const raisesPull=Number.isFinite(+values.regular)&&+values.regular>previousPull,store=tcRequireWorkoutStore();
+const steps=[{source:'course',mutate:draft=>{
+draft.masteryTests=Array.isArray(draft.masteryTests)?draft.masteryTests:[];draft.masteryTests.unshift(rec);
+draft.lastTestDate=rec.date;draft.testAnchorDate=rec.date;draft.testDeferredUntil='';
+draft.lastCourseDate=rec.date;draft.lastCourseTs=rec.ts;
+draft.pendingTransition=passed&&draft.level<6?{from:draft.level,to:draft.level+1,testTs:rec.ts}:null;
+if(raisesPull)draft.pullMax=+values.regular;return true;
+}}];
+if(raisesPull)steps.push({source:'generic',mutate:draft=>{
+draft.ex=Array.isArray(draft.ex)?draft.ex:[];const pull=draft.ex.find(e=>e.id==='pull');if(pull)pull.max=+values.regular;return true;
+}});
+if(!store.batch(steps)){tcActionMessage('Результат не сохранён','Не удалось атомарно обновить контрольные данные. Повторите действие.');return;}
 q('sheet').classList.remove('open');
 go('today');
 q('sheetbox').innerHTML='<div class="sheettitle">Контроль уровня '+rec.level+'</div>'+
