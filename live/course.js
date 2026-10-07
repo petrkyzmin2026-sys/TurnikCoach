@@ -1,7 +1,7 @@
-/* TURNIKCOACH_COURSE 1.0.41-control-transactions */
+/* TURNIKCOACH_COURSE 1.0.42-action-owner */
 (function(){
 'use strict';
-const COURSE_MODULE_VERSION='1.0.41-control-transactions';
+const COURSE_MODULE_VERSION='1.0.42-action-owner';
 if(window.__TC_COURSE_MODULE_VERSION===COURSE_MODULE_VERSION)return;
 window.__TC_COURSE_MODULE_VERSION=COURSE_MODULE_VERSION;
 function tcClamp(v,a,b){return Math.max(a,Math.min(b,v))}
@@ -1891,26 +1891,28 @@ if(fallback)fallback.style.display='none';
 const legend=q('legend');if(legend)legend.textContent='';
 return r;
 };
-const tcBeforeCourseSetDone=window.setDone;
-window.setDone=function(skip){
-if(!W)return;
-if(q('sheet').classList.contains('open'))return;
-if(W&&W.mode==='courseTest'){
-if(skip){q('sheetbox').innerHTML='<div class="sheettitle">Контроль не выполнен</div><button class="btn ghost full" onclick="closeSheet()">Вернуться к попытке</button>';q('sheet').classList.add('open');return}
+function tcCourseSetDoneAction(ctx){
+const skip=!!(ctx&&ctx.skip);
+if(!W||!['course','supplement','auxCourse','courseTest'].includes(W.mode))return null;
+if(q('sheet').classList.contains('open'))return{handled:true,result:undefined};
+if(W.mode==='courseTest'){
+if(skip){q('sheetbox').innerHTML='<div class="sheettitle">Контроль не выполнен</div><button class="btn ghost full" onclick="closeSheet()">Вернуться к попытке</button>';q('sheet').classList.add('open');return{handled:true,result:undefined}}
 const n=Number(W.actual);
-if(!Number.isInteger(n)||n<1){q('sheetbox').innerHTML='<div class="sheettitle">Введите результат</div><div class="sub">Укажите фактически выполненное количество повторений, затем завершите контроль.</div><button class="btn yellow full" onclick="closeSheet()">Вернуться</button>';q('sheet').classList.add('open');return}
+if(!Number.isInteger(n)||n<1){q('sheetbox').innerHTML='<div class="sheettitle">Введите результат</div><div class="sub">Укажите фактически выполненное количество повторений, затем завершите контроль.</div><button class="btn yellow full" onclick="closeSheet()">Вернуться</button>';q('sheet').classList.add('open');return{handled:true,result:undefined}}
 W.items[0].actual[0]=n;
 q('sheetbox').innerHTML='<div class="sheettitle">Подтвердить максимум</div><div class="dateBig" style="margin:12px 0">'+n+' повторений</div><button class="btn yellow full" onclick="tcConfirmCourseTest()">Сохранить результат</button><button class="btn ghost full" style="margin-top:8px" onclick="closeSheet()">Изменить значение</button>';
-q('sheet').classList.add('open');return;
+q('sheet').classList.add('open');return{handled:true,result:undefined};
 }
-if(!W||!['course','supplement','auxCourse'].includes(W.mode))return tcBeforeCourseSetDone(skip);
 tcPrimeAudio();const x=W.items[W.exerciseIndex],def=x.def||x.e.courseDef,target=x.plan[W.setIndex],actual=skip?null:W.actual;x.actual[W.setIndex]=actual;
 const advance=()=>{if(W.setIndex<x.plan.length-1){W.setIndex++;W.actual=x.plan[W.setIndex]||tcLastActualFor(def.id)||1;renderWork();return true}if(W.exerciseIndex<W.items.length-1){W.exerciseIndex++;W.setIndex=0;const nx=W.items[W.exerciseIndex];W.actual=nx.plan[0]||tcLastActualFor(nx.def.id)||1;renderWork();return true}return false};
 const more=W.setIndex<x.plan.length-1||W.exerciseIndex<W.items.length-1;
-if(!more){tcFinishSignal();askFeedback(false);return}
-const rr=tcAdaptiveCourseRest(def,target,actual,!!skip);advance();
+if(!more){tcFinishSignal();askFeedback(false);return{handled:true,result:undefined}}
+const rr=tcAdaptiveCourseRest(def,target,actual,skip);advance();
 if(rr.manual)tcPrepareManualRest(rr.label,rr.note);else window.startRest(rr.seconds,rr.note);
-};
+return{handled:true,result:undefined};
+}
+if(!window.TurnikWorkoutActions||typeof window.TurnikWorkoutActions.registerHandler!=='function')throw new Error('TurnikCoach workout action dispatcher unavailable');
+window.TurnikWorkoutActions.registerHandler('morozov-course',100,tcCourseSetDoneAction);
 const tcBeforeCourseFinishRest=window.finishRest;
 window.finishRest=function(){if(window.__tcManualCourseRest){tcRestoreRestUI();go('workout');return}return tcBeforeCourseFinishRest()};
 const tcBeforeCourseFinishWorkout=window.finishWorkout;
