@@ -227,8 +227,9 @@ assert(hotfix.includes("if(window.__tcProductObserver){")&&
  hotfix.includes("window.__tcProductObserver.disconnect()")&&
  hotfix.includes("window.__tcProductObserver=null"),
  '5.16.52 must explicitly disconnect a stale product observer left by the previous runtime');
-assert(hotfix.includes("setTimeout(tcDecorateBackControls,0);\ntcQueueDecorate();\nreturn r;"),
- 'workout/rest decoration must run from the existing navigation route instead of a second wrapper');
+assert(hotfix.includes("setTimeout(tcDecorateBackControls,0);\nif(typeof window.tcQueueDecorate==='function')window.tcQueueDecorate();\nreturn r;")&&
+ hotfix.includes("window.tcQueueDecorate=tcQueueDecorate"),
+ 'workout/rest decoration must cross the navigation boundary through one explicit public hook');
 assert(course.includes('id="tcCycleStartDate"'),
  'settings must expose a cycle start date');
 assert(hotfix.includes("const VERSION='5.16.52-deterministic-decorators'"),
