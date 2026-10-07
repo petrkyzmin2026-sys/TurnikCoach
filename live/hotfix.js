@@ -1,8 +1,8 @@
-/* TURNIKCOACH_HOTFIX 5.16.50-control-transactions */
+/* TURNIKCOACH_HOTFIX 5.16.51-ui-render-owner */
 (function(){
 'use strict';
-const VERSION='5.16.50-control-transactions';
-const LABEL='5.16.50';
+const VERSION='5.16.51-ui-render-owner';
+const LABEL='5.16.51';
 const APPROVED_KEY='tc_hotfix_approved_version';
 const LEGACY_ASSET_VERSION='5.14.0-adaptive-rest';
 const stalePrompt=document.getElementById('tcUpdatePrompt');
@@ -68,7 +68,7 @@ title.style.cssText='font-size:22px;font-weight:800;margin-bottom:10px;flex:0 0 
 title.textContent='Доступно обновление TurnikCoach '+LABEL;
 const text=document.createElement('div');
 text.style.cssText='font-size:15px;line-height:1.45;color:#cfd8e3;margin-bottom:18px;min-height:0;flex:1 1 0;overflow-y:auto;overscroll-behavior:contain;padding-right:4px';
-text.innerHTML="Продолжена перестройка ядра без изменения интерфейса. Контроль максимума, норматив уровня, перенос контрольного дня и выбор дня отдыха теперь сохраняются через единый транзакционный WorkoutStore. Изменения курса и общего максимума применяются вместе либо не применяются вовсе — частично записанного состояния быть не должно.<br><br>Установить обновление сейчас?";
+text.innerHTML="Продолжена архитектурная очистка без изменения внешнего интерфейса. Теперь верхнеуровневые экраны «Сегодня / План / Прогресс» имеют одного владельца рендера — TurnikUI. Сводка прогресса и декоративная пост-обработка больше не переопределяют render() и renderHistory() отдельными слоями. Это уменьшает риск повторного рендера, гонок DOM и некликабельных элементов.<br><br>Установить обновление сейчас?";
 const row=document.createElement('div');
 row.style.cssText='display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;flex:0 0 auto';
 const later=document.createElement('button');
@@ -302,11 +302,13 @@ cell.setAttribute('role','group');
 cell.setAttribute('aria-label',entry[0]+': '+entry[1]);
 });
 };
-const base=window.renderHistory;
-if(typeof base==='function')window.renderHistory=function(){
-const result=base.apply(this,arguments);renderSummary();return result;
-};
 window.tcRenderProgressSummary=renderSummary;
+if(window.TurnikUI&&typeof window.TurnikUI.register==='function'){
+window.TurnikUI.register('progress','*',10000,()=>{
+setTimeout(()=>{renderSummary();tcQueueDecorate()},0);
+return false;
+});
+}
 renderSummary();
 }
 const TC_COMPLETION_UNDO_KEY='tc_completion_undo_v1';
@@ -1666,10 +1668,6 @@ try{
 const oldGo=window.go;
 window.go=function(id){const r=oldGo(id);tcQueueDecorate();return r};
 }catch(e){}
-try{
-const oldRender=window.render;
-window.render=function(){const r=oldRender();tcQueueDecorate();return r};
-}catch(e){}
 const tcApp=document.getElementById('app');
 if(tcApp){
 const mo=new MutationObserver(tcQueueDecorate);
@@ -1684,6 +1682,8 @@ if(!tcLoadUiModule())throw new Error('TurnikCoach UI module unavailable after pr
 if(!tcLoadStoreModule())throw new Error('TurnikCoach workout store unavailable after preflight');
 if(!window.TurnikUI.install())throw new Error('TurnikCoach UI dispatcher install failed');
 if(!tcLoadCourseModule())throw new Error('TurnikCoach course module unavailable after preflight');
+window.TurnikUI.register('today','*',10000,()=>{setTimeout(tcQueueDecorate,0);return false});
+window.TurnikUI.register('plan','*',10000,()=>{setTimeout(tcQueueDecorate,0);return false});
 tcRegisterCoreSources();
 tcInstallUx2InformationArchitecture();
 tcInstallNavigationFoundation();
