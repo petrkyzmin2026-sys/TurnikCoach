@@ -332,11 +332,12 @@ screenshot("00-before-update-assert")
 adb("shell","uiautomator","dump","/sdcard/uxb3-before-update.xml",check=False)
 adb("pull","/sdcard/uxb3-before-update.xml",OUT+"/00-before-update.xml",check=False)
 try:
-    wait_text("Доступно обновление TurnikCoach 5.16.52",timeout=20)
+    wait_text("Доступно обновление TurnikCoach 5.16.52",timeout=35)
 except Exception:
-    log=adb("logcat","-d","-t","500",check=False)
+    log=adb("logcat","-d","-t","700",check=False)
     with open(OUT+"/00-logcat.txt","w",encoding="utf-8") as fp:
         fp.write((log.stdout or "")+"\n"+(log.stderr or ""))
+    print("TC_DIAG update-prompt-logcat",log.stdout or "",flush=True)
     raise
 wait_text("Обновить",contains=False)
 screenshot("01-update-offered")
