@@ -379,7 +379,7 @@ assert any(x["name"]=="morozov" for x in core_probe["domain"]["areas"]["today"])
 assert core_probe["store"] and core_probe["store"]["version"]=="1.2.0-undo-restore", "TurnikWorkoutStore must be active in the real WebView"
 assert core_probe["store"].get("writePath") is True, "WorkoutStore write path must be active in the real WebView"
 assert core_probe["storeSummary"] and core_probe["storeSummary"]["total"]>=1 and core_probe["storeSummary"]["bySource"].get("course",0)>=1, "WorkoutStore must expose the seeded course workout through the unified read model"
-assert core_probe["foundation"] and core_probe["foundation"]["domainModule"]=="1.0.0" and core_probe["foundation"]["uiModule"]=="1.0.0" and core_probe["foundation"]["storeModule"]=="1.2.0-undo-restore" and core_probe["foundation"]["courseModule"]=="1.0.40-unified-writes", "runtime diagnostics must expose compatible Core/Domain/UI/Store/Course versions"
+assert core_probe["foundation"] and core_probe["foundation"]["domainModule"]=="1.0.0" and core_probe["foundation"]["uiModule"]=="1.0.0" and core_probe["foundation"]["storeModule"]=="1.2.0-undo-restore" and core_probe["foundation"]["courseModule"]=="1.0.41-control-transactions", "runtime diagnostics must expose compatible Core/Domain/UI/Store/Course versions"
 assert core_probe["domainCache"]>500 and core_probe["storeCache"]>500 and core_probe["courseCache"]>1000, "Domain, Store and Course modules must survive in separate offline caches"
 assert core_probe["today"]=="COURSE_DONE" and core_probe["plan"]=="COURSE_ACTIVE" and core_probe["progress"]=="COURSE_PROGRESS", "view state must be resolved before rendering"
 assert core_probe["uiCache"]>500, "UI presenter must survive in the offline module cache"
