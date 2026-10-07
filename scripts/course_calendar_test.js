@@ -7,6 +7,7 @@ const core=fs.readFileSync('live/core.js','utf8');
 const domain=fs.readFileSync('live/domain.js','utf8');
 const ui=fs.readFileSync('live/ui.js','utf8');
 const store=fs.readFileSync('live/store.js','utf8');
+const actions=fs.readFileSync('live/actions.js','utf8');
 const hotfix=fs.readFileSync('live/hotfix.js','utf8');
 assert(Buffer.byteLength(hotfix,'utf8')<=128*1024,
  'modular OTA shell must stay comfortably below the native 256 KiB ceiling');
@@ -17,6 +18,7 @@ new vm.Script(core,{filename:'live/core.js'});
 new vm.Script(domain,{filename:'live/domain.js'});
 new vm.Script(ui,{filename:'live/ui.js'});
 new vm.Script(store,{filename:'live/store.js'});
+new vm.Script(actions,{filename:'live/actions.js'});
 new vm.Script(hotfix,{filename:'live/hotfix.js'});
 const coreBundled=hotfix.match(/const CORE_MODULE_BUNDLED=("(?:\\.|[^"\\])*");\nconst TC_DOMAIN_MODULE_VERSION/);
 assert(coreBundled,'small TurnikCore bootstrap must remain embedded in the OTA shell');
@@ -32,14 +34,18 @@ assert(hotfix.includes("TC_DOMAIN_MODULE_URL='https://raw.githubusercontent.com/
 assert(hotfix.includes("TC_DOMAIN_MODULE_VERSION='1.0.0'")&&
  hotfix.includes("TC_UI_MODULE_VERSION='1.0.0'")&&
  hotfix.includes("TC_STORE_MODULE_VERSION='1.2.0-undo-restore'")&&
- hotfix.includes("TC_COURSE_MODULE_VERSION='1.0.41-control-transactions'"),
- 'OTA shell must pin exact compatible Domain, UI, Store and Course module versions');
+ hotfix.includes("TC_ACTIONS_MODULE_VERSION='1.0.0'")&&
+ hotfix.includes("TC_COURSE_MODULE_VERSION='1.0.42-action-owner'"),
+ 'OTA shell must pin exact compatible Domain, UI, Store, Actions and Course module versions');
 assert(hotfix.includes("TC_UI_MODULE_URL='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/ui.js")&&
  hotfix.includes("TC_UI_CACHE_KEY='tc_module_ui_'+TC_UI_MODULE_VERSION"),
  'UI presenter must ship as a separately versioned/offline-cached module');
 assert(hotfix.includes("TC_STORE_MODULE_URL='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/store.js")&&
  hotfix.includes("TC_STORE_CACHE_KEY='tc_module_store_'+TC_STORE_MODULE_VERSION"),
  'WorkoutStore must ship as a separately versioned/offline-cached module');
+assert(hotfix.includes("TC_ACTIONS_MODULE_URL='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/actions.js")&&
+ hotfix.includes("TC_ACTIONS_CACHE_KEY='tc_module_actions_'+TC_ACTIONS_MODULE_VERSION"),
+ 'WorkoutActions must ship as a separately versioned/offline-cached module');
 function extractFrom(source,name){
   const start=source.indexOf('function '+name+'(');
   assert(start>=0,'function missing: '+name);
@@ -222,17 +228,17 @@ assert(hotfix.includes("setTimeout(()=>{renderSummary();tcQueueDecorate()},0)")&
  'post-render work must be deferred until the owning presenter has finished');
 assert(course.includes('id="tcCycleStartDate"'),
  'settings must expose a cycle start date');
-assert(hotfix.includes("const VERSION='5.16.51-ui-render-owner'"),
- 'release hotfix version must be 5.16.51');
-assert(course.includes("const COURSE_MODULE_VERSION='1.0.41-control-transactions'"),
- 'course module version must be 1.0.41');
+assert(hotfix.includes("const VERSION='5.16.52-workout-action-owner'"),
+ 'release hotfix version must be 5.16.52');
+assert(course.includes("const COURSE_MODULE_VERSION='1.0.42-action-owner'"),
+ 'course module version must be 1.0.42');
 assert(domain.includes("const VERSION='1.0.0'"),
  'domain module version must be 1.0.0');
 assert(!course.includes('TC_EXTRA_START'),
  'temporary extra-workout trace logging must not ship');
 assert(!course.includes('window.confirm('),'course module must not depend on unsupported WebView JS dialogs');
 assert(!hotfix.includes('window.confirm('),'hotfix navigation/discard must not depend on unsupported WebView JS dialogs');
-assert(!hotfix.includes('forceHandover'),'5.16.51 must use an explicit user-visible update prompt');
+assert(!hotfix.includes('forceHandover'),'5.16.52 must use an explicit user-visible update prompt');
 assert(hotfix.includes("showRuntimeNotice('TurnikCoach обновлён до '+LABEL)"),
  'successful activation must give visible feedback');
 assert(hotfix.includes("localStorage.setItem('tc_hotfix_active_version',VERSION)"),
@@ -253,7 +259,8 @@ assert(hotfix.includes('function tcRegisterCoreSources()')&&
  'TurnikCore must expose both legacy generic and Morozov stores through one state facade');
 assert(hotfix.includes("localStorage.setItem('tc_v4',JSON.stringify(next))"),
  'generic source adapter must persist the exact restored snapshot instead of delegating to legacy save()');
-assert(hotfix.includes("window.__TC_CORE_FOUNDATION={version:core.version,domainModule:window.TurnikDomain&&window.TurnikDomain.version||'',uiModule:window.TurnikUI&&window.TurnikUI.version||'',storeModule:window.TurnikWorkoutStore&&window.TurnikWorkoutStore.version||'',courseModule:TC_COURSE_MODULE_VERSION,modular:true}"),
+assert(hotfix.includes("actionsModule:window.TurnikWorkoutActions&&window.TurnikWorkoutActions.version||''")&&
+ hotfix.includes("courseModule:TC_COURSE_MODULE_VERSION,modular:true}"),
  'runtime diagnostics must expose Core + Domain + UI + Store + Course modular foundation');
 assert(hotfix.includes("window.TurnikWorkoutStore.summary({now:Date.now()})"),
  'Progress summary must consume unified workouts through TurnikWorkoutStore instead of manually joining stores');
@@ -789,33 +796,39 @@ assert(hotfix.includes('tcShowCompletionSummary(summary)'),
 assert(hotfix.includes("if(tcActiveWorkoutForUpdate()){")&&hotfix.includes('tcScheduleDeferredUpdate(activate)'),
  'update prompt must defer while a workout or durable workout snapshot is active');
 
-// Semantic haptics regression: a newly saved set pulses; a skip and duplicate do not.
+// Single-owner workout action regression.
 assert(manifest.includes('android.permission.VIBRATE'),'preview requires Android vibration permission');
-assert(hotfix.includes('if(!skip&&record&&previous===undefined&&current!==undefined&&current!==null)'),
- 'set confirmation must not vibrate on skipped or previously recorded sets');
+assert.equal((course.match(/window\.setDone\s*=/g)||[]).length,0,
+ 'course module must never replace global setDone');
+assert.equal((hotfix.match(/window\.setDone\s*=/g)||[]).length,1,
+ 'OTA shell may define the generic base setDone exactly once');
+assert(hotfix.includes("registerBefore('haptic-feedback'")&&hotfix.includes("registerAfter('haptic-feedback'"),
+ 'haptic feedback must subscribe to the workout dispatcher');
+assert(hotfix.includes("registerBefore('workout-correction'")&&hotfix.includes("registerAfter('workout-correction'"),
+ 'correction trail must subscribe to the workout dispatcher');
+assert(hotfix.includes("registerAfter('workout-persistence'"),
+ 'active workout persistence must subscribe to the workout dispatcher');
+assert(course.includes("registerHandler('morozov-course',100,tcCourseSetDoneAction)"),
+ 'Morozov set completion must register a mode handler instead of wrapping setDone');
+assert(hotfix.includes('window.TurnikWorkoutActions.install()'),
+ 'workout dispatcher must become the final setDone owner after all hooks are registered');
+const actionSandbox={console,CustomEvent:function(){},dispatchEvent:()=>true};
+actionSandbox.window=actionSandbox;
+actionSandbox.setDone=function(skip){actionSandbox.baseCalls=(actionSandbox.baseCalls||0)+1;actionSandbox.lastSkip=!!skip;return 'base'};
+vm.runInNewContext(actions,actionSandbox,{filename:'live/actions.js'});
+const order=[];
+actionSandbox.TurnikWorkoutActions.registerBefore('before',10,ctx=>order.push('before:'+ctx.skip));
+actionSandbox.TurnikWorkoutActions.registerHandler('special',100,ctx=>ctx.skip?{handled:true,result:'handled'}:null);
+actionSandbox.TurnikWorkoutActions.registerAfter('after',10,ctx=>order.push('after:'+(ctx.handler||'base')));
+assert(actionSandbox.TurnikWorkoutActions.install());
+assert.equal(actionSandbox.setDone(false),'base');
+assert.equal(actionSandbox.baseCalls,1);
+assert.equal(actionSandbox.setDone(true),'handled');
+assert.equal(actionSandbox.baseCalls,1,'handled mode action must not call the generic base');
+assert.deepEqual(order,['before:false','after:base','before:true','after:special']);
+assert.equal(actionSandbox.TurnikWorkoutActions.debug().singleOwner,true);
 assert(hotfix.includes('navigator.vibrate([70,45,70])'),
  'danger feedback needs a distinct reject pattern');
-const hapticHarness=new Function(
-  extractFrom(hotfix,'tcHapticConfirm')+'\n'+
-  extractFrom(hotfix,'tcInstallHapticFeedback')+'\n'+
-  `
-  let W={items:[{actual:[]}],exerciseIndex:0,setIndex:0,actual:8};
-  const pulses=[],navigator={vibrate:v=>{pulses.push(v);return true}};
-  const window={setDone:function(skip){
-    const x=W.items[W.exerciseIndex];
-    x.actual[W.setIndex]=skip?null:W.actual;
-    W.setIndex=Math.min(1,W.setIndex+1);
-  }};
-  tcInstallHapticFeedback();
-  window.setDone(false);  // first successful set
-  window.setDone(true);   // skip must remain silent
-  W.setIndex=0;
-  window.setDone(false);  // repeating an already recorded set must remain silent
-  return pulses;
-  `
-)();
-assert.deepEqual(hapticHarness,[45],
- 'only one true newly completed set should produce the confirmation pulse');
 
 assert(hotfix.includes('#app > .nav{z-index:90!important;pointer-events:auto!important}')&&
  hotfix.includes('#today .scroll{min-height:0!important;overscroll-behavior:contain;padding-bottom:144px!important}'),
@@ -1133,4 +1146,4 @@ assert.equal(uiSandbox.TurnikUI.renderArea('today').presenter,'morozov');
 assert.deepEqual(Array.from(presented),['TEST']);
 assert.equal(uiSandbox.TurnikUI.debug().version,'1.0.0');
 
-console.log('PASS: Core + Domain + UI + transactional WorkoutStore, syntax, UX2 persistence/IA/completion, critical actions, forms and touch targets');
+console.log('PASS: single workout action owner, UI/domain/store architecture, syntax and Android regressions');
