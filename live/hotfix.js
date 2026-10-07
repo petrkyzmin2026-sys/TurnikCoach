@@ -1,8 +1,8 @@
-/* TURNIKCOACH_HOTFIX 5.16.52-workout-action-owner */
+/* TURNIKCOACH_HOTFIX 5.16.53-workout-finish-owner */
 (function(){
 'use strict';
-const VERSION='5.16.52-workout-action-owner';
-const LABEL='5.16.52';
+const VERSION='5.16.53-workout-finish-owner';
+const LABEL='5.16.53';
 const APPROVED_KEY='tc_hotfix_approved_version';
 const LEGACY_ASSET_VERSION='5.14.0-adaptive-rest';
 const stalePrompt=document.getElementById('tcUpdatePrompt');
@@ -68,7 +68,7 @@ title.style.cssText='font-size:22px;font-weight:800;margin-bottom:10px;flex:0 0 
 title.textContent='Доступно обновление TurnikCoach '+LABEL;
 const text=document.createElement('div');
 text.style.cssText='font-size:15px;line-height:1.45;color:#cfd8e3;margin-bottom:18px;min-height:0;flex:1 1 0;overflow-y:auto;overscroll-behavior:contain;padding-right:4px';
-text.innerHTML="Продолжена архитектурная очистка без изменения привычного интерфейса. Теперь действие «Сделано / Пропустить» имеет одного владельца — TurnikWorkoutActions. Курс Морозова, виброотклик, исправление предыдущего подхода и сохранение активной тренировки больше не переопределяют setDone друг поверх друга, а подключаются к единому диспетчеру. Это снижает риск некликабельных кнопок и конфликтов между режимами.<br><br>Установить обновление сейчас?";
+text.innerHTML="Продолжена архитектурная очистка без изменения интерфейса. Теперь завершение тренировки тоже имеет одного владельца — TurnikWorkoutActions. Сохранение курса Морозова, окно итогов с быстрой отменой и очистка активного состояния больше не оборачивают finishWorkout друг поверх друга, а подключаются как обработчики единого диспетчера.<br><br>Установить обновление сейчас?";
 const row=document.createElement('div');
 row.style.cssText='display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;flex:0 0 auto';
 const later=document.createElement('button');
@@ -119,12 +119,12 @@ const TC_STORE_MODULE_VERSION='1.2.0-undo-restore';
 const TC_STORE_MODULE_MARKER='TURNIKCOACH_WORKOUT_STORE 1.2.0-undo-restore';
 const TC_STORE_MODULE_URL='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/store.js?v='+encodeURIComponent(TC_STORE_MODULE_VERSION);
 const TC_STORE_CACHE_KEY='tc_module_store_'+TC_STORE_MODULE_VERSION;
-const TC_ACTIONS_MODULE_VERSION='1.0.0';
-const TC_ACTIONS_MODULE_MARKER='TURNIKCOACH_WORKOUT_ACTIONS 1.0.0';
+const TC_ACTIONS_MODULE_VERSION='1.1.0';
+const TC_ACTIONS_MODULE_MARKER='TURNIKCOACH_WORKOUT_ACTIONS 1.1.0';
 const TC_ACTIONS_MODULE_URL='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/actions.js?v='+encodeURIComponent(TC_ACTIONS_MODULE_VERSION);
 const TC_ACTIONS_CACHE_KEY='tc_module_actions_'+TC_ACTIONS_MODULE_VERSION;
-const TC_COURSE_MODULE_VERSION='1.0.42-action-owner';
-const TC_COURSE_MODULE_MARKER='TURNIKCOACH_COURSE 1.0.42-action-owner';
+const TC_COURSE_MODULE_VERSION='1.0.43-finish-owner';
+const TC_COURSE_MODULE_MARKER='TURNIKCOACH_COURSE 1.0.43-finish-owner';
 const TC_COURSE_MODULE_URL='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/course.js?v='+encodeURIComponent(TC_COURSE_MODULE_VERSION);
 const TC_COURSE_CACHE_KEY='tc_module_course_'+TC_COURSE_MODULE_VERSION;
 let tcDomainPrimePromise=null,tcUiPrimePromise=null,tcStorePrimePromise=null,tcActionsPrimePromise=null,tcCoursePrimePromise=null;
@@ -430,27 +430,26 @@ return false;
 function tcInstallCompletionFlow(){
 if(tcCompletionFlowInstalled)return;
 tcCompletionFlowInstalled=true;
-const baseFinish=window.finishWorkout;
-if(typeof baseFinish!=='function')return;
-window.finishWorkout=function(feel){
-if(typeof W==='undefined'||!W)return baseFinish.apply(this,arguments);
-const workoutBefore=tcJsonClone(W);
-const store=window.TurnikWorkoutStore;
-const tx={
-savedAt:Date.now(),
-state:store&&store.sourceSnapshot?store.sourceSnapshot('generic'):null,
-course:store&&store.sourceSnapshot?store.sourceSnapshot('course'):null
+const actions=window.TurnikWorkoutActions;
+if(!actions||typeof actions.registerFinishBefore!=='function'||typeof actions.registerFinishAfter!=='function')throw new Error('TurnikCoach finish dispatcher unavailable for completion flow');
+actions.registerFinishBefore('completion-summary',100,ctx=>{
+if(typeof W==='undefined'||!W)return;
+const workoutBefore=tcJsonClone(W),store=window.TurnikWorkoutStore;
+ctx.meta.completion={
+workoutBefore,
+tx:{savedAt:Date.now(),state:store&&store.sourceSnapshot?store.sourceSnapshot('generic'):null,course:store&&store.sourceSnapshot?store.sourceSnapshot('course'):null},
+summary:tcWorkoutSummary(workoutBefore,ctx.feel)
 };
-const summary=tcWorkoutSummary(workoutBefore,feel);
-const result=baseFinish.apply(this,arguments);
+});
+actions.registerFinishAfter('completion-summary',100,ctx=>{
+const c=ctx.meta.completion;if(!c)return;
 if(typeof W==='undefined'||!W){
-tx.after=tcCompletionHistorySignature();
-if(tx.state&&tx.course&&tx.after)try{localStorage.setItem(TC_COMPLETION_UNDO_KEY,JSON.stringify(tx))}catch(e){}
+c.tx.after=tcCompletionHistorySignature();
+if(c.tx.state&&c.tx.course&&c.tx.after)try{localStorage.setItem(TC_COMPLETION_UNDO_KEY,JSON.stringify(c.tx))}catch(e){}
 if(typeof window.tcClearActiveWorkoutSnapshot==='function')window.tcClearActiveWorkoutSnapshot();
-setTimeout(()=>tcShowCompletionSummary(summary),0);
+setTimeout(()=>tcShowCompletionSummary(c.summary),0);
 }
-return result;
-};
+});
 }
 function tcInstallNavigationUpgrades(){
 console.log('TC_NAV_UPGRADE',JSON.stringify({phase:'install',version:VERSION}));
@@ -1479,7 +1478,7 @@ decorateCorrectionControls();
 function tcInstallWorkoutPersistence(){
 if(tcWorkoutPersistenceInstalled)return;
 tcWorkoutPersistenceInstalled=true;
-const names=['adj','startRest','addRest','finishRest','finishWorkout',
+const names=['adj','startRest','addRest','finishRest',
 'tcStartAuxWorkout','tcStartCourseTest','tcStartCourseWorkout','tcStartExtraWorkout','tcStartSupplementWorkout'];
 names.forEach(name=>{
 const fn=window[name];
@@ -1495,6 +1494,7 @@ window[name]=wrapped;
 const actions=window.TurnikWorkoutActions;
 if(!actions||typeof actions.registerAfter!=='function')throw new Error('TurnikCoach workout action dispatcher unavailable for persistence');
 actions.registerAfter('workout-persistence',-100,()=>setTimeout(tcSaveActiveWorkoutSnapshot,0));
+actions.registerFinishAfter('workout-finish-persistence',-100,()=>setTimeout(tcSaveActiveWorkoutSnapshot,0));
 document.addEventListener('input',()=>{if(typeof W!=='undefined'&&W)setTimeout(tcSaveActiveWorkoutSnapshot,0)},{passive:true});
 document.addEventListener('change',()=>{if(typeof W!=='undefined'&&W)setTimeout(tcSaveActiveWorkoutSnapshot,0)},{passive:true});
 document.addEventListener('visibilitychange',()=>{
