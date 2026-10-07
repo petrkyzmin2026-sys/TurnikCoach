@@ -1,7 +1,7 @@
-/* TURNIKCOACH_WORKOUT_STORE 1.1.0-write-path */
+/* TURNIKCOACH_WORKOUT_STORE 1.2.0-undo-restore */
 (function(){
 'use strict';
-const VERSION='1.1.0-write-path';
+const VERSION='1.2.0-undo-restore';
 if(window.TurnikWorkoutStore&&window.TurnikWorkoutStore.version===VERSION)return;
 function core(){return window.TurnikCore||null}
 function rows(){
@@ -105,9 +105,27 @@ return false;
 }
 return true;
 }
+function restoreSnapshots(snapshots){
+if(!snapshots||typeof snapshots!=='object'||Array.isArray(snapshots))return false;
+const steps=[];
+for(const sourceName of ['generic','course']){
+if(!Object.prototype.hasOwnProperty.call(snapshots,sourceName))continue;
+const source=snapshots[sourceName];
+if(!source||typeof source!=='object'||Array.isArray(source))return false;
+let saved;
+try{saved=JSON.parse(JSON.stringify(source))}catch(e){return false}
+steps.push({source:sourceName,mutate:draft=>{
+if(!draft||typeof draft!=='object'||Array.isArray(draft))return false;
+Object.keys(draft).forEach(k=>delete draft[k]);
+Object.assign(draft,JSON.parse(JSON.stringify(saved)));
+return true;
+}});
+}
+return steps.length?batch(steps):false;
+}
 function debug(){
 const a=rows();return{version:VERSION,total:a.length,sources:[...new Set(a.map(x=>x.source))],modes:[...new Set(a.map(x=>x.mode))],writePath:true};
 }
-window.TurnikWorkoutStore={version:VERSION,list,get,summary,course,sourceSnapshot,transact,append,removeWhere,batch,debug};
+window.TurnikWorkoutStore={version:VERSION,list,get,summary,course,sourceSnapshot,transact,append,removeWhere,batch,restoreSnapshots,debug};
 try{window.dispatchEvent(new CustomEvent('turnikworkoutstore:ready',{detail:{version:VERSION}}))}catch(e){}
 })();
