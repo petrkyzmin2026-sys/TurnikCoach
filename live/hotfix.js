@@ -1,8 +1,8 @@
-/* TURNIKCOACH_HOTFIX 5.16.49-transactional-undo */
+/* TURNIKCOACH_HOTFIX 5.16.50-observer-decorators */
 (function(){
 'use strict';
-const VERSION='5.16.49-transactional-undo';
-const LABEL='5.16.49';
+const VERSION='5.16.50-observer-decorators';
+const LABEL='5.16.50';
 const APPROVED_KEY='tc_hotfix_approved_version';
 const LEGACY_ASSET_VERSION='5.14.0-adaptive-rest';
 const stalePrompt=document.getElementById('tcUpdatePrompt');
@@ -68,7 +68,7 @@ title.style.cssText='font-size:22px;font-weight:800;margin-bottom:10px;flex:0 0 
 title.textContent='Доступно обновление TurnikCoach '+LABEL;
 const text=document.createElement('div');
 text.style.cssText='font-size:15px;line-height:1.45;color:#cfd8e3;margin-bottom:18px;min-height:0;flex:1 1 0;overflow-y:auto;overscroll-behavior:contain;padding-right:4px';
-text.innerHTML="Усилена защита истории тренировок. Отмена только что сохранённой тренировки теперь восстанавливает оба источника данных одной транзакцией через WorkoutStore. Если после сохранения появились новые записи, приложение не позволит случайно удалить их откатом. Экран и расписание курса не меняются.<br><br>Установить обновление сейчас?";
+text.innerHTML="Продолжается очистка архитектуры интерфейса. Декораторы кнопок «Назад/Выйти», исправления подхода и информационных элементов больше не переопределяют go/render/renderWork. Они следят за реальным состоянием DOM и обновляются после фактической смены экрана. Поведение тренировки и история не меняются.<br><br>Установить обновление сейчас?";
 const row=document.createElement('div');
 row.style.cssText='display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;flex:0 0 auto';
 const later=document.createElement('button');
@@ -1439,22 +1439,10 @@ b.onclick=window.tcReturnToPreviousSet;box.appendChild(b);
 }
 }
 window.tcEnsureCorrectionControls=()=>setTimeout(decorateCorrectionControls,0);
-const oldGo=window.go;
-if(typeof oldGo==='function')window.go=function(id){
-const result=oldGo.apply(this,arguments);
-setTimeout(decorateCorrectionControls,0);
-return result;
-};
-const oldRenderWork=window.renderWork;
-if(typeof oldRenderWork==='function')window.renderWork=function(){
-const result=oldRenderWork.apply(this,arguments);
-setTimeout(decorateCorrectionControls,0);
-return result;
-};
 const app=document.getElementById('app');
 if(app){
 const observer=new MutationObserver(()=>setTimeout(decorateCorrectionControls,0));
-observer.observe(app,{childList:true,subtree:true});
+observer.observe(app,{childList:true,subtree:true,attributes:true,attributeFilter:['class']});
 window.__tcCorrectionUiObserver=observer;
 }
 decorateCorrectionControls();
@@ -1662,18 +1650,10 @@ tcDecorateQueued=true;
 setTimeout(tcDecorate,0);
 }
 tcInjectProductStyles();
-try{
-const oldGo=window.go;
-window.go=function(id){const r=oldGo(id);tcQueueDecorate();return r};
-}catch(e){}
-try{
-const oldRender=window.render;
-window.render=function(){const r=oldRender();tcQueueDecorate();return r};
-}catch(e){}
 const tcApp=document.getElementById('app');
 if(tcApp){
 const mo=new MutationObserver(tcQueueDecorate);
-mo.observe(tcApp,{childList:true,subtree:true});
+mo.observe(tcApp,{childList:true,subtree:true,attributes:true,attributeFilter:['class']});
 window.__tcProductObserver=mo;
 }
 try{render()}catch(e){tcQueueDecorate()}
