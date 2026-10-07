@@ -31,7 +31,7 @@ assert(hotfix.includes("TC_DOMAIN_MODULE_URL='https://raw.githubusercontent.com/
  'domain state must ship as a separately versioned/offline-cached module');
 assert(hotfix.includes("TC_DOMAIN_MODULE_VERSION='1.0.0'")&&
  hotfix.includes("TC_UI_MODULE_VERSION='1.0.0'")&&
- hotfix.includes("TC_STORE_MODULE_VERSION='1.1.0-write-path'")&&
+ hotfix.includes("TC_STORE_MODULE_VERSION='1.2.0-undo-restore'")&&
  hotfix.includes("TC_COURSE_MODULE_VERSION='1.0.40-unified-writes'"),
  'OTA shell must pin exact compatible Domain, UI, Store and Course module versions');
 assert(hotfix.includes("TC_UI_MODULE_URL='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/ui.js")&&
@@ -210,8 +210,8 @@ assert(hotfix.includes("if(!window.TurnikUI.install())throw new Error('TurnikCoa
  'UI dispatcher must install before course presenters execute');
 assert(course.includes('id="tcCycleStartDate"'),
  'settings must expose a cycle start date');
-assert(hotfix.includes("const VERSION='5.16.48-unified-workout-writes'"),
- 'release hotfix version must be 5.16.48');
+assert(hotfix.includes("const VERSION='5.16.49-transactional-undo'"),
+ 'release hotfix version must be 5.16.49');
 assert(course.includes("const COURSE_MODULE_VERSION='1.0.40-unified-writes'"),
  'course module version must be 1.0.40');
 assert(domain.includes("const VERSION='1.0.0'"),
@@ -220,7 +220,7 @@ assert(!course.includes('TC_EXTRA_START'),
  'temporary extra-workout trace logging must not ship');
 assert(!course.includes('window.confirm('),'course module must not depend on unsupported WebView JS dialogs');
 assert(!hotfix.includes('window.confirm('),'hotfix navigation/discard must not depend on unsupported WebView JS dialogs');
-assert(!hotfix.includes('forceHandover'),'5.16.48 must use an explicit user-visible update prompt');
+assert(!hotfix.includes('forceHandover'),'5.16.49 must use an explicit user-visible update prompt');
 assert(hotfix.includes("showRuntimeNotice('TurnikCoach обновлён до '+LABEL)"),
  'successful activation must give visible feedback');
 assert(hotfix.includes("localStorage.setItem('tc_hotfix_active_version',VERSION)"),
@@ -277,7 +277,7 @@ storeSandbox.TurnikCore={
  transact:(name,mutator)=>{const next=cloneStore(storeSources[name]);if(mutator(next)===false)return false;storeSources[name]=next;return true}
 };
 vm.runInNewContext(store,storeSandbox,{filename:'live/store.js'});
-assert.equal(storeSandbox.TurnikWorkoutStore.version,'1.1.0-write-path');
+assert.equal(storeSandbox.TurnikWorkoutStore.version,'1.2.0-undo-restore');
 assert.equal(storeSandbox.TurnikWorkoutStore.list().length,2,'WorkoutStore must exclude non-workout history events');
 assert.equal(storeSandbox.TurnikWorkoutStore.list({source:'course'}).length,1);
 assert.equal(storeSandbox.TurnikWorkoutStore.list({runId:'r1'}).length,1);
@@ -301,6 +301,19 @@ assert.equal(storeSandbox.TurnikWorkoutStore.batch([
 ]),false,'failed cross-store batch must report failure');
 failReplace='';
 assert.deepEqual(storeSources.course,beforeRollback.course,'failed batch must roll back an already-applied source');
+const restoreTarget=cloneStore(storeSources);
+storeSources.generic.history.push({type:'workout',date:'2026-10-05',ts:50});
+storeSources.course.extraSeq=33;
+assert(storeSandbox.TurnikWorkoutStore.restoreSnapshots(restoreTarget),
+ 'snapshot restore must atomically restore both sources');
+assert.deepEqual(storeSources,restoreTarget,'restore must restore complete generic/course objects');
+const failedRestoreBefore=cloneStore(storeSources);
+failReplace='course';
+assert.equal(storeSandbox.TurnikWorkoutStore.restoreSnapshots({
+ generic:{history:[]},course:{history:[]}
+}),false,'failed restore must not silently keep a partial transaction');
+failReplace='';
+assert.deepEqual(storeSources,failedRestoreBefore,'failed restore must roll back already-restored sources');
 
 assert(hotfix.includes("const LEGACY_ASSET_VERSION='5.14.0-adaptive-rest'"),
  'live hotfix must know the immutable packaged asset version');
@@ -735,8 +748,8 @@ assert(hotfix.includes("const TC_COMPLETION_UNDO_KEY='tc_completion_undo_v1'"),
  'completion flow must keep a bounded undo transaction');
 assert(hotfix.includes('function tcInstallCompletionFlow()'),
  'completion summary must wrap the final save path');
-assert(hotfix.includes("if(tx.state)state=tx.state")&&
- hotfix.includes("window.tcRestoreCourseStateSnapshot(tx.course)")&&
+assert(hotfix.includes("store.restoreSnapshots({generic:tx.state,course:tx.course})")&&
+ hotfix.includes("tcCompletionHistorySignature()")&&
  course.includes("window.tcGetCourseStateSnapshot=function()")&&
  course.includes("window.tcRestoreCourseStateSnapshot=function(snapshot)"),
  'completion undo must restore both generic state and the encapsulated course snapshot');
@@ -866,10 +879,12 @@ assert.deepEqual(sample,{week:2,total:3,pullMax:21},
  'Progress summary must dedupe shared records and exclude skips/tests');
 
 // Behavioral completion-flow regression: execute the shipped wrapper and shipped Undo transaction.
-const completionHarness=new Function(
+const completionHarnessFn=new Function('intervene',
   extractFrom(hotfix,'tcWorkoutSummary')+'\n'+
   extractFrom(hotfix,'tcReadCompletionUndo')+'\n'+
   extractFrom(hotfix,'tcClearCompletionUndo')+'\n'+
+  extractFrom(hotfix,'tcCompletionHistoryFingerprint')+'\n'+
+  extractFrom(hotfix,'tcCompletionHistorySignature')+'\n'+
   extractFrom(hotfix,'tcInstallCompletionFlow')+'\n'+
   `
   const TC_COMPLETION_UNDO_KEY='tc_completion_undo_v1';
@@ -901,8 +916,10 @@ const completionHarness=new Function(
       W=null;
       return 'saved';
     },
-    tcGetCourseStateSnapshot:()=>JSON.parse(JSON.stringify(courseState)),
-    tcRestoreCourseStateSnapshot:s=>{courseState=JSON.parse(JSON.stringify(s))},
+    TurnikWorkoutStore:{
+      sourceSnapshot:name=>JSON.parse(JSON.stringify(name==='generic'?state:courseState)),
+      restoreSnapshots:snapshots=>{state=JSON.parse(JSON.stringify(snapshots.generic));courseState=JSON.parse(JSON.stringify(snapshots.course));return true}
+    },
     tcClearActiveWorkoutSnapshot:()=>{activeSnapshotClears++}
   };
   `+
@@ -927,6 +944,7 @@ const completionHarness=new Function(
     summary:summarySeen,
     activeSnapshotClears
   };
+  if(intervene)state.history.push({id:'intervening-record'});
   const undoResult=window.tcUndoLastCompletion();
   return {
     afterFinish,
@@ -940,6 +958,8 @@ const completionHarness=new Function(
   `
 )();
 
+const completionHarness=completionHarnessFn(false);
+const conflictHarness=completionHarnessFn(true);
 assert.equal(completionHarness.afterFinish.finishResult,'saved');
 assert.equal(completionHarness.afterFinish.W,null,'finish wrapper must leave no active workout after base save');
 assert.equal(completionHarness.afterFinish.state.counter,99,'base save mutation must occur before Undo');
@@ -956,6 +976,10 @@ assert.equal(completionHarness.state.counter,7,'Undo must restore generic state 
 assert.equal(completionHarness.state.history.length,1,'Undo must remove the newly saved workout by restoring pre-save state');
 assert.equal(completionHarness.course.courseSeq,4,'Undo must restore course sequence exactly');
 assert.equal(completionHarness.lastGo,'today','Undo must return to Today');
+assert.equal(conflictHarness.undoResult,false,'Undo must refuse to overwrite an intervening workout');
+assert.equal(conflictHarness.state.history.length,3,'conflict must preserve the new workout');
+assert.equal(conflictHarness.course.courseSeq,5,'conflict must not roll back the course');
+assert(conflictHarness.txAfterUndo,'conflict must retain the undo transaction for explicit recovery');
 assert.equal(completionHarness.txAfterUndo,null,'successful Undo must clear the one-shot transaction');
 assert(completionHarness.activeSnapshotClears>=2,'finish and Undo must clear durable active-workout snapshots');
 assert(completionHarness.notices.some(x=>x[0]==='Сохранение тренировки отменено.'),
