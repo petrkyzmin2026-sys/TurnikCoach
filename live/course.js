@@ -1201,7 +1201,7 @@ return '<div class="todayCard tcTodayPrimaryCard"><div class="row between"><div 
 '<details class="tcTodayPlanDetails"><summary>Посмотреть план</summary><div class="tcTodayPlanBody">'+tcCourseRowsHtml(items)+tcAdaptationNote(tcOriginalCourseDefs())+'</div></details></div>';
 }
 window.tcChooseTransferRest=function(plannedDate){
-const c=tcTransferCandidateRaw(dateKey());if(!c||c.plannedDate!==plannedDate)return;
+const c=tcTransferCandidateRaw(dateKey());if(!c||c.plannedDate!==plannedDate){tcActionMessage('Перенос больше недоступен','Наступило другое тренировочное окно или состояние курса изменилось.');return;}
 const today=dateKey(),store=tcRequireWorkoutStore();
 if(!store.transact('course',draft=>{
 draft.transferRestDates=Array.isArray(draft.transferRestDates)?draft.transferRestDates:[];
