@@ -1,7 +1,7 @@
-/* TURNIKCOACH_COURSE 1.0.42-action-owner */
+/* TURNIKCOACH_COURSE 1.0.43-finish-owner */
 (function(){
 'use strict';
-const COURSE_MODULE_VERSION='1.0.42-action-owner';
+const COURSE_MODULE_VERSION='1.0.43-finish-owner';
 if(window.__TC_COURSE_MODULE_VERSION===COURSE_MODULE_VERSION)return;
 window.__TC_COURSE_MODULE_VERSION=COURSE_MODULE_VERSION;
 function tcClamp(v,a,b){return Math.max(a,Math.min(b,v))}
@@ -1915,10 +1915,9 @@ if(!window.TurnikWorkoutActions||typeof window.TurnikWorkoutActions.registerHand
 window.TurnikWorkoutActions.registerHandler('morozov-course',100,tcCourseSetDoneAction);
 const tcBeforeCourseFinishRest=window.finishRest;
 window.finishRest=function(){if(window.__tcManualCourseRest){tcRestoreRestUI();go('workout');return}return tcBeforeCourseFinishRest()};
-const tcBeforeCourseFinishWorkout=window.finishWorkout;
-window.finishWorkout=function(feel){
-if(!W)return;
-if(!['course','extra','supplement','auxCourse'].includes(W.mode))return tcBeforeCourseFinishWorkout(feel);
+function tcCourseFinishWorkoutAction(ctx){
+const feel=ctx&&ctx.feel||'';
+if(!W||!['course','extra','supplement','auxCourse'].includes(W.mode))return null;
 let total=0,details=[];W.items.forEach(x=>{const actual=x.plan.map((_,i)=>x.actual[i]===undefined?null:x.actual[i]);const sum=actual.reduce((s,v)=>s+(Number.isFinite(+v)?+v:0),0);total+=sum;details.push({id:x.e.id,name:x.e.name,metric:x.e.metric,load:x.e.load||0,plan:x.plan.slice(),planLabels:(x.planLabels||x.plan.map(String)).slice(),actual,sum})});
 const rec={type:'workout',date:dateKey(),ts:Date.now(),feedback:feel,total,details,early:!!W.early,courseMode:W.mode,adapted:!!W.adapted,equipment:'bar',session:W.mode==='extra'?'доп.':'курс'};
 const store=tcRequireWorkoutStore();
@@ -1947,7 +1946,10 @@ const run=tcEnsureCourseRun();rec.runId=run&&run.id||'';rec.courseLevel=TC_cours
 if(!store.append('course',rec))throw new Error('supplement workout transaction failed');
 }
 q('sheet').classList.remove('open');W=null;go('today');
-};
+return{handled:true,result:undefined};
+}
+if(!window.TurnikWorkoutActions||typeof window.TurnikWorkoutActions.registerFinishHandler!=='function')throw new Error('TurnikCoach finish dispatcher unavailable');
+window.TurnikWorkoutActions.registerFinishHandler('morozov-course',100,tcCourseFinishWorkoutAction);
 const tcBeforeCourseInfo=window.tcOpenTrainingInfo;
 window.tcOpenTrainingInfo=function(){if(TC_course.enabled&&(W&&['course','supplement','auxCourse','courseTest'].includes(W.mode)||q('today').classList.contains('on')))return tcOpenCourseInfo();return tcBeforeCourseInfo()};
 function tcCourseTestsHtml(){
