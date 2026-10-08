@@ -1,8 +1,8 @@
-/* TURNIKCOACH_HOTFIX 5.16.55-workout-ui-owner */
+/* TURNIKCOACH_HOTFIX 5.16.56-persistence-owner */
 (function(){
 'use strict';
-const VERSION='5.16.55-workout-ui-owner';
-const LABEL='5.16.55';
+const VERSION='5.16.56-persistence-owner';
+const LABEL='5.16.56';
 const APPROVED_KEY='tc_hotfix_approved_version';
 const LEGACY_ASSET_VERSION='5.14.0-adaptive-rest';
 const stalePrompt=document.getElementById('tcUpdatePrompt');
@@ -68,7 +68,7 @@ title.style.cssText='font-size:22px;font-weight:800;margin-bottom:10px;flex:0 0 
 title.textContent='Доступно обновление TurnikCoach '+LABEL;
 const text=document.createElement('div');
 text.style.cssText='font-size:15px;line-height:1.45;color:#cfd8e3;margin-bottom:18px;min-height:0;flex:1 1 0;overflow-y:auto;overscroll-behavior:contain;padding-right:4px';
-text.innerHTML="Продолжена архитектурная очистка без изменения привычного интерфейса. Рабочий экран тренировки теперь имеет одного владельца — TurnikWorkoutUI. Курс Морозова и коррекция подходов больше не переопределяют renderWork друг поверх друга, а подключаются как упорядоченные обработчики. Это снижает риск некликабельных и рассинхронизированных элементов во время тренировки.<br><br>Установить обновление сейчас?";
+text.innerHTML="Архитектурное обновление без изменения интерфейса. Состояние курса Морозова теперь сохраняется через единственный путь WorkoutStore → TurnikCore → storage adapter. Прямой localStorage остаётся только внутри адаптера хранения, что устраняет ещё один источник рассинхронизации. История и настройки сохраняются.<br><br>Установить обновление сейчас?";
 const row=document.createElement('div');
 row.style.cssText='display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;flex:0 0 auto';
 const later=document.createElement('button');
@@ -135,8 +135,8 @@ const TC_WORKOUT_UI_MODULE_VERSION='1.0.0';
 const TC_WORKOUT_UI_MODULE_MARKER='TURNIKCOACH_WORKOUT_UI 1.0.0';
 const TC_WORKOUT_UI_MODULE_URL='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/workout_ui.js?v='+encodeURIComponent(TC_WORKOUT_UI_MODULE_VERSION);
 const TC_WORKOUT_UI_CACHE_KEY='tc_module_workout_ui_'+TC_WORKOUT_UI_MODULE_VERSION;
-const TC_COURSE_MODULE_VERSION='1.0.44-workout-ui-owner';
-const TC_COURSE_MODULE_MARKER='TURNIKCOACH_COURSE 1.0.44-workout-ui-owner';
+const TC_COURSE_MODULE_VERSION='1.0.45-persistence-owner';
+const TC_COURSE_MODULE_MARKER='TURNIKCOACH_COURSE 1.0.45-persistence-owner';
 const TC_COURSE_MODULE_URL='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/course.js?v='+encodeURIComponent(TC_COURSE_MODULE_VERSION);
 const TC_COURSE_CACHE_KEY='tc_module_course_'+TC_COURSE_MODULE_VERSION;
 let tcDomainPrimePromise=null,tcUiPrimePromise=null,tcStorePrimePromise=null,tcActionsPrimePromise=null,tcLifecyclePrimePromise=null,tcNavigationPrimePromise=null,tcWorkoutUiPrimePromise=null,tcCoursePrimePromise=null;
