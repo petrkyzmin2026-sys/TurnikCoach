@@ -235,7 +235,7 @@ snapshot:()=>typeof window.tcGetCourseStateSnapshot==='function'?window.tcGetCou
 history:()=>{const x=typeof window.tcGetCourseStateSnapshot==='function'?window.tcGetCourseStateSnapshot():null;return x&&Array.isArray(x.history)?x.history:[]},
 restore:next=>typeof window.tcRestoreCourseStateSnapshot==='function'?window.tcRestoreCourseStateSnapshot(next):false
 });
-window.__TC_CORE_FOUNDATION={version:core.version,domainModule:window.TurnikDomain&&window.TurnikDomain.version||'',uiModule:window.TurnikUI&&window.TurnikUI.version||'',storeModule:window.TurnikWorkoutStore&&window.TurnikWorkoutStore.version||'',actionsModule:window.TurnikWorkoutActions&&window.TurnikWorkoutActions.version||'',courseModule:TC_COURSE_MODULE_VERSION,modular:true};
+window.__TC_CORE_FOUNDATION={version:core.version,domainModule:window.TurnikDomain&&window.TurnikDomain.version||'',uiModule:window.TurnikUI&&window.TurnikUI.version||'',storeModule:window.TurnikWorkoutStore&&window.TurnikWorkoutStore.version||'',actionsModule:window.TurnikWorkoutActions&&window.TurnikWorkoutActions.version||'',lifecycleModule:window.TurnikWorkoutLifecycle&&window.TurnikWorkoutLifecycle.version||'',courseModule:TC_COURSE_MODULE_VERSION,modular:true};
 return true;
 }
 tcLoadCoreModule();
@@ -993,11 +993,11 @@ window.__tcBackControlObserver=mo;
 function installUpdate(){
 if(window.__TC_HOTFIX_ACTIVE_VERSION===VERSION)return;
 if(!tcLoadCoreModule()){showRuntimeNotice('Не удалось загрузить ядро TurnikCore. Текущая версия оставлена без изменений.','danger');return}
-if(!tcLoadLifecycleModule()){showRuntimeNotice('Не удалось загрузить диспетчер жизненного цикла тренировки. Текущая версия оставлена без изменений.','danger');return}
-if(!tcDomainCacheReady()||!tcUiCacheReady()||!tcStoreCacheReady()||!tcCourseCacheReady()){
+if(!tcDomainCacheReady()||!tcUiCacheReady()||!tcStoreCacheReady()||!tcActionsCacheReady()||!tcLifecycleCacheReady()||!tcCourseCacheReady()){
 tcEnsureRequiredModules().then(ok=>{if(ok)installUpdate();else showRuntimeNotice('Модули приложения недоступны. Повторите обновление при подключении к интернету.','danger')});
 return;
 }
+if(!tcLoadLifecycleModule()){showRuntimeNotice('Не удалось загрузить диспетчер жизненного цикла тренировки. Текущая версия оставлена без изменений.','danger');return}
 
 const previousVersion=String(window.__TC_HOTFIX_ACTIVE_VERSION||window.__TC_HOTFIX_VERSION||'');
 window.__TC_HOTFIX_ACTIVE_VERSION=VERSION;
