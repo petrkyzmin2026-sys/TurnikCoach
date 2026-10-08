@@ -1,7 +1,7 @@
-/* TURNIKCOACH_COURSE 1.0.45-persistence-owner */
+/* TURNIKCOACH_COURSE 1.0.46-progress-section */
 (function(){
 'use strict';
-const COURSE_MODULE_VERSION='1.0.45-persistence-owner';
+const COURSE_MODULE_VERSION='1.0.46-progress-section';
 if(window.__TC_COURSE_MODULE_VERSION===COURSE_MODULE_VERSION)return;
 window.__TC_COURSE_MODULE_VERSION=COURSE_MODULE_VERSION;
 function tcClamp(v,a,b){return Math.max(a,Math.min(b,v))}
@@ -2012,25 +2012,25 @@ const old=document.getElementById('tcCourseHistoryWrap');if(old)old.remove();
 const wrap=document.createElement('div');wrap.id='tcCourseHistoryWrap';wrap.innerHTML=tcCourseHistoryHtml(view);
 host.parentNode.insertBefore(wrap,host);return true;
 }
+window.tcGetCourseProgressViewState=function(){return tcCourseProgressState()};
+window.tcCourseProgressSectionHtml=function(view){return tcCourseHistoryHtml(view||tcCourseProgressState())};
 function tcRegisterCoursePresenters(){
 if(!window.TurnikUI)return false;
 window.TurnikUI.register('today','morozov',100,view=>{if(!TC_course.enabled)return false;tcRenderToday(view);return true});
 window.TurnikUI.register('plan','morozov',100,view=>{tcDecorateCourseCatalog(view);return true});
-window.TurnikUI.register('progress','morozov',100,view=>tcRenderCourseProgress(view));
 return true;
 }
 function tcRegisterCourseDomainResolvers(){
 if(!window.TurnikDomain)return false;
 window.TurnikDomain.register('today','morozov',100,()=>TC_course.enabled?tcCourseTodayState():null);
 window.TurnikDomain.register('plan','morozov',100,()=>tcCoursePlanState());
-window.TurnikDomain.register('progress','morozov',100,()=>tcCourseProgressState());
 return true;
 }
 window.tcGetCourseViewState=function(){
 return{
 today:TC_course.enabled?tcResolvedTodayState():null,
 plan:tcResolvedPlanState(),
-progress:tcResolvedProgressState()
+progress:tcCourseProgressState()
 };
 };
 tcRegisterCourseDomainResolvers();
