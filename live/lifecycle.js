@@ -24,7 +24,8 @@ const ctx={action,args,thisArg:self,handled:false,result:undefined,handler:'',me
 try{
 runHooks(state.before[action],ctx);
 for(const h of state.handlers[action]){
-let r=null;try{r=h.fn(ctx)}catch(e){console.error('TurnikLifecycle '+action+' handler '+h.name,e);continue}
+let r=null;
+try{r=h.fn(ctx)}catch(e){console.error('TurnikLifecycle '+action+' handler '+h.name,e);ctx.error=e;throw e}
 if(r&&r.handled){ctx.handled=true;ctx.result=r.result;ctx.handler=h.name;break}
 }
 if(!ctx.handled&&typeof base==='function')ctx.result=base.apply(self,args);
