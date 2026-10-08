@@ -1027,6 +1027,7 @@ return;
 }
 if(!tcLoadLifecycleModule()){showRuntimeNotice('Не удалось загрузить диспетчер жизненного цикла тренировки. Текущая версия оставлена без изменений.','danger');return}
 if(!tcLoadNavigationModule()){showRuntimeNotice('Не удалось загрузить диспетчер навигации. Текущая версия оставлена без изменений.','danger');return}
+if(!tcLoadWorkoutUiModule()){showRuntimeNotice('Не удалось загрузить диспетчер рабочего экрана. Текущая версия оставлена без изменений.','danger');return}
 
 const previousVersion=String(window.__TC_HOTFIX_ACTIVE_VERSION||window.__TC_HOTFIX_VERSION||'');
 window.__TC_HOTFIX_ACTIVE_VERSION=VERSION;
