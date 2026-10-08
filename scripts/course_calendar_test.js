@@ -965,7 +965,7 @@ assert.deepEqual(sample,{week:2,total:3,pullMax:21},
  'Progress summary must dedupe shared records and exclude skips/tests');
 
 // Behavioral completion-flow regression: execute the shipped wrapper and shipped Undo transaction.
-const completionHarnessFn=new Function('intervene',
+const completionHarnessFn=new Function('intervene','lifecycleSource',
   extractFrom(hotfix,'tcWorkoutSummary')+'\n'+
   extractFrom(hotfix,'tcReadCompletionUndo')+'\n'+
   extractFrom(hotfix,'tcClearCompletionUndo')+'\n'+
@@ -1008,6 +1008,8 @@ const completionHarnessFn=new Function('intervene',
     },
     tcClearActiveWorkoutSnapshot:()=>{activeSnapshotClears++}
   };
+  const CustomEvent=function(){},dispatchEvent=()=>true;
+  eval(lifecycleSource);
   `+
   extractAssignment(hotfix,'window.tcUndoLastCompletion=function')+'\n'+
   `
@@ -1020,6 +1022,7 @@ const completionHarnessFn=new Function('intervene',
   const setTimeout=fn=>{fn();return 1};
 
   tcInstallCompletionFlow();
+  if(!window.TurnikWorkoutLifecycle.install())throw Error('lifecycle install failed');
   const finishResult=window.finishWorkout('Нормально');
   const afterFinish={
     finishResult,
@@ -1044,10 +1047,10 @@ const completionHarnessFn=new Function('intervene',
   `
 );
 
-const completionHarness=completionHarnessFn(false);
-const conflictHarness=completionHarnessFn(true);
+const completionHarness=completionHarnessFn(false,lifecycle);
+const conflictHarness=completionHarnessFn(true,lifecycle);
 assert.equal(completionHarness.afterFinish.finishResult,'saved');
-assert.equal(completionHarness.afterFinish.W,null,'finish wrapper must leave no active workout after base save');
+assert.equal(completionHarness.afterFinish.W,null,'finish lifecycle must leave no active workout after base save');
 assert.equal(completionHarness.afterFinish.state.counter,99,'base save mutation must occur before Undo');
 assert.equal(completionHarness.afterFinish.course.courseSeq,5,'base course mutation must occur before Undo');
 assert.equal(completionHarness.afterFinish.tx.state.counter,7,'Undo transaction must capture pre-save generic state');
