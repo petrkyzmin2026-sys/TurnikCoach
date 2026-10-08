@@ -701,8 +701,14 @@ assert(hotfix.includes("const hadActiveWorkout=typeof W!=='undefined'&&!!W")&&
  'new hotfix must reassert durable workout state when an older hotfix already restored W');
 assert(hotfix.includes('function tcInstallNavigationUpgrades()')&&
  hotfix.includes('window.__TC_NAV_UPGRADE_VERSION=VERSION')&&
- /tcInstallNavigationFoundation\(\);\s*tcInstallNavigationUpgrades\(\);\s*tcInstallCompletionFlow\(\);\s*tcInstallHapticFeedback\(\);\s*tcInstallWorkoutCorrection\(\);\s*tcInstallProgressSummary\(\);\s*tcInstallWorkoutPersistence\(\);/.test(hotfix),
- 'hotfix upgrades must run after the one-time navigation core and before persistence restore');
+ hotfix.includes("tcRunInstaller('navigation-foundation',tcInstallNavigationFoundation)")&&
+ hotfix.includes("tcRunInstaller('navigation-upgrades',tcInstallNavigationUpgrades)")&&
+ hotfix.includes("tcRunInstaller('completion-flow',tcInstallCompletionFlow)")&&
+ hotfix.includes("tcRunInstaller('haptics',tcInstallHapticFeedback)")&&
+ hotfix.includes("tcRunInstaller('workout-correction',tcInstallWorkoutCorrection)")&&
+ hotfix.includes("tcRunInstaller('progress-summary',tcInstallProgressSummary)")&&
+ hotfix.includes("tcRunInstaller('workout-persistence',tcInstallWorkoutPersistence)"),
+ 'hotfix upgrades must run through isolated installers after lifecycle ownership is established');
 assert(hotfix.includes('window.tcRefreshActiveTrainingSurface=function(id)')&&
  hotfix.includes('window.tcArmRestoreSurfaceGuard=function(surface)')&&
  hotfix.includes('until:Date.now()+5000')&&
