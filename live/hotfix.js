@@ -470,10 +470,6 @@ window.TurnikLifecycle.registerAfter('finishWorkout','completion-summary',-1000,
 }
 function tcInstallNavigationUpgrades(){
 console.log('TC_NAV_UPGRADE',JSON.stringify({phase:'install',version:VERSION}));
-const lifecycle=window.TurnikLifecycle;
-if(!lifecycle||typeof lifecycle.registerBefore!=='function'||typeof lifecycle.registerAfter!=='function')throw new Error('TurnikCoach lifecycle unavailable for navigation');
-lifecycle.registerBefore('go','navigation-route',100,tcNavigationBefore);
-lifecycle.registerAfter('go','navigation-route',100,tcNavigationAfter);
 if(window.__tcBackControlObserver){
 try{window.__tcBackControlObserver.disconnect()}catch(e){}
 window.__tcBackControlObserver=null;
@@ -651,6 +647,10 @@ if(workout&&workout.classList.contains('on'))installAdaptiveGeometry();
 window.__TC_NAV_UPGRADE_VERSION=VERSION;
 }
 function tcInstallNavigationFoundation(){
+const lifecycle=window.TurnikLifecycle;
+if(!lifecycle||typeof lifecycle.registerBefore!=='function'||typeof lifecycle.registerAfter!=='function')throw new Error('TurnikCoach lifecycle unavailable for navigation');
+lifecycle.registerBefore('go','navigation-route',100,tcNavigationBefore);
+lifecycle.registerAfter('go','navigation-route',100,tcNavigationAfter);
 if(window.__TC_NAV_FOUNDATION)return;
 window.__TC_NAV_FOUNDATION=true;
 const style=document.createElement('style');
