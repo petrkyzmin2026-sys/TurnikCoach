@@ -102,7 +102,7 @@ jobs:
           grep -q 'TURNIKCOACH_NAVIGATION 1.0.0' live/navigation.js
           grep -q 'TURNIKCOACH_WORKOUT_UI 1.0.0' live/workout_ui.js
           grep -q 'TURNIKCOACH_COURSE 1.0.44-workout-ui-owner' live/course.js
-          grep -q 'TURNIKCOACH_COURSE 1.0.43-lifecycle-owner' app/src/main/assets/course-prev.js
+          grep -q 'TURNIKCOACH_COURSE 1.0.44-workout-ui-owner' app/src/main/assets/course-prev.js
           ! grep -q 'COURSE_MODULE_BUNDLED=' app/src/main/assets/hotfix-next.js
       - name: Seed installed 5.16.55 approval and deterministic decorator state with completed main-course state
         run: |
@@ -126,7 +126,7 @@ jobs:
           seed=r'''<script>
           (function(){
             window.__TC_DISABLE_AUDIO_FOR_SMOKE=true;
-            localStorage.setItem('tc_module_course_1.0.43-lifecycle-owner',__PREV_COURSE_CACHE__);
+            localStorage.setItem('tc_module_course_1.0.44-workout-ui-owner',__PREV_COURSE_CACHE__);
             localStorage.setItem('tc_module_domain_1.0.0',__DOMAIN_CACHE__);
             localStorage.setItem('tc_module_ui_1.0.0',__UI_CACHE__);
             localStorage.setItem('tc_module_store_1.2.0-undo-restore',__PREV_STORE_CACHE__);
