@@ -739,7 +739,7 @@ assert(hotfix.includes("const hadActiveWorkout=typeof W!=='undefined'&&!!W")&&
  'new hotfix must reassert durable workout state when an older hotfix already restored W');
 assert(hotfix.includes('function tcInstallNavigationUpgrades()')&&
  hotfix.includes('window.__TC_NAV_UPGRADE_VERSION=VERSION')&&
- /tcInstallNavigationFoundation\(\);\s*tcInstallNavigationUpgrades\(\);\s*tcInstallCompletionFlow\(\);\s*tcInstallHapticFeedback\(\);\s*tcInstallWorkoutCorrection\(\);\s*tcInstallProgressSummary\(\);\s*tcInstallWorkoutPersistence\(\);/.test(hotfix),
+ /tcInstallNavigationFoundation\(\);\s*tcInstallNavigationUpgrades\(\);\s*tcInstallCompletionFlow\(\);\s*tcInstallHapticFeedback\(\);\s*tcInstallWorkoutCorrection\(\);\s*tcInstallWorkoutPersistence\(\);/.test(hotfix),
  'hotfix upgrades must run after the one-time navigation core and before persistence restore');
 assert(hotfix.includes('window.tcRefreshActiveTrainingSurface=function(id)')&&
  hotfix.includes('window.tcArmRestoreSurfaceGuard=function(surface)')&&
@@ -1016,32 +1016,27 @@ const correctionHarness=new Function(
 assert.deepEqual(correctionHarness,{savedTrail:2,restored:true},
  'undo stack must restore saved, skipped and corrected values after JSON persistence');
 
-// Shipped progress metrics count actual workouts, not skipped sessions or tests.
-assert(hotfix.includes('function tcInstallProgressSummary()')&&
- hotfix.includes("window.tcRenderProgressSummary=renderSummary")&&
- hotfix.includes("'За 7 дней'")&&hotfix.includes("'Всего тренировок'")&&
- hotfix.includes("'MAX подтяг.'"),
- 'Progress must render summary cards from existing data without replacing charts');
-const progressMetrics=new Function(
- extractFrom(hotfix,'tcProgressMetrics')+'\nreturn tcProgressMetrics;'
-)();
-const progressNow=Date.parse('2026-10-02T12:00:00');
-const sameTs=Date.parse('2026-10-01T12:00:00');
-const sample=progressMetrics(
- [
-   {type:'workout',date:'2026-10-01',ts:sameTs,total:50,courseMode:'extra'},
-   {type:'workout',date:'2026-09-01',ts:Date.parse('2026-09-01T12:00:00'),total:41},
-   {type:'skip',date:'2026-10-02',ts:progressNow}
- ],
- [
-   {type:'workout',date:'2026-10-02',ts:progressNow-3600000,total:51,courseMode:'course'},
-   {type:'workout',date:'2026-10-01',ts:sameTs,total:50,courseMode:'extra'},
-   {type:'test',date:'2026-10-01',ts:sameTs,total:50}
- ],
- 21,progressNow
-);
-assert.deepEqual(sample,{week:2,total:3,pullMax:21},
- 'Progress summary must dedupe shared records and exclude skips/tests');
+// Progress has one owner: WorkoutStore + TurnikDomain + TurnikUI.
+assert(!hotfix.includes('function tcInstallProgressSummary()')&&!hotfix.includes('function tcProgressMetrics('),
+ 'legacy hotfix Progress owner must be removed');
+assert(progress.includes("const VERSION='1.0.0',SOURCE='unified-progress'")&&
+ progress.includes("'За 7 дней'")&&progress.includes("'Всего тренировок'")&&progress.includes("'MAX подтяг.'"),
+ 'TurnikProgress must render the existing compact summary');
+const pSandbox={console,Date,CustomEvent:function(){},dispatchEvent(){},window:null};
+pSandbox.window=pSandbox;
+pSandbox.document={head:{appendChild(){}},getElementById(){return null},createElement(){return{children:[],appendChild(x){this.children.push(x);this.firstElementChild=this.children[0];this.lastElementChild=this.children[this.children.length-1]},setAttribute(){},remove(){},style:{}}}};
+pSandbox.TurnikCore={sourceSnapshot:n=>n==='course'?{pullMax:21}:{ex:[{id:'pull',max:18}]}};
+pSandbox.TurnikWorkoutStore={summary:()=>({week:2,total:3,sets:6,reps:40})};
+pSandbox.tcGetCourseProgressViewState=()=>({kind:'COURSE_PROGRESS',stats:{completed:2}});
+const pDomain={r:null,register(area,name,priority,fn){this.r={area,name,priority,fn};return true},progress(){const v=this.r.fn();return Object.assign({source:this.r.name},v)}};
+const pUI={r:null,register(area,name,priority,fn){this.r={area,name,priority,fn};return true},renderArea(){return true}};
+pSandbox.TurnikDomain=pDomain;pSandbox.TurnikUI=pUI;
+vm.runInNewContext(progress,pSandbox,{filename:'live/progress.js'});
+assert(pSandbox.TurnikProgress.install(),'Progress owner must install with domain/UI/store dependencies');
+const pState=pSandbox.TurnikProgress.resolve();
+assert.equal(pState.summary.total,3);assert.equal(pState.summary.week,2);assert.equal(pState.pullMax,21);
+assert.equal(pState.course.kind,'COURSE_PROGRESS');
+assert.equal(pSandbox.TurnikProgress.debug().singleOwner,true,'unified-progress must win the Progress domain state');
 
 // Behavioral completion-flow regression: execute the shipped wrapper and shipped Undo transaction.
 const completionHarnessFn=new Function('intervene','lifecycleSource',
