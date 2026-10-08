@@ -1,7 +1,7 @@
-/* TURNIKCOACH_COURSE 1.0.43-lifecycle-owner */
+/* TURNIKCOACH_COURSE 1.0.44-persistence-owner */
 (function(){
 'use strict';
-const COURSE_MODULE_VERSION='1.0.43-lifecycle-owner';
+const COURSE_MODULE_VERSION='1.0.44-persistence-owner';
 if(window.__TC_COURSE_MODULE_VERSION===COURSE_MODULE_VERSION)return;
 window.__TC_COURSE_MODULE_VERSION=COURSE_MODULE_VERSION;
 function tcClamp(v,a,b){return Math.max(a,Math.min(b,v))}
@@ -181,23 +181,35 @@ function tcCloseCourseRun(reason){
 const r=tcCurrentCourseRun();if(!r||r.endedDate)return;
 r.endedDate=dateKey();r.endPullMax=TC_course.pullMax;r.endReason=reason||'changed';TC_course.activeRunId='';
 }
-function tcSaveCourse(){try{localStorage.setItem(TC_COURSE_KEY,JSON.stringify(TC_course));return true}catch(e){console.error('course save',e);return false}}
 function tcWorkoutStore(){return window.TurnikWorkoutStore&&window.TurnikWorkoutStore.version?window.TurnikWorkoutStore:null}
 function tcRequireWorkoutStore(){const x=tcWorkoutStore();if(!x)throw new Error('TurnikWorkoutStore unavailable');return x}
-window.tcGetCourseStateSnapshot=function(){
-try{return JSON.parse(JSON.stringify(TC_course))}catch(e){return null}
-};
-window.tcRestoreCourseStateSnapshot=function(snapshot){
+function tcCloneCourseState(value){try{return JSON.parse(JSON.stringify(value))}catch(e){return null}}
+function tcPersistCourseSnapshot(snapshot){
 if(!snapshot||typeof snapshot!=='object'||Array.isArray(snapshot))return false;
 try{
 localStorage.setItem(TC_COURSE_KEY,JSON.stringify(snapshot));
 TC_course=tcLoadCourse();
-tcSaveCourse();
 return true;
-}catch(e){
-console.error('course state restore',e);
-return false;
+}catch(e){console.error('course persistence adapter',e);return false}
 }
+function tcSaveCourse(){
+const snapshot=tcCloneCourseState(TC_course);if(!snapshot)return false;
+const store=tcWorkoutStore();
+if(store&&typeof store.transact==='function'){
+return store.transact('course',draft=>{
+if(!draft||typeof draft!=='object'||Array.isArray(draft))return false;
+Object.keys(draft).forEach(k=>delete draft[k]);
+Object.assign(draft,tcCloneCourseState(snapshot));
+return true;
+});
+}
+return tcPersistCourseSnapshot(snapshot);
+}
+window.tcGetCourseStateSnapshot=function(){return tcCloneCourseState(TC_course)};
+window.tcRestoreCourseStateSnapshot=function(snapshot){return tcPersistCourseSnapshot(snapshot)};
+window.tcCoursePersistenceDebug=function(){
+const store=tcWorkoutStore();
+return{version:COURSE_MODULE_VERSION,owner:store?'TurnikWorkoutStore':'bootstrap-adapter',adapter:'tcPersistCourseSnapshot',directStorageBoundary:true};
 };
 function tcNextTestDate(){
 const start=TC_course.lastTestDate||TC_course.testAnchorDate;
