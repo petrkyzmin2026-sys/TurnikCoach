@@ -1,8 +1,8 @@
-/* TURNIKCOACH_HOTFIX 5.16.55-workout-ui-owner */
+/* TURNIKCOACH_HOTFIX 5.16.56-deterministic-decorators */
 (function(){
 'use strict';
-const VERSION='5.16.55-workout-ui-owner';
-const LABEL='5.16.55';
+const VERSION='5.16.56-deterministic-decorators';
+const LABEL='5.16.56';
 const APPROVED_KEY='tc_hotfix_approved_version';
 const LEGACY_ASSET_VERSION='5.14.0-adaptive-rest';
 const stalePrompt=document.getElementById('tcUpdatePrompt');
@@ -68,7 +68,7 @@ title.style.cssText='font-size:22px;font-weight:800;margin-bottom:10px;flex:0 0 
 title.textContent='Доступно обновление TurnikCoach '+LABEL;
 const text=document.createElement('div');
 text.style.cssText='font-size:15px;line-height:1.45;color:#cfd8e3;margin-bottom:18px;min-height:0;flex:1 1 0;overflow-y:auto;overscroll-behavior:contain;padding-right:4px';
-text.innerHTML="Продолжена архитектурная очистка без изменения привычного интерфейса. Рабочий экран тренировки теперь имеет одного владельца — TurnikWorkoutUI. Курс Морозова и коррекция подходов больше не переопределяют renderWork друг поверх друга, а подключаются как упорядоченные обработчики. Это снижает риск некликабельных и рассинхронизированных элементов во время тренировки.<br><br>Установить обновление сейчас?";
+text.innerHTML="Продолжена архитектурная очистка без изменения привычного интерфейса. Повторные глобальные наблюдатели DOM убраны: геометрия тренировки, кнопки навигации, коррекция подходов и информационные элементы теперь обновляются только через явные события TurnikNavigation, TurnikWorkoutUI и TurnikUI. Это делает интерфейс предсказуемее и уменьшает риск повторных/запаздывающих изменений элементов.<br><br>Установить обновление сейчас?";
 const row=document.createElement('div');
 row.style.cssText='display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;flex:0 0 auto';
 const later=document.createElement('button');
@@ -663,18 +663,16 @@ window.addEventListener('pageshow',window.__tcRestoreGuardPageshowHandler);
 document.addEventListener('visibilitychange',window.__tcRestoreGuardVisibilityHandler);
 if(window.__tcAdaptiveSurfaceObserver){
 try{window.__tcAdaptiveSurfaceObserver.disconnect()}catch(e){}
+window.__tcAdaptiveSurfaceObserver=null;
 }
-const app=document.getElementById('app');
-if(app){
-const mo=new MutationObserver(()=>{
+const applyAdaptiveGeometry=()=>{
 const workout=document.getElementById('workout');
 if(workout&&workout.classList.contains('on'))installAdaptiveGeometry();
-});
-mo.observe(app,{childList:true,subtree:true,attributes:true,attributeFilter:['class']});
-window.__tcAdaptiveSurfaceObserver=mo;
-}
-const workout=document.getElementById('workout');
-if(workout&&workout.classList.contains('on'))installAdaptiveGeometry();
+};
+if(!window.TurnikNavigation||!window.TurnikWorkoutUI)throw new Error('TurnikCoach deterministic geometry hooks unavailable');
+window.TurnikNavigation.registerAfter('adaptive-geometry',200,applyAdaptiveGeometry);
+window.TurnikWorkoutUI.registerAfter('adaptive-geometry',200,applyAdaptiveGeometry);
+applyAdaptiveGeometry();
 window.__TC_NAV_UPGRADE_VERSION=VERSION;
 }
 function tcInstallNavigationFoundation(){
@@ -1012,12 +1010,13 @@ const start=currentScreen();
 tcSyncScreenVisibility(start);
 replaceRoute(start,false);
 tcDecorateBackControls();
-const app=document.getElementById('app');
-if(app){
-const mo=new MutationObserver(tcDecorateBackControls);
-mo.observe(app,{childList:true,subtree:true,attributes:true,attributeFilter:['class']});
-window.__tcBackControlObserver=mo;
+if(window.__tcBackControlObserver){
+try{window.__tcBackControlObserver.disconnect()}catch(e){}
+window.__tcBackControlObserver=null;
 }
+if(!window.TurnikNavigation||!window.TurnikWorkoutUI)throw new Error('TurnikCoach deterministic back-control hooks unavailable');
+window.TurnikNavigation.registerAfter('back-controls',300,()=>setTimeout(tcDecorateBackControls,0));
+window.TurnikWorkoutUI.registerAfter('back-controls',300,()=>setTimeout(tcDecorateBackControls,0));
 }
 function installUpdate(){
 if(window.__TC_HOTFIX_ACTIVE_VERSION===VERSION)return;
@@ -1028,6 +1027,7 @@ return;
 }
 if(!tcLoadLifecycleModule()){showRuntimeNotice('Не удалось загрузить диспетчер жизненного цикла тренировки. Текущая версия оставлена без изменений.','danger');return}
 if(!tcLoadNavigationModule()){showRuntimeNotice('Не удалось загрузить диспетчер навигации. Текущая версия оставлена без изменений.','danger');return}
+if(!tcLoadWorkoutUiModule()){showRuntimeNotice('Не удалось загрузить диспетчер рабочего экрана. Текущая версия оставлена без изменений.','danger');return}
 
 const previousVersion=String(window.__TC_HOTFIX_ACTIVE_VERSION||window.__TC_HOTFIX_VERSION||'');
 window.__TC_HOTFIX_ACTIVE_VERSION=VERSION;
@@ -1502,11 +1502,9 @@ window.tcEnsureCorrectionControls=()=>setTimeout(decorateCorrectionControls,0);
 window.TurnikNavigation.registerAfter('correction-controls',100,()=>setTimeout(decorateCorrectionControls,0));
 if(!window.TurnikWorkoutUI||typeof window.TurnikWorkoutUI.registerAfter!=='function')throw new Error('TurnikCoach workout UI dispatcher unavailable for correction');
 window.TurnikWorkoutUI.registerAfter('correction-controls',60,()=>setTimeout(decorateCorrectionControls,0));
-const app=document.getElementById('app');
-if(app){
-const observer=new MutationObserver(()=>setTimeout(decorateCorrectionControls,0));
-observer.observe(app,{childList:true,subtree:true});
-window.__tcCorrectionUiObserver=observer;
+if(window.__tcCorrectionUiObserver){
+try{window.__tcCorrectionUiObserver.disconnect()}catch(e){}
+window.__tcCorrectionUiObserver=null;
 }
 decorateCorrectionControls();
 }
@@ -1721,14 +1719,15 @@ setTimeout(tcDecorate,0);
 }
 tcInjectProductStyles();
 window.TurnikNavigation.registerAfter('product-decorate',50,()=>tcQueueDecorate());
-const tcApp=document.getElementById('app');
-if(tcApp){
-const mo=new MutationObserver(tcQueueDecorate);
-mo.observe(tcApp,{childList:true,subtree:true});
-window.__tcProductObserver=mo;
+if(window.__tcProductObserver){
+try{window.__tcProductObserver.disconnect()}catch(e){}
+window.__tcProductObserver=null;
 }
+if(!window.TurnikWorkoutUI)throw new Error('TurnikCoach deterministic product hook unavailable');
+window.TurnikWorkoutUI.registerAfter('product-decorate',50,()=>tcQueueDecorate());
 try{render()}catch(e){tcQueueDecorate()}
 tcQueueDecorate();
+window.__TC_DECORATOR_FOUNDATION={version:'1.0.0',mode:'deterministic',mutationObservers:1};
 restReasonEl();
 if(!tcLoadDomainModule())throw new Error('TurnikCoach domain module unavailable after preflight');
 if(!tcLoadUiModule())throw new Error('TurnikCoach UI module unavailable after preflight');
