@@ -1002,6 +1002,7 @@ const completionHarnessFn=new Function('intervene','lifecycleSource',
       W=null;
       return 'saved';
     },
+    finishRest:function(){return 'rest'},
     TurnikWorkoutStore:{
       sourceSnapshot:name=>JSON.parse(JSON.stringify(name==='generic'?state:courseState)),
       restoreSnapshots:snapshots=>{state=JSON.parse(JSON.stringify(snapshots.generic));courseState=JSON.parse(JSON.stringify(snapshots.course));return true}
