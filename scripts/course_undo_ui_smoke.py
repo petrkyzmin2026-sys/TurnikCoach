@@ -347,7 +347,7 @@ handover_probe=test_eval_json("(function(){var n=document.getElementById('tcRunt
 print("TC_DIAG handover-probe",handover_probe,flush=True)
 assert handover_probe["active"]=="5.16.53-lifecycle-owner", "5.16.53 must become the active OTA shell after handover"
 assert handover_probe["install"] is not None and handover_probe["install"].get("errors")==[], "all 5.16.53 installers must complete without isolated errors: "+str(handover_probe["install"])
-wait_text("TurnikCoach обновлён до 5.16.53",timeout=25)
+assert "TurnikCoach обновлён до 5.16.53" in handover_probe["notice"] or "TurnikCoach обновлён до 5.16.53" in handover_probe["body"], "successful handover must expose the 5.16.53 update notice"
 assert_accessibility_target("План",48)
 assert_accessibility_target("Прогресс",48)
 screenshot("02-update-installed")
