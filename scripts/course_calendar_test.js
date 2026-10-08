@@ -44,7 +44,7 @@ assert(hotfix.includes("TC_DOMAIN_MODULE_VERSION='1.0.0'")&&
  hotfix.includes("TC_LIFECYCLE_MODULE_VERSION='1.0.0'")&&
  hotfix.includes("TC_NAVIGATION_MODULE_VERSION='1.0.0'")&&
  hotfix.includes("TC_WORKOUT_UI_MODULE_VERSION='1.0.0'")&&
- hotfix.includes("TC_COURSE_MODULE_VERSION='1.0.44-workout-ui-owner'"),
+ hotfix.includes("TC_COURSE_MODULE_VERSION='1.0.45-persistence-owner'"),
  'OTA shell must pin exact compatible Domain, UI, Store, Actions, Lifecycle, Navigation, WorkoutUI and Course module versions');
 assert(hotfix.includes("TC_UI_MODULE_URL='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/ui.js")&&
  hotfix.includes("TC_UI_CACHE_KEY='tc_module_ui_'+TC_UI_MODULE_VERSION"),
@@ -246,17 +246,29 @@ assert(hotfix.includes("setTimeout(()=>{renderSummary();tcQueueDecorate()},0)")&
  'post-render work must be deferred until the owning presenter has finished');
 assert(course.includes('id="tcCycleStartDate"'),
  'settings must expose a cycle start date');
-assert(hotfix.includes("const VERSION='5.16.55-workout-ui-owner'"),
- 'release hotfix version must be 5.16.55');
-assert(course.includes("const COURSE_MODULE_VERSION='1.0.44-workout-ui-owner'"),
- 'course module version must be 1.0.44');
+assert(hotfix.includes("const VERSION='5.16.56-persistence-owner'"),
+ 'release hotfix version must be 5.16.56');
+assert(course.includes("const COURSE_MODULE_VERSION='1.0.45-persistence-owner'"),
+ 'course module version must be 1.0.45');
+const directCourseWrites=(course.match(/localStorage\.setItem\(TC_COURSE_KEY/g)||[]).length;
+assert.equal(directCourseWrites,1,'course persistence must have exactly one physical localStorage write boundary');
+const saveCourseBody=extract('tcSaveCourse');
+const restoreStart=course.indexOf('window.tcRestoreCourseStateSnapshot=function(');
+const restoreEnd=course.indexOf('window.tcCoursePersistenceDebug=function(',restoreStart);
+assert(restoreStart>=0&&restoreEnd>restoreStart,'course persistence diagnostics must follow restore adapter');
+const restoreCourseBody=course.slice(restoreStart,restoreEnd);
+assert(saveCourseBody.includes("store.transact('course'")&&saveCourseBody.includes('tcPersistCourseSnapshot(snapshot)'),
+ 'course saves must route through WorkoutStore when available and use adapter only during bootstrap');
+assert(!restoreCourseBody.includes('tcSaveCourse()'),'course restore adapter must not recurse through WorkoutStore');
+assert(course.includes("owner:store?'TurnikWorkoutStore':'bootstrap-adapter'")&&course.includes("adapter:'tcPersistCourseSnapshot'"),
+ 'course module must expose its persistence owner for diagnostics');
 assert(domain.includes("const VERSION='1.0.0'"),
  'domain module version must be 1.0.0');
 assert(!course.includes('TC_EXTRA_START'),
  'temporary extra-workout trace logging must not ship');
 assert(!course.includes('window.confirm('),'course module must not depend on unsupported WebView JS dialogs');
 assert(!hotfix.includes('window.confirm('),'hotfix navigation/discard must not depend on unsupported WebView JS dialogs');
-assert(!hotfix.includes('forceHandover'),'5.16.55 must use an explicit user-visible update prompt');
+assert(!hotfix.includes('forceHandover'),'5.16.56 must use an explicit user-visible update prompt');
 assert(hotfix.includes("showRuntimeNotice('TurnikCoach обновлён до '+LABEL)"),
  'successful activation must give visible feedback');
 assert(hotfix.includes("localStorage.setItem('tc_hotfix_active_version',VERSION)"),
