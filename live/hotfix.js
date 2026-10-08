@@ -644,6 +644,10 @@ window.__tcAdaptiveSurfaceObserver=mo;
 }
 const workout=document.getElementById('workout');
 if(workout&&workout.classList.contains('on'))installAdaptiveGeometry();
+const lifecycle=window.TurnikLifecycle;
+if(!lifecycle||typeof lifecycle.registerBefore!=='function'||typeof lifecycle.registerAfter!=='function')throw new Error('TurnikCoach lifecycle unavailable for navigation');
+lifecycle.registerBefore('go','navigation-route',100,tcNavigationBefore);
+lifecycle.registerAfter('go','navigation-route',100,tcNavigationAfter);
 window.__TC_NAV_UPGRADE_VERSION=VERSION;
 }
 function tcInstallNavigationFoundation(){
@@ -834,7 +838,7 @@ else if(sheet)sheet.classList.remove('open');
 function abandonWorkoutAndGo(target){
 tcClearWorkout();
 internal=true;
-try{baseGo(target||'today')}finally{internal=false}
+try{go(target||'today')}finally{internal=false}
 tcSyncScreenVisibility(target||'today');
 replaceRoute(target||'today',false);
 tcForceWebViewRepaint();
@@ -874,7 +878,7 @@ window.tcDiscardWorkout();return;
 }
 if(history.length>1){history.back();return}
 if(scr!=='today'){
-internal=true;try{baseGo('today')}finally{internal=false}
+internal=true;try{go('today')}finally{internal=false}
 replaceRoute('today',false);
 }
 };
@@ -890,7 +894,7 @@ if(scr==='rest'&&tcHasWorkout()){
 internal=true;
 try{
 if(typeof window.finishRest==='function')window.finishRest();
-else baseGo('workout');
+else go('workout');
 }finally{internal=false}
 pushRoute('workout',false);
 setTimeout(tcDecorateBackControls,0);
@@ -903,7 +907,7 @@ window.tcDiscardWorkout();
 return;
 }
 internal=true;
-try{baseGo(target)}finally{internal=false}
+try{go(target)}finally{internal=false}
 restoreScroll(target);
 setTimeout(tcDecorateBackControls,0);
 });
@@ -1354,6 +1358,9 @@ window.__TC_WORKOUT_CORRECTION_V2=true;
 const inherited=!!window.__TC_WORKOUT_CORRECTION_V1;
 if(window.__tcCorrectionUiObserver)window.__tcCorrectionUiObserver.disconnect();
 const actions=window.TurnikWorkoutActions;
+const lifecycle=window.TurnikLifecycle;
+if(lifecycle&&typeof lifecycle.registerAfter==='function')lifecycle.registerAfter('go','correction-controls',20,tcCorrectionGoAfter);
+else throw new Error('TurnikCoach lifecycle unavailable for correction controls');
 if(!inherited&&actions&&typeof actions.registerBefore==='function'&&typeof actions.registerAfter==='function'){
 actions.registerBefore('workout-correction',60,ctx=>{
 const current=typeof W!=='undefined'?W:null;
@@ -1480,7 +1487,7 @@ decorateCorrectionControls();
 function tcInstallWorkoutPersistence(){
 if(tcWorkoutPersistenceInstalled)return;
 tcWorkoutPersistenceInstalled=true;
-const names=['adj','startRest','addRest','finishRest','finishWorkout',
+const names=['adj','startRest','addRest',
 'tcStartAuxWorkout','tcStartCourseTest','tcStartCourseWorkout','tcStartExtraWorkout','tcStartSupplementWorkout'];
 names.forEach(name=>{
 const fn=window[name];
@@ -1496,6 +1503,10 @@ window[name]=wrapped;
 const actions=window.TurnikWorkoutActions;
 if(!actions||typeof actions.registerAfter!=='function')throw new Error('TurnikCoach workout action dispatcher unavailable for persistence');
 actions.registerAfter('workout-persistence',-100,()=>setTimeout(tcSaveActiveWorkoutSnapshot,0));
+const lifecycle=window.TurnikLifecycle;
+if(!lifecycle||typeof lifecycle.registerAfter!=='function')throw new Error('TurnikCoach lifecycle unavailable for persistence');
+lifecycle.registerAfter('finishRest','workout-persistence',-100,()=>setTimeout(tcSaveActiveWorkoutSnapshot,0));
+lifecycle.registerAfter('finishWorkout','workout-persistence',-100,()=>setTimeout(tcSaveActiveWorkoutSnapshot,0));
 document.addEventListener('input',()=>{if(typeof W!=='undefined'&&W)setTimeout(tcSaveActiveWorkoutSnapshot,0)},{passive:true});
 document.addEventListener('change',()=>{if(typeof W!=='undefined'&&W)setTimeout(tcSaveActiveWorkoutSnapshot,0)},{passive:true});
 document.addEventListener('visibilitychange',()=>{
@@ -1684,6 +1695,8 @@ setTimeout(tcDecorate,0);
 }
 tcInjectProductStyles();
 function tcProductGoAfter(){tcQueueDecorate()}
+if(window.TurnikLifecycle&&typeof window.TurnikLifecycle.registerAfter==='function')window.TurnikLifecycle.registerAfter('go','product-decorate',10,tcProductGoAfter);
+else throw new Error('TurnikCoach lifecycle unavailable for product decoration');
 const tcApp=document.getElementById('app');
 if(tcApp){
 const mo=new MutationObserver(tcQueueDecorate);
