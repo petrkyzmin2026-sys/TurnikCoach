@@ -224,12 +224,18 @@ assert(course.includes("view.kind==='MAIN_WORKOUT'")&&course.includes("view.kind
  'Today renderer must render explicit domain states instead of recomputing the scenario');
 assert(course.includes("window.TurnikDomain.register('today','morozov',100")&&
  course.includes("window.TurnikDomain.register('plan','morozov',100")&&
- course.includes("window.TurnikDomain.register('progress','morozov',100"),
- 'Morozov must register Today / Plan / Progress resolvers in TurnikDomain');
+ !course.includes("window.TurnikDomain.register('progress','morozov',100"),
+ 'Morozov must own Today / Plan domain only and release Progress ownership');
 assert(course.includes("window.TurnikUI.register('today','morozov',100")&&
  course.includes("window.TurnikUI.register('plan','morozov',100")&&
- course.includes("window.TurnikUI.register('progress','morozov',100"),
- 'Morozov must register Today / Plan / Progress presenters in TurnikUI');
+ !course.includes("window.TurnikUI.register('progress','morozov',100"),
+ 'Morozov must own Today / Plan presenters only and release Progress ownership');
+assert(course.includes('window.tcGetCourseProgressViewState=function()')&&
+ course.includes('window.tcCourseProgressSectionHtml=function(view)'),
+ 'course module must expose Progress state/section helpers without owning the screen');
+assert(progress.includes("TurnikDomain.register('progress',SOURCE,1000,resolve)")&&
+ progress.includes("TurnikUI.register('progress',SOURCE,1000,view=>render(view))"),
+ 'TurnikProgress must be the sole registered Progress state/presenter owner');
 assert(!course.includes('window.render=function()')&&!course.includes('window.renderHistory=function()')&&
  !course.includes('tcBeforeCourseRender=window.render')&&!course.includes('tcBeforeCourseRenderHistory=window.renderHistory'),
  'course module must not own global render lifecycle after the UI presenter split');
@@ -245,17 +251,16 @@ assert(!hotfix.includes('const oldRender=window.render')&&!hotfix.includes('wind
  'hotfix must not add independent top-level render or renderHistory wrappers');
 assert(hotfix.includes("TurnikUI.register('today','*',10000")&&
  hotfix.includes("TurnikUI.register('plan','*',10000")&&
- hotfix.includes("TurnikUI.register('progress','*',10000"),
- 'Today / Plan / Progress post-processing must flow through TurnikUI presenter dispatch');
-assert(hotfix.includes("setTimeout(()=>{renderSummary();tcQueueDecorate()},0)")&&
- hotfix.includes("setTimeout(tcQueueDecorate,0)"),
- 'post-render work must be deferred until the owning presenter has finished');
+ !hotfix.includes("TurnikUI.register('progress','*',10000"),
+ 'hotfix may post-process Today / Plan but must not independently decorate Progress');
+assert(hotfix.includes("setTimeout(tcQueueDecorate,0)"),
+ 'Today / Plan post-render work must be deferred until the owning presenter has finished');
 assert(course.includes('id="tcCycleStartDate"'),
  'settings must expose a cycle start date');
-assert(hotfix.includes("const VERSION='5.16.56-persistence-owner'"),
- 'release hotfix version must be 5.16.56');
-assert(course.includes("const COURSE_MODULE_VERSION='1.0.45-persistence-owner'"),
- 'course module version must be 1.0.45');
+assert(hotfix.includes("const VERSION='5.16.57-progress-owner'"),
+ 'release hotfix version must be 5.16.57');
+assert(course.includes("const COURSE_MODULE_VERSION='1.0.46-progress-section'"),
+ 'course module version must be 1.0.46');
 const directCourseWrites=(course.match(/localStorage\.setItem\(TC_COURSE_KEY/g)||[]).length;
 assert.equal(directCourseWrites,1,'course persistence must have exactly one physical localStorage write boundary');
 const saveCourseBody=extract('tcSaveCourse');
@@ -274,7 +279,7 @@ assert(!course.includes('TC_EXTRA_START'),
  'temporary extra-workout trace logging must not ship');
 assert(!course.includes('window.confirm('),'course module must not depend on unsupported WebView JS dialogs');
 assert(!hotfix.includes('window.confirm('),'hotfix navigation/discard must not depend on unsupported WebView JS dialogs');
-assert(!hotfix.includes('forceHandover'),'5.16.56 must use an explicit user-visible update prompt');
+assert(!hotfix.includes('forceHandover'),'5.16.57 must use an explicit user-visible update prompt');
 assert(hotfix.includes("showRuntimeNotice('TurnikCoach обновлён до '+LABEL)"),
  'successful activation must give visible feedback');
 assert(hotfix.includes("localStorage.setItem('tc_hotfix_active_version',VERSION)"),
