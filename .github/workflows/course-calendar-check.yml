@@ -119,7 +119,7 @@ jobs:
           seed=r'''<script>
           (function(){
             window.__TC_DISABLE_AUDIO_FOR_SMOKE=true;
-            localStorage.setItem('tc_module_course_1.0.41-control-transactions',__PREV_COURSE_CACHE__);
+            localStorage.setItem('tc_module_course_1.0.42-action-owner',__PREV_COURSE_CACHE__);
             localStorage.setItem('tc_module_domain_1.0.0',__DOMAIN_CACHE__);
             localStorage.setItem('tc_module_ui_1.0.0',__UI_CACHE__);
             localStorage.setItem('tc_module_store_1.2.0-undo-restore',__PREV_STORE_CACHE__);
