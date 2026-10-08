@@ -343,8 +343,10 @@ screenshot("01-update-offered")
 
 tap_clickable_text("Обновить")
 time.sleep(3)
-handover_probe=test_eval_json("(function(){var n=document.getElementById('tcRuntimeNotice'),p=document.getElementById('tcUpdatePrompt'),lc=window.TurnikLifecycle&&TurnikLifecycle.debug?TurnikLifecycle.debug():null;return {active:window.__TC_HOTFIX_ACTIVE_VERSION||'',label:window.__TC_HOTFIX_LABEL||'',course:window.__TC_COURSE_MODULE_VERSION||'',lifecycle:lc,notice:n&&n.textContent||'',prompt:!!p,body:(document.body&&document.body.innerText||'').slice(0,700)};})()","handover-probe")
+handover_probe=test_eval_json("(function(){var n=document.getElementById('tcRuntimeNotice'),p=document.getElementById('tcUpdatePrompt'),lc=window.TurnikLifecycle&&TurnikLifecycle.debug?TurnikLifecycle.debug():null;return {active:window.__TC_HOTFIX_ACTIVE_VERSION||'',label:window.__TC_HOTFIX_LABEL||'',course:window.__TC_COURSE_MODULE_VERSION||'',lifecycle:lc,install:window.__TC_INSTALL_DIAGNOSTICS||null,notice:n&&n.textContent||'',prompt:!!p,body:(document.body&&document.body.innerText||'').slice(0,700)};})()","handover-probe")
 print("TC_DIAG handover-probe",handover_probe,flush=True)
+assert handover_probe["active"]=="5.16.53-lifecycle-owner", "5.16.53 must become the active OTA shell after handover"
+assert handover_probe["install"] is not None and handover_probe["install"].get("errors")==[], "all 5.16.53 installers must complete without isolated errors: "+str(handover_probe["install"])
 wait_text("TurnikCoach обновлён до 5.16.53",timeout=25)
 assert_accessibility_target("План",48)
 assert_accessibility_target("Прогресс",48)
