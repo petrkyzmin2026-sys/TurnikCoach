@@ -836,10 +836,10 @@ assert.deepEqual(order,['before:false','after:base','before:true','after:special
 assert.equal(actionSandbox.TurnikWorkoutActions.debug().singleOwner,true);
 
 // Single-owner workout lifecycle regression.
-assert.equal((course.match(/window\.finishWorkout\s*=/g)||[]).length,0,'course must never replace global finishWorkout');
-assert.equal((course.match(/window\.finishRest\s*=/g)||[]).length,0,'course must never replace global finishRest');
-assert.equal((hotfix.match(/window\.finishWorkout\s*=/g)||[]).length,0,'hotfix must not wrap global finishWorkout');
-assert.equal((hotfix.match(/window\.finishRest\s*=/g)||[]).length,0,'hotfix must not wrap global finishRest');
+assert.equal((course.match(/window\.finishWorkout\s*=(?!=)/g)||[]).length,0,'course must never replace global finishWorkout');
+assert.equal((course.match(/window\.finishRest\s*=(?!=)/g)||[]).length,0,'course must never replace global finishRest');
+assert.equal((hotfix.match(/window\.finishWorkout\s*=(?!=)/g)||[]).length,0,'hotfix must not wrap global finishWorkout');
+assert.equal((hotfix.match(/window\.finishRest\s*=(?!=)/g)||[]).length,0,'hotfix must not wrap global finishRest');
 assert(course.includes("registerHandler('finishWorkout','morozov-course',100,tcCourseFinishWorkoutAction)")&&
  course.includes("registerHandler('finishRest','morozov-manual-rest',100,tcCourseFinishRestAction)"),
  'Morozov finish behavior must register lifecycle handlers');
