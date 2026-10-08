@@ -11,6 +11,7 @@ const actions=fs.readFileSync('live/actions.js','utf8');
 const lifecycle=fs.readFileSync('live/lifecycle.js','utf8');
 const navigation=fs.readFileSync('live/navigation.js','utf8');
 const workoutUi=fs.readFileSync('live/workout_ui.js','utf8');
+const progress=fs.readFileSync('live/progress.js','utf8');
 const hotfix=fs.readFileSync('live/hotfix.js','utf8');
 assert(Buffer.byteLength(hotfix,'utf8')<=128*1024,
  'modular OTA shell must stay comfortably below the native 256 KiB ceiling');
@@ -25,6 +26,7 @@ new vm.Script(actions,{filename:'live/actions.js'});
 new vm.Script(lifecycle,{filename:'live/lifecycle.js'});
 new vm.Script(navigation,{filename:'live/navigation.js'});
 new vm.Script(workoutUi,{filename:'live/workout_ui.js'});
+new vm.Script(progress,{filename:'live/progress.js'});
 new vm.Script(hotfix,{filename:'live/hotfix.js'});
 const coreBundled=hotfix.match(/const CORE_MODULE_BUNDLED=("(?:\\.|[^"\\])*");\nconst TC_DOMAIN_MODULE_VERSION/);
 assert(coreBundled,'small TurnikCore bootstrap must remain embedded in the OTA shell');
@@ -44,8 +46,9 @@ assert(hotfix.includes("TC_DOMAIN_MODULE_VERSION='1.0.0'")&&
  hotfix.includes("TC_LIFECYCLE_MODULE_VERSION='1.0.0'")&&
  hotfix.includes("TC_NAVIGATION_MODULE_VERSION='1.0.0'")&&
  hotfix.includes("TC_WORKOUT_UI_MODULE_VERSION='1.0.0'")&&
- hotfix.includes("TC_COURSE_MODULE_VERSION='1.0.45-persistence-owner'"),
- 'OTA shell must pin exact compatible Domain, UI, Store, Actions, Lifecycle, Navigation, WorkoutUI and Course module versions');
+ hotfix.includes("TC_PROGRESS_MODULE_VERSION='1.0.0'")&&
+ hotfix.includes("TC_COURSE_MODULE_VERSION='1.0.46-progress-section'"),
+ 'OTA shell must pin exact compatible Domain, UI, Store, Actions, Lifecycle, Navigation, WorkoutUI, Progress and Course module versions');
 assert(hotfix.includes("TC_UI_MODULE_URL='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/ui.js")&&
  hotfix.includes("TC_UI_CACHE_KEY='tc_module_ui_'+TC_UI_MODULE_VERSION"),
  'UI presenter must ship as a separately versioned/offline-cached module');
@@ -64,6 +67,9 @@ assert(hotfix.includes("TC_NAVIGATION_MODULE_URL='https://raw.githubusercontent.
 assert(hotfix.includes("TC_WORKOUT_UI_MODULE_URL='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/workout_ui.js")&&
  hotfix.includes("TC_WORKOUT_UI_CACHE_KEY='tc_module_workout_ui_'+TC_WORKOUT_UI_MODULE_VERSION"),
  'WorkoutUI dispatcher must ship as a separately versioned/offline-cached module');
+assert(hotfix.includes("TC_PROGRESS_MODULE_URL='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/progress.js")&&
+ hotfix.includes("TC_PROGRESS_CACHE_KEY='tc_module_progress_'+TC_PROGRESS_MODULE_VERSION"),
+ 'Progress owner must ship as a separately versioned/offline-cached module');
 function extractFrom(source,name){
   const start=source.indexOf('function '+name+'(');
   assert(start>=0,'function missing: '+name);
@@ -218,12 +224,18 @@ assert(course.includes("view.kind==='MAIN_WORKOUT'")&&course.includes("view.kind
  'Today renderer must render explicit domain states instead of recomputing the scenario');
 assert(course.includes("window.TurnikDomain.register('today','morozov',100")&&
  course.includes("window.TurnikDomain.register('plan','morozov',100")&&
- course.includes("window.TurnikDomain.register('progress','morozov',100"),
- 'Morozov must register Today / Plan / Progress resolvers in TurnikDomain');
+ !course.includes("window.TurnikDomain.register('progress','morozov',100"),
+ 'Morozov must own Today / Plan domain only and release Progress ownership');
 assert(course.includes("window.TurnikUI.register('today','morozov',100")&&
  course.includes("window.TurnikUI.register('plan','morozov',100")&&
- course.includes("window.TurnikUI.register('progress','morozov',100"),
- 'Morozov must register Today / Plan / Progress presenters in TurnikUI');
+ !course.includes("window.TurnikUI.register('progress','morozov',100"),
+ 'Morozov must own Today / Plan presenters only and release Progress ownership');
+assert(course.includes('window.tcGetCourseProgressViewState=function()')&&
+ course.includes('window.tcCourseProgressSectionHtml=function(view)'),
+ 'course module must expose Progress state/section helpers without owning the screen');
+assert(progress.includes("TurnikDomain.register('progress',SOURCE,1000,resolve)")&&
+ progress.includes("TurnikUI.register('progress',SOURCE,1000,view=>render(view))"),
+ 'TurnikProgress must be the sole registered Progress state/presenter owner');
 assert(!course.includes('window.render=function()')&&!course.includes('window.renderHistory=function()')&&
  !course.includes('tcBeforeCourseRender=window.render')&&!course.includes('tcBeforeCourseRenderHistory=window.renderHistory'),
  'course module must not own global render lifecycle after the UI presenter split');
@@ -239,17 +251,16 @@ assert(!hotfix.includes('const oldRender=window.render')&&!hotfix.includes('wind
  'hotfix must not add independent top-level render or renderHistory wrappers');
 assert(hotfix.includes("TurnikUI.register('today','*',10000")&&
  hotfix.includes("TurnikUI.register('plan','*',10000")&&
- hotfix.includes("TurnikUI.register('progress','*',10000"),
- 'Today / Plan / Progress post-processing must flow through TurnikUI presenter dispatch');
-assert(hotfix.includes("setTimeout(()=>{renderSummary();tcQueueDecorate()},0)")&&
- hotfix.includes("setTimeout(tcQueueDecorate,0)"),
- 'post-render work must be deferred until the owning presenter has finished');
+ !hotfix.includes("TurnikUI.register('progress','*',10000"),
+ 'hotfix may post-process Today / Plan but must not independently decorate Progress');
+assert(hotfix.includes("setTimeout(tcQueueDecorate,0)"),
+ 'Today / Plan post-render work must be deferred until the owning presenter has finished');
 assert(course.includes('id="tcCycleStartDate"'),
  'settings must expose a cycle start date');
-assert(hotfix.includes("const VERSION='5.16.56-persistence-owner'"),
- 'release hotfix version must be 5.16.56');
-assert(course.includes("const COURSE_MODULE_VERSION='1.0.45-persistence-owner'"),
- 'course module version must be 1.0.45');
+assert(hotfix.includes("const VERSION='5.16.57-progress-owner'"),
+ 'release hotfix version must be 5.16.57');
+assert(course.includes("const COURSE_MODULE_VERSION='1.0.46-progress-section'"),
+ 'course module version must be 1.0.46');
 const directCourseWrites=(course.match(/localStorage\.setItem\(TC_COURSE_KEY/g)||[]).length;
 assert.equal(directCourseWrites,1,'course persistence must have exactly one physical localStorage write boundary');
 const saveCourseBody=extract('tcSaveCourse');
@@ -260,15 +271,17 @@ const restoreCourseBody=course.slice(restoreStart,restoreEnd);
 assert(saveCourseBody.includes("store.transact('course'")&&saveCourseBody.includes('tcPersistCourseSnapshot(snapshot)'),
  'course saves must route through WorkoutStore when available and use adapter only during bootstrap');
 assert(!restoreCourseBody.includes('tcSaveCourse()'),'course restore adapter must not recurse through WorkoutStore');
-assert(course.includes("owner:store?'TurnikWorkoutStore':'bootstrap-adapter'")&&course.includes("adapter:'tcPersistCourseSnapshot'"),
- 'course module must expose its persistence owner for diagnostics');
+assert(course.includes("owner:tcWorkoutStoreReady()&&store?'TurnikWorkoutStore':'bootstrap-adapter'")&&course.includes("adapter:'tcPersistCourseSnapshot'"),
+ 'course module must expose bootstrap vs registered-store persistence ownership');
+assert(course.includes("function tcWorkoutStoreReady()")&&course.includes("c.source('course')"),
+ 'course persistence must use WorkoutStore only after the course source is registered');
 assert(domain.includes("const VERSION='1.0.0'"),
  'domain module version must be 1.0.0');
 assert(!course.includes('TC_EXTRA_START'),
  'temporary extra-workout trace logging must not ship');
 assert(!course.includes('window.confirm('),'course module must not depend on unsupported WebView JS dialogs');
 assert(!hotfix.includes('window.confirm('),'hotfix navigation/discard must not depend on unsupported WebView JS dialogs');
-assert(!hotfix.includes('forceHandover'),'5.16.56 must use an explicit user-visible update prompt');
+assert(!hotfix.includes('forceHandover'),'5.16.57 must use an explicit user-visible update prompt');
 assert(hotfix.includes("showRuntimeNotice('TurnikCoach обновлён до '+LABEL)"),
  'successful activation must give visible feedback');
 assert(hotfix.includes("localStorage.setItem('tc_hotfix_active_version',VERSION)"),
@@ -278,12 +291,12 @@ assert(hotfix.includes('async function tcEnsureRequiredModules()')&&
  hotfix.includes("localStorage.setItem(APPROVED_KEY,VERSION)"),
  'update approval must happen only after required modules are available and cached');
 const installUpdateBody=extractFrom(hotfix,'installUpdate');
-assert(installUpdateBody.includes('if(!tcDomainCacheReady()||!tcUiCacheReady()||!tcStoreCacheReady()||!tcActionsCacheReady()||!tcLifecycleCacheReady()||!tcNavigationCacheReady()||!tcWorkoutUiCacheReady()||!tcCourseCacheReady())')&&
+assert(installUpdateBody.includes('if(!tcDomainCacheReady()||!tcUiCacheReady()||!tcStoreCacheReady()||!tcActionsCacheReady()||!tcLifecycleCacheReady()||!tcNavigationCacheReady()||!tcWorkoutUiCacheReady()||!tcProgressCacheReady()||!tcCourseCacheReady())')&&
  !installUpdateBody.slice(0,installUpdateBody.indexOf("const previousVersion=")).includes('tcLoadCourseModule()')&&
  !installUpdateBody.slice(0,installUpdateBody.indexOf("const previousVersion=")).includes('tcLoadDomainModule()')&&
  !installUpdateBody.slice(0,installUpdateBody.indexOf("const previousVersion=")).includes('tcLoadUiModule()')&&
  !installUpdateBody.slice(0,installUpdateBody.indexOf("const previousVersion=")).includes('tcLoadStoreModule()'),
- 'install preflight must verify Domain/UI/Store/Actions/Lifecycle/Navigation/WorkoutUI/Course caches without executing later modules ahead of the legacy patch order');
+ 'install preflight must verify Domain/UI/Store/Actions/Lifecycle/Navigation/WorkoutUI/Progress/Course caches without executing later modules ahead of the legacy patch order');
 assert(hotfix.includes('function tcRegisterCoreSources()')&&
  hotfix.includes("core.registerSource('generic'")&&hotfix.includes("core.registerSource('course'"),
  'TurnikCore must expose both legacy generic and Morozov stores through one state facade');
@@ -293,10 +306,11 @@ assert(hotfix.includes("actionsModule:window.TurnikWorkoutActions&&window.Turnik
  hotfix.includes("lifecycleModule:window.TurnikWorkoutLifecycle&&window.TurnikWorkoutLifecycle.version||''")&&
  hotfix.includes("navigationModule:window.TurnikNavigation&&window.TurnikNavigation.version||''")&&
  hotfix.includes("workoutUiModule:window.TurnikWorkoutUI&&window.TurnikWorkoutUI.version||''")&&
+ hotfix.includes("progressModule:window.TurnikProgress&&window.TurnikProgress.version||''")&&
  hotfix.includes("courseModule:TC_COURSE_MODULE_VERSION,modular:true}"),
- 'runtime diagnostics must expose Core + Domain + UI + Store + Actions + Lifecycle + Navigation + WorkoutUI + Course modular foundation');
-assert(hotfix.includes("window.TurnikWorkoutStore.summary({now:Date.now()})"),
- 'Progress summary must consume unified workouts through TurnikWorkoutStore instead of manually joining stores');
+ 'runtime diagnostics must expose Core + Domain + UI + Store + Actions + Lifecycle + Navigation + WorkoutUI + Progress + Course modular foundation');
+assert(progress.includes("const summary=store&&typeof store.summary==='function'?store.summary({now:Date.now()})"),
+ 'Progress owner must consume unified workouts through TurnikWorkoutStore instead of manually joining stores');
 assert(store.includes('function transact(sourceName,mutator)')&&store.includes('function batch(steps)')&&store.includes('function append(sourceName,record,prepend=true)'),
  'WorkoutStore must own the shared write primitives');
 assert(course.includes("store.transact('course'")&&course.includes("store.batch([")&&course.includes("store.append('course',rec)"),
@@ -728,7 +742,7 @@ assert(hotfix.includes("const hadActiveWorkout=typeof W!=='undefined'&&!!W")&&
  'new hotfix must reassert durable workout state when an older hotfix already restored W');
 assert(hotfix.includes('function tcInstallNavigationUpgrades()')&&
  hotfix.includes('window.__TC_NAV_UPGRADE_VERSION=VERSION')&&
- /tcInstallNavigationFoundation\(\);\s*tcInstallNavigationUpgrades\(\);\s*tcInstallCompletionFlow\(\);\s*tcInstallHapticFeedback\(\);\s*tcInstallWorkoutCorrection\(\);\s*tcInstallProgressSummary\(\);\s*tcInstallWorkoutPersistence\(\);/.test(hotfix),
+ /tcInstallNavigationFoundation\(\);\s*tcInstallNavigationUpgrades\(\);\s*tcInstallCompletionFlow\(\);\s*tcInstallHapticFeedback\(\);\s*tcInstallWorkoutCorrection\(\);\s*tcInstallWorkoutPersistence\(\);/.test(hotfix),
  'hotfix upgrades must run after the one-time navigation core and before persistence restore');
 assert(hotfix.includes('window.tcRefreshActiveTrainingSurface=function(id)')&&
  hotfix.includes('window.tcArmRestoreSurfaceGuard=function(surface)')&&
@@ -1005,32 +1019,27 @@ const correctionHarness=new Function(
 assert.deepEqual(correctionHarness,{savedTrail:2,restored:true},
  'undo stack must restore saved, skipped and corrected values after JSON persistence');
 
-// Shipped progress metrics count actual workouts, not skipped sessions or tests.
-assert(hotfix.includes('function tcInstallProgressSummary()')&&
- hotfix.includes("window.tcRenderProgressSummary=renderSummary")&&
- hotfix.includes("'За 7 дней'")&&hotfix.includes("'Всего тренировок'")&&
- hotfix.includes("'MAX подтяг.'"),
- 'Progress must render summary cards from existing data without replacing charts');
-const progressMetrics=new Function(
- extractFrom(hotfix,'tcProgressMetrics')+'\nreturn tcProgressMetrics;'
-)();
-const progressNow=Date.parse('2026-10-02T12:00:00');
-const sameTs=Date.parse('2026-10-01T12:00:00');
-const sample=progressMetrics(
- [
-   {type:'workout',date:'2026-10-01',ts:sameTs,total:50,courseMode:'extra'},
-   {type:'workout',date:'2026-09-01',ts:Date.parse('2026-09-01T12:00:00'),total:41},
-   {type:'skip',date:'2026-10-02',ts:progressNow}
- ],
- [
-   {type:'workout',date:'2026-10-02',ts:progressNow-3600000,total:51,courseMode:'course'},
-   {type:'workout',date:'2026-10-01',ts:sameTs,total:50,courseMode:'extra'},
-   {type:'test',date:'2026-10-01',ts:sameTs,total:50}
- ],
- 21,progressNow
-);
-assert.deepEqual(sample,{week:2,total:3,pullMax:21},
- 'Progress summary must dedupe shared records and exclude skips/tests');
+// Progress has one owner: WorkoutStore + TurnikDomain + TurnikUI.
+assert(!hotfix.includes('function tcInstallProgressSummary()')&&!hotfix.includes('function tcProgressMetrics('),
+ 'legacy hotfix Progress owner must be removed');
+assert(progress.includes("const VERSION='1.0.0',SOURCE='unified-progress'")&&
+ progress.includes("'За 7 дней'")&&progress.includes("'Всего тренировок'")&&progress.includes("'MAX подтяг.'"),
+ 'TurnikProgress must render the existing compact summary');
+const pSandbox={console,Date,CustomEvent:function(){},dispatchEvent(){},window:null};
+pSandbox.window=pSandbox;
+pSandbox.document={head:{appendChild(){}},getElementById(){return null},createElement(){return{children:[],appendChild(x){this.children.push(x);this.firstElementChild=this.children[0];this.lastElementChild=this.children[this.children.length-1]},setAttribute(){},remove(){},style:{}}}};
+pSandbox.TurnikCore={sourceSnapshot:n=>n==='course'?{pullMax:21}:{ex:[{id:'pull',max:18}]}};
+pSandbox.TurnikWorkoutStore={summary:()=>({week:2,total:3,sets:6,reps:40})};
+pSandbox.tcGetCourseProgressViewState=()=>({kind:'COURSE_PROGRESS',stats:{completed:2}});
+const pDomain={r:null,register(area,name,priority,fn){this.r={area,name,priority,fn};return true},progress(){const v=this.r.fn();return Object.assign({source:this.r.name},v)}};
+const pUI={r:null,register(area,name,priority,fn){this.r={area,name,priority,fn};return true},renderArea(){return true}};
+pSandbox.TurnikDomain=pDomain;pSandbox.TurnikUI=pUI;
+vm.runInNewContext(progress,pSandbox,{filename:'live/progress.js'});
+assert(pSandbox.TurnikProgress.install(),'Progress owner must install with domain/UI/store dependencies');
+const pState=pSandbox.TurnikProgress.resolve();
+assert.equal(pState.summary.total,3);assert.equal(pState.summary.week,2);assert.equal(pState.pullMax,21);
+assert.equal(pState.course.kind,'COURSE_PROGRESS');
+assert.equal(pSandbox.TurnikProgress.debug().singleOwner,true,'unified-progress must win the Progress domain state');
 
 // Behavioral completion-flow regression: execute the shipped wrapper and shipped Undo transaction.
 const completionHarnessFn=new Function('intervene','lifecycleSource',
