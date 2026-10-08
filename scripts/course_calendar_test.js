@@ -272,6 +272,9 @@ assert(installUpdateBody.includes('if(!tcDomainCacheReady()||!tcUiCacheReady()||
  !installUpdateBody.slice(0,installUpdateBody.indexOf("const previousVersion=")).includes('tcLoadUiModule()')&&
  !installUpdateBody.slice(0,installUpdateBody.indexOf("const previousVersion=")).includes('tcLoadStoreModule()'),
  'install preflight must verify Domain/UI/Store/Actions/Lifecycle/Navigation/WorkoutUI/Course caches without executing later modules ahead of the legacy patch order');
+const installPrefix=installUpdateBody.slice(0,installUpdateBody.indexOf("const previousVersion="));
+assert(installPrefix.includes('tcLoadLifecycleModule()')&&installPrefix.includes('tcLoadNavigationModule()')&&installPrefix.includes('tcLoadWorkoutUiModule()'),
+ 'early install preflight must load Lifecycle, Navigation and WorkoutUI before inline owner-hook registration');
 assert(hotfix.includes('function tcRegisterCoreSources()')&&
  hotfix.includes("core.registerSource('generic'")&&hotfix.includes("core.registerSource('course'"),
  'TurnikCore must expose both legacy generic and Morozov stores through one state facade');
