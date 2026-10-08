@@ -271,8 +271,10 @@ const restoreCourseBody=course.slice(restoreStart,restoreEnd);
 assert(saveCourseBody.includes("store.transact('course'")&&saveCourseBody.includes('tcPersistCourseSnapshot(snapshot)'),
  'course saves must route through WorkoutStore when available and use adapter only during bootstrap');
 assert(!restoreCourseBody.includes('tcSaveCourse()'),'course restore adapter must not recurse through WorkoutStore');
-assert(course.includes("owner:store?'TurnikWorkoutStore':'bootstrap-adapter'")&&course.includes("adapter:'tcPersistCourseSnapshot'"),
- 'course module must expose its persistence owner for diagnostics');
+assert(course.includes("owner:tcWorkoutStoreReady()&&store?'TurnikWorkoutStore':'bootstrap-adapter'")&&course.includes("adapter:'tcPersistCourseSnapshot'"),
+ 'course module must expose bootstrap vs registered-store persistence ownership');
+assert(course.includes("function tcWorkoutStoreReady()")&&course.includes("c.source('course')"),
+ 'course persistence must use WorkoutStore only after the course source is registered');
 assert(domain.includes("const VERSION='1.0.0'"),
  'domain module version must be 1.0.0');
 assert(!course.includes('TC_EXTRA_START'),
