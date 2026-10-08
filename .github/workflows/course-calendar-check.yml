@@ -39,6 +39,7 @@ on:
       - refactor/transactional-course-controls-5.16.50
       - refactor/ui-render-owner-5.16.51
       - refactor/workout-action-owner-5.16.52
+      - refactor/lifecycle-owner-5.16.53
   pull_request:
   workflow_dispatch:
 
@@ -69,9 +70,9 @@ jobs:
           done
           base64 --decode /tmp/v513.b64 | gzip -dc > app/src/main/assets/index.html
           grep -q 'v5.13 — modern Android package' app/src/main/assets/index.html
-      - name: Reproduce packaged 5.14 + cached 5.16.51 + tested 5.16.52
+      - name: Reproduce packaged 5.14 + cached 5.16.52 + tested 5.16.53
         run: |
-          PREV_COMMIT="f8237102f44b6044ddaa509ed6370bfdfd8f8235"
+          PREV_COMMIT="24b1508e6e8e86742c358108d964fc28c9473fad"
           grep -q 'TURNIKCOACH_HOTFIX 5.14.0-adaptive-rest' app/src/main/assets/hotfix.js
           curl -fsSL "https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/${PREV_COMMIT}/live/hotfix.js" > app/src/main/assets/hotfix-prev.js
           curl -fsSL "https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/${PREV_COMMIT}/live/course.js" > app/src/main/assets/course-prev.js
@@ -86,8 +87,8 @@ jobs:
           s=s.replace(needle,"function tcAudio(){\nif(window.__TC_DISABLE_AUDIO_FOR_SMOKE)return null;\ntry{",1)
           p.write_text(s)
           PY
-          grep -q 'TURNIKCOACH_HOTFIX 5.16.51-ui-render-owner' app/src/main/assets/hotfix-prev.js
-          grep -q 'TURNIKCOACH_HOTFIX 5.16.52-workout-action-owner' app/src/main/assets/hotfix-next.js
+          grep -q 'TURNIKCOACH_HOTFIX 5.16.52-workout-action-owner' app/src/main/assets/hotfix-prev.js
+          grep -q 'TURNIKCOACH_HOTFIX 5.16.53-lifecycle-owner' app/src/main/assets/hotfix-next.js
           grep -q 'TURNIKCOACH_CORE 1.0.0' app/src/main/assets/hotfix-next.js
           grep -q 'TURNIKCOACH_DOMAIN 1.0.0' live/domain.js
           grep -q 'TURNIKCOACH_UI 1.0.0' live/ui.js
