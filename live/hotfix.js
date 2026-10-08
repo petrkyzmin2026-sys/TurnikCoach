@@ -68,7 +68,7 @@ title.style.cssText='font-size:22px;font-weight:800;margin-bottom:10px;flex:0 0 
 title.textContent='Доступно обновление TurnikCoach '+LABEL;
 const text=document.createElement('div');
 text.style.cssText='font-size:15px;line-height:1.45;color:#cfd8e3;margin-bottom:18px;min-height:0;flex:1 1 0;overflow-y:auto;overscroll-behavior:contain;padding-right:4px';
-text.innerHTML="Продолжена архитектурная очистка без изменения привычного интерфейса. Теперь действие «Сделано / Пропустить» имеет одного владельца — TurnikWorkoutActions. Курс Морозова, виброотклик, исправление предыдущего подхода и сохранение активной тренировки больше не переопределяют setDone друг поверх друга, а подключаются к единому диспетчеру. Это снижает риск некликабельных кнопок и конфликтов между режимами.<br><br>Установить обновление сейчас?";
+text.innerHTML="Продолжается архитектурная очистка без изменения привычного сценария тренировки. Навигация, завершение отдыха и сохранение тренировки теперь имеют одного владельца TurnikLifecycle; курс Морозова и служебные функции регистрируют обработчики вместо переопределения глобальных функций. Это убирает ещё один источник конфликтов между слоями приложения.<br><br>Установить обновление сейчас?";
 const row=document.createElement('div');
 row.style.cssText='display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;flex:0 0 auto';
 const later=document.createElement('button');
@@ -1695,8 +1695,6 @@ setTimeout(tcDecorate,0);
 }
 tcInjectProductStyles();
 function tcProductGoAfter(){tcQueueDecorate()}
-if(window.TurnikLifecycle&&typeof window.TurnikLifecycle.registerAfter==='function')window.TurnikLifecycle.registerAfter('go','product-decorate',10,tcProductGoAfter);
-else throw new Error('TurnikCoach lifecycle unavailable for product decoration');
 const tcApp=document.getElementById('app');
 if(tcApp){
 const mo=new MutationObserver(tcQueueDecorate);
@@ -1710,6 +1708,10 @@ if(!tcLoadDomainModule())throw new Error('TurnikCoach domain module unavailable 
 if(!tcLoadUiModule())throw new Error('TurnikCoach UI module unavailable after preflight');
 if(!tcLoadStoreModule())throw new Error('TurnikCoach workout store unavailable after preflight');
 if(!tcLoadActionsModule())throw new Error('TurnikCoach workout action dispatcher unavailable after preflight');
+if(!tcLoadLifecycleModule())throw new Error('TurnikCoach lifecycle dispatcher unavailable after preflight');
+if(!window.TurnikLifecycle.install())throw new Error('TurnikCoach lifecycle dispatcher install failed');
+window.TurnikLifecycle.registerBefore('finishRest','rest-timer-cleanup',1000,tcRestCleanupBefore);
+window.TurnikLifecycle.registerAfter('go','product-decorate',10,tcProductGoAfter);
 if(!window.TurnikUI.install())throw new Error('TurnikCoach UI dispatcher install failed');
 if(!tcLoadCourseModule())throw new Error('TurnikCoach course module unavailable after preflight');
 window.TurnikUI.register('today','*',10000,()=>{setTimeout(tcQueueDecorate,0);return false});
@@ -1724,6 +1726,7 @@ tcInstallWorkoutCorrection();
 tcInstallProgressSummary();
 tcInstallWorkoutPersistence();
 if(!window.TurnikWorkoutActions.install())throw new Error('TurnikCoach workout action dispatcher install failed');
+window.__TC_LIFECYCLE_OWNER=window.TurnikLifecycle.debug();
 if(previousVersion!==VERSION)showRuntimeNotice('TurnikCoach обновлён до '+LABEL);
 console.log('TurnikCoach hotfix active:',VERSION);
 }
