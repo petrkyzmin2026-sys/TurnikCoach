@@ -9,6 +9,7 @@ const ui=fs.readFileSync('live/ui.js','utf8');
 const store=fs.readFileSync('live/store.js','utf8');
 const actions=fs.readFileSync('live/actions.js','utf8');
 const lifecycle=fs.readFileSync('live/lifecycle.js','utf8');
+const navigation=fs.readFileSync('live/navigation.js','utf8');
 const hotfix=fs.readFileSync('live/hotfix.js','utf8');
 assert(Buffer.byteLength(hotfix,'utf8')<=128*1024,
  'modular OTA shell must stay comfortably below the native 256 KiB ceiling');
@@ -21,6 +22,7 @@ new vm.Script(ui,{filename:'live/ui.js'});
 new vm.Script(store,{filename:'live/store.js'});
 new vm.Script(actions,{filename:'live/actions.js'});
 new vm.Script(lifecycle,{filename:'live/lifecycle.js'});
+new vm.Script(navigation,{filename:'live/navigation.js'});
 new vm.Script(hotfix,{filename:'live/hotfix.js'});
 const coreBundled=hotfix.match(/const CORE_MODULE_BUNDLED=("(?:\\.|[^"\\])*");\nconst TC_DOMAIN_MODULE_VERSION/);
 assert(coreBundled,'small TurnikCore bootstrap must remain embedded in the OTA shell');
@@ -38,6 +40,7 @@ assert(hotfix.includes("TC_DOMAIN_MODULE_VERSION='1.0.0'")&&
  hotfix.includes("TC_STORE_MODULE_VERSION='1.2.0-undo-restore'")&&
  hotfix.includes("TC_ACTIONS_MODULE_VERSION='1.0.0'")&&
  hotfix.includes("TC_LIFECYCLE_MODULE_VERSION='1.0.0'")&&
+ hotfix.includes("TC_NAVIGATION_MODULE_VERSION='1.0.0'")&&
  hotfix.includes("TC_COURSE_MODULE_VERSION='1.0.43-lifecycle-owner'"),
  'OTA shell must pin exact compatible Domain, UI, Store, Actions, Lifecycle and Course module versions');
 assert(hotfix.includes("TC_UI_MODULE_URL='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/ui.js")&&
@@ -52,6 +55,9 @@ assert(hotfix.includes("TC_ACTIONS_MODULE_URL='https://raw.githubusercontent.com
 assert(hotfix.includes("TC_LIFECYCLE_MODULE_URL='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/lifecycle.js")&&
  hotfix.includes("TC_LIFECYCLE_CACHE_KEY='tc_module_lifecycle_'+TC_LIFECYCLE_MODULE_VERSION"),
  'WorkoutLifecycle must ship as a separately versioned/offline-cached module');
+assert(hotfix.includes("TC_NAVIGATION_MODULE_URL='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/navigation.js")&&
+ hotfix.includes("TC_NAVIGATION_CACHE_KEY='tc_module_navigation_'+TC_NAVIGATION_MODULE_VERSION"),
+ 'Navigation dispatcher must ship as a separately versioned/offline-cached module');
 function extractFrom(source,name){
   const start=source.indexOf('function '+name+'(');
   assert(start>=0,'function missing: '+name);
@@ -234,8 +240,8 @@ assert(hotfix.includes("setTimeout(()=>{renderSummary();tcQueueDecorate()},0)")&
  'post-render work must be deferred until the owning presenter has finished');
 assert(course.includes('id="tcCycleStartDate"'),
  'settings must expose a cycle start date');
-assert(hotfix.includes("const VERSION='5.16.53-workout-lifecycle-owner'"),
- 'release hotfix version must be 5.16.53');
+assert(hotfix.includes("const VERSION='5.16.54-navigation-owner'"),
+ 'release hotfix version must be 5.16.54');
 assert(course.includes("const COURSE_MODULE_VERSION='1.0.43-lifecycle-owner'"),
  'course module version must be 1.0.43');
 assert(domain.includes("const VERSION='1.0.0'"),
@@ -244,7 +250,7 @@ assert(!course.includes('TC_EXTRA_START'),
  'temporary extra-workout trace logging must not ship');
 assert(!course.includes('window.confirm('),'course module must not depend on unsupported WebView JS dialogs');
 assert(!hotfix.includes('window.confirm('),'hotfix navigation/discard must not depend on unsupported WebView JS dialogs');
-assert(!hotfix.includes('forceHandover'),'5.16.53 must use an explicit user-visible update prompt');
+assert(!hotfix.includes('forceHandover'),'5.16.54 must use an explicit user-visible update prompt');
 assert(hotfix.includes("showRuntimeNotice('TurnikCoach обновлён до '+LABEL)"),
  'successful activation must give visible feedback');
 assert(hotfix.includes("localStorage.setItem('tc_hotfix_active_version',VERSION)"),
@@ -254,7 +260,7 @@ assert(hotfix.includes('async function tcEnsureRequiredModules()')&&
  hotfix.includes("localStorage.setItem(APPROVED_KEY,VERSION)"),
  'update approval must happen only after required modules are available and cached');
 const installUpdateBody=extractFrom(hotfix,'installUpdate');
-assert(installUpdateBody.includes('if(!tcDomainCacheReady()||!tcUiCacheReady()||!tcStoreCacheReady()||!tcActionsCacheReady()||!tcLifecycleCacheReady()||!tcCourseCacheReady())')&&
+assert(installUpdateBody.includes('if(!tcDomainCacheReady()||!tcUiCacheReady()||!tcStoreCacheReady()||!tcActionsCacheReady()||!tcLifecycleCacheReady()||!tcNavigationCacheReady()||!tcCourseCacheReady())')&&
  !installUpdateBody.slice(0,installUpdateBody.indexOf("const previousVersion=")).includes('tcLoadCourseModule()')&&
  !installUpdateBody.slice(0,installUpdateBody.indexOf("const previousVersion=")).includes('tcLoadDomainModule()')&&
  !installUpdateBody.slice(0,installUpdateBody.indexOf("const previousVersion=")).includes('tcLoadUiModule()')&&
@@ -267,6 +273,7 @@ assert(hotfix.includes("localStorage.setItem('tc_v4',JSON.stringify(next))"),
  'generic source adapter must persist the exact restored snapshot instead of delegating to legacy save()');
 assert(hotfix.includes("actionsModule:window.TurnikWorkoutActions&&window.TurnikWorkoutActions.version||''")&&
  hotfix.includes("lifecycleModule:window.TurnikWorkoutLifecycle&&window.TurnikWorkoutLifecycle.version||''")&&
+ hotfix.includes("navigationModule:window.TurnikNavigation&&window.TurnikNavigation.version||''")&&
  hotfix.includes("courseModule:TC_COURSE_MODULE_VERSION,modular:true}"),
  'runtime diagnostics must expose Core + Domain + UI + Store + Actions + Lifecycle + Course modular foundation');
 assert(hotfix.includes("window.TurnikWorkoutStore.summary({now:Date.now()})"),
@@ -868,6 +875,26 @@ const lifeDebug=lifeSandbox.TurnikWorkoutLifecycle.debug();
 assert.equal(lifeDebug.events.finishWorkout.singleOwner,true);
 assert.equal(lifeDebug.events.finishRest.singleOwner,true);
 assert.deepEqual(lifeOrder,['before:generic','after:base','before:course','after:course']);
+
+// Single-owner navigation regression.
+assert.equal((hotfix.match(/window\.go\s*=(?!=)/g)||[]).length,0,'OTA shell must not wrap global go');
+assert(hotfix.includes("registerBefore('navigation-foundation',10000")&&
+ hotfix.includes("registerAfter('navigation-foundation',10000")&&
+ hotfix.includes("registerAfter('correction-controls',100")&&
+ hotfix.includes("registerAfter('product-decorate',50"),
+ 'navigation history, correction controls and product decoration must be TurnikNavigation hooks');
+assert(hotfix.includes('window.TurnikNavigation.install()'),'navigation dispatcher must become the sole go owner');
+const navSandbox={console,CustomEvent:function(){},dispatchEvent:()=>true};
+navSandbox.window=navSandbox;navSandbox.go=function(id){navSandbox.baseCalls=(navSandbox.baseCalls||0)+1;navSandbox.last=id;return 'base:'+id};
+vm.runInNewContext(navigation,navSandbox,{filename:'live/navigation.js'});
+const navOrder=[];
+navSandbox.TurnikNavigation.registerBefore('before',10,ctx=>navOrder.push('before:'+ctx.target));
+navSandbox.TurnikNavigation.registerAfter('after',10,ctx=>navOrder.push('after:'+ctx.target));
+assert(navSandbox.TurnikNavigation.install());
+assert.equal(navSandbox.go('today'),'base:today');
+assert.equal(navSandbox.baseCalls,1);
+assert.deepEqual(navOrder,['before:today','after:today']);
+assert.equal(navSandbox.TurnikNavigation.debug().singleOwner,true);
 
 assert(hotfix.includes('navigator.vibrate([70,45,70])'),
  'danger feedback needs a distinct reject pattern');
