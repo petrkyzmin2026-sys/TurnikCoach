@@ -1,7 +1,7 @@
-/* TURNIKCOACH_COURSE 1.0.43-lifecycle-owner */
+/* TURNIKCOACH_COURSE 1.0.44-workout-ui-owner */
 (function(){
 'use strict';
-const COURSE_MODULE_VERSION='1.0.43-lifecycle-owner';
+const COURSE_MODULE_VERSION='1.0.44-workout-ui-owner';
 if(window.__TC_COURSE_MODULE_VERSION===COURSE_MODULE_VERSION)return;
 window.__TC_COURSE_MODULE_VERSION=COURSE_MODULE_VERSION;
 function tcClamp(v,a,b){return Math.max(a,Math.min(b,v))}
@@ -1855,17 +1855,15 @@ if(def.metric==='reps_side'||def.metric==='time_side')side='на каждую с
 if(def.metric==='weighted'&&x&&x.e&&x.e.load)side='+'+x.e.load+' кг';
 return '<span class="tcPlanMain">'+seq+'</span>'+(side?'<span class="tcPlanSide">'+side+'</span>':'');
 }
-const tcBeforeCourseRenderWork=window.renderWork;
-window.renderWork=function(){
-const r=tcBeforeCourseRenderWork();
+function tcCourseRenderWork(){
 if(typeof window.tcEnsureWorkoutControls==='function')window.tcEnsureWorkoutControls();
 const planEl=q('wplan');
 if(!W||!['course','supplement','auxCourse','courseTest'].includes(W.mode)){
 if(planEl)planEl.classList.remove('tcCoursePlan');
-return r;
+return;
 }
 const x=W.items[W.exerciseIndex],def=x.def||x.e.courseDef;
-if(!def)return r;
+if(!def)return;
 const token=tcPlanToken(def,x);
 q('wname').textContent=x.e.name;
 q('wmeta').textContent='Курс Морозова · упражнение '+(W.exerciseIndex+1)+
@@ -1876,7 +1874,7 @@ planEl.innerHTML=W.mode==='courseTest'?
 '<span class="tcPlanMain">MAX</span>':tcSequenceCoursePlan(def,x);
 const current=q('target');
 if(current)current.textContent=token;
-const unit=q('unitWord'); // Existing template uses unitWord, not factUnit.
+const unit=q('unitWord');
 if(unit)unit.textContent=(def.metric==='time'||def.metric==='time_side'?'СЕКУНД':'ПОВТОРЕНИЙ')+
 (def.metric==='reps_side'||def.metric==='time_side'?' НА СТОРОНУ':'');
 const chips=q('chips');
@@ -1889,8 +1887,9 @@ const image=q('visualImg'),fallback=q('mediaFallback');
 if(image){image.removeAttribute('src');image.style.display='none'}
 if(fallback)fallback.style.display='none';
 const legend=q('legend');if(legend)legend.textContent='';
-return r;
-};
+}
+if(!window.TurnikWorkoutUI||typeof window.TurnikWorkoutUI.registerAfter!=='function')throw new Error('TurnikCoach workout UI dispatcher unavailable');
+window.TurnikWorkoutUI.registerAfter('morozov-course',100,tcCourseRenderWork);
 function tcCourseSetDoneAction(ctx){
 const skip=!!(ctx&&ctx.skip);
 if(!W||!['course','supplement','auxCourse','courseTest'].includes(W.mode))return null;
