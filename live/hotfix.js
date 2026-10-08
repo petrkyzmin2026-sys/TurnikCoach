@@ -1,8 +1,8 @@
-/* TURNIKCOACH_HOTFIX 5.16.54-navigation-owner */
+/* TURNIKCOACH_HOTFIX 5.16.55-persistence-owner */
 (function(){
 'use strict';
-const VERSION='5.16.54-navigation-owner';
-const LABEL='5.16.54';
+const VERSION='5.16.55-persistence-owner';
+const LABEL='5.16.55';
 const APPROVED_KEY='tc_hotfix_approved_version';
 const LEGACY_ASSET_VERSION='5.14.0-adaptive-rest';
 const stalePrompt=document.getElementById('tcUpdatePrompt');
@@ -68,7 +68,7 @@ title.style.cssText='font-size:22px;font-weight:800;margin-bottom:10px;flex:0 0 
 title.textContent='Доступно обновление TurnikCoach '+LABEL;
 const text=document.createElement('div');
 text.style.cssText='font-size:15px;line-height:1.45;color:#cfd8e3;margin-bottom:18px;min-height:0;flex:1 1 0;overflow-y:auto;overscroll-behavior:contain;padding-right:4px';
-text.innerHTML="Продолжена архитектурная очистка без изменения привычного интерфейса. Переходы между экранами теперь имеют одного владельца — TurnikNavigation. История навигации, восстановление прокрутки, перерисовка WebView, коррекция кнопок тренировки и декоративный UI подключаются как хуки вместо нескольких обёрток go(). Это делает переходы предсказуемыми и убирает ещё один слой конфликтов.<br><br>Установить обновление сейчас?";
+text.innerHTML="Архитектурное обновление без изменения привычного интерфейса. Сохранение состояния курса Морозова теперь имеет одного владельца: бизнес-логика передаёт запись через WorkoutStore и TurnikCore, а прямой доступ к localStorage остаётся только внутри адаптера хранения. Это убирает ещё один источник рассинхронизации и готовит чистое разделение экранов «Сегодня / План / Прогресс». История и настройки сохраняются.<br><br>Установить обновление сейчас?";
 const row=document.createElement('div');
 row.style.cssText='display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;flex:0 0 auto';
 const later=document.createElement('button');
@@ -131,8 +131,8 @@ const TC_NAVIGATION_MODULE_VERSION='1.0.0';
 const TC_NAVIGATION_MODULE_MARKER='TURNIKCOACH_NAVIGATION 1.0.0';
 const TC_NAVIGATION_MODULE_URL='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/navigation.js?v='+encodeURIComponent(TC_NAVIGATION_MODULE_VERSION);
 const TC_NAVIGATION_CACHE_KEY='tc_module_navigation_'+TC_NAVIGATION_MODULE_VERSION;
-const TC_COURSE_MODULE_VERSION='1.0.43-lifecycle-owner';
-const TC_COURSE_MODULE_MARKER='TURNIKCOACH_COURSE 1.0.43-lifecycle-owner';
+const TC_COURSE_MODULE_VERSION='1.0.44-persistence-owner';
+const TC_COURSE_MODULE_MARKER='TURNIKCOACH_COURSE 1.0.44-persistence-owner';
 const TC_COURSE_MODULE_URL='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/course.js?v='+encodeURIComponent(TC_COURSE_MODULE_VERSION);
 const TC_COURSE_CACHE_KEY='tc_module_course_'+TC_COURSE_MODULE_VERSION;
 let tcDomainPrimePromise=null,tcUiPrimePromise=null,tcStorePrimePromise=null,tcActionsPrimePromise=null,tcLifecyclePrimePromise=null,tcNavigationPrimePromise=null,tcCoursePrimePromise=null;
