@@ -1689,11 +1689,12 @@ if(!tcLoadWorkoutUiModule())throw new Error('TurnikCoach workout UI dispatcher u
 if(!tcLoadProgressModule())throw new Error('TurnikCoach progress owner unavailable after preflight');
 if(!window.TurnikWorkoutUI.install())throw new Error('TurnikCoach workout UI dispatcher install failed');
 if(!window.TurnikUI.install())throw new Error('TurnikCoach UI dispatcher install failed');
-if(!tcLoadCourseModule())throw new Error('TurnikCoach course module unavailable after preflight');
 if(!window.TurnikProgress.install())throw new Error('TurnikCoach unified progress owner install failed');
+if(!tcLoadCourseModule())throw new Error('TurnikCoach course module unavailable after preflight');
 window.TurnikUI.register('today','*',10000,()=>{setTimeout(tcQueueDecorate,0);return false});
 window.TurnikUI.register('plan','*',10000,()=>{setTimeout(tcQueueDecorate,0);return false});
 tcRegisterCoreSources();
+if(window.TurnikUI&&typeof window.TurnikUI.renderActive==='function')window.TurnikUI.renderActive({reason:'sources-ready'});
 tcInstallUx2InformationArchitecture();
 tcInstallNavigationFoundation();
 tcInstallNavigationUpgrades();
