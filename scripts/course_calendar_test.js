@@ -246,8 +246,8 @@ assert(hotfix.includes("setTimeout(()=>{renderSummary();tcQueueDecorate()},0)")&
  'post-render work must be deferred until the owning presenter has finished');
 assert(course.includes('id="tcCycleStartDate"'),
  'settings must expose a cycle start date');
-assert(hotfix.includes("const VERSION='5.16.55-workout-ui-owner'"),
- 'release hotfix version must be 5.16.55');
+assert(hotfix.includes("const VERSION='5.16.56-deterministic-decorators'"),
+ 'release hotfix version must be 5.16.56');
 assert(course.includes("const COURSE_MODULE_VERSION='1.0.44-workout-ui-owner'"),
  'course module version must be 1.0.44');
 assert(domain.includes("const VERSION='1.0.0'"),
@@ -256,7 +256,7 @@ assert(!course.includes('TC_EXTRA_START'),
  'temporary extra-workout trace logging must not ship');
 assert(!course.includes('window.confirm('),'course module must not depend on unsupported WebView JS dialogs');
 assert(!hotfix.includes('window.confirm('),'hotfix navigation/discard must not depend on unsupported WebView JS dialogs');
-assert(!hotfix.includes('forceHandover'),'5.16.55 must use an explicit user-visible update prompt');
+assert(!hotfix.includes('forceHandover'),'5.16.56 must use an explicit user-visible update prompt');
 assert(hotfix.includes("showRuntimeNotice('TurnikCoach обновлён до '+LABEL)"),
  'successful activation must give visible feedback');
 assert(hotfix.includes("localStorage.setItem('tc_hotfix_active_version',VERSION)"),
@@ -924,6 +924,28 @@ assert.equal(wuSandbox.renderWork(),'base');
 assert.equal(wuSandbox.baseCalls,1);
 assert.deepEqual(wuOrder,['before','after']);
 assert.equal(wuSandbox.TurnikWorkoutUI.debug().singleOwner,true);
+
+// Deterministic decorator regression: only the sheet navigation observer may remain.
+assert.equal((hotfix.match(/new MutationObserver/g)||[]).length,1,
+ 'hotfix must keep only the sheet navigation MutationObserver');
+assert(hotfix.includes("window.__TC_DECORATOR_FOUNDATION={version:'1.0.0',mode:'deterministic',mutationObservers:1}"),
+ 'runtime diagnostics must declare deterministic decorator mode');
+assert(hotfix.includes("TurnikNavigation.registerAfter('adaptive-geometry',200")&&
+ hotfix.includes("TurnikWorkoutUI.registerAfter('adaptive-geometry',200"),
+ 'adaptive workout geometry must run from explicit Navigation/WorkoutUI hooks');
+assert(hotfix.includes("TurnikNavigation.registerAfter('back-controls',300")&&
+ hotfix.includes("TurnikWorkoutUI.registerAfter('back-controls',300"),
+ 'workout/rest back controls must run from explicit owner hooks');
+assert(hotfix.includes("TurnikNavigation.registerAfter('correction-controls',100")&&
+ hotfix.includes("TurnikWorkoutUI.registerAfter('correction-controls',60"),
+ 'correction controls must run from deterministic owner hooks');
+assert(hotfix.includes("TurnikNavigation.registerAfter('product-decorate',50")&&
+ hotfix.includes("TurnikWorkoutUI.registerAfter('product-decorate',50"),
+ 'product/info decoration must run from deterministic Navigation/WorkoutUI hooks');
+assert(!hotfix.includes('new MutationObserver(tcDecorateBackControls)')&&
+ !hotfix.includes('new MutationObserver(()=>setTimeout(decorateCorrectionControls,0))')&&
+ !hotfix.includes('new MutationObserver(tcQueueDecorate)'),
+ 'legacy app-wide decorator observers must not return');
 
 assert(hotfix.includes('navigator.vibrate([70,45,70])'),
  'danger feedback needs a distinct reject pattern');
