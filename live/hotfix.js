@@ -470,6 +470,10 @@ window.TurnikLifecycle.registerAfter('finishWorkout','completion-summary',-1000,
 }
 function tcInstallNavigationUpgrades(){
 console.log('TC_NAV_UPGRADE',JSON.stringify({phase:'install',version:VERSION}));
+const lifecycle=window.TurnikLifecycle;
+if(!lifecycle||typeof lifecycle.registerBefore!=='function'||typeof lifecycle.registerAfter!=='function')throw new Error('TurnikCoach lifecycle unavailable for navigation');
+lifecycle.registerBefore('go','navigation-route',100,tcNavigationBefore);
+lifecycle.registerAfter('go','navigation-route',100,tcNavigationAfter);
 if(window.__tcBackControlObserver){
 try{window.__tcBackControlObserver.disconnect()}catch(e){}
 window.__tcBackControlObserver=null;
@@ -644,10 +648,6 @@ window.__tcAdaptiveSurfaceObserver=mo;
 }
 const workout=document.getElementById('workout');
 if(workout&&workout.classList.contains('on'))installAdaptiveGeometry();
-const lifecycle=window.TurnikLifecycle;
-if(!lifecycle||typeof lifecycle.registerBefore!=='function'||typeof lifecycle.registerAfter!=='function')throw new Error('TurnikCoach lifecycle unavailable for navigation');
-lifecycle.registerBefore('go','navigation-route',100,tcNavigationBefore);
-lifecycle.registerAfter('go','navigation-route',100,tcNavigationAfter);
 window.__TC_NAV_UPGRADE_VERSION=VERSION;
 }
 function tcInstallNavigationFoundation(){
@@ -1717,15 +1717,20 @@ if(!tcLoadCourseModule())throw new Error('TurnikCoach course module unavailable 
 window.TurnikUI.register('today','*',10000,()=>{setTimeout(tcQueueDecorate,0);return false});
 window.TurnikUI.register('plan','*',10000,()=>{setTimeout(tcQueueDecorate,0);return false});
 tcRegisterCoreSources();
-tcInstallUx2InformationArchitecture();
-tcInstallNavigationFoundation();
-tcInstallNavigationUpgrades();
-tcInstallCompletionFlow();
-tcInstallHapticFeedback();
-tcInstallWorkoutCorrection();
-tcInstallProgressSummary();
-tcInstallWorkoutPersistence();
+const tcInstallDiagnostics={errors:[]};
+function tcRunInstaller(name,fn){
+try{fn();return true}catch(e){console.error('TurnikCoach installer '+name,e);tcInstallDiagnostics.errors.push({name,message:String(e&&e.message||e)});return false}
+}
+tcRunInstaller('ux2-ia',tcInstallUx2InformationArchitecture);
+tcRunInstaller('navigation-foundation',tcInstallNavigationFoundation);
+tcRunInstaller('navigation-upgrades',tcInstallNavigationUpgrades);
+tcRunInstaller('completion-flow',tcInstallCompletionFlow);
+tcRunInstaller('haptics',tcInstallHapticFeedback);
+tcRunInstaller('workout-correction',tcInstallWorkoutCorrection);
+tcRunInstaller('progress-summary',tcInstallProgressSummary);
+tcRunInstaller('workout-persistence',tcInstallWorkoutPersistence);
 if(!window.TurnikWorkoutActions.install())throw new Error('TurnikCoach workout action dispatcher install failed');
+window.__TC_INSTALL_DIAGNOSTICS=tcInstallDiagnostics;
 window.__TC_LIFECYCLE_OWNER=window.TurnikLifecycle.debug();
 if(previousVersion!==VERSION)showRuntimeNotice('TurnikCoach обновлён до '+LABEL);
 console.log('TurnikCoach hotfix active:',VERSION);
