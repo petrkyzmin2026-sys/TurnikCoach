@@ -446,27 +446,25 @@ return false;
 function tcInstallCompletionFlow(){
 if(tcCompletionFlowInstalled)return;
 tcCompletionFlowInstalled=true;
-const baseFinish=window.finishWorkout;
-if(typeof baseFinish!=='function')return;
-window.finishWorkout=function(feel){
-if(typeof W==='undefined'||!W)return baseFinish.apply(this,arguments);
-const workoutBefore=tcJsonClone(W);
-const store=window.TurnikWorkoutStore;
-const tx={
-savedAt:Date.now(),
-state:store&&store.sourceSnapshot?store.sourceSnapshot('generic'):null,
-course:store&&store.sourceSnapshot?store.sourceSnapshot('course'):null
+const lifecycle=window.TurnikWorkoutLifecycle;
+if(!lifecycle||typeof lifecycle.registerBefore!=='function'||typeof lifecycle.registerAfter!=='function')throw new Error('TurnikCoach workout lifecycle dispatcher unavailable');
+lifecycle.registerBefore('finishWorkout','completion-flow',10000,ctx=>{
+if(typeof W==='undefined'||!W)return;
+const workoutBefore=tcJsonClone(W),store=window.TurnikWorkoutStore;
+ctx.meta.completion={
+tx:{savedAt:Date.now(),state:store&&store.sourceSnapshot?store.sourceSnapshot('generic'):null,course:store&&store.sourceSnapshot?store.sourceSnapshot('course'):null},
+summary:tcWorkoutSummary(workoutBefore,ctx.args&&ctx.args[0])
 };
-const summary=tcWorkoutSummary(workoutBefore,feel);
-const result=baseFinish.apply(this,arguments);
+});
+lifecycle.registerAfter('finishWorkout','completion-flow',-10000,ctx=>{
+const data=ctx.meta&&ctx.meta.completion;if(!data)return;
 if(typeof W==='undefined'||!W){
-tx.after=tcCompletionHistorySignature();
-if(tx.state&&tx.course&&tx.after)try{localStorage.setItem(TC_COMPLETION_UNDO_KEY,JSON.stringify(tx))}catch(e){}
+data.tx.after=tcCompletionHistorySignature();
+if(data.tx.state&&data.tx.course&&data.tx.after)try{localStorage.setItem(TC_COMPLETION_UNDO_KEY,JSON.stringify(data.tx))}catch(e){}
 if(typeof window.tcClearActiveWorkoutSnapshot==='function')window.tcClearActiveWorkoutSnapshot();
-setTimeout(()=>tcShowCompletionSummary(summary),0);
+setTimeout(()=>tcShowCompletionSummary(data.summary),0);
 }
-return result;
-};
+});
 }
 function tcInstallNavigationUpgrades(){
 console.log('TC_NAV_UPGRADE',JSON.stringify({phase:'install',version:VERSION}));
@@ -1141,14 +1139,12 @@ tcFinishSignal();
 window.finishRest();
 }
 }
-const originalFinishRest=window.finishRest;
-window.finishRest=function(){
+window.TurnikWorkoutLifecycle.registerBefore('finishRest','rest-timer-cleanup',10000,()=>{
 tcRestActive=false;
 tcRestEnd=0;
 tcSignalSeconds.clear();
 if(rt){clearInterval(rt);rt=null}
-return originalFinishRest();
-};
+});
 function tcNextWorkoutStepText(){
 try{
 if(typeof W==='undefined'||!W||!Array.isArray(W.items)||!W.items.length)return '';
@@ -1496,7 +1492,7 @@ decorateCorrectionControls();
 function tcInstallWorkoutPersistence(){
 if(tcWorkoutPersistenceInstalled)return;
 tcWorkoutPersistenceInstalled=true;
-const names=['adj','startRest','addRest','finishRest','finishWorkout',
+const names=['adj','startRest','addRest',
 'tcStartAuxWorkout','tcStartCourseTest','tcStartCourseWorkout','tcStartExtraWorkout','tcStartSupplementWorkout'];
 names.forEach(name=>{
 const fn=window[name];
@@ -1512,6 +1508,10 @@ window[name]=wrapped;
 const actions=window.TurnikWorkoutActions;
 if(!actions||typeof actions.registerAfter!=='function')throw new Error('TurnikCoach workout action dispatcher unavailable for persistence');
 actions.registerAfter('workout-persistence',-100,()=>setTimeout(tcSaveActiveWorkoutSnapshot,0));
+const lifecycle=window.TurnikWorkoutLifecycle;
+if(!lifecycle||typeof lifecycle.registerAfter!=='function')throw new Error('TurnikCoach workout lifecycle dispatcher unavailable for persistence');
+lifecycle.registerAfter('finishRest','workout-persistence',-20000,()=>setTimeout(tcSaveActiveWorkoutSnapshot,0));
+lifecycle.registerAfter('finishWorkout','workout-persistence',-20000,()=>setTimeout(tcSaveActiveWorkoutSnapshot,0));
 document.addEventListener('input',()=>{if(typeof W!=='undefined'&&W)setTimeout(tcSaveActiveWorkoutSnapshot,0)},{passive:true});
 document.addEventListener('change',()=>{if(typeof W!=='undefined'&&W)setTimeout(tcSaveActiveWorkoutSnapshot,0)},{passive:true});
 document.addEventListener('visibilitychange',()=>{
@@ -1716,6 +1716,7 @@ if(!tcLoadDomainModule())throw new Error('TurnikCoach domain module unavailable 
 if(!tcLoadUiModule())throw new Error('TurnikCoach UI module unavailable after preflight');
 if(!tcLoadStoreModule())throw new Error('TurnikCoach workout store unavailable after preflight');
 if(!tcLoadActionsModule())throw new Error('TurnikCoach workout action dispatcher unavailable after preflight');
+if(!tcLoadLifecycleModule())throw new Error('TurnikCoach workout lifecycle dispatcher unavailable after preflight');
 if(!window.TurnikUI.install())throw new Error('TurnikCoach UI dispatcher install failed');
 if(!tcLoadCourseModule())throw new Error('TurnikCoach course module unavailable after preflight');
 window.TurnikUI.register('today','*',10000,()=>{setTimeout(tcQueueDecorate,0);return false});
@@ -1729,6 +1730,7 @@ tcInstallHapticFeedback();
 tcInstallWorkoutCorrection();
 tcInstallProgressSummary();
 tcInstallWorkoutPersistence();
+if(!window.TurnikWorkoutLifecycle.install())throw new Error('TurnikCoach workout lifecycle dispatcher install failed');
 if(!window.TurnikWorkoutActions.install())throw new Error('TurnikCoach workout action dispatcher install failed');
 if(previousVersion!==VERSION)showRuntimeNotice('TurnikCoach обновлён до '+LABEL);
 console.log('TurnikCoach hotfix active:',VERSION);
