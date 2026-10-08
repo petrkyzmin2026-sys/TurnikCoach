@@ -95,10 +95,11 @@ jobs:
           grep -q 'TURNIKCOACH_WORKOUT_STORE 1.2.0-undo-restore' live/store.js
           grep -q 'TURNIKCOACH_WORKOUT_STORE 1.2.0-undo-restore' app/src/main/assets/store-prev.js
           grep -q 'TURNIKCOACH_WORKOUT_ACTIONS 1.0.0' live/actions.js
-          grep -q 'TURNIKCOACH_COURSE 1.0.42-action-owner' live/course.js
-          grep -q 'TURNIKCOACH_COURSE 1.0.41-control-transactions' app/src/main/assets/course-prev.js
+          grep -q 'TURNIKCOACH_LIFECYCLE 1.0.0' live/lifecycle.js
+          grep -q 'TURNIKCOACH_COURSE 1.0.43-lifecycle-owner' live/course.js
+          grep -q 'TURNIKCOACH_COURSE 1.0.42-action-owner' app/src/main/assets/course-prev.js
           ! grep -q 'COURSE_MODULE_BUNDLED=' app/src/main/assets/hotfix-next.js
-      - name: Seed installed 5.16.51 approval and next action/course caches with completed main-course state
+      - name: Seed installed 5.16.52 approval and next lifecycle/course caches with completed main-course state
         run: |
           python3 - <<'PY'
           from pathlib import Path
@@ -111,6 +112,7 @@ jobs:
           prev_store_cache=json.dumps(Path('app/src/main/assets/store-prev.js').read_text())
           next_store_cache=json.dumps(Path('live/store.js').read_text())
           actions_cache=json.dumps(Path('live/actions.js').read_text())
+          lifecycle_cache=json.dumps(Path('live/lifecycle.js').read_text())
           next_course_cache=json.dumps(Path('live/course.js').read_text())
           marker='</head>'
           assert html.count(marker)==1
@@ -123,10 +125,11 @@ jobs:
             localStorage.setItem('tc_module_store_1.2.0-undo-restore',__PREV_STORE_CACHE__);
             localStorage.setItem('tc_module_store_1.2.0-undo-restore',__NEXT_STORE_CACHE__);
             localStorage.setItem('tc_module_actions_1.0.0',__ACTIONS_CACHE__);
-            localStorage.setItem('tc_module_course_1.0.42-action-owner',__NEXT_COURSE_CACHE__);
+            localStorage.setItem('tc_module_lifecycle_1.0.0',__LIFECYCLE_CACHE__);
+            localStorage.setItem('tc_module_course_1.0.43-lifecycle-owner',__NEXT_COURSE_CACHE__);
             if(localStorage.getItem('__tcForcedHandoverSmokeSeeded')) return;
             var d=new Date(),k=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
-            localStorage.setItem('tc_hotfix_approved_version','5.16.51-ui-render-owner');
+            localStorage.setItem('tc_hotfix_approved_version','5.16.52-workout-action-owner');
             localStorage.setItem('tc_morozov_course_v1',JSON.stringify({
               enabled:true,level:4,goal:'quantity',pullMax:20,courseSeq:1,extraSeq:0,
               lastCourseDate:k,lastCourseTs:Date.now(),weeklySessions:3,cycleStartDate:k,
@@ -205,7 +208,7 @@ jobs:
             else tcInstallTestDriver();
           })();
           </script>'''
-          seed=seed.replace('__PREV_COURSE_CACHE__',prev_course_cache).replace('__DOMAIN_CACHE__',domain_cache).replace('__UI_CACHE__',ui_cache).replace('__PREV_STORE_CACHE__',prev_store_cache).replace('__NEXT_STORE_CACHE__',next_store_cache).replace('__ACTIONS_CACHE__',actions_cache).replace('__NEXT_COURSE_CACHE__',next_course_cache)
+          seed=seed.replace('__PREV_COURSE_CACHE__',prev_course_cache).replace('__DOMAIN_CACHE__',domain_cache).replace('__UI_CACHE__',ui_cache).replace('__PREV_STORE_CACHE__',prev_store_cache).replace('__NEXT_STORE_CACHE__',next_store_cache).replace('__ACTIONS_CACHE__',actions_cache).replace('__LIFECYCLE_CACHE__',lifecycle_cache).replace('__NEXT_COURSE_CACHE__',next_course_cache)
           p.write_text(html.replace(marker,seed+marker))
           PY
       - name: Isolate test application from installed production data
