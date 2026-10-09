@@ -209,7 +209,13 @@ window.tcGetCourseStateSnapshot=function(){return tcCloneCourseState(TC_course)}
 window.tcRestoreCourseStateSnapshot=function(snapshot){return tcPersistCourseSnapshot(snapshot)};
 window.tcCoursePersistenceDebug=function(){
 const store=tcWorkoutStore();
-return{version:COURSE_MODULE_VERSION,owner:store?'TurnikWorkoutStore':'bootstrap-adapter',adapter:'tcPersistCourseSnapshot',directStorageBoundary:true};
+return{version:COURSE_MODULE_VERSION,owner:store?'TurnikWorkoutStore':'bootstrap-adapter',adapter:'tcPersistCourseSnapshot',directStorageBoundary:true,bootstrapDirty:!!window.__TC_COURSE_BOOTSTRAP_DIRTY};
+};
+window.tcFlushCourseBootstrapState=function(){
+if(!window.__TC_COURSE_BOOTSTRAP_DIRTY)return true;
+const ok=tcSaveCourse();
+if(ok)window.__TC_COURSE_BOOTSTRAP_DIRTY=false;
+return ok;
 };
 function tcNextTestDate(){
 const start=TC_course.lastTestDate||TC_course.testAnchorDate;
@@ -1976,7 +1982,7 @@ progress:tcResolvedProgressState()
 tcRegisterCourseDomainResolvers();
 tcRegisterCoursePresenters();
 tcSanitizeSelectedEquipment();
-if(TC_course.enabled&&tcEnsureCourseRun())tcSaveCourse();
+if(TC_course.enabled&&tcEnsureCourseRun())window.__TC_COURSE_BOOTSTRAP_DIRTY=true;
 tcInjectCourseUiStyles();
 render();
 })();
