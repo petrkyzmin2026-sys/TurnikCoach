@@ -1,7 +1,7 @@
-/* TURNIKCOACH_COURSE_DOMAIN 1.1.0-viewstate-owner */
+/* TURNIKCOACH_COURSE_DOMAIN 1.2.0-presenter-data */
 (function(){
 'use strict';
-const VERSION='1.1.0-viewstate-owner';
+const VERSION='1.2.0-presenter-data';
 if(window.TurnikCourseDomain&&window.TurnikCourseDomain.version===VERSION)return;
 function dateKey(d=new Date()){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
 function dateFromKey(k){return new Date(k+'T12:00:00')}
@@ -147,10 +147,16 @@ return{r:run,on,moved,missed,recovery,completed:m.length,rate:den?Math.round((on
 }
 function progressState(state,ctx){
 const c=ctx||{},run=c.run||null;
-return{kind:'COURSE_PROGRESS',stats:progressStats(state,run),level:state.level,mastery:c.mastery||''};
+return{
+kind:'COURSE_PROGRESS',stats:progressStats(state,run),level:state.level,mastery:c.mastery||'',
+enabled:!!state.enabled,pullMax:state.pullMax,targetMax:state.targetMax,
+history:Array.isArray(state.history)?state.history.slice(0,8):[],
+tests:Array.isArray(state.tests)?state.tests.slice():[],
+masteryTests:Array.isArray(state.masteryTests)?state.masteryTests.slice():[]
+};
 }
 function debug(state){
-return{version:VERSION,weekly:weeklyMode(state||{}),weekdays:state?weekdays(state):[],pure:true,owner:'course-viewstate'};
+return{version:VERSION,weekly:weeklyMode(state||{}),weekdays:state?weekdays(state):[],pure:true,owner:'course-viewstate',presenterData:true};
 }
 window.TurnikCourseDomain={
 version:VERSION,dateKey,dateFromKey,dayDiff,weeklyMode,weekdays,scheduledOn,scheduleEventFor,
