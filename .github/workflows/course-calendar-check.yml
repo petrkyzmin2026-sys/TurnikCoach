@@ -49,6 +49,7 @@ on:
       - refactor/rest-state-owner-5.16.60
       - refactor/active-workout-owner-5.16.61
       - refactor/correction-owner-5.16.62
+      - refactor/info-owner-5.16.63
   pull_request:
   workflow_dispatch:
 
@@ -79,9 +80,9 @@ jobs:
           done
           base64 --decode /tmp/v513.b64 | gzip -dc > app/src/main/assets/index.html
           grep -q 'v5.13 — modern Android package' app/src/main/assets/index.html
-      - name: Reproduce packaged 5.14 + cached 5.16.61 + tested 5.16.62
+      - name: Reproduce packaged 5.14 + cached 5.16.62 + tested 5.16.63
         run: |
-          PREV_COMMIT="ea49b874e559fe67b50cb55b7790ce48c7d4d812"
+          PREV_COMMIT="7ec8c2bcfe0534b6d40ee2a897a559b80a21ce6b"
           grep -q 'TURNIKCOACH_HOTFIX 5.14.0-adaptive-rest' app/src/main/assets/hotfix.js
           curl -fsSL "https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/${PREV_COMMIT}/live/hotfix.js" > app/src/main/assets/hotfix-prev.js
           curl -fsSL "https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/${PREV_COMMIT}/live/course.js" > app/src/main/assets/course-prev.js
@@ -97,8 +98,8 @@ jobs:
           s=s.replace(needle,"function tcAudio(){\nif(window.__TC_DISABLE_AUDIO_FOR_SMOKE)return null;\ntry{",1)
           p.write_text(s)
           PY
-          grep -q 'TURNIKCOACH_HOTFIX 5.16.61-active-workout-owner' app/src/main/assets/hotfix-prev.js
-          grep -q 'TURNIKCOACH_HOTFIX 5.16.62-correction-owner' app/src/main/assets/hotfix-next.js
+          grep -q 'TURNIKCOACH_HOTFIX 5.16.62-correction-owner' app/src/main/assets/hotfix-prev.js
+          grep -q 'TURNIKCOACH_HOTFIX 5.16.63-info-owner' app/src/main/assets/hotfix-next.js
           grep -q 'TURNIKCOACH_CORE 1.0.0' app/src/main/assets/hotfix-next.js
           grep -q 'TURNIKCOACH_DOMAIN 1.0.0' live/domain.js
           grep -q 'TURNIKCOACH_UI 1.0.0' live/ui.js
@@ -109,15 +110,16 @@ jobs:
           grep -q 'TURNIKCOACH_REST 1.0.0-state-owner' live/rest.js
           grep -q 'TURNIKCOACH_ACTIVE_WORKOUT 1.0.0-persistence-owner' live/active_workout.js
           grep -q 'TURNIKCOACH_CORRECTION 1.0.0-owner' live/correction.js
+          grep -q 'TURNIKCOACH_INFO 1.0.0-owner' live/info.js
           grep -q 'TURNIKCOACH_WORKOUT_LIFECYCLE 1.0.0' live/lifecycle.js
           grep -q 'TURNIKCOACH_NAVIGATION 1.0.0' live/navigation.js
           grep -q 'TURNIKCOACH_WORKOUT_UI 1.0.0' live/workout_ui.js
           grep -q 'TURNIKCOACH_COURSE_DOMAIN 1.1.0-viewstate-owner' live/course_domain.js
-          grep -q 'TURNIKCOACH_COURSE 1.0.47-viewstate-adapter' live/course.js
           grep -q 'TURNIKCOACH_COURSE 1.0.47-viewstate-adapter' app/src/main/assets/course-prev.js
+          grep -q 'TURNIKCOACH_COURSE 1.0.48-info-provider' live/course.js
           grep -q 'TURNIKCOACH_COURSE_DOMAIN 1.1.0-viewstate-owner' app/src/main/assets/course-domain-prev.js
           ! grep -q 'COURSE_MODULE_BUNDLED=' app/src/main/assets/hotfix-next.js
-      - name: Seed installed 5.16.61 approval and correction/active-workout/rest/course caches with completed main-course state
+      - name: Seed installed 5.16.62 approval and info/correction/active-workout/rest/course caches with completed main-course state
         run: |
           python3 - <<'PY'
           from pathlib import Path
@@ -134,6 +136,7 @@ jobs:
           rest_cache=json.dumps(Path('live/rest.js').read_text())
           active_workout_cache=json.dumps(Path('live/active_workout.js').read_text())
           correction_cache=json.dumps(Path('live/correction.js').read_text())
+          info_cache=json.dumps(Path('live/info.js').read_text())
           lifecycle_cache=json.dumps(Path('live/lifecycle.js').read_text())
           navigation_cache=json.dumps(Path('live/navigation.js').read_text())
           workout_ui_cache=json.dumps(Path('live/workout_ui.js').read_text())
@@ -154,16 +157,17 @@ jobs:
             localStorage.setItem('tc_module_rest_1.0.0-state-owner',__REST_CACHE__);
             localStorage.setItem('tc_module_active_workout_1.0.0-persistence-owner',__ACTIVE_WORKOUT_CACHE__);
             localStorage.setItem('tc_module_correction_1.0.0-owner',__CORRECTION_CACHE__);
+            localStorage.setItem('tc_module_info_1.0.0-owner',__INFO_CACHE__);
             localStorage.setItem('tc_module_lifecycle_1.0.0',__LIFECYCLE_CACHE__);
             localStorage.setItem('tc_module_navigation_1.0.0',__NAVIGATION_CACHE__);
             localStorage.setItem('tc_module_workout_ui_1.0.0',__WORKOUT_UI_CACHE__);
             localStorage.setItem('tc_module_course_domain_1.1.0-viewstate-owner',__PREV_COURSE_DOMAIN_CACHE__);
             localStorage.setItem('tc_module_course_domain_1.1.0-viewstate-owner',__NEXT_COURSE_DOMAIN_CACHE__);
             localStorage.setItem('tc_module_course_1.0.47-viewstate-adapter',__PREV_COURSE_CACHE__);
-            localStorage.setItem('tc_module_course_1.0.47-viewstate-adapter',__NEXT_COURSE_CACHE__);
+            localStorage.setItem('tc_module_course_1.0.48-info-provider',__NEXT_COURSE_CACHE__);
             if(localStorage.getItem('__tcForcedHandoverSmokeSeeded')) return;
             var d=new Date(),k=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
-            localStorage.setItem('tc_hotfix_approved_version','5.16.61-active-workout-owner');
+            localStorage.setItem('tc_hotfix_approved_version','5.16.62-correction-owner');
             localStorage.setItem('tc_morozov_course_v1',JSON.stringify({
               enabled:true,level:4,goal:'quantity',pullMax:20,courseSeq:1,extraSeq:0,
               lastCourseDate:k,lastCourseTs:Date.now(),weeklySessions:3,cycleStartDate:k,
@@ -242,7 +246,7 @@ jobs:
             else tcInstallTestDriver();
           })();
           </script>'''
-          seed=seed.replace('__PREV_COURSE_CACHE__',prev_course_cache).replace('__DOMAIN_CACHE__',domain_cache).replace('__UI_CACHE__',ui_cache).replace('__PREV_STORE_CACHE__',prev_store_cache).replace('__NEXT_STORE_CACHE__',next_store_cache).replace('__ACTIONS_CACHE__',actions_cache).replace('__STANDARD_WORKOUT_CACHE__',standard_workout_cache).replace('__REST_CACHE__',rest_cache).replace('__ACTIVE_WORKOUT_CACHE__',active_workout_cache).replace('__CORRECTION_CACHE__',correction_cache).replace('__LIFECYCLE_CACHE__',lifecycle_cache).replace('__NAVIGATION_CACHE__',navigation_cache).replace('__WORKOUT_UI_CACHE__',workout_ui_cache).replace('__PREV_COURSE_DOMAIN_CACHE__',prev_course_domain_cache).replace('__NEXT_COURSE_DOMAIN_CACHE__',next_course_domain_cache).replace('__NEXT_COURSE_CACHE__',next_course_cache)
+          seed=seed.replace('__PREV_COURSE_CACHE__',prev_course_cache).replace('__DOMAIN_CACHE__',domain_cache).replace('__UI_CACHE__',ui_cache).replace('__PREV_STORE_CACHE__',prev_store_cache).replace('__NEXT_STORE_CACHE__',next_store_cache).replace('__ACTIONS_CACHE__',actions_cache).replace('__STANDARD_WORKOUT_CACHE__',standard_workout_cache).replace('__REST_CACHE__',rest_cache).replace('__ACTIVE_WORKOUT_CACHE__',active_workout_cache).replace('__CORRECTION_CACHE__',correction_cache).replace('__INFO_CACHE__',info_cache).replace('__LIFECYCLE_CACHE__',lifecycle_cache).replace('__NAVIGATION_CACHE__',navigation_cache).replace('__WORKOUT_UI_CACHE__',workout_ui_cache).replace('__PREV_COURSE_DOMAIN_CACHE__',prev_course_domain_cache).replace('__NEXT_COURSE_DOMAIN_CACHE__',next_course_domain_cache).replace('__NEXT_COURSE_CACHE__',next_course_cache)
           p.write_text(html.replace(marker,seed+marker))
           PY
       - name: Isolate test application from installed production data
@@ -364,10 +368,10 @@ jobs:
       - name: Build isolated DEBUG preview APK
         run: |
           gradle --no-daemon :app:assembleDebug
-          cp app/build/outputs/apk/debug/app-debug.apk TurnikCoach-Correction-Owner-Preview-v5.16.62.apk
+          cp app/build/outputs/apk/debug/app-debug.apk TurnikCoach-Info-Owner-Preview-v5.16.63.apk
       - name: Enable KVM
         run: sudo chmod 666 /dev/kvm || true
-      - name: Verify 5.16.62 Correction Owner accessibility baseline in real Android WebView
+      - name: Verify 5.16.63 Info Owner accessibility baseline in real Android WebView
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 35
@@ -376,16 +380,16 @@ jobs:
           disable-animations: true
           emulator-options: -no-snapshot-save -no-window -gpu swiftshader -noaudio -no-boot-anim
           script: |
-            adb install -r TurnikCoach-Correction-Owner-Preview-v5.16.62.apk
+            adb install -r TurnikCoach-Info-Owner-Preview-v5.16.63.apk
             TC_TEST_PKG=ru.turnikcoach.v52tr.calendarpreview python3 scripts/course_undo_ui_smoke.py
       - name: Upload UX2 accessibility baseline screenshots
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: TurnikCoach-5.16.62-correction-accessibility-baseline-screenshots
+          name: TurnikCoach-5.16.63-info-accessibility-baseline-screenshots
           path: undo-ui-test-output
           if-no-files-found: warn
-      - name: Verify 5.16.62 Correction Owner at 200% system font scale
+      - name: Verify 5.16.63 Info Owner at 200% system font scale
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 35
@@ -396,17 +400,17 @@ jobs:
           script: |
             adb shell settings put system font_scale 2.0
             test "$(adb shell settings get system font_scale | tr -d '\r')" = "2.0"
-            adb install -r TurnikCoach-Correction-Owner-Preview-v5.16.62.apk
+            adb install -r TurnikCoach-Info-Owner-Preview-v5.16.63.apk
             TC_TEST_PKG=ru.turnikcoach.v52tr.calendarpreview TC_OUT_DIR="$GITHUB_WORKSPACE/undo-ui-font200-output" TC_FONT_SCALE=2.0 python3 scripts/course_undo_ui_smoke.py
       - name: Upload UX2 200% font-scale screenshots
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: TurnikCoach-5.16.62-correction-font200-screenshots
+          name: TurnikCoach-5.16.63-info-font200-screenshots
           path: undo-ui-font200-output
           if-no-files-found: warn
       - uses: actions/upload-artifact@v4
         with:
-          name: TurnikCoach-5.16.62-correction-accessibility-isolated-preview
-          path: TurnikCoach-Correction-Owner-Preview-v5.16.62.apk
+          name: TurnikCoach-5.16.63-info-accessibility-isolated-preview
+          path: TurnikCoach-Info-Owner-Preview-v5.16.63.apk
           if-no-files-found: error
