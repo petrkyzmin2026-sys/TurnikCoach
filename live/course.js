@@ -1,7 +1,7 @@
-/* TURNIKCOACH_COURSE 1.0.47-viewstate-adapter */
+/* TURNIKCOACH_COURSE 1.0.48-action-adapter */
 (function(){
 'use strict';
-const COURSE_MODULE_VERSION='1.0.47-viewstate-adapter';
+const COURSE_MODULE_VERSION='1.0.48-action-adapter';
 if(window.__TC_COURSE_MODULE_VERSION===COURSE_MODULE_VERSION)return;
 window.__TC_COURSE_MODULE_VERSION=COURSE_MODULE_VERSION;
 function tcClamp(v,a,b){return Math.max(a,Math.min(b,v))}
@@ -1970,6 +1970,26 @@ today:TC_course.enabled?tcResolvedTodayState():null,
 plan:tcResolvedPlanState(),
 progress:tcResolvedProgressState()
 };
+};
+
+const TC_COURSE_ACTION_NAMES=[
+'tcSelectCourseDay','tcShiftCourseWeek','tcShowCourseToday',
+'tcOpenAdvancedChoiceSheet','tcSaveAdvancedChoices',
+'tcOpenCourseCalibration','tcSaveCourseCalibration',
+'tcOpenWorkingWeight','tcSaveWorkingWeight',
+'tcOpenCourseSettings','tcSaveCourseSettings',
+'tcStartAuxWorkout','tcOpenUndoTodayCourseConfirm','tcUndoTodayCourseWorkout','tcChooseTransferRest',
+'tcOpenCourseProgram','tcOpenCourseInfo','tcStartCourseTest','tcConfirmCourseTest','tcDeferCourseTest',
+'tcDeferMasteryTest','tcOpenMasteryTest','tcSaveMasteryTest','tcAdvanceCourseLevel',
+'tcStartCourseWorkout','tcStartTransferredCourseWorkout','tcStartExtraWorkout','tcStartSupplementWorkout'
+];
+window.tcInstallCourseActionOwners=function(){
+const a=window.TurnikCourseActions;if(!a||a.version!=='1.1.0-hooks')return false;
+for(const name of TC_COURSE_ACTION_NAMES)if(!a.capture(name,'morozov-course',100))return false;
+return a.install(TC_COURSE_ACTION_NAMES);
+};
+window.tcCourseActionOwnerDebug=function(){
+return{version:COURSE_MODULE_VERSION,names:TC_COURSE_ACTION_NAMES.slice(),dispatcher:window.TurnikCourseActions&&window.TurnikCourseActions.debug?window.TurnikCourseActions.debug():null};
 };
 tcRegisterCourseDomainResolvers();
 tcRegisterCoursePresenters();
