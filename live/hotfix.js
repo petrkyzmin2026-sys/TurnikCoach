@@ -135,8 +135,8 @@ const TC_WORKOUT_UI_MODULE_VERSION='1.0.0';
 const TC_WORKOUT_UI_MODULE_MARKER='TURNIKCOACH_WORKOUT_UI 1.0.0';
 const TC_WORKOUT_UI_MODULE_URL='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/workout_ui.js?v='+encodeURIComponent(TC_WORKOUT_UI_MODULE_VERSION);
 const TC_WORKOUT_UI_CACHE_KEY='tc_module_workout_ui_'+TC_WORKOUT_UI_MODULE_VERSION;
-const TC_COURSE_ACTIONS_MODULE_VERSION='1.0.0';
-const TC_COURSE_ACTIONS_MODULE_MARKER='TURNIKCOACH_COURSE_ACTIONS 1.0.0';
+const TC_COURSE_ACTIONS_MODULE_VERSION='1.1.0-hooks';
+const TC_COURSE_ACTIONS_MODULE_MARKER='TURNIKCOACH_COURSE_ACTIONS 1.1.0-hooks';
 const TC_COURSE_ACTIONS_MODULE_URL='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/course_actions.js?v='+encodeURIComponent(TC_COURSE_ACTIONS_MODULE_VERSION);
 const TC_COURSE_ACTIONS_CACHE_KEY='tc_module_course_actions_'+TC_COURSE_ACTIONS_MODULE_VERSION;
 const TC_COURSE_DOMAIN_MODULE_VERSION='1.1.0-viewstate-owner';
@@ -1547,8 +1547,7 @@ decorateCorrectionControls();
 function tcInstallWorkoutPersistence(){
 if(tcWorkoutPersistenceInstalled)return;
 tcWorkoutPersistenceInstalled=true;
-const names=['adj','startRest','addRest',
-'tcStartAuxWorkout','tcStartCourseTest','tcStartCourseWorkout','tcStartExtraWorkout','tcStartSupplementWorkout'];
+const names=['adj','startRest','addRest'];
 names.forEach(name=>{
 const fn=window[name];
 if(typeof fn!=='function'||fn.__tcPersistenceWrapped)return;
@@ -1560,6 +1559,10 @@ return result;
 wrapped.__tcPersistenceWrapped=true;
 window[name]=wrapped;
 });
+const courseActions=window.TurnikCourseActions;
+if(!courseActions||typeof courseActions.registerAfter!=='function')throw new Error('TurnikCoach course action dispatcher unavailable for persistence');
+['tcStartAuxWorkout','tcStartCourseTest','tcStartCourseWorkout','tcStartExtraWorkout','tcStartSupplementWorkout'].forEach(name=>
+courseActions.registerAfter(name,'workout-persistence',-100,()=>setTimeout(tcSaveActiveWorkoutSnapshot,0)));
 const actions=window.TurnikWorkoutActions;
 if(!actions||typeof actions.registerAfter!=='function')throw new Error('TurnikCoach workout action dispatcher unavailable for persistence');
 actions.registerAfter('workout-persistence',-100,()=>setTimeout(tcSaveActiveWorkoutSnapshot,0));
