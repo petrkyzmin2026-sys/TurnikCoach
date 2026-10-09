@@ -629,7 +629,7 @@ const target=id==='rest'?'rest':'workout';
 syncScreenVisibility(target);
 try{
 if(target==='workout'&&typeof renderWork==='function')renderWork();
-if(target==='rest'&&typeof tcRenderRest==='function')tcRenderRest();
+if(target==='rest'&&window.TurnikRest&&typeof window.TurnikRest.render==='function')window.TurnikRest.render();
 if(target==='workout')installAdaptiveGeometry();
 }catch(e){}
 forceRepaint();
@@ -847,7 +847,7 @@ const target=id==='rest'?'rest':'workout';
 tcSyncScreenVisibility(target);
 try{
 if(target==='workout'&&typeof renderWork==='function')renderWork();
-if(target==='rest'&&typeof tcRenderRest==='function')tcRenderRest();
+if(target==='rest'&&window.TurnikRest&&typeof window.TurnikRest.render==='function')window.TurnikRest.render();
 if(target==='workout'&&typeof tcInstallAdaptiveWorkoutGeometry==='function')tcInstallAdaptiveWorkoutGeometry();
 }catch(e){}
 tcForceWebViewRepaint();
@@ -884,7 +884,7 @@ window.addEventListener('pageshow',tcEnforceRestoreSurfaceGuard);
 document.addEventListener('visibilitychange',()=>{
 if(document.visibilityState==='visible')tcEnforceRestoreSurfaceGuard();
 });
-function tcClearWorkout(){try{if(typeof rt!=='undefined'&&rt){clearInterval(rt);rt=null}}catch(e){}try{W=null}catch(e){}try{if(typeof window.tcClearActiveWorkoutSnapshot==='function')window.tcClearActiveWorkoutSnapshot()}catch(e){}}
+function tcClearWorkout(){try{if(window.TurnikRest&&typeof window.TurnikRest.stop==='function')window.TurnikRest.stop('discard')}catch(e){}try{if(typeof rt!=='undefined'&&rt){clearInterval(rt);rt=null}}catch(e){}try{W=null}catch(e){}try{if(typeof window.tcClearActiveWorkoutSnapshot==='function')window.tcClearActiveWorkoutSnapshot()}catch(e){}}
 const navigation=window.TurnikNavigation;
 if(!navigation||typeof navigation.registerBefore!=='function'||typeof navigation.registerAfter!=='function')throw new Error('TurnikCoach navigation dispatcher unavailable');
 navigation.registerBefore('navigation-foundation',10000,ctx=>{
@@ -1256,16 +1256,13 @@ if(typeof W==='undefined'||!W){
 tcClearActiveWorkoutSnapshot();
 return false;
 }
+const restState=window.TurnikRest&&typeof window.TurnikRest.snapshot==='function'?window.TurnikRest.snapshot():{active:false,end:0,note:String(window.__tcLastRestNote||'')};
 const payload={
 schema:2,
 savedAt:Date.now(),
 screen:tcWorkoutScreen(),
 workout:W,
-rest:{
-active:!!tcRestActive,
-end:+tcRestEnd||0,
-note:String(window.__tcLastRestNote||'')
-},
+rest:restState,
 manualRest:window.__tcManualCourseRest||null
 };
 localStorage.setItem(TC_ACTIVE_WORKOUT_KEY,JSON.stringify(payload));
@@ -1304,25 +1301,16 @@ try{
 if(!hadActiveWorkout)W=payload.workout;
 window.__tcManualCourseRest=payload.manualRest||null;
 const rest=payload.rest||{};
-tcRestActive=!!rest.active;
-tcRestEnd=+rest.end||0;
 window.__tcLastRestNote=String(rest.note||'');
-if(tcRestActive&&tcRestEnd){
-R=Math.max(0,Math.ceil((tcRestEnd-Date.now())/1000));
-const ring=document.getElementById('restNum');
-if(ring)ring.textContent=R;
-go('rest');
-tcUpdateRestNextStep();
-if(rt)clearInterval(rt);
-rt=setInterval(tcRenderRest,250);
-tcRenderRest();
-}else{
-tcRestActive=false;
-tcRestEnd=0;
+const restOwner=window.TurnikRest;
+if(!restOwner||typeof restOwner.restore!=='function'||typeof restOwner.stop!=='function')throw new Error('TurnikCoach rest state owner unavailable during restore');
+const restoredRest=!!restOwner.restore(rest,{navigate:true});
+if(!restoredRest){
+restOwner.stop('restore-workout');
 go('workout');
 if(typeof renderWork==='function')renderWork();
 }
-const restoredSurface=tcRestActive&&tcRestEnd?'rest':'workout';
+const restoredSurface=restoredRest?'rest':'workout';
 try{
 if(typeof window.tcArmRestoreSurfaceGuard==='function')window.tcArmRestoreSurfaceGuard(restoredSurface);
 else if(typeof window.tcRefreshActiveTrainingSurface==='function')window.tcRefreshActiveTrainingSurface(restoredSurface);
@@ -1330,13 +1318,13 @@ else if(typeof window.tcRefreshActiveTrainingSurface==='function')window.tcRefre
 showRuntimeNotice('Незавершённая тренировка восстановлена.');
 try{
 const item=W.items&&W.items[W.exerciseIndex];
-console.log('TC_WORKOUT_STATE',JSON.stringify({phase:hadActiveWorkout?'handover-restored':'restored',screen:tcWorkoutScreen(),mode:String(W.mode||''),exerciseIndex:+W.exerciseIndex||0,setIndex:+W.setIndex||0,name:item&&item.e&&item.e.name||'',restActive:!!tcRestActive}));
+console.log('TC_WORKOUT_STATE',JSON.stringify({phase:hadActiveWorkout?'handover-restored':'restored',screen:tcWorkoutScreen(),mode:String(W.mode||''),exerciseIndex:+W.exerciseIndex||0,setIndex:+W.setIndex||0,name:item&&item.e&&item.e.name||'',restActive:restoredSurface==='rest'}));
 }catch(_){}
 return true;
 }catch(e){
 console.error('TurnikCoach active workout restore',e);
 try{W=null}catch(_){}
-tcRestActive=false;tcRestEnd=0;
+try{if(window.TurnikRest&&typeof window.TurnikRest.stop==='function')window.TurnikRest.stop('restore-error')}catch(_){}
 tcClearActiveWorkoutSnapshot();
 return false;
 }
@@ -1454,8 +1442,7 @@ if(!frame){showRuntimeNotice('Не удалось восстановить пр�
 closeCurrentSheet();
 window.__tcRestoreSurfaceGuard=null;
 try{
-tcRestActive=false;tcRestEnd=0;tcSignalSeconds.clear();
-if(rt){clearInterval(rt);rt=null}
+if(window.TurnikRest&&typeof window.TurnikRest.stop==='function')window.TurnikRest.stop('correction');
 if(typeof window.finishRest==='function'&&window.__tcManualCourseRest)window.finishRest();
 else window.__tcManualCourseRest=false;
 }catch(e){}
