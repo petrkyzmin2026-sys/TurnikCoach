@@ -11,6 +11,7 @@ const actions=fs.readFileSync('live/actions.js','utf8');
 const lifecycle=fs.readFileSync('live/lifecycle.js','utf8');
 const navigation=fs.readFileSync('live/navigation.js','utf8');
 const workoutUi=fs.readFileSync('live/workout_ui.js','utf8');
+const courseDomain=fs.readFileSync('live/course_domain.js','utf8');
 const hotfix=fs.readFileSync('live/hotfix.js','utf8');
 assert(Buffer.byteLength(hotfix,'utf8')<=128*1024,
  'modular OTA shell must stay comfortably below the native 256 KiB ceiling');
@@ -25,7 +26,13 @@ new vm.Script(actions,{filename:'live/actions.js'});
 new vm.Script(lifecycle,{filename:'live/lifecycle.js'});
 new vm.Script(navigation,{filename:'live/navigation.js'});
 new vm.Script(workoutUi,{filename:'live/workout_ui.js'});
+new vm.Script(courseDomain,{filename:'live/course_domain.js'});
 new vm.Script(hotfix,{filename:'live/hotfix.js'});
+const courseDomainSandbox={console,CustomEvent:function(type,init){this.type=type;this.detail=init&&init.detail},dispatchEvent:()=>true};
+courseDomainSandbox.window=courseDomainSandbox;
+vm.runInNewContext(courseDomain,courseDomainSandbox,{filename:'live/course_domain.js'});
+const schedule=courseDomainSandbox.TurnikCourseDomain;
+assert.equal(schedule.version,'1.0.0-scheduler-owner');
 const coreBundled=hotfix.match(/const CORE_MODULE_BUNDLED=("(?:\\.|[^"\\])*");\nconst TC_DOMAIN_MODULE_VERSION/);
 assert(coreBundled,'small TurnikCore bootstrap must remain embedded in the OTA shell');
 assert.equal(JSON.parse(coreBundled[1]),core,'embedded TurnikCore bootstrap must match live/core.js');
@@ -34,6 +41,11 @@ assert(hotfix.includes("TC_COURSE_MODULE_URL='https://raw.githubusercontent.com/
  'course module must load as a separately versioned live module');
 assert(hotfix.includes("TC_COURSE_CACHE_KEY='tc_module_course_'+TC_COURSE_MODULE_VERSION"),
  'course module must have a versioned offline cache');
+assert(hotfix.includes("TC_COURSE_DOMAIN_MODULE_VERSION='1.0.0-scheduler-owner'")&&
+ hotfix.includes("TC_COURSE_DOMAIN_MODULE_URL='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/course_domain.js"),
+ 'OTA must version and cache the separate TurnikCourseDomain module');
+assert(hotfix.indexOf("if(!tcLoadCourseDomainModule())")<hotfix.lastIndexOf("if(!tcLoadCourseModule())"),
+ 'TurnikCourseDomain must be evaluated before course.js');
 assert(hotfix.includes("TC_DOMAIN_MODULE_URL='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/domain.js")&&
  hotfix.includes("TC_DOMAIN_CACHE_KEY='tc_module_domain_'+TC_DOMAIN_MODULE_VERSION"),
  'domain state must ship as a separately versioned/offline-cached module');
@@ -44,7 +56,7 @@ assert(hotfix.includes("TC_DOMAIN_MODULE_VERSION='1.0.0'")&&
  hotfix.includes("TC_LIFECYCLE_MODULE_VERSION='1.0.0'")&&
  hotfix.includes("TC_NAVIGATION_MODULE_VERSION='1.0.0'")&&
  hotfix.includes("TC_WORKOUT_UI_MODULE_VERSION='1.0.0'")&&
- hotfix.includes("TC_COURSE_MODULE_VERSION='1.0.45-persistence-owner'"),
+ hotfix.includes("TC_COURSE_MODULE_VERSION='1.0.46-domain-owner'"),
  'OTA shell must pin exact compatible Domain, UI, Store, Actions, Lifecycle, Navigation, WorkoutUI and Course module versions');
 assert(hotfix.includes("TC_UI_MODULE_URL='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/ui.js")&&
  hotfix.includes("TC_UI_CACHE_KEY='tc_module_ui_'+TC_UI_MODULE_VERSION"),
@@ -104,65 +116,56 @@ function extract(name){
   assert.equal(depth,0,'function not closed: '+name);
   return course.slice(start,end);
 }
-const names=['tcDayDiff','tcCourseWeekdays','tcDateFromKey','tcScheduledOn',
-  'tcProjectedCourseSeq','tcCourseComplexNo','tcCourseComplex','tcScheduleEventFor','tcUpsertScheduleEvent','tcRemoveScheduleEvent','tcUndoLatestTodayCourseRecord'];
 const key=(date=new Date('2026-09-25T12:00:00'))=>
   date.getFullYear()+'-'+String(date.getMonth()+1).padStart(2,'0')+'-'+String(date.getDate()).padStart(2,'0');
 const courseState={enabled:true,level:4,goal:'quantity',weeklySessions:4,
   cycleStartDate:'2026-09-25',courseSeq:5,lastCourseDate:'',history:[],scheduleEvents:[]};
-const api=new Function('TC_course','dateKey','tcCourseLevel','tcRequireWorkoutStore',
-  names.map(extract).join('\n')+'\nreturn {tcScheduledOn,tcProjectedCourseSeq,tcCourseComplex,tcUndoLatestTodayCourseRecord};')(
-  courseState,key,()=>({complexes:{1:{name:'№1'},2:{name:'№2'},3:{name:'№3'}}}),
-  ()=>({transact:(source,mutator)=>source==='course'&&mutator(courseState)!==false})
-);
 const dates=['2026-09-25','2026-09-26','2026-09-27','2026-09-28',
  '2026-09-29','2026-09-30','2026-10-01','2026-10-02'];
-assert.deepEqual(dates.filter(api.tcScheduledOn),
+assert.deepEqual(dates.filter(k=>schedule.scheduledOn(courseState,k)),
  ['2026-09-25','2026-09-27','2026-09-29','2026-10-01','2026-10-02'],
  '4 sessions must rotate with the Friday anchor, including next cycle');
-assert.equal(api.tcScheduledOn('2026-09-24'),false,'no assignment before start');
-assert.equal(api.tcProjectedCourseSeq('2026-09-29'),7,'preview must project future sessions');
-assert.equal(api.tcCourseComplex(api.tcProjectedCourseSeq('2026-09-29')).no,2);
+assert.equal(schedule.scheduledOn(courseState,'2026-09-24'),false,'no assignment before start');
+assert.equal(schedule.projectedCourseSeq(courseState,'2026-09-29','2026-09-25'),7,'preview must project future sessions');
+const complexApi=new Function('TC_course','tcCourseLevel',
+  extract('tcCourseComplexNo')+'\n'+extract('tcCourseComplex')+'\nreturn {tcCourseComplex};')(
+  courseState,()=>({complexes:{1:{name:'№1'},2:{name:'№2'},3:{name:'№3'}}})
+);
+assert.equal(complexApi.tcCourseComplex(schedule.projectedCourseSeq(courseState,'2026-09-29','2026-09-25')).no,2);
 assert.equal(courseState.courseSeq,5,'preview must not mutate the stored sequence');
 courseState.weeklySessions=3;
-assert.deepEqual(dates.filter(api.tcScheduledOn),
+assert.deepEqual(dates.filter(k=>schedule.scheduledOn(courseState,k)),
  ['2026-09-25','2026-09-27','2026-09-30','2026-10-02'],
  '3 sessions must rotate with the Friday anchor');
 courseState.cycleStartDate='';
-assert.equal(api.tcScheduledOn('2026-09-26'),true,
+assert.equal(schedule.scheduledOn(courseState,'2026-09-26'),true,
  'older installations without an anchor retain the legacy weekday schedule');
-const flexNames=['tcWeeklyMode','tcCourseWeekdays','tcDateFromKey','tcScheduledOn','tcScheduleEventFor',
-  'tcPullLoadDates','tcLastPullLoadDateBefore','tcRecoveryReadyOn','tcPreviousScheduledDay','tcNextScheduledAfter',
-  'tcTransferCandidateRaw','tcTransferCandidate','tcScheduledMainToday','tcCourseDue','tcRecoveryShiftToday'];
+
 const flexState={enabled:true,level:4,goal:'quantity',weeklySessions:4,cycleStartDate:'2026-09-25',
   courseSeq:12,lastCourseDate:'2026-09-25',history:[{courseMode:'course',date:'2026-09-25'}],
   tests:[],masteryTests:[],scheduleEvents:[{plannedDate:'2026-09-27',status:'missed',actualDate:''}],
   transferRestDates:[]};
-const flexApi=new Function('TC_course','dateKey','tcDayDiff','tcTestDue','tcMasteryDue',
-  flexNames.map(extract).join('\n')+'\nreturn {tcTransferCandidateRaw,tcTransferCandidate,tcRecoveryReadyOn,tcCourseDue,tcRecoveryShiftToday};')(
-  flexState,d=>d instanceof Date?key(d):'2026-09-28',
-  (a,b)=>Math.round((new Date(b+'T12:00:00')-new Date(a+'T12:00:00'))/86400000),
-  ()=>false,()=>false
-);
-const mondayTransfer=flexApi.tcTransferCandidateRaw('2026-09-28');
+const mondayCtx={today:'2026-09-28',testDue:false,masteryDue:false};
+const mondayTransfer=schedule.transferCandidateRaw(flexState,'2026-09-28',mondayCtx);
 assert.equal(mondayTransfer.plannedDate,'2026-09-27','Sunday miss must remain the next course stage on Monday');
 assert.equal(mondayTransfer.ready,true,'Friday factual load must allow Monday transfer');
 assert.equal(mondayTransfer.nextScheduledDate,'2026-09-29','transfer window must close at the next scheduled slot');
 flexState.transferRestDates.push('2026-09-28');
-assert.equal(flexApi.tcTransferCandidate('2026-09-28'),null,'choosing rest hides transfer only for that day');
-assert.equal(flexApi.tcTransferCandidateRaw('2026-09-29'),null,'missed session must not become training debt on the next scheduled day');
+assert.equal(schedule.transferCandidate(flexState,'2026-09-28',mondayCtx),null,'choosing rest hides transfer only for that day');
+assert.equal(schedule.transferCandidateRaw(flexState,'2026-09-29',{today:'2026-09-29',testDue:false,masteryDue:false}),null,
+ 'missed session must not become training debt on the next scheduled day');
 flexState.transferRestDates=[];
 flexState.history.unshift({courseMode:'course',date:'2026-09-28',plannedDate:'2026-09-27'});
 flexState.lastCourseDate='2026-09-28';
-assert.equal(flexApi.tcRecoveryReadyOn('2026-09-29'),false,'day after a transferred main workout must be recovery');
-const tuesdayApi=new Function('TC_course','dateKey','tcDayDiff','tcTestDue','tcMasteryDue',
-  flexNames.map(extract).join('\n')+'\nreturn {tcCourseDue,tcRecoveryShiftToday};')(
-  flexState,x=>x instanceof Date?key(x):'2026-09-29',
-  (a,b)=>Math.round((new Date(b+'T12:00:00')-new Date(a+'T12:00:00'))/86400000),
-  ()=>false,()=>false
-);
-assert.equal(tuesdayApi.tcCourseDue(),false,'scheduled session immediately after transfer must not run');
-assert.equal(tuesdayApi.tcRecoveryShiftToday(),true,'conflicting scheduled session must become recovery shift');
+assert.equal(schedule.recoveryReadyOn(flexState,'2026-09-29'),false,'day after a transferred main workout must be recovery');
+const tuesdayCtx={today:'2026-09-29',testDue:false,masteryDue:false};
+assert.equal(schedule.courseDue(flexState,tuesdayCtx),false,'scheduled session immediately after transfer must not run');
+assert.equal(schedule.recoveryShiftToday(flexState,tuesdayCtx),true,'conflicting scheduled session must become recovery shift');
+assert(!course.includes("if(l===1)return [1,3,5,0]"),
+ 'course.js must not duplicate weekday rules owned by TurnikCourseDomain');
+assert(course.includes("return tcCourseDomain().scheduledOn(TC_course,k)")&&
+ course.includes("return tcCourseDomain().transferCandidateRaw(TC_course,today,tcCourseScheduleContext(today))"),
+ 'course.js must delegate schedule decisions to the single course-domain owner');
 assert(course.includes('scheduleEvents:[]')&&course.includes('transferRestDates:[]'),
  'course state must keep schedule events separate from completed workout history');
 assert(course.includes('Выполнить сегодня')&&course.includes('Оставить день отдыха'),
@@ -246,10 +249,10 @@ assert(hotfix.includes("setTimeout(()=>{renderSummary();tcQueueDecorate()},0)")&
  'post-render work must be deferred until the owning presenter has finished');
 assert(course.includes('id="tcCycleStartDate"'),
  'settings must expose a cycle start date');
-assert(hotfix.includes("const VERSION='5.16.56-persistence-owner'"),
- 'release hotfix version must be 5.16.56');
-assert(course.includes("const COURSE_MODULE_VERSION='1.0.45-persistence-owner'"),
- 'course module version must be 1.0.45');
+assert(hotfix.includes("const VERSION='5.16.57-course-domain-owner'"),
+ 'release hotfix version must be 5.16.57');
+assert(course.includes("const COURSE_MODULE_VERSION='1.0.46-domain-owner'"),
+ 'course module version must be 1.0.46');
 const directCourseWrites=(course.match(/localStorage\.setItem\(TC_COURSE_KEY/g)||[]).length;
 assert.equal(directCourseWrites,1,'course persistence must have exactly one physical localStorage write boundary');
 const saveCourseBody=extract('tcSaveCourse');
@@ -268,7 +271,7 @@ assert(!course.includes('TC_EXTRA_START'),
  'temporary extra-workout trace logging must not ship');
 assert(!course.includes('window.confirm('),'course module must not depend on unsupported WebView JS dialogs');
 assert(!hotfix.includes('window.confirm('),'hotfix navigation/discard must not depend on unsupported WebView JS dialogs');
-assert(!hotfix.includes('forceHandover'),'5.16.56 must use an explicit user-visible update prompt');
+assert(!hotfix.includes('forceHandover'),'5.16.57 must use an explicit user-visible update prompt');
 assert(hotfix.includes("showRuntimeNotice('TurnikCoach обновлён до '+LABEL)"),
  'successful activation must give visible feedback');
 assert(hotfix.includes("localStorage.setItem('tc_hotfix_active_version',VERSION)"),
