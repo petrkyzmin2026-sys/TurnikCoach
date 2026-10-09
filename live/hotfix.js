@@ -1,8 +1,8 @@
-/* TURNIKCOACH_HOTFIX 5.16.61-active-workout-owner */
+/* TURNIKCOACH_HOTFIX 5.16.62-correction-owner */
 (function(){
 'use strict';
-const VERSION='5.16.61-active-workout-owner';
-const LABEL='5.16.61';
+const VERSION='5.16.62-correction-owner';
+const LABEL='5.16.62';
 const APPROVED_KEY='tc_hotfix_approved_version';
 const LEGACY_ASSET_VERSION='5.14.0-adaptive-rest';
 const stalePrompt=document.getElementById('tcUpdatePrompt');
@@ -68,7 +68,7 @@ title.style.cssText='font-size:22px;font-weight:800;margin-bottom:10px;flex:0 0 
 title.textContent='Доступно обновление TurnikCoach '+LABEL;
 const text=document.createElement('div');
 text.style.cssText='font-size:15px;line-height:1.45;color:#cfd8e3;margin-bottom:18px;min-height:0;flex:1 1 0;overflow-y:auto;overscroll-behavior:contain;padding-right:4px';
-text.innerHTML="Продолжена архитектурная переработка без изменения сценария тренировки. Сохранение и восстановление незавершённой тренировки теперь принадлежат отдельному модулю TurnikActiveWorkout: он хранит активную тренировку, экран, отдых и 24-часовой срок восстановления через один API. Hotfix больше не владеет этой бизнес-логикой. Формат сохранения tc_active_workout_v2, история и настройки совместимы с предыдущей версией.<br><br>Установить обновление сейчас?";
+text.innerHTML="Продолжена архитектурная переработка без изменения сценария тренировки. Исправление последнего подхода теперь принадлежит отдельному модулю TurnikCorrection: он один хранит undo-кадры, возвращает к предыдущему подходу и управляет кнопками «Назад» на тренировке и отдыхе. Отдельный MutationObserver для этого сценария удалён. История, курс Морозова и формат активной тренировки сохраняются.<br><br>Установить обновление сейчас?";
 const row=document.createElement('div');
 row.style.cssText='display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;flex:0 0 auto';
 const later=document.createElement('button');
@@ -135,6 +135,10 @@ const TC_ACTIVE_WORKOUT_MODULE_VERSION='1.0.0-persistence-owner';
 const TC_ACTIVE_WORKOUT_MODULE_MARKER='TURNIKCOACH_ACTIVE_WORKOUT 1.0.0-persistence-owner';
 const TC_ACTIVE_WORKOUT_MODULE_URL='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/active_workout.js?v='+encodeURIComponent(TC_ACTIVE_WORKOUT_MODULE_VERSION);
 const TC_ACTIVE_WORKOUT_CACHE_KEY='tc_module_active_workout_'+TC_ACTIVE_WORKOUT_MODULE_VERSION;
+const TC_CORRECTION_MODULE_VERSION='1.0.0-owner';
+const TC_CORRECTION_MODULE_MARKER='TURNIKCOACH_CORRECTION 1.0.0-owner';
+const TC_CORRECTION_MODULE_URL='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/correction.js?v='+encodeURIComponent(TC_CORRECTION_MODULE_VERSION);
+const TC_CORRECTION_CACHE_KEY='tc_module_correction_'+TC_CORRECTION_MODULE_VERSION;
 const TC_LIFECYCLE_MODULE_VERSION='1.0.0';
 const TC_LIFECYCLE_MODULE_MARKER='TURNIKCOACH_WORKOUT_LIFECYCLE 1.0.0';
 const TC_LIFECYCLE_MODULE_URL='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/lifecycle.js?v='+encodeURIComponent(TC_LIFECYCLE_MODULE_VERSION);
@@ -155,7 +159,7 @@ const TC_COURSE_MODULE_VERSION='1.0.47-viewstate-adapter';
 const TC_COURSE_MODULE_MARKER='TURNIKCOACH_COURSE 1.0.47-viewstate-adapter';
 const TC_COURSE_MODULE_URL='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/course.js?v='+encodeURIComponent(TC_COURSE_MODULE_VERSION);
 const TC_COURSE_CACHE_KEY='tc_module_course_'+TC_COURSE_MODULE_VERSION;
-let tcDomainPrimePromise=null,tcUiPrimePromise=null,tcStorePrimePromise=null,tcActionsPrimePromise=null,tcStandardWorkoutPrimePromise=null,tcRestPrimePromise=null,tcActiveWorkoutPrimePromise=null,tcLifecyclePrimePromise=null,tcNavigationPrimePromise=null,tcWorkoutUiPrimePromise=null,tcCourseDomainPrimePromise=null,tcCoursePrimePromise=null;
+let tcDomainPrimePromise=null,tcUiPrimePromise=null,tcStorePrimePromise=null,tcActionsPrimePromise=null,tcStandardWorkoutPrimePromise=null,tcRestPrimePromise=null,tcActiveWorkoutPrimePromise=null,tcCorrectionPrimePromise=null,tcLifecyclePrimePromise=null,tcNavigationPrimePromise=null,tcWorkoutUiPrimePromise=null,tcCourseDomainPrimePromise=null,tcCoursePrimePromise=null;
 function tcEvalModule(js,label){try{(0,eval)(js);return true}catch(e){console.error('TurnikCoach module '+label,e);return false}}
 function tcLoadCoreModule(){
 if(window.TurnikCore&&window.TurnikCore.version==='1.0.0')return true;
@@ -170,6 +174,7 @@ function tcValidActionsModule(js){return typeof js==='string'&&js.length>500&&js
 function tcValidStandardWorkoutModule(js){return typeof js==='string'&&js.length>500&&js.length<64000&&js.includes(TC_STANDARD_WORKOUT_MODULE_MARKER)}
 function tcValidRestModule(js){return typeof js==='string'&&js.length>500&&js.length<64000&&js.includes(TC_REST_MODULE_MARKER)}
 function tcValidActiveWorkoutModule(js){return typeof js==='string'&&js.length>500&&js.length<64000&&js.includes(TC_ACTIVE_WORKOUT_MODULE_MARKER)}
+function tcValidCorrectionModule(js){return typeof js==='string'&&js.length>500&&js.length<64000&&js.includes(TC_CORRECTION_MODULE_MARKER)}
 function tcValidLifecycleModule(js){return typeof js==='string'&&js.length>500&&js.length<64000&&js.includes(TC_LIFECYCLE_MODULE_MARKER)}
 function tcValidNavigationModule(js){return typeof js==='string'&&js.length>500&&js.length<64000&&js.includes(TC_NAVIGATION_MODULE_MARKER)}
 function tcValidWorkoutUiModule(js){return typeof js==='string'&&js.length>500&&js.length<64000&&js.includes(TC_WORKOUT_UI_MODULE_MARKER)}
@@ -182,6 +187,7 @@ function tcActionsCacheReady(){return tcValidActionsModule(tcReadModuleCache(TC_
 function tcStandardWorkoutCacheReady(){return tcValidStandardWorkoutModule(tcReadModuleCache(TC_STANDARD_WORKOUT_CACHE_KEY))}
 function tcRestCacheReady(){return tcValidRestModule(tcReadModuleCache(TC_REST_CACHE_KEY))}
 function tcActiveWorkoutCacheReady(){return tcValidActiveWorkoutModule(tcReadModuleCache(TC_ACTIVE_WORKOUT_CACHE_KEY))}
+function tcCorrectionCacheReady(){return tcValidCorrectionModule(tcReadModuleCache(TC_CORRECTION_CACHE_KEY))}
 function tcLifecycleCacheReady(){return tcValidLifecycleModule(tcReadModuleCache(TC_LIFECYCLE_CACHE_KEY))}
 function tcNavigationCacheReady(){return tcValidNavigationModule(tcReadModuleCache(TC_NAVIGATION_CACHE_KEY))}
 function tcWorkoutUiCacheReady(){return tcValidWorkoutUiModule(tcReadModuleCache(TC_WORKOUT_UI_CACHE_KEY))}
@@ -221,6 +227,11 @@ function tcLoadActiveWorkoutModule(){
 if(window.TurnikActiveWorkout&&window.TurnikActiveWorkout.version===TC_ACTIVE_WORKOUT_MODULE_VERSION)return true;
 const cached=tcReadModuleCache(TC_ACTIVE_WORKOUT_CACHE_KEY);
 return tcValidActiveWorkoutModule(cached)&&tcEvalModule(cached,'active-workout')&&!!window.TurnikActiveWorkout;
+}
+function tcLoadCorrectionModule(){
+if(window.TurnikCorrection&&window.TurnikCorrection.version===TC_CORRECTION_MODULE_VERSION)return true;
+const cached=tcReadModuleCache(TC_CORRECTION_CACHE_KEY);
+return tcValidCorrectionModule(cached)&&tcEvalModule(cached,'correction')&&!!window.TurnikCorrection;
 }
 function tcLoadLifecycleModule(){
 if(window.TurnikWorkoutLifecycle&&window.TurnikWorkoutLifecycle.version===TC_LIFECYCLE_MODULE_VERSION)return true;
@@ -281,6 +292,10 @@ function tcPrimeActiveWorkoutModule(){
 if(!tcActiveWorkoutPrimePromise)tcActiveWorkoutPrimePromise=tcPrimeModule(TC_ACTIVE_WORKOUT_MODULE_URL,TC_ACTIVE_WORKOUT_CACHE_KEY,tcValidActiveWorkoutModule,'active-workout');
 return tcActiveWorkoutPrimePromise;
 }
+function tcPrimeCorrectionModule(){
+if(!tcCorrectionPrimePromise)tcCorrectionPrimePromise=tcPrimeModule(TC_CORRECTION_MODULE_URL,TC_CORRECTION_CACHE_KEY,tcValidCorrectionModule,'correction');
+return tcCorrectionPrimePromise;
+}
 function tcPrimeLifecycleModule(){
 if(!tcLifecyclePrimePromise)tcLifecyclePrimePromise=tcPrimeModule(TC_LIFECYCLE_MODULE_URL,TC_LIFECYCLE_CACHE_KEY,tcValidLifecycleModule,'lifecycle');
 return tcLifecyclePrimePromise;
@@ -311,13 +326,14 @@ if(!tcActionsCacheReady())tasks.push(tcPrimeActionsModule());
 if(!tcStandardWorkoutCacheReady())tasks.push(tcPrimeStandardWorkoutModule());
 if(!tcRestCacheReady())tasks.push(tcPrimeRestModule());
 if(!tcActiveWorkoutCacheReady())tasks.push(tcPrimeActiveWorkoutModule());
+if(!tcCorrectionCacheReady())tasks.push(tcPrimeCorrectionModule());
 if(!tcLifecycleCacheReady())tasks.push(tcPrimeLifecycleModule());
 if(!tcNavigationCacheReady())tasks.push(tcPrimeNavigationModule());
 if(!tcWorkoutUiCacheReady())tasks.push(tcPrimeWorkoutUiModule());
 if(!tcCourseDomainCacheReady())tasks.push(tcPrimeCourseDomainModule());
 if(!tcCourseCacheReady())tasks.push(tcPrimeCourseModule());
 if(tasks.length){const ready=await Promise.all(tasks);if(ready.some(x=>!x))return false}
-return tcDomainCacheReady()&&tcUiCacheReady()&&tcStoreCacheReady()&&tcActionsCacheReady()&&tcStandardWorkoutCacheReady()&&tcRestCacheReady()&&tcActiveWorkoutCacheReady()&&tcLifecycleCacheReady()&&tcNavigationCacheReady()&&tcWorkoutUiCacheReady()&&tcCourseDomainCacheReady()&&tcCourseCacheReady();
+return tcDomainCacheReady()&&tcUiCacheReady()&&tcStoreCacheReady()&&tcActionsCacheReady()&&tcStandardWorkoutCacheReady()&&tcRestCacheReady()&&tcActiveWorkoutCacheReady()&&tcCorrectionCacheReady()&&tcLifecycleCacheReady()&&tcNavigationCacheReady()&&tcWorkoutUiCacheReady()&&tcCourseDomainCacheReady()&&tcCourseCacheReady();
 }
 function tcRegisterCoreSources(){
 const core=window.TurnikCore;if(!core)return false;
@@ -331,7 +347,7 @@ snapshot:()=>typeof window.tcGetCourseStateSnapshot==='function'?window.tcGetCou
 history:()=>{const x=typeof window.tcGetCourseStateSnapshot==='function'?window.tcGetCourseStateSnapshot():null;return x&&Array.isArray(x.history)?x.history:[]},
 restore:next=>typeof window.tcRestoreCourseStateSnapshot==='function'?window.tcRestoreCourseStateSnapshot(next):false
 });
-window.__TC_CORE_FOUNDATION={version:core.version,domainModule:window.TurnikDomain&&window.TurnikDomain.version||'',uiModule:window.TurnikUI&&window.TurnikUI.version||'',storeModule:window.TurnikWorkoutStore&&window.TurnikWorkoutStore.version||'',actionsModule:window.TurnikWorkoutActions&&window.TurnikWorkoutActions.version||'',standardWorkoutModule:window.TurnikStandardWorkout&&window.TurnikStandardWorkout.version||'',restModule:window.TurnikRest&&window.TurnikRest.version||'',activeWorkoutModule:window.TurnikActiveWorkout&&window.TurnikActiveWorkout.version||'',lifecycleModule:window.TurnikWorkoutLifecycle&&window.TurnikWorkoutLifecycle.version||'',navigationModule:window.TurnikNavigation&&window.TurnikNavigation.version||'',workoutUiModule:window.TurnikWorkoutUI&&window.TurnikWorkoutUI.version||'',courseDomainModule:window.TurnikCourseDomain&&window.TurnikCourseDomain.version||'',courseModule:TC_COURSE_MODULE_VERSION,modular:true};
+window.__TC_CORE_FOUNDATION={version:core.version,domainModule:window.TurnikDomain&&window.TurnikDomain.version||'',uiModule:window.TurnikUI&&window.TurnikUI.version||'',storeModule:window.TurnikWorkoutStore&&window.TurnikWorkoutStore.version||'',actionsModule:window.TurnikWorkoutActions&&window.TurnikWorkoutActions.version||'',standardWorkoutModule:window.TurnikStandardWorkout&&window.TurnikStandardWorkout.version||'',restModule:window.TurnikRest&&window.TurnikRest.version||'',activeWorkoutModule:window.TurnikActiveWorkout&&window.TurnikActiveWorkout.version||'',correctionModule:window.TurnikCorrection&&window.TurnikCorrection.version||'',lifecycleModule:window.TurnikWorkoutLifecycle&&window.TurnikWorkoutLifecycle.version||'',navigationModule:window.TurnikNavigation&&window.TurnikNavigation.version||'',workoutUiModule:window.TurnikWorkoutUI&&window.TurnikWorkoutUI.version||'',courseDomainModule:window.TurnikCourseDomain&&window.TurnikCourseDomain.version||'',courseModule:TC_COURSE_MODULE_VERSION,modular:true};
 return true;
 }
 tcLoadCoreModule();
@@ -1090,7 +1106,7 @@ window.__tcBackControlObserver=mo;
 function installUpdate(){
 if(window.__TC_HOTFIX_ACTIVE_VERSION===VERSION)return;
 if(!tcLoadCoreModule()){showRuntimeNotice('Не удалось загрузить ядро TurnikCore. Текущая версия оставлена без изменений.','danger');return}
-if(!tcDomainCacheReady()||!tcUiCacheReady()||!tcStoreCacheReady()||!tcActionsCacheReady()||!tcStandardWorkoutCacheReady()||!tcRestCacheReady()||!tcActiveWorkoutCacheReady()||!tcLifecycleCacheReady()||!tcNavigationCacheReady()||!tcWorkoutUiCacheReady()||!tcCourseDomainCacheReady()||!tcCourseCacheReady()){
+if(!tcDomainCacheReady()||!tcUiCacheReady()||!tcStoreCacheReady()||!tcActionsCacheReady()||!tcStandardWorkoutCacheReady()||!tcRestCacheReady()||!tcActiveWorkoutCacheReady()||!tcCorrectionCacheReady()||!tcLifecycleCacheReady()||!tcNavigationCacheReady()||!tcWorkoutUiCacheReady()||!tcCourseDomainCacheReady()||!tcCourseCacheReady()){
 tcEnsureRequiredModules().then(ok=>{if(ok)installUpdate();else showRuntimeNotice('Модули приложения недоступны. Повторите обновление при подключении к интернету.','danger')});
 return;
 }
@@ -1282,163 +1298,28 @@ if(!ctx.skip&&record&&h.previous===undefined&&current!==undefined&&current!==nul
 }catch(e){}
 });
 }
-function tcCaptureCorrectionBefore(workout){
-if(!workout||workout.mode==='courseTest'||!Array.isArray(workout.items))return null;
-const ex=Number(workout.exerciseIndex),set=Number(workout.setIndex);
-const item=workout.items[ex];
-if(!item||!Array.isArray(item.plan)||set<0||set>=item.plan.length||!Array.isArray(item.actual))return null;
-const had=Object.prototype.hasOwnProperty.call(item.actual,set);
-return {exerciseIndex:ex,setIndex:set,input:workout.actual,had,previous:had?item.actual[set]:null,early:!!workout.early};
-}
-function tcCommitCorrection(workout,frame){
-if(!workout||!frame||!Array.isArray(workout.items))return false;
-const item=workout.items[frame.exerciseIndex];
-if(!item||!Array.isArray(item.actual))return false;
-if(!Object.prototype.hasOwnProperty.call(item.actual,frame.setIndex))return false;
-if(frame.had&&item.actual[frame.setIndex]===frame.previous)return false;
-if(!Array.isArray(workout.__tcCorrectionTrail))workout.__tcCorrectionTrail=[];
-workout.__tcCorrectionTrail.push(frame);
-if(workout.__tcCorrectionTrail.length>150)workout.__tcCorrectionTrail.shift();
-return true;
-}
-function tcUndoCorrection(workout){
-const trail=workout&&workout.__tcCorrectionTrail;
-if(!Array.isArray(trail)||!trail.length)return null;
-const frame=trail[trail.length-1],item=workout.items&&workout.items[frame.exerciseIndex];
-if(!item||!Array.isArray(item.actual)||!Array.isArray(item.plan)||
-frame.setIndex<0||frame.setIndex>=item.plan.length)return null;
-trail.pop();
-if(frame.had)item.actual[frame.setIndex]=frame.previous;
-else item.actual.splice(frame.setIndex,1); // no JSON-null hole on process-death restore
-workout.exerciseIndex=frame.exerciseIndex;
-workout.setIndex=frame.setIndex;
-workout.actual=frame.input;
-workout.early=frame.early;
-return frame;
-}
 function tcInstallWorkoutCorrection(){
-if(window.__TC_WORKOUT_CORRECTION_V2)return;
-window.__TC_WORKOUT_CORRECTION_V2=true;
-const inherited=!!window.__TC_WORKOUT_CORRECTION_V1;
-if(window.__tcCorrectionUiObserver)window.__tcCorrectionUiObserver.disconnect();
-const actions=window.TurnikWorkoutActions;
-if(!inherited&&actions&&typeof actions.registerBefore==='function'&&typeof actions.registerAfter==='function'){
-actions.registerBefore('workout-correction',60,ctx=>{
-const current=typeof W!=='undefined'?W:null;
-ctx.meta.correction={current,frame:tcCaptureCorrectionBefore(current)};
+const owner=window.TurnikCorrection;
+if(!owner||typeof owner.install!=='function')throw new Error('TurnikCoach correction owner unavailable');
+const ok=owner.install({
+getWorkout:()=>typeof W!=='undefined'?W:null,
+notice:(message,tone)=>showRuntimeNotice(message,tone),
+discard:()=>window.tcDiscardWorkout(),
+clearRestoreGuard:()=>{window.__tcRestoreSurfaceGuard=null},
+rest:window.TurnikRest,
+getManualRest:()=>window.__tcManualCourseRest||null,
+setManualRest:value=>{window.__tcManualCourseRest=value||null},
+finishRest:()=>typeof window.finishRest==='function'?window.finishRest():false,
+navigate:id=>typeof window.go==='function'?window.go(id):false,
+renderWorkout:()=>typeof window.renderWork==='function'?window.renderWork():false,
+saveSnapshot:()=>typeof window.tcSaveActiveWorkoutSnapshot==='function'?window.tcSaveActiveWorkoutSnapshot():false,
+refreshSurface:surface=>typeof window.tcRefreshActiveTrainingSurface==='function'?window.tcRefreshActiveTrainingSurface(surface):false,
+actions:window.TurnikWorkoutActions,
+navigation:window.TurnikNavigation,
+workoutUi:window.TurnikWorkoutUI
 });
-actions.registerAfter('workout-correction',60,ctx=>{
-const c=ctx.meta.correction||{};
-if(c.frame&&tcCommitCorrection(c.current,c.frame)){
-if(typeof window.tcSaveActiveWorkoutSnapshot==='function')window.tcSaveActiveWorkoutSnapshot();
-setTimeout(decorateCorrectionControls,0);
-}
-});
-}else if(!inherited)throw new Error('TurnikCoach workout action dispatcher unavailable for correction');
-const style=document.createElement('style');
-style.id='tcCorrectionControlsStyle';
-style.textContent=
-'#app > .nav{z-index:90!important;pointer-events:auto!important}'+
-'#today .scroll{min-height:0!important;overscroll-behavior:contain;padding-bottom:144px!important}'+
-'#workout .stageHeader .endBtn,#workout .wtop .endBtn{display:none!important}'+
-'#workout .stageHeader .row.between,#workout .wtop .row.between{display:flex!important;flex-wrap:wrap!important;gap:8px!important}'+
-'#workout .wtop .row.between{padding-left:0!important;min-height:0!important}'+
-'#workout .wtop .tcWorkoutExitBtn{position:static!important;left:auto!important;top:auto!important}'+
-'#workout .tcTrainingTopActions{display:flex;align-items:center;justify-content:space-between;width:100%;gap:12px;flex:0 0 100%;order:-1}'+
-'#workout .tcWorkoutBackBtn,#workout .tcWorkoutExitBtn{min-width:88px!important;max-width:44%;min-height:48px;height:48px!important;padding:0 14px!important;border-radius:12px;font:800 14px/1.2 system-ui,sans-serif;white-space:nowrap;touch-action:manipulation}'+
-'#workout .tcWorkoutBackBtn{background:#202b36;border:1px solid #566579;color:#fff}'+
-'#workout .tcWorkoutExitBtn{background:#2a181b;border:1px solid #70424a;color:#ffb8bd}'+
-'#workout .tcWorkoutBackBtn:disabled,#rest .tcRestBack:disabled{opacity:.45}'+
-'#workout .tcCorrectionSetBtn{display:none!important}'+
-'#workout .tcWorkoutExitBtn,#rest .tcRestExitBtn{min-width:100px!important;padding:0 9px!important}'+
-'#workout .tcCorrectionSetBtn{width:100%;min-height:48px;border:1px solid #566579;border-radius:12px;background:#202b36;color:#fff;font:750 15px/1.2 system-ui,sans-serif;touch-action:manipulation}'+
-'#workout .tcCorrectionSetBtn:active{transform:scale(.99)}'+
-'#rest .tcRestBack{min-width:94px!important;width:auto!important;padding:0 7px!important;border-radius:12px!important;font-size:13px!important}'+
-'#rest .tcRestBack,#rest .tcRestExitBtn{min-width:0!important;max-width:calc((100% - 112px)/2)!important;min-height:48px!important;height:auto!important;white-space:normal!important;overflow-wrap:anywhere!important}'+
-'#rest .rest .tcInfoBtn{left:50%!important;right:auto!important;top:12px!important;transform:translateX(-50%)!important}';
-document.head.appendChild(style);
-function closeCurrentSheet(){
-const el=document.getElementById('sheet');
-if(el)el.classList.remove('open');
-}
-window.tcReturnToPreviousSet=function(){
-const current=typeof W!=='undefined'?W:null;
-if(!current||!Array.isArray(current.__tcCorrectionTrail)||!current.__tcCorrectionTrail.length){
-showRuntimeNotice('Ранее записанных подходов пока нет.','danger');return false;
-}
-const frame=tcUndoCorrection(current);
-if(!frame){showRuntimeNotice('Не удалось восстановить предыдущий подход.','danger');return false}
-closeCurrentSheet();
-window.__tcRestoreSurfaceGuard=null;
-try{
-if(window.TurnikRest&&typeof window.TurnikRest.stop==='function')window.TurnikRest.stop('correction');
-if(typeof window.finishRest==='function'&&window.__tcManualCourseRest)window.finishRest();
-else window.__tcManualCourseRest=false;
-}catch(e){}
-try{
-if(typeof go==='function')go('workout');
-if(typeof renderWork==='function')renderWork();
-if(typeof window.tcSaveActiveWorkoutSnapshot==='function')window.tcSaveActiveWorkoutSnapshot();
-if(typeof window.tcRefreshActiveTrainingSurface==='function')window.tcRefreshActiveTrainingSurface('workout');
-}catch(e){console.error('TurnikCoach set correction',e)}
-setTimeout(decorateCorrectionControls,0);
-showRuntimeNotice('Предыдущий подход открыт для исправления.');
+if(!ok)throw new Error('TurnikCoach correction owner install failed');
 return true;
-};
-function decorateCorrectionControls(){
-const hasTrail=typeof W!=='undefined'&&W&&Array.isArray(W.__tcCorrectionTrail)&&W.__tcCorrectionTrail.length>0;
-const workout=document.querySelector('#workout.screen.on');
-if(workout){
-const header=workout.querySelector('.stageHeader .row.between,.wtop .row.between');
-if(header){
-let bar=header.querySelector('.tcTrainingTopActions');
-if(!bar){
-bar=document.createElement('div');bar.className='tcTrainingTopActions';
-const existing=header.querySelector('.tcWorkoutExitBtn');
-if(existing)bar.appendChild(existing);
-header.insertBefore(bar,header.firstChild);
-}
-let back=bar.querySelector('.tcWorkoutBackBtn');
-if(!back){back=document.createElement('button');back.type='button';back.className='tcWorkoutBackBtn';back.textContent='← Назад';back.title='Вернуться к предыдущему подходу';bar.insertBefore(back,bar.firstChild)}
-back.disabled=!hasTrail;back.onclick=window.tcReturnToPreviousSet;
-const exit=bar.querySelector('.tcWorkoutExitBtn');
-if(exit){if(exit.textContent!=='Выйти')exit.textContent='Выйти';exit.title='Выйти без сохранения';exit.onclick=window.tcDiscardWorkout;}
-}
-const legacy=workout.querySelector('.stageHeader .endBtn,.wtop .endBtn');
-if(legacy)legacy.style.display='none';
-workout.querySelectorAll('.tcCorrectionSetBtn').forEach(b=>b.remove());
-}
-const rest=document.querySelector('#rest.screen.on .rest');
-if(rest){
-const prev=rest.querySelector('.tcRestBack'),finish=rest.querySelector('.tcRestExitBtn');
-if(prev){
-if(prev.textContent!=='← Назад')prev.textContent='← Назад';prev.title='Вернуться к предыдущему подходу';
-prev.setAttribute('aria-label','Назад');
-prev.onclick=window.tcReturnToPreviousSet;prev.disabled=!hasTrail;prev.style.display='grid';
-}
-if(finish){if(finish.textContent!=='Выйти')finish.textContent='Выйти';finish.title='Выйти без сохранения';finish.onclick=window.tcDiscardWorkout;}
-}
-const sheet=document.getElementById('sheet'),box=document.getElementById('sheetbox');
-if(hasTrail&&sheet&&box&&sheet.classList.contains('open')&&
-[...box.querySelectorAll('button')].some(b=>/^(Легко|Нормально|Тяжело)$/i.test((b.textContent||'').trim()))&&
-!box.querySelector('#tcFixSetFromFeedbackBtn')){
-const b=document.createElement('button');
-b.id='tcFixSetFromFeedbackBtn';b.type='button';b.className='btn ghost full';
-b.textContent='Исправить последний подход';b.style.marginTop='10px';
-b.onclick=window.tcReturnToPreviousSet;box.appendChild(b);
-}
-}
-window.tcEnsureCorrectionControls=()=>setTimeout(decorateCorrectionControls,0);
-window.TurnikNavigation.registerAfter('correction-controls',100,()=>setTimeout(decorateCorrectionControls,0));
-if(!window.TurnikWorkoutUI||typeof window.TurnikWorkoutUI.registerAfter!=='function')throw new Error('TurnikCoach workout UI dispatcher unavailable for correction');
-window.TurnikWorkoutUI.registerAfter('correction-controls',60,()=>setTimeout(decorateCorrectionControls,0));
-const app=document.getElementById('app');
-if(app){
-const observer=new MutationObserver(()=>setTimeout(decorateCorrectionControls,0));
-observer.observe(app,{childList:true,subtree:true});
-window.__tcCorrectionUiObserver=observer;
-}
-decorateCorrectionControls();
 }
 function tcInstallWorkoutPersistence(){
 const owner=window.TurnikActiveWorkout;
@@ -1620,6 +1501,7 @@ if(!tcLoadActionsModule())throw new Error('TurnikCoach workout action dispatcher
 if(!tcLoadStandardWorkoutModule())throw new Error('TurnikCoach standard workout module unavailable after preflight');
 if(!tcLoadRestModule())throw new Error('TurnikCoach rest state owner unavailable after preflight');
 if(!tcLoadActiveWorkoutModule())throw new Error('TurnikCoach active workout owner unavailable after preflight');
+if(!tcLoadCorrectionModule())throw new Error('TurnikCoach correction owner unavailable after preflight');
 if(!tcLoadLifecycleModule())throw new Error('TurnikCoach workout lifecycle dispatcher unavailable after preflight');
 if(!tcLoadNavigationModule())throw new Error('TurnikCoach navigation dispatcher unavailable after preflight');
 if(!tcLoadWorkoutUiModule())throw new Error('TurnikCoach workout UI dispatcher unavailable after preflight');
