@@ -93,7 +93,7 @@ jobs:
           seed=r'''<script>
           (function(){
             window.__TC_DISABLE_AUDIO_FOR_SMOKE=true;
-            if(localStorage.getItem('__tcOfflineModuleSmoke')) window.fetch=function(){return Promise.reject(new Error('TC offline module smoke'));};
+            window.fetch=function(){return Promise.reject(new Error('TC offline module smoke'));};
             localStorage.setItem('tc_module_course_1.0.37-course-stats',__COURSE_CACHE__);
             if(localStorage.getItem('__tcForcedHandoverSmokeSeeded')) return;
             var d=new Date(),k=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
