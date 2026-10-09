@@ -1760,7 +1760,8 @@ if(!tcLoadCourseDomainModule())throw new Error('TurnikCoach course domain module
 if(!tcLoadCourseModule())throw new Error('TurnikCoach course module unavailable after preflight');
 window.TurnikUI.register('today','*',10000,()=>{setTimeout(tcQueueDecorate,0);return false});
 window.TurnikUI.register('plan','*',10000,()=>{setTimeout(tcQueueDecorate,0);return false});
-tcRegisterCoreSources();
+if(!tcRegisterCoreSources())throw new Error('TurnikCoach core source registration failed');
+if(typeof window.tcFlushCourseBootstrapState==='function'&&!window.tcFlushCourseBootstrapState())throw new Error('TurnikCoach course bootstrap flush failed');
 tcInstallUx2InformationArchitecture();
 tcInstallNavigationFoundation();
 tcInstallNavigationUpgrades();
