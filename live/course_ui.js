@@ -137,5 +137,9 @@ registered=true;return true;
 }
 function debug(){return{version:VERSION,configured:!!a,registered,owner:'course-presenter',areas:['today','plan','progress']}}
 window.TurnikCourseUI={version:VERSION,configure,register,renderToday,renderPlan,renderProgress,debug};
+if(window.TurnikCoursePresenterAdapter){
+configure(window.TurnikCoursePresenterAdapter);
+register();
+}
 try{window.dispatchEvent(new CustomEvent('turnikcourseui:ready',{detail:{version:VERSION}}))}catch(e){}
 })();
