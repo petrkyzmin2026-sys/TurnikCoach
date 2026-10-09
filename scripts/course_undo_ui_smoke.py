@@ -326,13 +326,13 @@ def launch():
 launch()
 dismiss_system_anr()
 
-# Exact update path: packaged 5.14 + cached 5.16.58 is active first; staged 5.16.59 must be offered explicitly.
+# Exact update path: packaged 5.14 + cached 5.16.59 is active first; staged 5.16.60 must be offered explicitly.
 time.sleep(3)
 screenshot("00-before-update-assert")
 adb("shell","uiautomator","dump","/sdcard/uxb3-before-update.xml",check=False)
 adb("pull","/sdcard/uxb3-before-update.xml",OUT+"/00-before-update.xml",check=False)
 try:
-    wait_text("Доступно обновление TurnikCoach 5.16.59",timeout=20)
+    wait_text("Доступно обновление TurnikCoach 5.16.60",timeout=20)
 except Exception:
     log=adb("logcat","-d","-t","500",check=False)
     with open(OUT+"/00-logcat.txt","w",encoding="utf-8") as fp:
@@ -342,7 +342,7 @@ wait_text("Обновить",contains=False)
 screenshot("01-update-offered")
 
 tap_clickable_text("Обновить")
-wait_text("TurnikCoach обновлён до 5.16.59",timeout=25)
+wait_text("TurnikCoach обновлён до 5.16.60",timeout=25)
 assert_accessibility_target("План",48)
 assert_accessibility_target("Прогресс",48)
 screenshot("02-update-installed")
@@ -366,9 +366,9 @@ course_stats=test_eval_json("(function(){var w=document.getElementById('tcCourse
 print("TC_DIAG morozov-course-stats",course_stats,flush=True)
 stats_text=course_stats["text"].lower()
 assert course_stats["present"] and "курс морозова" in stats_text and "выполнение курса" in stats_text and "вовремя" in stats_text and "пропущено" in stats_text, "Progress must show compact Morozov course statistics"
-assert course_stats["runs"]>=1 and course_stats["active"] and course_stats["historyRun"]==course_stats["active"] and course_stats["baseline"]==20, "5.16.59 must preserve the seeded active course run and history"
+assert course_stats["runs"]>=1 and course_stats["active"] and course_stats["historyRun"]==course_stats["active"] and course_stats["baseline"]==20, "5.16.60 must preserve the seeded active course run and history"
 screenshot("02c-morozov-course-stats")
-core_probe=test_eval_json("(function(){var c=window.TurnikCore&&TurnikCore.debug?TurnikCore.debug():null;var d=window.TurnikDomain&&TurnikDomain.debug?TurnikDomain.debug():null;var u=window.TurnikUI&&TurnikUI.debug?TurnikUI.debug():null;var st=window.TurnikWorkoutStore&&TurnikWorkoutStore.debug?TurnikWorkoutStore.debug():null;var ss=window.TurnikWorkoutStore&&TurnikWorkoutStore.summary?TurnikWorkoutStore.summary({now:Date.now()}):null;var ac=window.TurnikWorkoutActions&&TurnikWorkoutActions.debug?TurnikWorkoutActions.debug():null;var sw=window.TurnikStandardWorkout&&TurnikStandardWorkout.debug?TurnikStandardWorkout.debug():null;var lc=window.TurnikWorkoutLifecycle&&TurnikWorkoutLifecycle.debug?TurnikWorkoutLifecycle.debug():null;var nv=window.TurnikNavigation&&TurnikNavigation.debug?TurnikNavigation.debug():null;var cd=window.TurnikCourseDomain&&TurnikCourseDomain.debug?TurnikCourseDomain.debug((window.TurnikCore&&TurnikCore.sourceSnapshot?TurnikCore.sourceSnapshot('course'):null)||{}):null;var f=window.__TC_CORE_FOUNDATION||null;var dc=localStorage.getItem('tc_module_domain_1.0.0')||'',uc=localStorage.getItem('tc_module_ui_1.0.0')||'',sc=localStorage.getItem('tc_module_store_1.2.0-undo-restore')||'',awc=localStorage.getItem('tc_module_actions_1.0.0')||'',swc=localStorage.getItem('tc_module_standard_workout_1.0.0-action-owner')||'',lcc=localStorage.getItem('tc_module_lifecycle_1.0.0')||'',nvc=localStorage.getItem('tc_module_navigation_1.0.0')||'',cdc=localStorage.getItem('tc_module_course_domain_1.1.0-viewstate-owner')||'',cc=localStorage.getItem('tc_module_course_1.0.47-viewstate-adapter')||'';var v=typeof window.tcGetCourseViewState==='function'?window.tcGetCourseViewState():null;return {core:c,domain:d,ui:u,store:st,storeSummary:ss,actions:ac,standardWorkout:sw,lifecycle:lc,navigation:nv,courseDomain:cd,foundation:f,domainCache:dc.length,uiCache:uc.length,storeCache:sc.length,actionsCache:awc.length,standardWorkoutCache:swc.length,lifecycleCache:lcc.length,navigationCache:nvc.length,courseDomainCache:cdc.length,courseCache:cc.length,today:v&&v.today&&v.today.kind||'',plan:v&&v.plan&&v.plan.kind||'',progress:v&&v.progress&&v.progress.kind||'',active:window.__TC_HOTFIX_ACTIVE_VERSION};})()","unified-workout-store")
+core_probe=test_eval_json("(function(){var c=window.TurnikCore&&TurnikCore.debug?TurnikCore.debug():null;var d=window.TurnikDomain&&TurnikDomain.debug?TurnikDomain.debug():null;var u=window.TurnikUI&&TurnikUI.debug?TurnikUI.debug():null;var st=window.TurnikWorkoutStore&&TurnikWorkoutStore.debug?TurnikWorkoutStore.debug():null;var ss=window.TurnikWorkoutStore&&TurnikWorkoutStore.summary?TurnikWorkoutStore.summary({now:Date.now()}):null;var ac=window.TurnikWorkoutActions&&TurnikWorkoutActions.debug?TurnikWorkoutActions.debug():null;var sw=window.TurnikStandardWorkout&&TurnikStandardWorkout.debug?TurnikStandardWorkout.debug():null;var rs=window.TurnikRest&&TurnikRest.debug?TurnikRest.debug():null;var lc=window.TurnikWorkoutLifecycle&&TurnikWorkoutLifecycle.debug?TurnikWorkoutLifecycle.debug():null;var nv=window.TurnikNavigation&&TurnikNavigation.debug?TurnikNavigation.debug():null;var cd=window.TurnikCourseDomain&&TurnikCourseDomain.debug?TurnikCourseDomain.debug((window.TurnikCore&&TurnikCore.sourceSnapshot?TurnikCore.sourceSnapshot('course'):null)||{}):null;var f=window.__TC_CORE_FOUNDATION||null;var dc=localStorage.getItem('tc_module_domain_1.0.0')||'',uc=localStorage.getItem('tc_module_ui_1.0.0')||'',sc=localStorage.getItem('tc_module_store_1.2.0-undo-restore')||'',awc=localStorage.getItem('tc_module_actions_1.0.0')||'',swc=localStorage.getItem('tc_module_standard_workout_1.0.0-action-owner')||'',rsc=localStorage.getItem('tc_module_rest_1.0.0-state-owner')||'',lcc=localStorage.getItem('tc_module_lifecycle_1.0.0')||'',nvc=localStorage.getItem('tc_module_navigation_1.0.0')||'',cdc=localStorage.getItem('tc_module_course_domain_1.1.0-viewstate-owner')||'',cc=localStorage.getItem('tc_module_course_1.0.47-viewstate-adapter')||'';var v=typeof window.tcGetCourseViewState==='function'?window.tcGetCourseViewState():null;return {core:c,domain:d,ui:u,store:st,storeSummary:ss,actions:ac,standardWorkout:sw,rest:rs,lifecycle:lc,navigation:nv,courseDomain:cd,foundation:f,domainCache:dc.length,uiCache:uc.length,storeCache:sc.length,actionsCache:awc.length,standardWorkoutCache:swc.length,restCache:rsc.length,lifecycleCache:lcc.length,navigationCache:nvc.length,courseDomainCache:cdc.length,courseCache:cc.length,today:v&&v.today&&v.today.kind||'',plan:v&&v.plan&&v.plan.kind||'',progress:v&&v.progress&&v.progress.kind||'',active:window.__TC_HOTFIX_ACTIVE_VERSION};})()","unified-workout-store")
 print("TC_DIAG unified-workout-store",core_probe,flush=True)
 assert core_probe["core"] and core_probe["core"]["version"]=="1.0.0", "TurnikCore must be active in the real WebView"
 assert sorted(core_probe["core"]["sources"])==["course","generic"], "TurnikCore must register both state sources"
@@ -383,6 +383,8 @@ assert "morozov-course" in core_probe["actions"]["handlerNames"], "Morozov must 
 assert "standard-workout" in core_probe["actions"]["handlerNames"], "ordinary and extra workouts must register the standard-workout handler"
 assert core_probe["standardWorkout"] and core_probe["standardWorkout"]["version"]=="1.0.0-action-owner" and core_probe["standardWorkout"]["owner"]=="setDone-handler", "standard workout flow must be active as a dispatcher-owned module"
 assert core_probe["standardWorkoutCache"]>500, "standard workout module must survive in the versioned offline cache"
+assert core_probe["rest"] and core_probe["rest"]["version"]=="1.0.0-state-owner" and core_probe["rest"]["singleOwner"] is True, "TurnikRest must be the sole real-WebView startRest/addRest owner"
+assert core_probe["restCache"]>500, "rest state owner must survive in the versioned offline cache"
 assert "haptic-feedback" in core_probe["actions"]["beforeNames"] and "workout-correction" in core_probe["actions"]["beforeNames"], "haptics and correction must be dispatcher hooks"
 assert "workout-persistence" in core_probe["actions"]["afterNames"], "active workout persistence must run after the single dispatcher"
 assert core_probe["actionsCache"]>500, "workout action dispatcher must survive in the versioned module cache"
@@ -391,7 +393,7 @@ assert core_probe["lifecycle"]["events"]["finishWorkout"]["singleOwner"] is True
 assert "morozov-course" in core_probe["lifecycle"]["events"]["finishWorkout"]["handlers"], "Morozov completion must be a lifecycle handler"
 assert "morozov-manual-rest" in core_probe["lifecycle"]["events"]["finishRest"]["handlers"], "Morozov manual rest must be a lifecycle handler"
 assert "completion-flow" in core_probe["lifecycle"]["events"]["finishWorkout"]["before"] and "completion-flow" in core_probe["lifecycle"]["events"]["finishWorkout"]["after"], "completion summary must be lifecycle hooks"
-assert "rest-timer-cleanup" in core_probe["lifecycle"]["events"]["finishRest"]["before"], "rest timer cleanup must be a lifecycle hook"
+assert "rest-state-owner" in core_probe["lifecycle"]["events"]["finishRest"]["before"], "TurnikRest cleanup must be a lifecycle hook"
 assert "workout-persistence" in core_probe["lifecycle"]["events"]["finishWorkout"]["after"] and "workout-persistence" in core_probe["lifecycle"]["events"]["finishRest"]["after"], "persistence must observe both lifecycle completions"
 assert core_probe["lifecycleCache"]>500, "workout lifecycle dispatcher must survive in the versioned module cache"
 assert core_probe["navigation"] and core_probe["navigation"]["version"]=="1.0.0" and core_probe["navigation"]["singleOwner"] is True, "TurnikNavigation must be the sole real-WebView go owner"
@@ -402,13 +404,13 @@ assert core_probe["courseDomain"] and core_probe["courseDomain"]["version"]=="1.
 assert core_probe["courseDomainCache"]>1000, "course-domain scheduler must survive in the versioned module cache"
 assert core_probe["store"].get("writePath") is True, "WorkoutStore write path must be active in the real WebView"
 assert core_probe["storeSummary"] and core_probe["storeSummary"]["total"]>=1 and core_probe["storeSummary"]["bySource"].get("course",0)>=1, "WorkoutStore must expose the seeded course workout through the unified read model"
-assert core_probe["foundation"] and core_probe["foundation"]["domainModule"]=="1.0.0" and core_probe["foundation"]["uiModule"]=="1.0.0" and core_probe["foundation"]["storeModule"]=="1.2.0-undo-restore" and core_probe["foundation"]["actionsModule"]=="1.0.0" and core_probe["foundation"]["standardWorkoutModule"]=="1.0.0-action-owner" and core_probe["foundation"]["lifecycleModule"]=="1.0.0" and core_probe["foundation"]["navigationModule"]=="1.0.0" and core_probe["foundation"]["courseDomainModule"]=="1.1.0-viewstate-owner" and core_probe["foundation"]["courseModule"]=="1.0.47-viewstate-adapter", "runtime diagnostics must expose compatible Core/Domain/UI/Store/Actions/Lifecycle/Navigation/CourseDomain/Course versions"
-assert core_probe["domainCache"]>500 and core_probe["storeCache"]>500 and core_probe["lifecycleCache"]>500 and core_probe["navigationCache"]>500 and core_probe["courseDomainCache"]>1000 and core_probe["courseCache"]>1000, "Domain, Store, Lifecycle, Navigation, CourseDomain and Course modules must survive in separate offline caches"
+assert core_probe["foundation"] and core_probe["foundation"]["domainModule"]=="1.0.0" and core_probe["foundation"]["uiModule"]=="1.0.0" and core_probe["foundation"]["storeModule"]=="1.2.0-undo-restore" and core_probe["foundation"]["actionsModule"]=="1.0.0" and core_probe["foundation"]["standardWorkoutModule"]=="1.0.0-action-owner" and core_probe["foundation"]["restModule"]=="1.0.0-state-owner" and core_probe["foundation"]["lifecycleModule"]=="1.0.0" and core_probe["foundation"]["navigationModule"]=="1.0.0" and core_probe["foundation"]["courseDomainModule"]=="1.1.0-viewstate-owner" and core_probe["foundation"]["courseModule"]=="1.0.47-viewstate-adapter", "runtime diagnostics must expose compatible Core/Domain/UI/Store/Actions/Lifecycle/Navigation/CourseDomain/Course versions"
+assert core_probe["domainCache"]>500 and core_probe["storeCache"]>500 and core_probe["restCache"]>500 and core_probe["lifecycleCache"]>500 and core_probe["navigationCache"]>500 and core_probe["courseDomainCache"]>1000 and core_probe["courseCache"]>1000, "Domain, Store, Lifecycle, Navigation, CourseDomain and Course modules must survive in separate offline caches"
 assert core_probe["today"]=="COURSE_DONE" and core_probe["plan"]=="COURSE_ACTIVE" and core_probe["progress"]=="COURSE_PROGRESS", "view state must be resolved before rendering"
 assert core_probe["uiCache"]>500, "UI presenter must survive in the offline module cache"
-assert core_probe["active"]=="5.16.59-standard-action-owner", "5.16.59 must be the active OTA shell"
+assert core_probe["active"]=="5.16.60-rest-state-owner", "5.16.60 must be the active OTA shell"
 assert core_probe["store"] and core_probe["store"]["writePath"] is True, "transactional WorkoutStore write path must remain active"
-assert core_probe["foundation"] and core_probe["foundation"].get("actionsModule")=="1.0.0" and core_probe["foundation"].get("standardWorkoutModule")=="1.0.0-action-owner" and core_probe["foundation"].get("courseDomainModule")=="1.1.0-viewstate-owner" and core_probe["foundation"].get("courseModule")=="1.0.47-viewstate-adapter", "5.16.59 must load the single-owner actions module, course domain and matching course module"
+assert core_probe["foundation"] and core_probe["foundation"].get("actionsModule")=="1.0.0" and core_probe["foundation"].get("standardWorkoutModule")=="1.0.0-action-owner" and core_probe["foundation"].get("restModule")=="1.0.0-state-owner" and core_probe["foundation"].get("courseDomainModule")=="1.1.0-viewstate-owner" and core_probe["foundation"].get("courseModule")=="1.0.47-viewstate-adapter", "5.16.60 must load the single-owner actions/rest modules, course domain and matching course module"
 screenshot("02d-unified-workout-store")
 workout_ui_probe=test_eval_json("(function(){var w=window.TurnikWorkoutUI&&TurnikWorkoutUI.debug?TurnikWorkoutUI.debug():null;var f=window.__TC_CORE_FOUNDATION||null;var c=localStorage.getItem('tc_module_workout_ui_1.0.0')||'';return {workoutUI:w,foundation:f,cacheBytes:c.length,active:window.__TC_HOTFIX_ACTIVE_VERSION};})()","workout-ui-owner")
 print("TC_DIAG workout-ui-owner",workout_ui_probe,flush=True)
@@ -416,7 +418,7 @@ assert workout_ui_probe["workoutUI"] and workout_ui_probe["workoutUI"]["version"
 assert "morozov-course" in workout_ui_probe["workoutUI"]["afterNames"] and "correction-controls" in workout_ui_probe["workoutUI"]["afterNames"], "Morozov and correction rendering must be ordered WorkoutUI hooks"
 assert workout_ui_probe["foundation"] and workout_ui_probe["foundation"].get("workoutUiModule")=="1.0.0", "runtime diagnostics must expose WorkoutUI module"
 assert workout_ui_probe["cacheBytes"]>500, "WorkoutUI dispatcher must survive in the versioned module cache"
-assert workout_ui_probe["active"]=="5.16.59-standard-action-owner", "5.16.59 must be the active OTA shell"
+assert workout_ui_probe["active"]=="5.16.60-rest-state-owner", "5.16.60 must be the active OTA shell"
 persistence_probe=test_eval_json("(function(){var p=window.tcCoursePersistenceDebug&&window.tcCoursePersistenceDebug();var c=window.TurnikCore&&TurnikCore.sourceSnapshot?TurnikCore.sourceSnapshot('course'):null;return {p:p,courseEnabled:!!(c&&c.enabled),history:(c&&c.history||[]).length};})()","course-persistence-owner")
 print("TC_DIAG course-persistence-owner",persistence_probe,flush=True)
 assert persistence_probe["p"] and persistence_probe["p"]["owner"]=="TurnikWorkoutStore", "course persistence must be owned by WorkoutStore after activation"
@@ -500,9 +502,9 @@ adb("shell","am","force-stop",PKG)
 time.sleep(1)
 launch()
 dismiss_system_anr()
-upgrade_install=wait_log_tokens(["TC_NAV_UPGRADE",'"phase":"install"','"version":"5.16.59-standard-action-owner"'],timeout=20)
+upgrade_install=wait_log_tokens(["TC_NAV_UPGRADE",'"phase":"install"','"version":"5.16.60-rest-state-owner"'],timeout=20)
 restore_line=wait_log_tokens(["TC_WORKOUT_STATE",'"phase":"restored"','"name":"Подъём коленей в висе"','"mode":"extra"'],timeout=20)
-upgrade_arm=wait_log_tokens(["TC_NAV_UPGRADE",'"phase":"arm-restore-guard"','"version":"5.16.59-standard-action-owner"','"surface":"workout"'],timeout=20)
+upgrade_arm=wait_log_tokens(["TC_NAV_UPGRADE",'"phase":"arm-restore-guard"','"version":"5.16.60-rest-state-owner"','"surface":"workout"'],timeout=20)
 print("TC_DIAG nav-upgrade-install",upgrade_install,flush=True)
 print("TC_DIAG restore",restore_line,flush=True)
 print("TC_DIAG nav-upgrade-arm",upgrade_arm,flush=True)
@@ -552,6 +554,36 @@ rest_probe=test_eval_json("(function(){var r=document.querySelector('#rest.scree
 print("TC_DIAG rest-correction-layout",rest_probe,flush=True)
 rest_buttons=test_eval_json("(function(){var r=document.querySelector('#rest.screen.on .rest'),q=s=>r.querySelector(s),b=q('.tcRestBack'),f=q('.tcRestExitBtn'),i=q('.tcInfoBtn'),rect=x=>{var a=x&&x.getBoundingClientRect();return a&&{l:a.left,r:a.right,t:a.top,b:a.bottom,w:a.width,h:a.height}},hit=x=>{if(!x)return false;var a=x.getBoundingClientRect(),v=document.elementFromPoint((a.left+a.right)/2,(a.top+a.bottom)/2);return v===x||x.contains(v)},overlap=(a,b)=>a&&b&&a.l<b.r&&a.r>b.l&&a.t<b.b&&a.b>b.t;var x=rect(b),y=rect(f),w=rect(i);return {back:x,finish:y,info:w,backHit:hit(b),finishHit:hit(f),infoHit:hit(i),intersects:overlap(x,y)||overlap(x,w)||overlap(y,w)};})()","rest-navigation-real-hit-test")
 assert rest_buttons["back"] and rest_buttons["finish"] and rest_buttons["info"] and rest_buttons["backHit"] and rest_buttons["finishHit"] and rest_buttons["infoHit"] and not rest_buttons["intersects"], "Rest Back, Finish and Info must all be directly hittable with no overlap"
+
+rest_owner_before=test_eval_json("(function(){var d=window.TurnikRest&&TurnikRest.debug?TurnikRest.debug():null;var x=window.TurnikRest&&TurnikRest.snapshot?TurnikRest.snapshot():null;var p=JSON.parse(localStorage.getItem('tc_active_workout_v2')||'null');return {debug:d,end:x&&x.end,active:x&&x.active,persisted:p&&p.rest,screen:(document.querySelector('.screen.on')||{}).id||''};})()","rest-owner-before-add")
+print("TC_DIAG rest-owner-before-add",rest_owner_before,flush=True)
+assert rest_owner_before["debug"] and rest_owner_before["debug"]["version"]=="1.0.0-state-owner" and rest_owner_before["debug"]["singleOwner"] is True, "TurnikRest must own the live rest timer"
+assert rest_owner_before["active"] and rest_owner_before["screen"]=="rest" and rest_owner_before["persisted"] and rest_owner_before["persisted"]["active"], "active rest must be persisted through the owner snapshot"
+initial_rest_end=rest_owner_before["end"]
+
+tap_clickable_text("+ 30 секунд",timeout=18)
+time.sleep(.7)
+rest_added=test_eval_json("(function(){var x=TurnikRest.snapshot();var p=JSON.parse(localStorage.getItem('tc_active_workout_v2')||'null');return {end:x.end,left:TurnikRest.debug().left,persisted:p&&p.rest,screen:(document.querySelector('.screen.on')||{}).id||''};})()","rest-owner-after-add")
+print("TC_DIAG rest-owner-after-add",rest_added,flush=True)
+assert rest_added["end"]>=initial_rest_end+29000 and rest_added["persisted"] and rest_added["persisted"]["end"]==rest_added["end"], "+30 seconds must update the single rest state and durable workout snapshot"
+saved_rest_end=rest_added["end"]
+
+# Rest itself must survive Android process death from its absolute end timestamp.
+adb("logcat","-c",check=False)
+adb("shell","am","force-stop",PKG)
+time.sleep(1)
+launch()
+dismiss_system_anr()
+rest_restore_line=wait_log_tokens(["TC_WORKOUT_STATE",'"phase":"restored"','"restActive":true'],timeout=20)
+rest_restore_arm=wait_log_tokens(["TC_NAV_UPGRADE",'"phase":"arm-restore-guard"','"version":"5.16.60-rest-state-owner"','"surface":"rest"'],timeout=20)
+print("TC_DIAG rest-restore",rest_restore_line,flush=True)
+print("TC_DIAG rest-restore-arm",rest_restore_arm,flush=True)
+wait_text("Восстановись",timeout=12,contains=False)
+rest_restored=test_eval_json("(function(){var d=TurnikRest.debug(),x=TurnikRest.snapshot(),p=JSON.parse(localStorage.getItem('tc_active_workout_v2')||'null');return {debug:d,end:x.end,active:x.active,persisted:p&&p.rest,screen:(document.querySelector('.screen.on')||{}).id||''};})()","rest-owner-after-process-death")
+print("TC_DIAG rest-owner-after-process-death",rest_restored,flush=True)
+assert rest_restored["active"] and rest_restored["screen"]=="rest" and rest_restored["debug"]["singleOwner"] is True, "process death must restore the rest screen through TurnikRest"
+assert rest_restored["end"]==saved_rest_end and rest_restored["persisted"] and rest_restored["persisted"]["end"]==saved_rest_end, "rest restore must preserve the same absolute end timestamp"
+screenshot("05b-rest-owner-restored")
 
 screenshot("05b-rest-layout")
 tap_clickable_text("Назад",timeout=18)
