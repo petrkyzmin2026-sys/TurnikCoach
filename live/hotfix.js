@@ -1090,7 +1090,7 @@ window.__tcBackControlObserver=mo;
 function installUpdate(){
 if(window.__TC_HOTFIX_ACTIVE_VERSION===VERSION)return;
 if(!tcLoadCoreModule()){showRuntimeNotice('Не удалось загрузить ядро TurnikCore. Текущая версия оставлена без изменений.','danger');return}
-if(!tcDomainCacheReady()||!tcUiCacheReady()||!tcStoreCacheReady()||!tcActionsCacheReady()||!tcStandardWorkoutCacheReady()||!tcRestCacheReady()||!tcLifecycleCacheReady()||!tcNavigationCacheReady()||!tcWorkoutUiCacheReady()||!tcCourseDomainCacheReady()||!tcCourseCacheReady()){
+if(!tcDomainCacheReady()||!tcUiCacheReady()||!tcStoreCacheReady()||!tcActionsCacheReady()||!tcStandardWorkoutCacheReady()||!tcRestCacheReady()||!tcActiveWorkoutCacheReady()||!tcLifecycleCacheReady()||!tcNavigationCacheReady()||!tcWorkoutUiCacheReady()||!tcCourseDomainCacheReady()||!tcCourseCacheReady()){
 tcEnsureRequiredModules().then(ok=>{if(ok)installUpdate();else showRuntimeNotice('Модули приложения недоступны. Повторите обновление при подключении к интернету.','danger')});
 return;
 }
@@ -1619,6 +1619,7 @@ if(!tcLoadStoreModule())throw new Error('TurnikCoach workout store unavailable a
 if(!tcLoadActionsModule())throw new Error('TurnikCoach workout action dispatcher unavailable after preflight');
 if(!tcLoadStandardWorkoutModule())throw new Error('TurnikCoach standard workout module unavailable after preflight');
 if(!tcLoadRestModule())throw new Error('TurnikCoach rest state owner unavailable after preflight');
+if(!tcLoadActiveWorkoutModule())throw new Error('TurnikCoach active workout owner unavailable after preflight');
 if(!tcLoadLifecycleModule())throw new Error('TurnikCoach workout lifecycle dispatcher unavailable after preflight');
 if(!tcLoadNavigationModule())throw new Error('TurnikCoach navigation dispatcher unavailable after preflight');
 if(!tcLoadWorkoutUiModule())throw new Error('TurnikCoach workout UI dispatcher unavailable after preflight');
