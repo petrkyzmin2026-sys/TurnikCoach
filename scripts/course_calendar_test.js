@@ -269,10 +269,9 @@ assert(ui.includes('window.render=function()'),
 assert(!hotfix.includes('const oldRender=window.render')&&!hotfix.includes('window.render=function()')&&
  !hotfix.includes('const base=window.renderHistory')&&!hotfix.includes('window.renderHistory=function()'),
  'hotfix must not add independent top-level render or renderHistory wrappers');
-assert(hotfix.includes("TurnikUI.register('today','*',10000")&&
- hotfix.includes("TurnikUI.register('plan','*',10000")&&
+assert(info.includes("for(const area of ['today','plan','progress'])ui.register(area,'*',9000")&&
  hotfix.includes("TurnikUI.register('progress','*',10000"),
- 'Today / Plan / Progress post-processing must flow through TurnikUI presenter dispatch');
+ 'Today / Plan / Progress post-processing must flow through owner modules registered in TurnikUI');
 assert(hotfix.includes("setTimeout(()=>{renderSummary();tcQueueDecorate()},0)")&&
  hotfix.includes("setTimeout(tcQueueDecorate,0)"),
  'post-render work must be deferred until the owning presenter has finished');
