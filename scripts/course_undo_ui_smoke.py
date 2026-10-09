@@ -555,6 +555,36 @@ print("TC_DIAG rest-correction-layout",rest_probe,flush=True)
 rest_buttons=test_eval_json("(function(){var r=document.querySelector('#rest.screen.on .rest'),q=s=>r.querySelector(s),b=q('.tcRestBack'),f=q('.tcRestExitBtn'),i=q('.tcInfoBtn'),rect=x=>{var a=x&&x.getBoundingClientRect();return a&&{l:a.left,r:a.right,t:a.top,b:a.bottom,w:a.width,h:a.height}},hit=x=>{if(!x)return false;var a=x.getBoundingClientRect(),v=document.elementFromPoint((a.left+a.right)/2,(a.top+a.bottom)/2);return v===x||x.contains(v)},overlap=(a,b)=>a&&b&&a.l<b.r&&a.r>b.l&&a.t<b.b&&a.b>b.t;var x=rect(b),y=rect(f),w=rect(i);return {back:x,finish:y,info:w,backHit:hit(b),finishHit:hit(f),infoHit:hit(i),intersects:overlap(x,y)||overlap(x,w)||overlap(y,w)};})()","rest-navigation-real-hit-test")
 assert rest_buttons["back"] and rest_buttons["finish"] and rest_buttons["info"] and rest_buttons["backHit"] and rest_buttons["finishHit"] and rest_buttons["infoHit"] and not rest_buttons["intersects"], "Rest Back, Finish and Info must all be directly hittable with no overlap"
 
+rest_owner_before=test_eval_json("(function(){var d=window.TurnikRest&&TurnikRest.debug?TurnikRest.debug():null;var x=window.TurnikRest&&TurnikRest.snapshot?TurnikRest.snapshot():null;var p=JSON.parse(localStorage.getItem('tc_active_workout_v2')||'null');return {debug:d,end:x&&x.end,active:x&&x.active,persisted:p&&p.rest,screen:(document.querySelector('.screen.on')||{}).id||''};})()","rest-owner-before-add")
+print("TC_DIAG rest-owner-before-add",rest_owner_before,flush=True)
+assert rest_owner_before["debug"] and rest_owner_before["debug"]["version"]=="1.0.0-state-owner" and rest_owner_before["debug"]["singleOwner"] is True, "TurnikRest must own the live rest timer"
+assert rest_owner_before["active"] and rest_owner_before["screen"]=="rest" and rest_owner_before["persisted"] and rest_owner_before["persisted"]["active"], "active rest must be persisted through the owner snapshot"
+initial_rest_end=rest_owner_before["end"]
+
+tap_clickable_text("+ 30 секунд",timeout=18)
+time.sleep(.7)
+rest_added=test_eval_json("(function(){var x=TurnikRest.snapshot();var p=JSON.parse(localStorage.getItem('tc_active_workout_v2')||'null');return {end:x.end,left:TurnikRest.debug().left,persisted:p&&p.rest,screen:(document.querySelector('.screen.on')||{}).id||''};})()","rest-owner-after-add")
+print("TC_DIAG rest-owner-after-add",rest_added,flush=True)
+assert rest_added["end"]>=initial_rest_end+29000 and rest_added["persisted"] and rest_added["persisted"]["end"]==rest_added["end"], "+30 seconds must update the single rest state and durable workout snapshot"
+saved_rest_end=rest_added["end"]
+
+# Rest itself must survive Android process death from its absolute end timestamp.
+adb("logcat","-c",check=False)
+adb("shell","am","force-stop",PKG)
+time.sleep(1)
+launch()
+dismiss_system_anr()
+rest_restore_line=wait_log_tokens(["TC_WORKOUT_STATE",'"phase":"restored"','"restActive":true'],timeout=20)
+rest_restore_arm=wait_log_tokens(["TC_NAV_UPGRADE",'"phase":"arm-restore-guard"','"version":"5.16.60-rest-state-owner"','"surface":"rest"'],timeout=20)
+print("TC_DIAG rest-restore",rest_restore_line,flush=True)
+print("TC_DIAG rest-restore-arm",rest_restore_arm,flush=True)
+wait_text("Восстановись",timeout=12,contains=False)
+rest_restored=test_eval_json("(function(){var d=TurnikRest.debug(),x=TurnikRest.snapshot(),p=JSON.parse(localStorage.getItem('tc_active_workout_v2')||'null');return {debug:d,end:x.end,active:x.active,persisted:p&&p.rest,screen:(document.querySelector('.screen.on')||{}).id||''};})()","rest-owner-after-process-death")
+print("TC_DIAG rest-owner-after-process-death",rest_restored,flush=True)
+assert rest_restored["active"] and rest_restored["screen"]=="rest" and rest_restored["debug"]["singleOwner"] is True, "process death must restore the rest screen through TurnikRest"
+assert rest_restored["end"]==saved_rest_end and rest_restored["persisted"] and rest_restored["persisted"]["end"]==saved_rest_end, "rest restore must preserve the same absolute end timestamp"
+screenshot("05b-rest-owner-restored")
+
 screenshot("05b-rest-layout")
 tap_clickable_text("Назад",timeout=18)
 back_state=test_eval_json("(function(){return {ex:W.exerciseIndex,set:W.setIndex,input:W.actual,recorded:W.items[0].actual[0]===undefined?null:W.items[0].actual[0],trail:W.__tcCorrectionTrail&&W.__tcCorrectionTrail.length||0,screen:(document.querySelector('.screen.on')||{}).id};})()","after-done-correction")
