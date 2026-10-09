@@ -4,6 +4,7 @@
 const VERSION='1.0.0-owner';
 if(window.TurnikInfo&&window.TurnikInfo.version===VERSION)return;
 let adapter=null,installed=false,queued=false;
+const providers=[];
 function getWorkout(){try{return adapter&&adapter.getWorkout?adapter.getWorkout():null}catch(e){return null}}
 function getState(){try{return adapter&&adapter.getState?adapter.getState():null}catch(e){return null}}
 function call(name,args,fb){
@@ -93,10 +94,19 @@ if(cur){s=cur.index;if(cur.items&&cur.items[0]){e=cur.items[0].e;plan=cur.items[
 }
 return{e,s,plan};
 }
+function registerProvider(name,priority,match,openFn){
+if(!name||typeof match!=='function'||typeof openFn!=='function')return false;
+const next={name:String(name),priority:Number(priority)||0,match,open:openFn},i=providers.findIndex(x=>x.name===next.name);
+if(i>=0)providers.splice(i,1,next);else providers.push(next);
+providers.sort((a,b)=>b.priority-a.priority||a.name.localeCompare(b.name));return true;
+}
+function unregisterProvider(name){const i=providers.findIndex(x=>x.name===String(name));if(i<0)return false;providers.splice(i,1);return true}
 function open(){
+const c=currentContext();
+for(const p of providers){try{if(p.match(c)){const r=p.open(c);if(r!==false)return true}}catch(e){console.error('TurnikInfo provider '+p.name,e)}}
 const box=document.getElementById('sheetbox'),sheet=document.getElementById('sheet');
 if(!box||!sheet)return false;
-const c=currentContext();box.innerHTML=conceptHtml(c.e,c.s,c.plan);sheet.classList.add('open');return true;
+box.innerHTML=conceptHtml(c.e,c.s,c.plan);sheet.classList.add('open');return true;
 }
 function removeTechnicalCopy(){
 document.querySelectorAll('.exerciseModel').forEach(el=>el.remove());
@@ -139,7 +149,7 @@ if(rest&&typeof rest.onChange==='function')rest.onChange(queue);
 window.tcOpenTrainingInfo=open;
 installed=true;queue();return true;
 }
-function debug(){return{version:VERSION,installed,singleOwner:installed&&window.tcOpenTrainingInfo===open,observerFree:!window.__tcProductObserver}}
-window.TurnikInfo={version:VERSION,install,open,decorate,queue,debug};
+function debug(){return{version:VERSION,installed,singleOwner:installed&&window.tcOpenTrainingInfo===open,observerFree:!window.__tcProductObserver,providers:providers.map(x=>x.name)}}
+window.TurnikInfo={version:VERSION,install,open,decorate,queue,registerProvider,unregisterProvider,debug};
 try{window.dispatchEvent(new CustomEvent('turnikinfo:ready',{detail:{version:VERSION}}))}catch(e){}
 })();
