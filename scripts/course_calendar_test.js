@@ -10,6 +10,7 @@ const store=fs.readFileSync('live/store.js','utf8');
 const actions=fs.readFileSync('live/actions.js','utf8');
 const standardWorkout=fs.readFileSync('live/standard_workout.js','utf8');
 const restModule=fs.readFileSync('live/rest.js','utf8');
+const activeWorkout=fs.readFileSync('live/active_workout.js','utf8');
 const lifecycle=fs.readFileSync('live/lifecycle.js','utf8');
 const navigation=fs.readFileSync('live/navigation.js','utf8');
 const workoutUi=fs.readFileSync('live/workout_ui.js','utf8');
@@ -27,6 +28,7 @@ new vm.Script(store,{filename:'live/store.js'});
 new vm.Script(actions,{filename:'live/actions.js'});
 new vm.Script(standardWorkout,{filename:'live/standard_workout.js'});
 new vm.Script(restModule,{filename:'live/rest.js'});
+new vm.Script(activeWorkout,{filename:'live/active_workout.js'});
 new vm.Script(lifecycle,{filename:'live/lifecycle.js'});
 new vm.Script(navigation,{filename:'live/navigation.js'});
 new vm.Script(workoutUi,{filename:'live/workout_ui.js'});
@@ -268,8 +270,8 @@ assert(hotfix.includes("setTimeout(()=>{renderSummary();tcQueueDecorate()},0)")&
  'post-render work must be deferred until the owning presenter has finished');
 assert(course.includes('id="tcCycleStartDate"'),
  'settings must expose a cycle start date');
-assert(hotfix.includes("const VERSION='5.16.60-rest-state-owner'"),
- 'release hotfix version must be 5.16.60');
+assert(hotfix.includes("const VERSION='5.16.61-active-workout-owner'"),
+ 'release hotfix version must be 5.16.61');
 assert(course.includes("const COURSE_MODULE_VERSION='1.0.47-viewstate-adapter'"),
  'course module version must be 1.0.47');
 const directCourseWrites=(course.match(/localStorage\.setItem\(TC_COURSE_KEY/g)||[]).length;
@@ -300,7 +302,7 @@ assert(!course.includes('TC_EXTRA_START'),
  'temporary extra-workout trace logging must not ship');
 assert(!course.includes('window.confirm('),'course module must not depend on unsupported WebView JS dialogs');
 assert(!hotfix.includes('window.confirm('),'hotfix navigation/discard must not depend on unsupported WebView JS dialogs');
-assert(!hotfix.includes('forceHandover'),'5.16.60 must use an explicit user-visible update prompt');
+assert(!hotfix.includes('forceHandover'),'5.16.61 must use an explicit user-visible update prompt');
 assert(hotfix.includes("showRuntimeNotice('TurnikCoach обновлён до '+LABEL)"),
  'successful activation must give visible feedback');
 assert(hotfix.includes("localStorage.setItem('tc_hotfix_active_version',VERSION)"),
@@ -310,13 +312,13 @@ assert(hotfix.includes('async function tcEnsureRequiredModules()')&&
  hotfix.includes("localStorage.setItem(APPROVED_KEY,VERSION)"),
  'update approval must happen only after required modules are available and cached');
 const installUpdateBody=extractFrom(hotfix,'installUpdate');
-assert(installUpdateBody.includes('if(!tcDomainCacheReady()||!tcUiCacheReady()||!tcStoreCacheReady()||!tcActionsCacheReady()||!tcStandardWorkoutCacheReady()||!tcRestCacheReady()||!tcLifecycleCacheReady()||!tcNavigationCacheReady()||!tcWorkoutUiCacheReady()||!tcCourseDomainCacheReady()||!tcCourseCacheReady())')&&
+assert(installUpdateBody.includes('if(!tcDomainCacheReady()||!tcUiCacheReady()||!tcStoreCacheReady()||!tcActionsCacheReady()||!tcStandardWorkoutCacheReady()||!tcRestCacheReady()||!tcActiveWorkoutCacheReady()||!tcLifecycleCacheReady()||!tcNavigationCacheReady()||!tcWorkoutUiCacheReady()||!tcCourseDomainCacheReady()||!tcCourseCacheReady())')&&
  !installUpdateBody.slice(0,installUpdateBody.indexOf("const previousVersion=")).includes('tcLoadCourseModule()')&&
  !installUpdateBody.slice(0,installUpdateBody.indexOf("const previousVersion=")).includes('tcLoadCourseDomainModule()')&&
  !installUpdateBody.slice(0,installUpdateBody.indexOf("const previousVersion=")).includes('tcLoadDomainModule()')&&
  !installUpdateBody.slice(0,installUpdateBody.indexOf("const previousVersion=")).includes('tcLoadUiModule()')&&
  !installUpdateBody.slice(0,installUpdateBody.indexOf("const previousVersion=")).includes('tcLoadStoreModule()'),
- 'install preflight must verify Domain/UI/Store/Actions/StandardWorkout/Lifecycle/Navigation/WorkoutUI/CourseDomain/Course caches without executing later modules ahead of the legacy patch order');
+ 'install preflight must verify Domain/UI/Store/Actions/StandardWorkout/Rest/ActiveWorkout/Lifecycle/Navigation/WorkoutUI/CourseDomain/Course caches without executing later modules ahead of the legacy patch order');
 assert(hotfix.includes('function tcRegisterCoreSources()')&&
  hotfix.includes("core.registerSource('generic'")&&hotfix.includes("core.registerSource('course'"),
  'TurnikCore must expose both legacy generic and Morozov stores through one state facade');
@@ -325,6 +327,7 @@ assert(hotfix.includes("localStorage.setItem('tc_v4',JSON.stringify(next))"),
 assert(hotfix.includes("actionsModule:window.TurnikWorkoutActions&&window.TurnikWorkoutActions.version||''")&&
  hotfix.includes("standardWorkoutModule:window.TurnikStandardWorkout&&window.TurnikStandardWorkout.version||''")&&
  hotfix.includes("restModule:window.TurnikRest&&window.TurnikRest.version||''")&&
+ hotfix.includes("activeWorkoutModule:window.TurnikActiveWorkout&&window.TurnikActiveWorkout.version||''")&&
  hotfix.includes("lifecycleModule:window.TurnikWorkoutLifecycle&&window.TurnikWorkoutLifecycle.version||''")&&
  hotfix.includes("navigationModule:window.TurnikNavigation&&window.TurnikNavigation.version||''")&&
  hotfix.includes("workoutUiModule:window.TurnikWorkoutUI&&window.TurnikWorkoutUI.version||''")&&
@@ -750,22 +753,21 @@ assert(course.includes("#sheet .sheetbox input[type=checkbox]{width:24px!importa
 assert(course.includes('f.check?\'<label class="tcCheckRow"'),
  'mastery checkbox rows must use the 48px checkbox-row target');
 
-assert(hotfix.includes("const TC_ACTIVE_WORKOUT_KEY='tc_active_workout_v2'"),
- 'UX2 must persist an active workout independently of completed history');
+assert(activeWorkout.includes("const KEY='tc_active_workout_v2',SCHEMA=2,TTL=24*60*60*1000"),
+ 'TurnikActiveWorkout must own the durable active-workout key, schema and 24-hour TTL');
 assert(hotfix.includes("const saveFn=window.tcSaveActiveWorkoutSnapshot")&&
  hotfix.includes("const saved=typeof saveFn==='function'?saveFn():false"),
  'entering workout with active W must synchronously persist through the exported persistence API');
-assert(hotfix.includes('function tcSaveActiveWorkoutSnapshot()'),
- 'UX2 must provide durable active-workout snapshots');
-assert(hotfix.includes('function tcRestoreActiveWorkoutSnapshot()'),
- 'UX2 must restore an interrupted workout after process recreation');
-assert(hotfix.includes("const hadActiveWorkout=typeof W!=='undefined'&&!!W")&&
- hotfix.includes("phase:hadActiveWorkout?'handover-restored':'restored'"),
- 'new hotfix must reassert durable workout state when an older hotfix already restored W');
+assert(!hotfix.includes('function tcSaveActiveWorkoutSnapshot()')&&!hotfix.includes('function tcRestoreActiveWorkoutSnapshot()'),
+ 'OTA shell must not keep a second active-workout persistence implementation');
+assert(activeWorkout.includes('function save()')&&activeWorkout.includes('function restore()')&&activeWorkout.includes('function validWorkout(w)'),
+ 'TurnikActiveWorkout must own snapshot save, restore and validation');
+assert(activeWorkout.includes("log(hadActive?'handover-restored':'restored'"),
+ 'TurnikActiveWorkout must preserve handover/restore diagnostics');
 assert(hotfix.includes('function tcInstallNavigationUpgrades()')&&
  hotfix.includes('window.__TC_NAV_UPGRADE_VERSION=VERSION')&&
  /tcInstallNavigationFoundation\(\);\s*tcInstallNavigationUpgrades\(\);\s*tcInstallCompletionFlow\(\);\s*tcInstallHapticFeedback\(\);\s*tcInstallWorkoutCorrection\(\);\s*tcInstallProgressSummary\(\);\s*tcInstallRestStateOwner\(\);\s*tcInstallWorkoutPersistence\(\);/.test(hotfix),
- 'hotfix upgrades must run after the one-time navigation core and before persistence restore');
+ 'hotfix upgrades must run after the one-time navigation core and before ActiveWorkout schedules persistence restore');
 assert(hotfix.includes('window.tcRefreshActiveTrainingSurface=function(id)')&&
  hotfix.includes('window.tcArmRestoreSurfaceGuard=function(surface)')&&
  hotfix.includes('until:Date.now()+5000')&&
@@ -784,8 +786,9 @@ assert(hotfix.includes("TurnikNative.showSurface")&&
 assert(hotfix.includes("TurnikNative.refreshSurface")&&
  mainActivity.includes("@JavascriptInterface public void refreshSurface()"),
  'legacy native surface refresh fallback must remain available');
-assert(hotfix.includes("window.tcClearActiveWorkoutSnapshot=tcClearActiveWorkoutSnapshot"),
- 'discard flow must be able to remove a durable workout snapshot');
+assert(activeWorkout.includes("window.tcClearActiveWorkoutSnapshot=clear")&&
+ hotfix.includes("window.tcClearActiveWorkoutSnapshot()"),
+ 'discard flow must remove durable workout state through the TurnikActiveWorkout compatibility API');
 assert(hotfix.includes("setNav('n1','◫','План')")&&hotfix.includes("setNav('n3','⌁','Прогресс')"),
  'top-level navigation must expose Today / Plan / Progress');
 assert(hotfix.includes("viewport.setAttribute('content','width=device-width,initial-scale=1')"),
@@ -879,8 +882,8 @@ assert(hotfix.includes("registerBefore('haptic-feedback'")&&hotfix.includes("reg
  'haptic feedback must subscribe to the workout dispatcher');
 assert(hotfix.includes("registerBefore('workout-correction'")&&hotfix.includes("registerAfter('workout-correction'"),
  'correction trail must subscribe to the workout dispatcher');
-assert(hotfix.includes("registerAfter('workout-persistence'"),
- 'active workout persistence must subscribe to the workout dispatcher');
+assert(activeWorkout.includes("actions.registerAfter('active-workout-persistence'"),
+ 'active workout persistence must subscribe to the workout dispatcher from its owner module');
 assert(course.includes("registerHandler('morozov-course',100,tcCourseSetDoneAction)"),
  'Morozov set completion must register a mode handler instead of wrapping setDone');
 assert(hotfix.includes('window.TurnikWorkoutActions.install()'),
@@ -944,10 +947,11 @@ assert(restModule.includes('window.startRest=legacyStart;window.addRest=legacyAd
  'TurnikRest must be the sole compatibility owner of startRest/addRest');
 assert(!hotfix.includes('tcRestActive')&&!hotfix.includes('tcRestEnd')&&!hotfix.includes('tcSignalSeconds')&&!hotfix.includes('tcRenderRest'),
  'OTA shell must not keep a second rest timer state');
-assert(hotfix.includes("rest:restState")&&hotfix.includes("window.TurnikRest.snapshot()")&&hotfix.includes("restOwner.restore(rest,{navigate:true})"),
- 'active-workout persistence must snapshot and restore rest through TurnikRest');
-assert(hotfix.includes("restOwner.onChange("),
- 'active-workout persistence must subscribe to TurnikRest instead of wrapping rest actions');
+assert(activeWorkout.includes("rest:restSnapshot()")&&activeWorkout.includes("adapter.restoreRest&&adapter.restoreRest(rest)")&&
+ hotfix.includes("restSnapshot:()=>rest&&typeof rest.snapshot==='function'?rest.snapshot()"),
+ 'TurnikActiveWorkout must snapshot and restore rest through the TurnikRest adapter');
+assert(activeWorkout.includes("rest.onChange(()=>{if(getWorkout())setTimeout(save,0)}"),
+ 'TurnikActiveWorkout must subscribe to TurnikRest instead of wrapping rest actions');
 
 let restNow=100000,restIntervalFn=null;
 const restNodes={restNum:{textContent:''}};
@@ -995,6 +999,43 @@ assert.equal(restSandbox.TurnikRest.snapshot().active,false);
 assert(restEvents.includes('start')&&restEvents.includes('add')&&restEvents.includes('elapsed'));
 assert.equal(restSandbox.cleanup.name,'rest-state-owner');
 
+// Single-owner active-workout persistence regression.
+let activeNow=1000000,activeW={mode:'course',exerciseIndex:0,setIndex:0,actual:8,items:[{e:{name:'Подтягивания'},plan:[8,7],actual:[8]}]};
+let activeScreen='rest',activeManual={label:'manual'},activeRest={active:true,end:activeNow+60000,note:'rest'};
+const activeMemory=new Map(),activeHooks={actions:[],life:[],rest:[]};
+const activeSandbox={
+ console,Date:{now:()=>activeNow},
+ localStorage:{getItem:k=>activeMemory.has(k)?activeMemory.get(k):null,setItem:(k,v)=>activeMemory.set(k,String(v)),removeItem:k=>activeMemory.delete(k)},
+ setTimeout:fn=>{if(typeof fn==='function')fn()},
+ requestIdleCallback:fn=>fn(),
+ document:{addEventListener:()=>{},visibilityState:'visible'},
+ addEventListener:()=>{},CustomEvent:function(){},dispatchEvent:()=>true
+};
+activeSandbox.window=activeSandbox;
+vm.runInNewContext(activeWorkout,activeSandbox,{filename:'live/active_workout.js'});
+const activeAdapter={
+ getWorkout:()=>activeW,setWorkout:v=>{activeW=v;return true},clearWorkout:()=>{activeW=null;return true},
+ screen:()=>activeScreen,restSnapshot:()=>activeRest,restoreRest:v=>{activeRest=v;activeScreen=v.active?'rest':'workout';return !!v.active},
+ stopRest:()=>{activeRest={active:false,end:0,note:''};return true},
+ getManualRest:()=>activeManual,setManualRest:v=>{activeManual=v},
+ navigate:id=>{activeScreen=id},renderWorkout:()=>{},armSurface:id=>{activeSandbox.armed=id},notice:m=>{activeSandbox.notice=m},
+ actions:{registerAfter:(n,p,fn)=>activeHooks.actions.push({n,fn})},
+ lifecycle:{registerAfter:(e,n,p,fn)=>activeHooks.life.push({e,n,fn})},
+ rest:{onChange:fn=>{activeHooks.rest.push(fn);return()=>{}}},
+ startNames:[]
+};
+assert(activeSandbox.TurnikActiveWorkout.install(activeAdapter));
+assert.equal(activeSandbox.TurnikActiveWorkout.debug().singleOwner,true);
+assert(activeSandbox.TurnikActiveWorkout.save());
+let activePayload=JSON.parse(activeMemory.get('tc_active_workout_v2'));
+assert.equal(activePayload.schema,2);assert.equal(activePayload.screen,'rest');assert.equal(activePayload.rest.active,true);
+activeW=null;activeScreen='today';activeRest={active:false,end:0,note:''};activeManual=null;
+assert(activeSandbox.TurnikActiveWorkout.restore());
+assert(activeW&&activeW.mode==='course');assert.equal(activeScreen,'rest');assert.equal(activeManual.label,'manual');assert.equal(activeSandbox.armed,'rest');
+activeNow+=24*60*60*1000+1;activeW=null;
+assert.equal(activeSandbox.TurnikActiveWorkout.restore(),false,'expired active workout snapshot must not restore');
+assert.equal(activeMemory.has('tc_active_workout_v2'),false,'expired active workout snapshot must be removed');
+
 // Single-owner workout lifecycle regression.
 assert.equal((course.match(/window\.finishWorkout\s*=(?!=)/g)||[]).length,0,'course must never replace global finishWorkout');
 assert.equal((course.match(/window\.finishRest\s*=(?!=)/g)||[]).length,0,'course must never replace global finishRest');
@@ -1006,8 +1047,8 @@ assert(course.includes("registerHandler('finishWorkout','morozov-course',100,tcC
 assert(restModule.includes("registerBefore('finishRest','rest-state-owner'")&&
  hotfix.includes("registerBefore('finishWorkout','completion-flow'")&&
  hotfix.includes("registerAfter('finishWorkout','completion-flow'")&&
- hotfix.includes("registerAfter('finishWorkout','workout-persistence'"),
- 'timer cleanup, completion UI and persistence must be lifecycle hooks');
+ activeWorkout.includes("lifecycle.registerAfter('finishWorkout','active-workout-persistence'"),
+ 'timer cleanup, completion UI and active-workout persistence must be lifecycle hooks');
 assert(hotfix.includes('window.TurnikWorkoutLifecycle.install()'),
  'lifecycle dispatcher must become the sole finishWorkout/finishRest owner');
 const lifeSandbox={console,CustomEvent:function(){},dispatchEvent:()=>true};
