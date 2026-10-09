@@ -1775,6 +1775,12 @@ if(!window.TurnikWorkoutUI.install())throw new Error('TurnikCoach workout UI dis
 if(!window.TurnikUI.install())throw new Error('TurnikCoach UI dispatcher install failed');
 if(!tcLoadCourseDomainModule())throw new Error('TurnikCoach course domain module unavailable after preflight');
 if(!tcLoadCourseModule())throw new Error('TurnikCoach course module unavailable after preflight');
+if(typeof window.tcRegisterCourseDomainResolvers!=='function'||!window.tcRegisterCourseDomainResolvers())throw new Error('TurnikCoach course domain resolvers did not register');
+const courseDomainAreas=window.TurnikDomain&&window.TurnikDomain.debug?window.TurnikDomain.debug().areas:{};
+if(!courseDomainAreas.today||!courseDomainAreas.plan||!courseDomainAreas.progress||
+ !courseDomainAreas.today.some(x=>x.name==='morozov')||
+ !courseDomainAreas.plan.some(x=>x.name==='morozov')||
+ !courseDomainAreas.progress.some(x=>x.name==='morozov'))throw new Error('TurnikCoach course domain resolver ownership incomplete');
 if(!tcLoadCourseUiModule())throw new Error('TurnikCoach course UI module unavailable after preflight');
 if(!window.TurnikCourseUI.debug().configured||!window.TurnikCourseUI.debug().registered)throw new Error('TurnikCoach course UI owner did not register');
 window.TurnikNavigation.registerAfter('ui-active-render',1000,()=>{
