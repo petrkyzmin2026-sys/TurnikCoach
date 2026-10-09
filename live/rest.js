@@ -75,7 +75,7 @@ if(!active||!end)return false;
 const el=ring();if(el)el.textContent=String(secondsLeft());
 if(options.navigate!==false)try{if(adapter&&adapter.navigate)adapter.navigate('rest')}catch(e){}
 try{if(adapter&&adapter.nextStep)adapter.nextStep()}catch(e){}
-arm();emit('restore');return true;
+arm();const restored=active;emit('restore');return restored;
 }
 function resume(){if(active)render()}
 function legacyStart(sec,note){return start(sec,note)}
