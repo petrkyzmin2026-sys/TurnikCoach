@@ -1984,7 +1984,7 @@ const TC_COURSE_ACTION_NAMES=[
 'tcStartCourseWorkout','tcStartTransferredCourseWorkout','tcStartExtraWorkout','tcStartSupplementWorkout'
 ];
 window.tcInstallCourseActionOwners=function(){
-const a=window.TurnikCourseActions;if(!a||a.version!=='1.0.0')return false;
+const a=window.TurnikCourseActions;if(!a||a.version!=='1.1.0-hooks')return false;
 for(const name of TC_COURSE_ACTION_NAMES)if(!a.capture(name,'morozov-course',100))return false;
 return a.install(TC_COURSE_ACTION_NAMES);
 };
