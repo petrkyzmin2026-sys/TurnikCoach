@@ -449,7 +449,8 @@ assert snapshot_state["schema"]==2 and snapshot_state["screen"]=="workout" and s
 
 # Android-specific durability check: process death must restore the same active workout.
 # Force the restarted page's module fetch offline; Core + Course must boot from persisted cache.
-test_exec("localStorage.setItem('__tcOfflineModuleSmoke','1');","arm-offline-module-restart")
+offline_armed=test_eval_json("(function(){localStorage.setItem('__tcOfflineModuleSmoke','1');return localStorage.getItem('__tcOfflineModuleSmoke');})()","arm-offline-module-restart")
+assert offline_armed=="1", "offline module restart flag must be persisted before process death"
 adb("logcat","-c",check=False)
 adb("shell","am","force-stop",PKG)
 time.sleep(1)
