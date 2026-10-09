@@ -49,6 +49,7 @@ on:
       - refactor/rest-state-owner-5.16.60
       - refactor/active-workout-owner-5.16.61
       - refactor/correction-owner-5.16.62
+      - refactor/completion-owner-5.16.63
   pull_request:
   workflow_dispatch:
 
@@ -79,9 +80,9 @@ jobs:
           done
           base64 --decode /tmp/v513.b64 | gzip -dc > app/src/main/assets/index.html
           grep -q 'v5.13 — modern Android package' app/src/main/assets/index.html
-      - name: Reproduce packaged 5.14 + cached 5.16.61 + tested 5.16.62
+      - name: Reproduce packaged 5.14 + cached 5.16.62 + tested 5.16.63
         run: |
-          PREV_COMMIT="ea49b874e559fe67b50cb55b7790ce48c7d4d812"
+          PREV_COMMIT="b1e334155eda0295bc3b68f637061d6a8300a536"
           grep -q 'TURNIKCOACH_HOTFIX 5.14.0-adaptive-rest' app/src/main/assets/hotfix.js
           curl -fsSL "https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/${PREV_COMMIT}/live/hotfix.js" > app/src/main/assets/hotfix-prev.js
           curl -fsSL "https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/${PREV_COMMIT}/live/course.js" > app/src/main/assets/course-prev.js
@@ -97,8 +98,8 @@ jobs:
           s=s.replace(needle,"function tcAudio(){\nif(window.__TC_DISABLE_AUDIO_FOR_SMOKE)return null;\ntry{",1)
           p.write_text(s)
           PY
-          grep -q 'TURNIKCOACH_HOTFIX 5.16.61-active-workout-owner' app/src/main/assets/hotfix-prev.js
-          grep -q 'TURNIKCOACH_HOTFIX 5.16.62-correction-owner' app/src/main/assets/hotfix-next.js
+          grep -q 'TURNIKCOACH_HOTFIX 5.16.62-correction-owner' app/src/main/assets/hotfix-prev.js
+          grep -q 'TURNIKCOACH_HOTFIX 5.16.63-completion-owner' app/src/main/assets/hotfix-next.js
           grep -q 'TURNIKCOACH_CORE 1.0.0' app/src/main/assets/hotfix-next.js
           grep -q 'TURNIKCOACH_DOMAIN 1.0.0' live/domain.js
           grep -q 'TURNIKCOACH_UI 1.0.0' live/ui.js
@@ -109,6 +110,7 @@ jobs:
           grep -q 'TURNIKCOACH_REST 1.0.0-state-owner' live/rest.js
           grep -q 'TURNIKCOACH_ACTIVE_WORKOUT 1.0.0-persistence-owner' live/active_workout.js
           grep -q 'TURNIKCOACH_CORRECTION 1.0.0-owner' live/correction.js
+          grep -q 'TURNIKCOACH_COMPLETION 1.0.0-owner' live/completion.js
           grep -q 'TURNIKCOACH_WORKOUT_LIFECYCLE 1.0.0' live/lifecycle.js
           grep -q 'TURNIKCOACH_NAVIGATION 1.0.0' live/navigation.js
           grep -q 'TURNIKCOACH_WORKOUT_UI 1.0.0' live/workout_ui.js
@@ -117,7 +119,7 @@ jobs:
           grep -q 'TURNIKCOACH_COURSE 1.0.47-viewstate-adapter' app/src/main/assets/course-prev.js
           grep -q 'TURNIKCOACH_COURSE_DOMAIN 1.1.0-viewstate-owner' app/src/main/assets/course-domain-prev.js
           ! grep -q 'COURSE_MODULE_BUNDLED=' app/src/main/assets/hotfix-next.js
-      - name: Seed installed 5.16.61 approval and correction/active-workout/rest/course caches with completed main-course state
+      - name: Seed installed 5.16.62 approval and completion/correction/active-workout/rest/course caches with completed main-course state
         run: |
           python3 - <<'PY'
           from pathlib import Path
@@ -163,7 +165,7 @@ jobs:
             localStorage.setItem('tc_module_course_1.0.47-viewstate-adapter',__NEXT_COURSE_CACHE__);
             if(localStorage.getItem('__tcForcedHandoverSmokeSeeded')) return;
             var d=new Date(),k=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
-            localStorage.setItem('tc_hotfix_approved_version','5.16.61-active-workout-owner');
+            localStorage.setItem('tc_hotfix_approved_version','5.16.62-correction-owner');
             localStorage.setItem('tc_morozov_course_v1',JSON.stringify({
               enabled:true,level:4,goal:'quantity',pullMax:20,courseSeq:1,extraSeq:0,
               lastCourseDate:k,lastCourseTs:Date.now(),weeklySessions:3,cycleStartDate:k,
