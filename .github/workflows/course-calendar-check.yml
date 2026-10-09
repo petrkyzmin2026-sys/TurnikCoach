@@ -44,6 +44,7 @@ on:
       - refactor/workout-ui-owner-5.16.55
       - refactor/course-persistence-owner-5.16.56
       - refactor/course-domain-owner-5.16.57
+      - refactor/course-viewstate-owner-5.16.58
   pull_request:
   workflow_dispatch:
 
