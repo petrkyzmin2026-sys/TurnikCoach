@@ -859,6 +859,36 @@ assert(hotfix.includes('tcShowCompletionSummary(summary)'),
 assert(hotfix.includes("if(tcActiveWorkoutForUpdate()){")&&hotfix.includes('tcScheduleDeferredUpdate(activate)'),
  'update prompt must defer while a workout or durable workout snapshot is active');
 
+// Single-owner course command regression.
+assert(courseActions.includes("const VERSION='1.0.0'"),'CourseActions module version must be 1.0.0');
+assert(course.includes('const TC_COURSE_ACTION_NAMES=[')&&
+ course.includes("a.capture(name,'morozov-course',100)")&&course.includes('return a.install(TC_COURSE_ACTION_NAMES)'),
+ 'course adapter must register its UI commands with TurnikCourseActions instead of leaving final ownership in course.js');
+for(const name of ['tcSaveCourseSettings','tcChooseTransferRest','tcStartCourseWorkout','tcConfirmCourseTest','tcSaveMasteryTest','tcAdvanceCourseLevel']){
+ assert(course.includes("'"+name+"'"),'course action owner list missing '+name);
+}
+assert(hotfix.includes("if(!tcLoadCourseActionsModule())throw new Error('TurnikCoach course action dispatcher unavailable after preflight')")&&
+ hotfix.includes("if(typeof window.tcInstallCourseActionOwners!=='function'||!window.tcInstallCourseActionOwners())"),
+ 'OTA must load the dispatcher and install it after course.js registers implementations');
+assert(hotfix.indexOf("if(!tcLoadCourseActionsModule())")<hotfix.lastIndexOf("if(!tcLoadCourseModule())"),
+ 'CourseActions dispatcher must exist before course.js is evaluated');
+const courseActionSandbox={console,CustomEvent:function(){},dispatchEvent:()=>true};
+courseActionSandbox.window=courseActionSandbox;
+courseActionSandbox.tcSaveCourseSettings=function(){courseActionSandbox.saved=(courseActionSandbox.saved||0)+1;return 'saved'};
+courseActionSandbox.tcStartCourseWorkout=function(){courseActionSandbox.started=(courseActionSandbox.started||0)+1;return 'started'};
+courseActionSandbox.tcChooseTransferRest=function(date){courseActionSandbox.restDate=date;return date};
+vm.runInNewContext(courseActions,courseActionSandbox,{filename:'live/course_actions.js'});
+for(const name of ['tcSaveCourseSettings','tcStartCourseWorkout','tcChooseTransferRest'])
+ assert(courseActionSandbox.TurnikCourseActions.capture(name,'morozov-course',100));
+assert(courseActionSandbox.TurnikCourseActions.install(['tcSaveCourseSettings','tcStartCourseWorkout','tcChooseTransferRest']));
+assert.equal(courseActionSandbox.tcSaveCourseSettings(),'saved');
+assert.equal(courseActionSandbox.tcStartCourseWorkout(),'started');
+assert.equal(courseActionSandbox.tcChooseTransferRest('2026-10-09'),'2026-10-09');
+assert.equal(courseActionSandbox.restDate,'2026-10-09');
+const courseActionDebug=courseActionSandbox.TurnikCourseActions.debug();
+assert.equal(courseActionDebug.singleOwner,true);
+assert.deepEqual(Array.from(courseActionDebug.installed),['tcChooseTransferRest','tcSaveCourseSettings','tcStartCourseWorkout']);
+
 // Single-owner workout action regression.
 assert(manifest.includes('android.permission.VIBRATE'),'preview requires Android vibration permission');
 assert.equal((course.match(/window\.setDone\s*=/g)||[]).length,0,
@@ -1289,4 +1319,4 @@ assert.equal(uiSandbox.TurnikUI.renderArea('today').presenter,'morozov');
 assert.deepEqual(Array.from(presented),['TEST']);
 assert.equal(uiSandbox.TurnikUI.debug().version,'1.0.0');
 
-console.log('PASS: single workout action owner, UI/domain/store architecture, syntax and Android regressions');
+console.log('PASS: single course/workout action owners, UI/domain/store architecture, syntax and Android regressions');
