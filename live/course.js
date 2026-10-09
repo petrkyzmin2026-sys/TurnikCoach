@@ -1,7 +1,7 @@
-/* TURNIKCOACH_COURSE 1.0.45-persistence-owner */
+/* TURNIKCOACH_COURSE 1.0.46-domain-owner */
 (function(){
 'use strict';
-const COURSE_MODULE_VERSION='1.0.45-persistence-owner';
+const COURSE_MODULE_VERSION='1.0.46-domain-owner';
 if(window.__TC_COURSE_MODULE_VERSION===COURSE_MODULE_VERSION)return;
 window.__TC_COURSE_MODULE_VERSION=COURSE_MODULE_VERSION;
 function tcClamp(v,a,b){return Math.max(a,Math.min(b,v))}
@@ -288,28 +288,19 @@ const seq=l.sequence&&l.sequence.length?l.sequence:ids;
 return seq[seqIndex%seq.length]||ids[0]||1;
 }
 function tcCourseComplex(seqIndex=TC_course.courseSeq){const no=tcCourseComplexNo(seqIndex);return{no,def:tcCourseLevel().complexes[no]}}
-function tcDayDiff(a,b){if(!a||!b)return 999;const x=new Date(a+'T12:00:00'),y=new Date(b+'T12:00:00');return Math.round((y-x)/86400000)}
+function tcCourseDomain(){
+const d=window.TurnikCourseDomain;
+if(!d||d.version!=='1.0.0-scheduler-owner')throw new Error('TurnikCourseDomain unavailable');
+return d;
+}
+function tcCourseScheduleContext(today=dateKey()){return{today,testDue:tcTestDue(),masteryDue:tcMasteryDue()}}
+function tcDayDiff(a,b){return tcCourseDomain().dayDiff(a,b)}
 let tcSelectedDate='',tcWeekOffset=0;
-function tcWeeklyMode(){return TC_course.enabled&&TC_course.level>=1&&TC_course.level<=7}
-function tcCourseWeekdays(){
-const l=TC_course.level,g=TC_course.goal;
-if(l===1)return [1,3,5,0];
-if(l===2)return TC_course.weeklySessions===2?[1,4]:TC_course.weeklySessions===4?[1,3,6,0]:[1,3,6];
-if(l===3)return [1,3,6];
-if(l===4){if(g==='quantity')return TC_course.weeklySessions===4?[1,3,5,0]:[1,3,6];return g==='onearm'?[1,3,5,0]:[1,3,6]}
-if(l===5)return g==='onearm'?[1,3,5,0]:[1,3,6];
-if(l===6)return [1,3,6];
-return [1,4,6];
-}
-function tcDateFromKey(k){return new Date(k+'T12:00:00')}
-function tcScheduledOn(k){
-if(TC_course.cycleStartDate){
-const d=tcDayDiff(TC_course.cycleStartDate,k);
-return d>=0&&tcCourseWeekdays().map(x=>(x+6)%7).includes(d%7);
-}
-return tcCourseWeekdays().includes(tcDateFromKey(k).getDay());
-}
-function tcScheduleEventFor(plannedDate){return (TC_course.scheduleEvents||[]).find(e=>e.plannedDate===plannedDate)||null}
+function tcWeeklyMode(){return tcCourseDomain().weeklyMode(TC_course)}
+function tcCourseWeekdays(){return tcCourseDomain().weekdays(TC_course)}
+function tcDateFromKey(k){return tcCourseDomain().dateFromKey(k)}
+function tcScheduledOn(k){return tcCourseDomain().scheduledOn(TC_course,k)}
+function tcScheduleEventFor(plannedDate){return tcCourseDomain().scheduleEventFor(TC_course,plannedDate)}
 function tcUpsertScheduleEvent(plannedDate,status,actualDate){
 if(!plannedDate)return null;
 const run=tcEnsureCourseRun();let e=tcScheduleEventFor(plannedDate);
@@ -321,39 +312,14 @@ function tcRemoveScheduleEvent(plannedDate){
 const i=(TC_course.scheduleEvents||[]).findIndex(e=>e.plannedDate===plannedDate);
 if(i>=0)TC_course.scheduleEvents.splice(i,1);
 }
-function tcPullLoadDates(){
-const a=[];
-(TC_course.history||[]).forEach(h=>{if(h&&h.date&&['course','auxCourse','supplement'].includes(h.courseMode))a.push(h.date)});
-(TC_course.tests||[]).forEach(t=>{if(t&&t.date)a.push(t.date)});
-(TC_course.masteryTests||[]).forEach(t=>{if(t&&t.date)a.push(t.date)});
-if(TC_course.lastCourseDate)a.push(TC_course.lastCourseDate);
-return [...new Set(a)].sort();
-}
-function tcLastPullLoadDateBefore(key){
-let last='';for(const d of tcPullLoadDates())if(d<key&&d>last)last=d;return last;
-}
-function tcRecoveryReadyOn(key){
-const last=tcLastPullLoadDateBefore(key);return !last||tcDayDiff(last,key)>=2;
-}
-function tcScheduledMainToday(){
-if(!tcWeeklyMode())return false;
-const today=dateKey();
-if(TC_course.lastCourseDate===today||tcTestDue()||tcMasteryDue())return false;
-if(!TC_course.lastCourseDate&&!TC_course.cycleStartDate)return true;
-return tcScheduledOn(today);
-}
-function tcCourseDue(){return tcScheduledMainToday()&&tcRecoveryReadyOn(dateKey())}
-function tcRecoveryShiftToday(){return tcScheduledMainToday()&&!tcRecoveryReadyOn(dateKey())}
-function tcPreviousScheduledDay(key){
-const d=tcDateFromKey(key);
-for(let i=1;i<=28;i++){const x=new Date(d);x.setDate(d.getDate()-i);const k=dateKey(x);if(tcScheduledOn(k))return k}
-return '';
-}
-function tcNextScheduledAfter(key){
-const d=tcDateFromKey(key);
-for(let i=1;i<=28;i++){const x=new Date(d);x.setDate(d.getDate()+i);const k=dateKey(x);if(tcScheduledOn(k))return k}
-return '';
-}
+function tcPullLoadDates(){return tcCourseDomain().pullLoadDates(TC_course)}
+function tcLastPullLoadDateBefore(key){return tcCourseDomain().lastPullLoadDateBefore(TC_course,key)}
+function tcRecoveryReadyOn(key){return tcCourseDomain().recoveryReadyOn(TC_course,key)}
+function tcScheduledMainToday(){return tcCourseDomain().scheduledMainToday(TC_course,tcCourseScheduleContext())}
+function tcCourseDue(){return tcCourseDomain().courseDue(TC_course,tcCourseScheduleContext())}
+function tcRecoveryShiftToday(){return tcCourseDomain().recoveryShiftToday(TC_course,tcCourseScheduleContext())}
+function tcPreviousScheduledDay(key){return tcCourseDomain().previousScheduledDay(TC_course,key)}
+function tcNextScheduledAfter(key){return tcCourseDomain().nextScheduledAfter(TC_course,key)}
 function tcSyncScheduleEvents(){
 if(!tcWeeklyMode())return false;
 const today=dateKey(),end=tcDateFromKey(today),start=new Date(end);start.setDate(start.getDate()-28);
@@ -369,37 +335,11 @@ if(!old||old.status!==status||old.actualDate){tcUpsertScheduleEvent(k,status,'')
 }
 return changed;
 }
-function tcTransferCandidateRaw(today=dateKey()){
-if(!tcWeeklyMode()||tcScheduledOn(today)||tcTestDue()||tcMasteryDue())return null;
-const planned=tcPreviousScheduledDay(today);if(!planned)return null;
-const next=tcNextScheduledAfter(planned);if(!next||today>=next)return null;
-const e=tcScheduleEventFor(planned);if(!e||!['missed','recovery_shift'].includes(e.status))return null;
-return{plannedDate:planned,status:e.status,nextScheduledDate:next,ready:tcRecoveryReadyOn(today)};
-}
-function tcTransferCandidate(today=dateKey()){
-const c=tcTransferCandidateRaw(today);return c&&!(TC_course.transferRestDates||[]).includes(today)?c:null;
-}
-function tcNextCourseDay(){
-const now=tcDateFromKey(dateKey());
-for(let i=0;i<28;i++){
-const d=new Date(now);d.setDate(now.getDate()+i);const k=dateKey(d);
-if(tcScheduledOn(k)&&k!==TC_course.lastCourseDate&&(i>0||tcCourseDue()))return k;
-}
-return '';
-}
-function tcCalendarMonday(){
-const d=tcDateFromKey(dateKey());
-d.setDate(d.getDate()-(d.getDay()+6)%7+tcWeekOffset*7);return d;
-}
-function tcProjectedCourseSeq(key){
-let seq=TC_course.courseSeq,d=tcDateFromKey(dateKey()),end=tcDateFromKey(key);
-if(key<=dateKey())return seq;
-for(;d<end;d.setDate(d.getDate()+1)){
-const k=dateKey(d);
-if(tcScheduledOn(k)&&k!==TC_course.lastCourseDate&&!TC_course.history.some(h=>h.courseMode==='course'&&h.date===k))seq++;
-}
-return seq;
-}
+function tcTransferCandidateRaw(today=dateKey()){return tcCourseDomain().transferCandidateRaw(TC_course,today,tcCourseScheduleContext(today))}
+function tcTransferCandidate(today=dateKey()){return tcCourseDomain().transferCandidate(TC_course,today,tcCourseScheduleContext(today))}
+function tcNextCourseDay(){return tcCourseDomain().nextCourseDay(TC_course,tcCourseScheduleContext())}
+function tcCalendarMonday(){return tcCourseDomain().calendarMonday(dateKey(),tcWeekOffset)}
+function tcProjectedCourseSeq(key){return tcCourseDomain().projectedCourseSeq(TC_course,key,dateKey())}
 function tcPreviewCourseCard(key){
 const now=dateKey(),records=TC_course.history.filter(h=>h.date===key);
 const finished=records.filter(h=>['course','auxCourse','supplement'].includes(h.courseMode));
