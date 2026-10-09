@@ -833,9 +833,9 @@ assert(hotfix.includes("function tcInstallAdaptiveWorkoutGeometry()")&&
  'workout geometry must follow the actual rendered control height');
 assert(hotfix.includes("#sheet .sheetbox{max-height:92vh!important;overflow-y:auto!important"),
  'sheets must remain scrollable when text scaling reduces available vertical space');
-assert(hotfix.includes("grid-template-columns:repeat(auto-fit,minmax(92px,1fr))"),
+assert(completion.includes("grid-template-columns:repeat(auto-fit,minmax(92px,1fr))"),
  'completion summary stats must reflow instead of forcing three fixed columns');
-assert(hotfix.includes(".tcCompletionRow span,.tcCompletionRow b{min-width:0;flex:1 1 140px;overflow-wrap:anywhere}"),
+assert(completion.includes(".tcCompletionRow span,.tcCompletionRow b{min-width:0;flex:1 1 140px;overflow-wrap:anywhere}"),
  'completion rows must wrap long scaled text instead of clipping');
 assert(hotfix.includes("#workout .controls{height:auto!important;min-height:246px!important"),
  'active workout must preserve the 246px baseline while allowing large-text growth');
