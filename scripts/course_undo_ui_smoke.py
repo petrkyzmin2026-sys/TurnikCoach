@@ -450,7 +450,7 @@ assert snapshot_state["schema"]==2 and snapshot_state["screen"]=="workout" and s
 # Android-specific durability check: process death must restore the same active workout.
 # Force the restarted page's module fetch offline; Core + Course must boot from persisted cache.
 offline_armed=test_eval_json("(function(){localStorage.setItem('__tcOfflineModuleSmoke','1');return localStorage.getItem('__tcOfflineModuleSmoke');})()","arm-offline-module-restart")
-assert offline_armed=="1", "offline module restart flag must be persisted before process death"
+assert str(offline_armed)=="1", "offline module restart flag must be persisted before process death"
 adb("logcat","-c",check=False)
 adb("shell","am","force-stop",PKG)
 time.sleep(1)
@@ -461,7 +461,7 @@ restore_line=wait_log_tokens(["TC_WORKOUT_STATE",'"phase":"restored"','"name":"Ð
 upgrade_arm=wait_log_tokens(["TC_NAV_UPGRADE",'"phase":"arm-restore-guard"','"version":"5.16.44-core-foundation"','"surface":"workout"'],timeout=20)
 offline_core=test_eval_json("(function(){return {active:window.__TC_HOTFIX_ACTIVE_VERSION,course:window.__TC_COURSE_MODULE_VERSION,core:window.TurnikCore&&TurnikCore.version,foundation:window.__TC_CORE_FOUNDATION&&window.__TC_CORE_FOUNDATION.modular,cache:(localStorage.getItem('tc_module_course_1.0.37-course-stats')||'').length,offline:localStorage.getItem('__tcOfflineModuleSmoke')};})()","offline-module-restart")
 print("TC_DIAG offline-module-restart",offline_core,flush=True)
-assert offline_core["active"]=="5.16.44-core-foundation" and offline_core["course"]=="1.0.37-course-stats" and offline_core["core"]=="1.0.0" and offline_core["foundation"] is True and offline_core["cache"]>1000 and offline_core["offline"]=="1", "process restart must load Core + Course from persisted cache even when module fetch is forced offline"
+assert offline_core["active"]=="5.16.44-core-foundation" and offline_core["course"]=="1.0.37-course-stats" and offline_core["core"]=="1.0.0" and offline_core["foundation"] is True and offline_core["cache"]>1000 and str(offline_core["offline"])=="1", "process restart must load Core + Course from persisted cache even when module fetch is forced offline"
 print("TC_DIAG nav-upgrade-install",upgrade_install,flush=True)
 print("TC_DIAG restore",restore_line,flush=True)
 print("TC_DIAG nav-upgrade-arm",upgrade_arm,flush=True)
