@@ -12,6 +12,7 @@ const standardWorkout=fs.readFileSync('live/standard_workout.js','utf8');
 const restModule=fs.readFileSync('live/rest.js','utf8');
 const activeWorkout=fs.readFileSync('live/active_workout.js','utf8');
 const correction=fs.readFileSync('live/correction.js','utf8');
+const completion=fs.readFileSync('live/completion.js','utf8');
 const lifecycle=fs.readFileSync('live/lifecycle.js','utf8');
 const navigation=fs.readFileSync('live/navigation.js','utf8');
 const workoutUi=fs.readFileSync('live/workout_ui.js','utf8');
@@ -31,6 +32,7 @@ new vm.Script(standardWorkout,{filename:'live/standard_workout.js'});
 new vm.Script(restModule,{filename:'live/rest.js'});
 new vm.Script(activeWorkout,{filename:'live/active_workout.js'});
 new vm.Script(correction,{filename:'live/correction.js'});
+new vm.Script(completion,{filename:'live/completion.js'});
 new vm.Script(lifecycle,{filename:'live/lifecycle.js'});
 new vm.Script(navigation,{filename:'live/navigation.js'});
 new vm.Script(workoutUi,{filename:'live/workout_ui.js'});
@@ -63,6 +65,7 @@ assert(hotfix.includes("TC_DOMAIN_MODULE_VERSION='1.0.0'")&&
  hotfix.includes("TC_ACTIONS_MODULE_VERSION='1.0.0'")&&
  hotfix.includes("TC_STANDARD_WORKOUT_MODULE_VERSION='1.0.0-action-owner'")&&
  hotfix.includes("TC_REST_MODULE_VERSION='1.0.0-state-owner'")&&
+ hotfix.includes("TC_COMPLETION_MODULE_VERSION='1.0.0-owner'")&&
  hotfix.includes("TC_LIFECYCLE_MODULE_VERSION='1.0.0'")&&
  hotfix.includes("TC_NAVIGATION_MODULE_VERSION='1.0.0'")&&
  hotfix.includes("TC_WORKOUT_UI_MODULE_VERSION='1.0.0'")&&
@@ -83,6 +86,9 @@ assert(hotfix.includes("TC_STANDARD_WORKOUT_MODULE_URL='https://raw.githubuserco
 assert(hotfix.includes("TC_REST_MODULE_URL='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/rest.js")&&
  hotfix.includes("TC_REST_CACHE_KEY='tc_module_rest_'+TC_REST_MODULE_VERSION"),
  'rest state owner must ship as a separately versioned/offline-cached module');
+assert(hotfix.includes("TC_COMPLETION_MODULE_URL='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/completion.js")&&
+ hotfix.includes("TC_COMPLETION_CACHE_KEY='tc_module_completion_'+TC_COMPLETION_MODULE_VERSION"),
+ 'completion owner must ship as a separately versioned/offline-cached module');
 assert(hotfix.includes("TC_LIFECYCLE_MODULE_URL='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/lifecycle.js")&&
  hotfix.includes("TC_LIFECYCLE_CACHE_KEY='tc_module_lifecycle_'+TC_LIFECYCLE_MODULE_VERSION"),
  'WorkoutLifecycle must ship as a separately versioned/offline-cached module');
@@ -272,8 +278,8 @@ assert(hotfix.includes("setTimeout(()=>{renderSummary();tcQueueDecorate()},0)")&
  'post-render work must be deferred until the owning presenter has finished');
 assert(course.includes('id="tcCycleStartDate"'),
  'settings must expose a cycle start date');
-assert(hotfix.includes("const VERSION='5.16.62-correction-owner'"),
- 'release hotfix version must be 5.16.62');
+assert(hotfix.includes("const VERSION='5.16.63-completion-owner'"),
+ 'release hotfix version must be 5.16.63');
 assert(course.includes("const COURSE_MODULE_VERSION='1.0.47-viewstate-adapter'"),
  'course module version must be 1.0.47');
 const directCourseWrites=(course.match(/localStorage\.setItem\(TC_COURSE_KEY/g)||[]).length;
@@ -304,7 +310,7 @@ assert(!course.includes('TC_EXTRA_START'),
  'temporary extra-workout trace logging must not ship');
 assert(!course.includes('window.confirm('),'course module must not depend on unsupported WebView JS dialogs');
 assert(!hotfix.includes('window.confirm('),'hotfix navigation/discard must not depend on unsupported WebView JS dialogs');
-assert(!hotfix.includes('forceHandover'),'5.16.62 must use an explicit user-visible update prompt');
+assert(!hotfix.includes('forceHandover'),'5.16.63 must use an explicit user-visible update prompt');
 assert(hotfix.includes("showRuntimeNotice('TurnikCoach обновлён до '+LABEL)"),
  'successful activation must give visible feedback');
 assert(hotfix.includes("localStorage.setItem('tc_hotfix_active_version',VERSION)"),
@@ -331,6 +337,7 @@ assert(hotfix.includes("actionsModule:window.TurnikWorkoutActions&&window.Turnik
  hotfix.includes("restModule:window.TurnikRest&&window.TurnikRest.version||''")&&
  hotfix.includes("activeWorkoutModule:window.TurnikActiveWorkout&&window.TurnikActiveWorkout.version||''")&&
  hotfix.includes("correctionModule:window.TurnikCorrection&&window.TurnikCorrection.version||''")&&
+ hotfix.includes("completionModule:window.TurnikCompletion&&window.TurnikCompletion.version||''")&&
  hotfix.includes("lifecycleModule:window.TurnikWorkoutLifecycle&&window.TurnikWorkoutLifecycle.version||''")&&
  hotfix.includes("navigationModule:window.TurnikNavigation&&window.TurnikNavigation.version||''")&&
  hotfix.includes("workoutUiModule:window.TurnikWorkoutUI&&window.TurnikWorkoutUI.version||''")&&
@@ -769,7 +776,7 @@ assert(activeWorkout.includes("log(hadActive?'handover-restored':'restored'"),
  'TurnikActiveWorkout must preserve handover/restore diagnostics');
 assert(hotfix.includes('function tcInstallNavigationUpgrades()')&&
  hotfix.includes('window.__TC_NAV_UPGRADE_VERSION=VERSION')&&
- /tcInstallNavigationFoundation\(\);\s*tcInstallNavigationUpgrades\(\);\s*tcInstallCompletionFlow\(\);\s*tcInstallHapticFeedback\(\);\s*tcInstallWorkoutCorrection\(\);\s*tcInstallProgressSummary\(\);\s*tcInstallRestStateOwner\(\);\s*tcInstallWorkoutPersistence\(\);/.test(hotfix),
+ /tcInstallNavigationFoundation\(\);\s*tcInstallNavigationUpgrades\(\);\s*tcInstallCompletionOwner\(\);\s*tcInstallHapticFeedback\(\);\s*tcInstallWorkoutCorrection\(\);\s*tcInstallProgressSummary\(\);\s*tcInstallRestStateOwner\(\);\s*tcInstallWorkoutPersistence\(\);/.test(hotfix),
  'hotfix upgrades must run after the one-time navigation core and before ActiveWorkout schedules persistence restore');
 assert(hotfix.includes('window.tcRefreshActiveTrainingSurface=function(id)')&&
  hotfix.includes('window.tcArmRestoreSurfaceGuard=function(surface)')&&
@@ -826,9 +833,9 @@ assert(hotfix.includes("function tcInstallAdaptiveWorkoutGeometry()")&&
  'workout geometry must follow the actual rendered control height');
 assert(hotfix.includes("#sheet .sheetbox{max-height:92vh!important;overflow-y:auto!important"),
  'sheets must remain scrollable when text scaling reduces available vertical space');
-assert(hotfix.includes("grid-template-columns:repeat(auto-fit,minmax(92px,1fr))"),
+assert(completion.includes("grid-template-columns:repeat(auto-fit,minmax(92px,1fr))"),
  'completion summary stats must reflow instead of forcing three fixed columns');
-assert(hotfix.includes(".tcCompletionRow span,.tcCompletionRow b{min-width:0;flex:1 1 140px;overflow-wrap:anywhere}"),
+assert(completion.includes(".tcCompletionRow span,.tcCompletionRow b{min-width:0;flex:1 1 140px;overflow-wrap:anywhere}"),
  'completion rows must wrap long scaled text instead of clipping');
 assert(hotfix.includes("#workout .controls{height:auto!important;min-height:246px!important"),
  'active workout must preserve the 246px baseline while allowing large-text growth');
@@ -857,17 +864,20 @@ assert(hotfix.includes("#workout .tcWorkoutActions{display:grid!important;grid-t
  'runtime workout action container must stack Done and Skip vertically');
 assert(hotfix.includes("#workout .tcWorkoutDoneAction{min-height:60px!important"),
  'Done must remain the dominant repeated action');
-assert(hotfix.includes("const TC_COMPLETION_UNDO_KEY='tc_completion_undo_v1'"),
- 'completion flow must keep a bounded undo transaction');
-assert(hotfix.includes('function tcInstallCompletionFlow()'),
- 'completion summary must wrap the final save path');
-assert(hotfix.includes("store.restoreSnapshots({generic:tx.state,course:tx.course})")&&
- hotfix.includes("tcCompletionHistorySignature()")&&
+assert(completion.includes("const VERSION='1.0.0-owner',KEY='tc_completion_undo_v1',TTL=15*60*1000"),
+ 'TurnikCompletion must own the bounded undo key and TTL');
+assert(completion.includes("lifecycle.registerBefore('finishWorkout','completion-owner'")&&
+ completion.includes("lifecycle.registerAfter('finishWorkout','completion-owner'"),
+ 'TurnikCompletion must own completion lifecycle hooks');
+assert(completion.includes("store.restoreSnapshots({generic:tx.state,course:tx.course})")&&
  course.includes("window.tcGetCourseStateSnapshot=function()")&&
  course.includes("window.tcRestoreCourseStateSnapshot=function(snapshot)"),
  'completion undo must restore both generic state and the encapsulated course snapshot');
-assert(hotfix.includes('tcShowCompletionSummary(summary)'),
- 'successful save must open a completion summary');
+assert(completion.includes("setTimeout(()=>show(data.summary),0)"),
+ 'successful save must open the TurnikCompletion summary');
+assert(!hotfix.includes("const TC_COMPLETION_UNDO_KEY='tc_completion_undo_v1'")&&
+ !hotfix.includes('function tcInstallCompletionFlow()'),
+ 'hotfix must not retain completion transaction ownership');
 assert(hotfix.includes("if(tcActiveWorkoutForUpdate()){")&&hotfix.includes('tcScheduleDeferredUpdate(activate)'),
  'update prompt must defer while a workout or durable workout snapshot is active');
 
@@ -1050,8 +1060,8 @@ assert(course.includes("registerHandler('finishWorkout','morozov-course',100,tcC
  course.includes("registerHandler('finishRest','morozov-manual-rest',100,tcCourseFinishRestAction)"),
  'Morozov finish behavior must register lifecycle handlers');
 assert(restModule.includes("registerBefore('finishRest','rest-state-owner'")&&
- hotfix.includes("registerBefore('finishWorkout','completion-flow'")&&
- hotfix.includes("registerAfter('finishWorkout','completion-flow'")&&
+ completion.includes("registerBefore('finishWorkout','completion-owner'")&&
+ completion.includes("registerAfter('finishWorkout','completion-owner'")&&
  activeWorkout.includes("lifecycle.registerAfter('finishWorkout','active-workout-persistence'"),
  'timer cleanup, completion UI and active-workout persistence must be lifecycle hooks');
 assert(hotfix.includes('window.TurnikWorkoutLifecycle.install()'),
@@ -1194,17 +1204,11 @@ const sample=progressMetrics(
 assert.deepEqual(sample,{week:2,total:3,pullMax:21},
  'Progress summary must dedupe shared records and exclude skips/tests');
 
-// Behavioral completion-flow regression: execute the shipped wrapper and shipped Undo transaction.
-const completionHarnessFn=new Function('intervene','lifecycleSource',
-  extractFrom(hotfix,'tcWorkoutSummary')+'\n'+
-  extractFrom(hotfix,'tcReadCompletionUndo')+'\n'+
-  extractFrom(hotfix,'tcClearCompletionUndo')+'\n'+
-  extractFrom(hotfix,'tcCompletionHistoryFingerprint')+'\n'+
-  extractFrom(hotfix,'tcCompletionHistorySignature')+'\n'+
-  extractFrom(hotfix,'tcInstallCompletionFlow')+'\n'+
-  `
-  const TC_COMPLETION_UNDO_KEY='tc_completion_undo_v1';
-  let tcCompletionFlowInstalled=false;
+// Behavioral completion-owner regression: run shipped lifecycle + shipped owner.
+function runCompletionHarness(intervene){
+  const memory=new Map(),notices=[];
+  let state={history:[{id:'before'}],counter:7};
+  let courseState={courseSeq:4,lastCourseDate:'2026-09-29',history:[]};
   let W={
     mode:'extra',exerciseIndex:0,setIndex:1,actual:8,
     items:[
@@ -1212,122 +1216,83 @@ const completionHarnessFn=new Function('intervene','lifecycleSource',
       {e:{name:'Отжимания от пола'},plan:[20],actual:[20]}
     ]
   };
-  let state={history:[{id:'before'}],counter:7};
-  let courseState={courseSeq:4,lastCourseDate:'2026-09-29'};
-  let summarySeen=null,lastGo='',saveCount=0,activeSnapshotClears=0;
-  const notices=[];
-  const store=new Map();
-  const localStorage={
-    setItem:(k,v)=>store.set(k,String(v)),
-    getItem:k=>store.has(k)?store.get(k):null,
-    removeItem:k=>store.delete(k)
+  let lastGo='',activeSnapshotClears=0,renderCount=0;
+  const sheet={open:false,classList:{add:n=>{if(n==='open')sheet.open=true},remove:n=>{if(n==='open')sheet.open=false}}};
+  const box={innerHTML:''},done={onclick:null},undoBtn={onclick:null};
+  const document={
+    head:{appendChild:()=>{}},
+    createElement:tag=>({tagName:tag,id:'',style:{},textContent:''}),
+    getElementById:id=>({sheet,sheetbox:box,tcCompletionDoneBtn:done,tcCompletionUndoBtn:undoBtn}[id]||null)
   };
-  const sheet={open:true,classList:{remove:n=>{if(n==='open')sheet.open=false}}};
-  const document={getElementById:id=>id==='sheet'?sheet:null};
-  const window={
-    finishWorkout:function(){
-      state.history.push({id:'saved-extra'});
-      state.counter=99;
-      courseState.courseSeq=5;
-      W=null;
-      return 'saved';
-    },
-    finishRest:function(){return 'rest'},
-    TurnikWorkoutStore:{
-      sourceSnapshot:name=>JSON.parse(JSON.stringify(name==='generic'?state:courseState)),
-      restoreSnapshots:snapshots=>{state=JSON.parse(JSON.stringify(snapshots.generic));courseState=JSON.parse(JSON.stringify(snapshots.course));return true}
-    },
-    tcClearActiveWorkoutSnapshot:()=>{activeSnapshotClears++}
+  const sandbox={
+    console,document,
+    CustomEvent:function(type,init){this.type=type;this.detail=init&&init.detail},
+    dispatchEvent:()=>true,
+    localStorage:{setItem:(k,v)=>memory.set(k,String(v)),getItem:k=>memory.has(k)?memory.get(k):null,removeItem:k=>memory.delete(k)},
+    setTimeout:fn=>{fn();return 1}
   };
-  const CustomEvent=function(){},dispatchEvent=()=>true;
-  eval(lifecycleSource);
-  `+
-  extractAssignment(hotfix,'window.tcUndoLastCompletion=function')+'\n'+
-  `
-  function tcJsonClone(v){return JSON.parse(JSON.stringify(v))}
-  function tcShowCompletionSummary(v){summarySeen=JSON.parse(JSON.stringify(v))}
-  function save(){saveCount++}
-  function render(){}
-  function go(id){lastGo=id}
-  function showRuntimeNotice(message,type){notices.push([message,type||''])}
-  const setTimeout=fn=>{fn();return 1};
-
-  tcInstallCompletionFlow();
-  if(!window.TurnikWorkoutLifecycle.install())throw Error('lifecycle install failed');
-  const finishResult=window.finishWorkout('Нормально');
+  sandbox.window=sandbox;
+  sandbox.finishWorkout=function(feel){
+    state.history.push({id:'saved-extra'});
+    state.counter=99;courseState.courseSeq=5;W=null;return 'saved:'+feel;
+  };
+  sandbox.finishRest=function(){return'rest'};
+  vm.runInNewContext(lifecycle,sandbox,{filename:'live/lifecycle.js'});
+  vm.runInNewContext(completion,sandbox,{filename:'live/completion.js'});
+  const store={
+    sourceSnapshot:name=>JSON.parse(JSON.stringify(name==='generic'?state:courseState)),
+    restoreSnapshots:snapshots=>{state=JSON.parse(JSON.stringify(snapshots.generic));courseState=JSON.parse(JSON.stringify(snapshots.course));return true}
+  };
+  const activeWorkout={clear:()=>{activeSnapshotClears++;return true}};
+  assert(sandbox.TurnikCompletion.install({
+    getWorkout:()=>W,
+    notice:(m,t)=>notices.push([m,t||'']),
+    store,lifecycle:sandbox.TurnikWorkoutLifecycle,activeWorkout,
+    closeSheet:()=>{sheet.open=false;return true},
+    render:()=>{renderCount++;return true},
+    navigate:id=>{lastGo=id;return true}
+  }));
+  assert(sandbox.TurnikWorkoutLifecycle.install());
+  const finishResult=sandbox.finishWorkout('Нормально');
+  const tx=JSON.parse(memory.get('tc_completion_undo_v1')||'null');
   const afterFinish={
-    finishResult,
-    state:JSON.parse(JSON.stringify(state)),
-    course:JSON.parse(JSON.stringify(courseState)),
-    W,
-    tx:JSON.parse(localStorage.getItem(TC_COMPLETION_UNDO_KEY)||'null'),
-    summary:summarySeen,
-    activeSnapshotClears
+    finishResult,state:JSON.parse(JSON.stringify(state)),course:JSON.parse(JSON.stringify(courseState)),
+    W,tx,html:box.innerHTML,sheetOpen:sheet.open,activeSnapshotClears,
+    debug:sandbox.TurnikCompletion.debug()
   };
   if(intervene)state.history.push({id:'intervening-record'});
-  const undoResult=window.tcUndoLastCompletion();
-  return {
-    afterFinish,
-    undoResult,
-    state:JSON.parse(JSON.stringify(state)),
-    course:JSON.parse(JSON.stringify(courseState)),
-    lastGo,saveCount,activeSnapshotClears,
-    txAfterUndo:localStorage.getItem(TC_COMPLETION_UNDO_KEY),
-    notices
+  const undoResult=sandbox.tcUndoLastCompletion();
+  return{
+    afterFinish,undoResult,state:JSON.parse(JSON.stringify(state)),course:JSON.parse(JSON.stringify(courseState)),
+    lastGo,renderCount,activeSnapshotClears,txAfterUndo:memory.get('tc_completion_undo_v1')||null,notices
   };
-  `
-);
-
-const completionHarness=completionHarnessFn(false,lifecycle);
-const conflictHarness=completionHarnessFn(true,lifecycle);
-assert.equal(completionHarness.afterFinish.finishResult,'saved');
+}
+const completionHarness=runCompletionHarness(false);
+const conflictHarness=runCompletionHarness(true);
+assert.equal(completionHarness.afterFinish.finishResult,'saved:Нормально');
 assert.equal(completionHarness.afterFinish.W,null,'finish lifecycle must leave no active workout after base save');
 assert.equal(completionHarness.afterFinish.state.counter,99,'base save mutation must occur before Undo');
 assert.equal(completionHarness.afterFinish.course.courseSeq,5,'base course mutation must occur before Undo');
 assert.equal(completionHarness.afterFinish.tx.state.counter,7,'Undo transaction must capture pre-save generic state');
 assert.equal(completionHarness.afterFinish.tx.course.courseSeq,4,'Undo transaction must capture pre-save course state');
-assert.equal(completionHarness.afterFinish.summary.mode,'extra');
-assert.equal(completionHarness.afterFinish.summary.exercises,2);
-assert.equal(completionHarness.afterFinish.summary.sets,3);
-assert.equal(completionHarness.afterFinish.summary.total,38);
-assert.equal(completionHarness.afterFinish.summary.feel,'Нормально');
+assert(completionHarness.afterFinish.html.includes('Дополнительная тренировка завершена'));
+assert(completionHarness.afterFinish.html.includes('Отменить сохранение'));
+assert(completionHarness.afterFinish.html.includes('Подъём коленей в висе'));
+assert(completionHarness.afterFinish.sheetOpen,'completion owner must open the summary sheet');
+assert.equal(completionHarness.afterFinish.debug.singleOwner,true,'TurnikCompletion must own the compatibility Undo API');
 assert.equal(completionHarness.undoResult,true,'completion Undo must succeed inside its validity window');
 assert.equal(completionHarness.state.counter,7,'Undo must restore generic state exactly');
-assert.equal(completionHarness.state.history.length,1,'Undo must remove the newly saved workout by restoring pre-save state');
+assert.equal(completionHarness.state.history.length,1,'Undo must remove the newly saved workout');
 assert.equal(completionHarness.course.courseSeq,4,'Undo must restore course sequence exactly');
 assert.equal(completionHarness.lastGo,'today','Undo must return to Today');
 assert.equal(conflictHarness.undoResult,false,'Undo must refuse to overwrite an intervening workout');
 assert.equal(conflictHarness.state.history.length,3,'conflict must preserve the new workout');
 assert.equal(conflictHarness.course.courseSeq,5,'conflict must not roll back the course');
-assert(conflictHarness.txAfterUndo,'conflict must retain the undo transaction for explicit recovery');
+assert(conflictHarness.txAfterUndo,'conflict must retain the undo transaction');
 assert.equal(completionHarness.txAfterUndo,null,'successful Undo must clear the one-shot transaction');
 assert(completionHarness.activeSnapshotClears>=2,'finish and Undo must clear durable active-workout snapshots');
 assert(completionHarness.notices.some(x=>x[0]==='Сохранение тренировки отменено.'),
  'Undo must give visible success feedback');
-
-// Behavioral completion-summary rendering regression.
-const summaryRender=new Function(
-  extractFrom(hotfix,'tcShowCompletionSummary')+'\n'+
-  `
-  const sheet={open:false,classList:{add:n=>{if(n==='open')sheet.open=true},remove:n=>{if(n==='open')sheet.open=false}}};
-  const box={innerHTML:''};
-  const done={onclick:null},undo={onclick:null};
-  const window={tcUndoLastCompletion:function(){return true}};
-  const document={getElementById:id=>({sheet,sheetbox:box,tcCompletionDoneBtn:done,tcCompletionUndoBtn:undo}[id]||null)};
-  function closeSheet(){sheet.open=false}
-  const summary={mode:'extra',exercises:2,sets:3,total:38,feel:'Нормально',rows:[
-    {name:'Подъём коленей в висе',values:'10 · 8'},
-    {name:'Отжимания от пола',values:'20'}
-  ]};
-  tcShowCompletionSummary(summary);
-  return {html:box.innerHTML,open:sheet.open,doneBound:typeof done.onclick==='function',undoBound:undo.onclick===window.tcUndoLastCompletion};
-  `
-)();
-assert(summaryRender.open,'completion summary sheet must open');
-assert(summaryRender.html.includes('Дополнительная тренировка завершена'));
-assert(summaryRender.html.includes('Отменить сохранение'));
-assert(summaryRender.html.includes('Подъём коленей в висе'));
-assert(summaryRender.doneBound&&summaryRender.undoBound,'completion summary actions must be bound');
 
 const staleFormFeedback=[];
 new Function('TC_course','tcActionMessage','tcAdvancedChoicePool',formBodies.openAdvanced)(
