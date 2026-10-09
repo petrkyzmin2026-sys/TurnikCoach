@@ -58,7 +58,7 @@ assert(hotfix.includes("TC_DOMAIN_MODULE_VERSION='1.0.0'")&&
  hotfix.includes("TC_LIFECYCLE_MODULE_VERSION='1.0.0'")&&
  hotfix.includes("TC_NAVIGATION_MODULE_VERSION='1.0.0'")&&
  hotfix.includes("TC_WORKOUT_UI_MODULE_VERSION='1.0.0'")&&
- hotfix.includes("TC_COURSE_ACTIONS_MODULE_VERSION='1.0.0'")&&
+ hotfix.includes("TC_COURSE_ACTIONS_MODULE_VERSION='1.1.0-hooks'")&&
  hotfix.includes("TC_COURSE_MODULE_VERSION='1.0.48-action-adapter'"),
  'OTA shell must pin exact compatible Domain, UI, Store, Actions, Lifecycle, Navigation, WorkoutUI, CourseActions and Course module versions');
 assert(hotfix.includes("TC_UI_MODULE_URL='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/ui.js")&&
@@ -860,7 +860,7 @@ assert(hotfix.includes("if(tcActiveWorkoutForUpdate()){")&&hotfix.includes('tcSc
  'update prompt must defer while a workout or durable workout snapshot is active');
 
 // Single-owner course command regression.
-assert(courseActions.includes("const VERSION='1.0.0'"),'CourseActions module version must be 1.0.0');
+assert(courseActions.includes("const VERSION='1.1.0-hooks'"),'CourseActions module version must be 1.1.0-hooks');
 assert(course.includes('const TC_COURSE_ACTION_NAMES=[')&&
  course.includes("a.capture(name,'morozov-course',100)")&&course.includes('return a.install(TC_COURSE_ACTION_NAMES)'),
  'course adapter must register its UI commands with TurnikCourseActions instead of leaving final ownership in course.js');
@@ -887,6 +887,13 @@ assert.equal(courseActionSandbox.tcChooseTransferRest('2026-10-09'),'2026-10-09'
 assert.equal(courseActionSandbox.restDate,'2026-10-09');
 const courseActionDebug=courseActionSandbox.TurnikCourseActions.debug();
 assert.equal(courseActionDebug.singleOwner,true);
+courseActionSandbox.TurnikCourseActions.registerAfter('tcStartCourseWorkout','persist',-100,ctx=>{courseActionSandbox.persisted=ctx.result});
+assert.equal(courseActionSandbox.tcStartCourseWorkout(),'started');
+assert.equal(courseActionSandbox.persisted,'started','CourseActions after-hooks must observe command results without replacing globals');
+assert.equal(courseActionSandbox.TurnikCourseActions.debug().singleOwner,true,'after-hooks must preserve final command ownership');
+assert(hotfix.includes("courseActions.registerAfter(name,'workout-persistence'")&&
+ !hotfix.includes("'tcStartAuxWorkout','tcStartCourseTest','tcStartCourseWorkout','tcStartExtraWorkout','tcStartSupplementWorkout'];\nnames.forEach"),
+ 'course-start persistence must subscribe to CourseActions hooks instead of re-wrapping globals');
 assert.deepEqual(Array.from(courseActionDebug.installed),['tcChooseTransferRest','tcSaveCourseSettings','tcStartCourseWorkout']);
 
 // Single-owner workout action regression.
