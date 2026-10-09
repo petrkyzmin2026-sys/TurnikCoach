@@ -11,6 +11,7 @@ const actions=fs.readFileSync('live/actions.js','utf8');
 const standardWorkout=fs.readFileSync('live/standard_workout.js','utf8');
 const restModule=fs.readFileSync('live/rest.js','utf8');
 const activeWorkout=fs.readFileSync('live/active_workout.js','utf8');
+const correction=fs.readFileSync('live/correction.js','utf8');
 const lifecycle=fs.readFileSync('live/lifecycle.js','utf8');
 const navigation=fs.readFileSync('live/navigation.js','utf8');
 const workoutUi=fs.readFileSync('live/workout_ui.js','utf8');
@@ -29,6 +30,7 @@ new vm.Script(actions,{filename:'live/actions.js'});
 new vm.Script(standardWorkout,{filename:'live/standard_workout.js'});
 new vm.Script(restModule,{filename:'live/rest.js'});
 new vm.Script(activeWorkout,{filename:'live/active_workout.js'});
+new vm.Script(correction,{filename:'live/correction.js'});
 new vm.Script(lifecycle,{filename:'live/lifecycle.js'});
 new vm.Script(navigation,{filename:'live/navigation.js'});
 new vm.Script(workoutUi,{filename:'live/workout_ui.js'});
@@ -270,8 +272,8 @@ assert(hotfix.includes("setTimeout(()=>{renderSummary();tcQueueDecorate()},0)")&
  'post-render work must be deferred until the owning presenter has finished');
 assert(course.includes('id="tcCycleStartDate"'),
  'settings must expose a cycle start date');
-assert(hotfix.includes("const VERSION='5.16.61-active-workout-owner'"),
- 'release hotfix version must be 5.16.61');
+assert(hotfix.includes("const VERSION='5.16.62-correction-owner'"),
+ 'release hotfix version must be 5.16.62');
 assert(course.includes("const COURSE_MODULE_VERSION='1.0.47-viewstate-adapter'"),
  'course module version must be 1.0.47');
 const directCourseWrites=(course.match(/localStorage\.setItem\(TC_COURSE_KEY/g)||[]).length;
@@ -302,7 +304,7 @@ assert(!course.includes('TC_EXTRA_START'),
  'temporary extra-workout trace logging must not ship');
 assert(!course.includes('window.confirm('),'course module must not depend on unsupported WebView JS dialogs');
 assert(!hotfix.includes('window.confirm('),'hotfix navigation/discard must not depend on unsupported WebView JS dialogs');
-assert(!hotfix.includes('forceHandover'),'5.16.61 must use an explicit user-visible update prompt');
+assert(!hotfix.includes('forceHandover'),'5.16.62 must use an explicit user-visible update prompt');
 assert(hotfix.includes("showRuntimeNotice('TurnikCoach обновлён до '+LABEL)"),
  'successful activation must give visible feedback');
 assert(hotfix.includes("localStorage.setItem('tc_hotfix_active_version',VERSION)"),
@@ -312,7 +314,7 @@ assert(hotfix.includes('async function tcEnsureRequiredModules()')&&
  hotfix.includes("localStorage.setItem(APPROVED_KEY,VERSION)"),
  'update approval must happen only after required modules are available and cached');
 const installUpdateBody=extractFrom(hotfix,'installUpdate');
-assert(installUpdateBody.includes('if(!tcDomainCacheReady()||!tcUiCacheReady()||!tcStoreCacheReady()||!tcActionsCacheReady()||!tcStandardWorkoutCacheReady()||!tcRestCacheReady()||!tcActiveWorkoutCacheReady()||!tcLifecycleCacheReady()||!tcNavigationCacheReady()||!tcWorkoutUiCacheReady()||!tcCourseDomainCacheReady()||!tcCourseCacheReady())')&&
+assert(installUpdateBody.includes('if(!tcDomainCacheReady()||!tcUiCacheReady()||!tcStoreCacheReady()||!tcActionsCacheReady()||!tcStandardWorkoutCacheReady()||!tcRestCacheReady()||!tcActiveWorkoutCacheReady()||!tcCorrectionCacheReady()||!tcLifecycleCacheReady()||!tcNavigationCacheReady()||!tcWorkoutUiCacheReady()||!tcCourseDomainCacheReady()||!tcCourseCacheReady())')&&
  !installUpdateBody.slice(0,installUpdateBody.indexOf("const previousVersion=")).includes('tcLoadCourseModule()')&&
  !installUpdateBody.slice(0,installUpdateBody.indexOf("const previousVersion=")).includes('tcLoadCourseDomainModule()')&&
  !installUpdateBody.slice(0,installUpdateBody.indexOf("const previousVersion=")).includes('tcLoadDomainModule()')&&
@@ -328,6 +330,7 @@ assert(hotfix.includes("actionsModule:window.TurnikWorkoutActions&&window.Turnik
  hotfix.includes("standardWorkoutModule:window.TurnikStandardWorkout&&window.TurnikStandardWorkout.version||''")&&
  hotfix.includes("restModule:window.TurnikRest&&window.TurnikRest.version||''")&&
  hotfix.includes("activeWorkoutModule:window.TurnikActiveWorkout&&window.TurnikActiveWorkout.version||''")&&
+ hotfix.includes("correctionModule:window.TurnikCorrection&&window.TurnikCorrection.version||''")&&
  hotfix.includes("lifecycleModule:window.TurnikWorkoutLifecycle&&window.TurnikWorkoutLifecycle.version||''")&&
  hotfix.includes("navigationModule:window.TurnikNavigation&&window.TurnikNavigation.version||''")&&
  hotfix.includes("workoutUiModule:window.TurnikWorkoutUI&&window.TurnikWorkoutUI.version||''")&&
@@ -880,8 +883,10 @@ assert(standardWorkout.includes("registerHandler('standard-workout',10,handle)")
  'generic/extra set completion must be owned by the standard-workout action handler');
 assert(hotfix.includes("registerBefore('haptic-feedback'")&&hotfix.includes("registerAfter('haptic-feedback'"),
  'haptic feedback must subscribe to the workout dispatcher');
-assert(hotfix.includes("registerBefore('workout-correction'")&&hotfix.includes("registerAfter('workout-correction'"),
- 'correction trail must subscribe to the workout dispatcher');
+assert(!hotfix.includes("registerBefore('workout-correction'")&&!hotfix.includes("registerAfter('workout-correction'"),
+ 'OTA shell must not own correction trail hooks');
+assert(correction.includes("actions.registerBefore('workout-correction'")&&correction.includes("actions.registerAfter('workout-correction'"),
+ 'TurnikCorrection must subscribe to the workout dispatcher from its owner module');
 assert(activeWorkout.includes("actions.registerAfter('active-workout-persistence'"),
  'active workout persistence must subscribe to the workout dispatcher from its owner module');
 assert(course.includes("registerHandler('morozov-course',100,tcCourseSetDoneAction)"),
@@ -1074,9 +1079,9 @@ assert.deepEqual(lifeOrder,['before:generic','after:base','before:course','after
 assert.equal((hotfix.match(/window\.go\s*=(?!=)/g)||[]).length,0,'OTA shell must not wrap global go');
 assert(hotfix.includes("registerBefore('navigation-foundation',10000")&&
  hotfix.includes("registerAfter('navigation-foundation',10000")&&
- hotfix.includes("registerAfter('correction-controls',100")&&
+ correction.includes("nav.registerAfter('correction-controls',100")&&
  hotfix.includes("registerAfter('product-decorate',50"),
- 'navigation history, correction controls and product decoration must be TurnikNavigation hooks');
+ 'navigation history and product decoration remain shell hooks while correction controls belong to TurnikCorrection');
 assert(hotfix.includes('window.TurnikNavigation.install()'),'navigation dispatcher must become the sole go owner');
 const navSandbox={console,CustomEvent:function(){},dispatchEvent:()=>true};
 navSandbox.window=navSandbox;navSandbox.go=function(id){navSandbox.baseCalls=(navSandbox.baseCalls||0)+1;navSandbox.last=id;return 'base:'+id};
@@ -1096,8 +1101,8 @@ assert.equal((course.match(/window\.renderWork\s*=(?!=)/g)||[]).length,0,'course
 assert(workoutUi.includes('window.renderWork=dispatcher'),'TurnikWorkoutUI must be the single renderWork owner');
 assert(course.includes("TurnikWorkoutUI.registerAfter('morozov-course',100,tcCourseRenderWork)"),
  'Morozov workout rendering must be a TurnikWorkoutUI post-render hook');
-assert(hotfix.includes("TurnikWorkoutUI.registerAfter('correction-controls',60"),
- 'correction controls must be a TurnikWorkoutUI post-render hook');
+assert(correction.includes("workoutUi.registerAfter('correction-controls',60"),
+ 'correction controls must be a TurnikWorkoutUI post-render hook owned by TurnikCorrection');
 assert(hotfix.includes('window.TurnikWorkoutUI.install()'),
  'WorkoutUI dispatcher must install before course rendering executes');
 const wuSandbox={console,CustomEvent:function(){},dispatchEvent:()=>true,W:{mode:'test'}};
