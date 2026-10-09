@@ -1777,6 +1777,9 @@ if(!tcLoadCourseDomainModule())throw new Error('TurnikCoach course domain module
 if(!tcLoadCourseModule())throw new Error('TurnikCoach course module unavailable after preflight');
 if(!tcLoadCourseUiModule())throw new Error('TurnikCoach course UI module unavailable after preflight');
 if(!window.TurnikCourseUI.debug().configured||!window.TurnikCourseUI.debug().registered)throw new Error('TurnikCoach course UI owner did not register');
+window.TurnikNavigation.registerAfter('ui-active-render',1000,()=>{
+if(window.TurnikUI&&typeof window.TurnikUI.renderActive==='function')window.TurnikUI.renderActive({reason:'navigation'});
+});
 window.TurnikUI.register('today','*',10000,()=>{setTimeout(tcQueueDecorate,0);return false});
 window.TurnikUI.register('plan','*',10000,()=>{setTimeout(tcQueueDecorate,0);return false});
 if(!tcRegisterCoreSources())throw new Error('TurnikCoach core source registration failed');
