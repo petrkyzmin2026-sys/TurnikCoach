@@ -52,6 +52,16 @@ const generic=store.sourceSnapshot('generic'),course=store.sourceSnapshot('cours
 if(!generic||!course)return null;
 return{generic:fingerprint(generic),course:fingerprint(course)};
 }
+function claim(){
+try{
+Object.defineProperty(window,'tcUndoLastCompletion',{
+configurable:true,enumerable:true,
+get:()=>undo,
+set:value=>{if(value!==undo)console.warn('TurnikCompletion ignored legacy tcUndoLastCompletion overwrite')}
+});
+return window.tcUndoLastCompletion===undo;
+}catch(e){try{window.tcUndoLastCompletion=undo;return window.tcUndoLastCompletion===undo}catch(_){return false}}
+}
 function undo(){
 const tx=read();
 if(!tx){notice('Срок быстрой отмены истёк.','danger');return false}
@@ -70,7 +80,7 @@ notice('Сохранение тренировки отменено.');return tru
 function install(nextAdapter){
 if(nextAdapter&&typeof nextAdapter==='object')adapter=nextAdapter;
 if(!adapter)throw new Error('TurnikCompletion adapter required');
-if(installed){window.tcUndoLastCompletion=undo;return true}
+if(installed){claim();return true}
 const lifecycle=adapter.lifecycle,store=adapter.store;
 if(!lifecycle||typeof lifecycle.registerBefore!=='function'||typeof lifecycle.registerAfter!=='function')throw new Error('TurnikCompletion lifecycle unavailable');
 if(!store||typeof store.sourceSnapshot!=='function'||typeof store.restoreSnapshots!=='function')throw new Error('TurnikCompletion store unavailable');
@@ -85,7 +95,7 @@ data.tx.after=signature();
 if(data.tx.state&&data.tx.course&&data.tx.after)try{localStorage.setItem(KEY,JSON.stringify(data.tx))}catch(e){}
 clearActive();setTimeout(()=>show(data.summary),0);
 });
-window.tcUndoLastCompletion=undo;
+if(!claim())throw new Error('TurnikCompletion compatibility API claim failed');
 installed=true;return true;
 }
 function debug(){return{version:VERSION,installed,key:KEY,ttl:TTL,hasUndo:!!read(),singleOwner:installed&&window.tcUndoLastCompletion===undo}}
