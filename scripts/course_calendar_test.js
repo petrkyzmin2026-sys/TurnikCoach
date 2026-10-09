@@ -8,6 +8,7 @@ const domain=fs.readFileSync('live/domain.js','utf8');
 const ui=fs.readFileSync('live/ui.js','utf8');
 const store=fs.readFileSync('live/store.js','utf8');
 const actions=fs.readFileSync('live/actions.js','utf8');
+const standardWorkout=fs.readFileSync('live/standard_workout.js','utf8');
 const lifecycle=fs.readFileSync('live/lifecycle.js','utf8');
 const navigation=fs.readFileSync('live/navigation.js','utf8');
 const workoutUi=fs.readFileSync('live/workout_ui.js','utf8');
@@ -23,6 +24,7 @@ new vm.Script(domain,{filename:'live/domain.js'});
 new vm.Script(ui,{filename:'live/ui.js'});
 new vm.Script(store,{filename:'live/store.js'});
 new vm.Script(actions,{filename:'live/actions.js'});
+new vm.Script(standardWorkout,{filename:'live/standard_workout.js'});
 new vm.Script(lifecycle,{filename:'live/lifecycle.js'});
 new vm.Script(navigation,{filename:'live/navigation.js'});
 new vm.Script(workoutUi,{filename:'live/workout_ui.js'});
@@ -53,6 +55,7 @@ assert(hotfix.includes("TC_DOMAIN_MODULE_VERSION='1.0.0'")&&
  hotfix.includes("TC_UI_MODULE_VERSION='1.0.0'")&&
  hotfix.includes("TC_STORE_MODULE_VERSION='1.2.0-undo-restore'")&&
  hotfix.includes("TC_ACTIONS_MODULE_VERSION='1.0.0'")&&
+ hotfix.includes("TC_STANDARD_WORKOUT_MODULE_VERSION='1.0.0-action-owner'")&&
  hotfix.includes("TC_LIFECYCLE_MODULE_VERSION='1.0.0'")&&
  hotfix.includes("TC_NAVIGATION_MODULE_VERSION='1.0.0'")&&
  hotfix.includes("TC_WORKOUT_UI_MODULE_VERSION='1.0.0'")&&
@@ -67,6 +70,9 @@ assert(hotfix.includes("TC_STORE_MODULE_URL='https://raw.githubusercontent.com/p
 assert(hotfix.includes("TC_ACTIONS_MODULE_URL='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/actions.js")&&
  hotfix.includes("TC_ACTIONS_CACHE_KEY='tc_module_actions_'+TC_ACTIONS_MODULE_VERSION"),
  'WorkoutActions must ship as a separately versioned/offline-cached module');
+assert(hotfix.includes("TC_STANDARD_WORKOUT_MODULE_URL='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/standard_workout.js")&&
+ hotfix.includes("TC_STANDARD_WORKOUT_CACHE_KEY='tc_module_standard_workout_'+TC_STANDARD_WORKOUT_MODULE_VERSION"),
+ 'standard workout action owner must ship as a separately versioned/offline-cached module');
 assert(hotfix.includes("TC_LIFECYCLE_MODULE_URL='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/lifecycle.js")&&
  hotfix.includes("TC_LIFECYCLE_CACHE_KEY='tc_module_lifecycle_'+TC_LIFECYCLE_MODULE_VERSION"),
  'WorkoutLifecycle must ship as a separately versioned/offline-cached module');
@@ -256,8 +262,8 @@ assert(hotfix.includes("setTimeout(()=>{renderSummary();tcQueueDecorate()},0)")&
  'post-render work must be deferred until the owning presenter has finished');
 assert(course.includes('id="tcCycleStartDate"'),
  'settings must expose a cycle start date');
-assert(hotfix.includes("const VERSION='5.16.58-course-viewstate-owner'"),
- 'release hotfix version must be 5.16.58');
+assert(hotfix.includes("const VERSION='5.16.59-standard-action-owner'"),
+ 'release hotfix version must be 5.16.59');
 assert(course.includes("const COURSE_MODULE_VERSION='1.0.47-viewstate-adapter'"),
  'course module version must be 1.0.47');
 const directCourseWrites=(course.match(/localStorage\.setItem\(TC_COURSE_KEY/g)||[]).length;
@@ -288,7 +294,7 @@ assert(!course.includes('TC_EXTRA_START'),
  'temporary extra-workout trace logging must not ship');
 assert(!course.includes('window.confirm('),'course module must not depend on unsupported WebView JS dialogs');
 assert(!hotfix.includes('window.confirm('),'hotfix navigation/discard must not depend on unsupported WebView JS dialogs');
-assert(!hotfix.includes('forceHandover'),'5.16.58 must use an explicit user-visible update prompt');
+assert(!hotfix.includes('forceHandover'),'5.16.59 must use an explicit user-visible update prompt');
 assert(hotfix.includes("showRuntimeNotice('TurnikCoach обновлён до '+LABEL)"),
  'successful activation must give visible feedback');
 assert(hotfix.includes("localStorage.setItem('tc_hotfix_active_version',VERSION)"),
@@ -298,19 +304,20 @@ assert(hotfix.includes('async function tcEnsureRequiredModules()')&&
  hotfix.includes("localStorage.setItem(APPROVED_KEY,VERSION)"),
  'update approval must happen only after required modules are available and cached');
 const installUpdateBody=extractFrom(hotfix,'installUpdate');
-assert(installUpdateBody.includes('if(!tcDomainCacheReady()||!tcUiCacheReady()||!tcStoreCacheReady()||!tcActionsCacheReady()||!tcLifecycleCacheReady()||!tcNavigationCacheReady()||!tcWorkoutUiCacheReady()||!tcCourseDomainCacheReady()||!tcCourseCacheReady())')&&
+assert(installUpdateBody.includes('if(!tcDomainCacheReady()||!tcUiCacheReady()||!tcStoreCacheReady()||!tcActionsCacheReady()||!tcStandardWorkoutCacheReady()||!tcLifecycleCacheReady()||!tcNavigationCacheReady()||!tcWorkoutUiCacheReady()||!tcCourseDomainCacheReady()||!tcCourseCacheReady())')&&
  !installUpdateBody.slice(0,installUpdateBody.indexOf("const previousVersion=")).includes('tcLoadCourseModule()')&&
  !installUpdateBody.slice(0,installUpdateBody.indexOf("const previousVersion=")).includes('tcLoadCourseDomainModule()')&&
  !installUpdateBody.slice(0,installUpdateBody.indexOf("const previousVersion=")).includes('tcLoadDomainModule()')&&
  !installUpdateBody.slice(0,installUpdateBody.indexOf("const previousVersion=")).includes('tcLoadUiModule()')&&
  !installUpdateBody.slice(0,installUpdateBody.indexOf("const previousVersion=")).includes('tcLoadStoreModule()'),
- 'install preflight must verify Domain/UI/Store/Actions/Lifecycle/Navigation/WorkoutUI/CourseDomain/Course caches without executing later modules ahead of the legacy patch order');
+ 'install preflight must verify Domain/UI/Store/Actions/StandardWorkout/Lifecycle/Navigation/WorkoutUI/CourseDomain/Course caches without executing later modules ahead of the legacy patch order');
 assert(hotfix.includes('function tcRegisterCoreSources()')&&
  hotfix.includes("core.registerSource('generic'")&&hotfix.includes("core.registerSource('course'"),
  'TurnikCore must expose both legacy generic and Morozov stores through one state facade');
 assert(hotfix.includes("localStorage.setItem('tc_v4',JSON.stringify(next))"),
  'generic source adapter must persist the exact restored snapshot instead of delegating to legacy save()');
 assert(hotfix.includes("actionsModule:window.TurnikWorkoutActions&&window.TurnikWorkoutActions.version||''")&&
+ hotfix.includes("standardWorkoutModule:window.TurnikStandardWorkout&&window.TurnikStandardWorkout.version||''")&&
  hotfix.includes("lifecycleModule:window.TurnikWorkoutLifecycle&&window.TurnikWorkoutLifecycle.version||''")&&
  hotfix.includes("navigationModule:window.TurnikNavigation&&window.TurnikNavigation.version||''")&&
  hotfix.includes("workoutUiModule:window.TurnikWorkoutUI&&window.TurnikWorkoutUI.version||''")&&
@@ -855,8 +862,12 @@ assert(hotfix.includes("if(tcActiveWorkoutForUpdate()){")&&hotfix.includes('tcSc
 assert(manifest.includes('android.permission.VIBRATE'),'preview requires Android vibration permission');
 assert.equal((course.match(/window\.setDone\s*=/g)||[]).length,0,
  'course module must never replace global setDone');
-assert.equal((hotfix.match(/window\.setDone\s*=/g)||[]).length,1,
- 'OTA shell may define the generic base setDone exactly once');
+assert.equal((hotfix.match(/window\.setDone\s*=/g)||[]).length,0,
+ 'OTA shell must no longer replace global setDone directly');
+assert.equal((standardWorkout.match(/window\.setDone\s*=/g)||[]).length,0,
+ 'standard workout module must register with the action dispatcher instead of replacing setDone');
+assert(standardWorkout.includes("registerHandler('standard-workout',10,handle)"),
+ 'generic/extra set completion must be owned by the standard-workout action handler');
 assert(hotfix.includes("registerBefore('haptic-feedback'")&&hotfix.includes("registerAfter('haptic-feedback'"),
  'haptic feedback must subscribe to the workout dispatcher');
 assert(hotfix.includes("registerBefore('workout-correction'")&&hotfix.includes("registerAfter('workout-correction'"),
@@ -882,6 +893,36 @@ assert.equal(actionSandbox.setDone(true),'handled');
 assert.equal(actionSandbox.baseCalls,1,'handled mode action must not call the generic base');
 assert.deepEqual(order,['before:false','after:base','before:true','after:special']);
 assert.equal(actionSandbox.TurnikWorkoutActions.debug().singleOwner,true);
+const standardSandbox={console,CustomEvent:function(){},dispatchEvent:()=>true,setTimeout:fn=>{if(typeof fn==='function')fn()}};
+standardSandbox.window=standardSandbox;
+standardSandbox.W={sessionIndex:1,exerciseIndex:0,setIndex:0,actual:8,items:[
+ {e:{id:'pull',name:'Подтягивания',max:10},plan:[8,7],actual:[]},
+ {e:{id:'push',name:'Отжимания',max:20},plan:[12],actual:[]}
+]};
+standardSandbox.setDone=function(){standardSandbox.baseCalls=(standardSandbox.baseCalls||0)+1;return'legacy'};
+standardSandbox.adaptiveRest=()=>({seconds:105,note:'adaptive'});
+standardSandbox.transitionRest=()=>({seconds:120,note:'transition'});
+standardSandbox.startRest=(sec,note)=>{standardSandbox.rest=[sec,note]};
+standardSandbox.askFeedback=()=>{standardSandbox.feedback=(standardSandbox.feedback||0)+1};
+standardSandbox.beep=()=>{};
+standardSandbox.tcPrimeAudio=()=>{};
+standardSandbox.tcFinishSignal=()=>{standardSandbox.finishSignal=(standardSandbox.finishSignal||0)+1};
+vm.runInNewContext(actions,standardSandbox,{filename:'live/actions.js'});
+vm.runInNewContext(standardWorkout,standardSandbox,{filename:'live/standard_workout.js'});
+assert(standardSandbox.TurnikWorkoutActions.install());
+standardSandbox.setDone(false);
+assert.deepEqual(standardSandbox.W.items[0].actual,[8]);
+assert.equal(standardSandbox.W.setIndex,1);
+assert.deepEqual(standardSandbox.rest,[105,'adaptive']);
+standardSandbox.W.actual=7;standardSandbox.setDone(false);
+assert.equal(standardSandbox.W.exerciseIndex,1);
+assert.equal(standardSandbox.W.setIndex,0);
+assert.deepEqual(standardSandbox.rest,[120,'transition']);
+standardSandbox.W.actual=12;standardSandbox.setDone(false);
+assert.equal(standardSandbox.feedback,1);
+assert.equal(standardSandbox.finishSignal,1);
+assert.equal(standardSandbox.baseCalls||0,0,'standard handler must own ordinary workouts without falling back to legacy setDone');
+assert(standardSandbox.TurnikWorkoutActions.debug().handlerNames.includes('standard-workout'));
 
 // Single-owner workout lifecycle regression.
 assert.equal((course.match(/window\.finishWorkout\s*=(?!=)/g)||[]).length,0,'course must never replace global finishWorkout');
