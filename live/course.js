@@ -1,7 +1,7 @@
-/* TURNIKCOACH_COURSE 1.0.46-domain-owner */
+/* TURNIKCOACH_COURSE 1.0.47-viewstate-adapter */
 (function(){
 'use strict';
-const COURSE_MODULE_VERSION='1.0.46-domain-owner';
+const COURSE_MODULE_VERSION='1.0.47-viewstate-adapter';
 if(window.__TC_COURSE_MODULE_VERSION===COURSE_MODULE_VERSION)return;
 window.__TC_COURSE_MODULE_VERSION=COURSE_MODULE_VERSION;
 function tcClamp(v,a,b){return Math.max(a,Math.min(b,v))}
@@ -296,7 +296,7 @@ return seq[seqIndex%seq.length]||ids[0]||1;
 function tcCourseComplex(seqIndex=TC_course.courseSeq){const no=tcCourseComplexNo(seqIndex);return{no,def:tcCourseLevel().complexes[no]}}
 function tcCourseDomain(){
 const d=window.TurnikCourseDomain;
-if(!d||d.version!=='1.0.0-scheduler-owner')throw new Error('TurnikCourseDomain unavailable');
+if(!d||d.version!=='1.1.0-viewstate-owner')throw new Error('TurnikCourseDomain unavailable');
 return d;
 }
 function tcCourseScheduleContext(today=dateKey()){return{today,testDue:tcTestDue(),masteryDue:tcMasteryDue()}}
@@ -653,12 +653,11 @@ return{manual:false,seconds:sec,note:'Диапазон курса '+tcCourseRest
 }
 function tcCoursePlanState(){
 const l=tcCourseLevel(),c=tcCourseComplex();
-return{
-kind:TC_course.enabled?'COURSE_ACTIVE':'COURSE_DISABLED',
-enabled:!!TC_course.enabled,level:TC_course.level,levelTitle:l.title,goal:TC_course.goal,goalName:tcCourseGoalName(TC_course.goal),
-nextComplex:c.no,nextComplexName:c.def?c.def.name:'—',pullMax:TC_course.pullMax,weeklySessions:TC_course.weeklySessions,
-frequency:l.frequency,cycleStartDate:TC_course.cycleStartDate||'',extras:tcExtraExercises().map(e=>({id:e.id,name:e.name}))
-};
+return tcCourseDomain().planState(TC_course,{
+levelTitle:l.title,goalName:tcCourseGoalName(TC_course.goal),
+nextComplex:c.no,nextComplexName:c.def?c.def.name:'—',frequency:l.frequency,
+extras:tcExtraExercises().map(e=>({id:e.id,name:e.name}))
+});
 }
 function tcResolvedPlanState(){
 if(window.TurnikDomain){const x=window.TurnikDomain.plan();if(x&&x.source==='morozov')return x}
@@ -1175,29 +1174,24 @@ return '<div class="todayCard tcTodayPrimaryCard"><div class="row between"><div 
 '<div class="meta" style="margin-top:9px">Комплекс не сгорает и courseSeq не меняется. Следующее окно будет предложено автоматически'+(next?' до плановой даты '+fmtKeyDate(next,false):'')+'.</div></div>';
 }
 function tcCourseTodayState(){
-const today=dateKey();
-if(tcSelectedDate&&tcSelectedDate!==today)return{kind:'PREVIEW',date:tcSelectedDate};
-const extras=tcBuildExtraItems(),done=tcTodayCourseRecord();
-if(done)return{kind:'COURSE_DONE',record:done,extras};
-if(tcWeeklyMode()&&tcTestDue())return{kind:'COURSE_TEST'};
-if(tcMasteryDue())return{kind:'MASTERY_TEST'};
-if(tcRecoveryShiftToday())return{kind:'RECOVERY_SHIFT'};
-const transfer=tcTransferCandidate();
-if(transfer)return{kind:transfer.ready?'TRANSFER':'TRANSFER_RECOVERY',transfer};
-const due=tcCourseDue();
-if(due&&TC_course.level===7&&!tcAdvancedSelected())return{kind:'ADVANCED_SETUP'};
-const defs=due?tcOriginalCourseDefs():[];
-if(due&&!tcRunnableDefs(defs).length)return{kind:'EQUIPMENT_SETUP',defs};
+const today=dateKey(),testDue=tcTestDue(),masteryDue=tcMasteryDue();
+const scheduleCtx={today,testDue,masteryDue},due=tcCourseDomain().courseDue(TC_course,scheduleCtx);
+const extras=tcBuildExtraItems(),done=tcTodayCourseRecord(),defs=due?tcOriginalCourseDefs():[];
 const calibration=due?tcCalibrationDefs('main'):[];
-if(due&&calibration.length)return{kind:'CALIBRATION',calibration};
-if(due&&tcNeedsWorkingWeight('main'))return{kind:'WORKING_WEIGHT'};
+const next=new Date(TC_course.lastCourseDate+'T12:00:00');next.setDate(next.getDate()+2);
+let main=null;
 if(due){
 const l=tcCourseLevel(),c=tcCourseComplex(),items=tcBuildCourseItems();
-return{kind:'MAIN_WORKOUT',levelTitle:l.title,complexName:c.def?c.def.name:'Основной комплекс',items,totalSets:items.reduce((sum,x)=>sum+(Array.isArray(x.plan)?x.plan.length:0),0),adapted:tcUnavailableDefs(defs).length>0,defs};
+main={levelTitle:l.title,complexName:c.def?c.def.name:'Основной комплекс',items,
+totalSets:items.reduce((sum,x)=>sum+(Array.isArray(x.plan)?x.plan.length:0),0),
+adapted:tcUnavailableDefs(defs).length>0};
 }
-const nextKey=tcWeeklyMode()?tcNextCourseDay():'';
-const next=new Date(TC_course.lastCourseDate+'T12:00:00');next.setDate(next.getDate()+2);
-return{kind:'RECOVERY',auxDue:tcAuxDue(),extras,nextDate:nextKey||dateKey(next)};
+return tcCourseDomain().todayState(TC_course,{
+today,selectedDate:tcSelectedDate,done,extras,testDue,masteryDue,
+advancedSelected:tcAdvancedSelected(),runnableDefsCount:due?tcRunnableDefs(defs).length:null,defs,
+calibration,needsWorkingWeight:due&&tcNeedsWorkingWeight('main'),main,auxDue:tcAuxDue(),
+fallbackNextDate:dateKey(next)
+});
 }
 function tcResolvedTodayState(){
 if(window.TurnikDomain){const x=window.TurnikDomain.today({date:dateKey()});if(x&&x.source==='morozov')return x}
@@ -1933,15 +1927,13 @@ return '<div class="tcInfoBlock"><h3>Контрольные испытания</
 TC_course.pullMax+' · цель: '+TC_course.targetMax+'</p></div>'+rows;
 }
 function tcCourseRunStats(){
-const r=tcCurrentCourseRun()||tcEnsureCourseRun();if(!r)return null;
-const h=(TC_course.history||[]).filter(x=>x.runId===r.id),m=h.filter(x=>x.courseMode==='course'),e=(TC_course.scheduleEvents||[]).filter(x=>x.runId===r.id);
-const on=m.filter(x=>!x.transferred).length,moved=m.length-on,missed=e.filter(x=>x.status==='missed').length,recovery=e.filter(x=>x.status==='recovery_shift').length+m.filter(x=>x.transferred&&x.scheduleOriginStatus==='recovery_shift').length,den=on+moved+missed;
-let sets=0,reps=0;h.forEach(x=>(x.details||[]).forEach(d=>(d.actual||[]).forEach(v=>{if(v!==null&&Number.isFinite(+v)){sets++;if(['reps','reps_side','weighted'].includes(d.metric))reps+=+v}})));
-const base=+r.baselinePullMax||TC_course.pullMax,cur=TC_course.pullMax,delta=cur-base,pct=base?Math.round(delta/base*100):0;
-const tests=(TC_course.tests||[]).filter(x=>x.runId===r.id).sort((a,b)=>(a.ts||0)-(b.ts||0)).map(x=>x.value);
-return{r,on,moved,missed,recovery,completed:m.length,rate:den?Math.round((on+moved)/den*100):null,sets,reps,base,cur,delta,pct,tests};
+const r=tcCurrentCourseRun()||tcEnsureCourseRun();
+return tcCourseDomain().progressStats(TC_course,r);
 }
-function tcCourseProgressState(){return{kind:'COURSE_PROGRESS',stats:tcCourseRunStats(),level:TC_course.level,mastery:tcCourseLevel().mastery}}
+function tcCourseProgressState(){
+const r=tcCurrentCourseRun()||tcEnsureCourseRun();
+return tcCourseDomain().progressState(TC_course,{run:r,mastery:tcCourseLevel().mastery});
+}
 function tcResolvedProgressState(){
 if(window.TurnikDomain){const x=window.TurnikDomain.progress();if(x&&x.source==='morozov')return x}
 return tcCourseProgressState();
