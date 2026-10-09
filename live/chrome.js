@@ -3,7 +3,7 @@
 'use strict';
 const VERSION='1.0.0-owner';
 if(window.TurnikChrome&&window.TurnikChrome.version===VERSION)return;
-let adapter=null,installed=false,queued=false,sheetObserver=null;
+let adapter=null,installed=false,queued=false;
 function invoke(name,args){try{const fn=adapter&&adapter[name];return typeof fn==='function'?fn.apply(null,args||[]):undefined}catch(e){console.error('TurnikChrome '+name,e)}}
 function stabilizeWorkoutControls(){
 const root=document.querySelector('#workout.screen.on');
@@ -45,13 +45,6 @@ const b=makeButton('tcSheetClose','×','Закрыть',()=>invoke('navigateBack
 return true;
 }
 function queue(){if(queued)return;queued=true;setTimeout(decorate,0)}
-function watchSheet(){
-const sheet=document.getElementById('sheet');if(!sheet||typeof MutationObserver!=='function')return false;
-if(sheetObserver)try{sheetObserver.disconnect()}catch(e){}
-sheetObserver=new MutationObserver(queue);
-sheetObserver.observe(sheet,{attributes:true,attributeFilter:['class'],childList:true,subtree:true});
-return true;
-}
 function install(nextAdapter){
 if(nextAdapter&&typeof nextAdapter==='object')adapter=nextAdapter;
 if(!adapter)throw new Error('TurnikChrome adapter required');
@@ -65,12 +58,11 @@ nav.registerAfter('chrome-controls',200,queue);
 workoutUi.registerAfter('chrome-controls',80,queue);
 if(ui&&typeof ui.register==='function')for(const area of ['today','plan','progress'])ui.register(area,'*',8000,()=>{queue();return false});
 if(rest&&typeof rest.onChange==='function')rest.onChange(queue);
-watchSheet();
 window.tcEnsureWorkoutControls=queue;
 installed=true;decorate();return true;
 }
 function debug(){
-return{version:VERSION,installed,singleOwner:installed&&window.tcEnsureWorkoutControls===queue,appObserverFree:!window.__tcBackControlObserver,sheetObserver:!!sheetObserver};
+return{version:VERSION,installed,singleOwner:installed&&window.tcEnsureWorkoutControls===queue,observerFree:!window.__tcBackControlObserver};
 }
 window.TurnikChrome={version:VERSION,install,decorate,queue,stabilizeWorkoutControls,debug};
 try{window.dispatchEvent(new CustomEvent('turnikchrome:ready',{detail:{version:VERSION}}))}catch(e){}
