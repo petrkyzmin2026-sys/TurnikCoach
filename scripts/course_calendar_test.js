@@ -962,6 +962,9 @@ assert(hotfix.includes("registerBefore('navigation-foundation',10000")&&
  hotfix.includes("registerAfter('product-decorate',50"),
  'navigation history, correction controls and product decoration must be TurnikNavigation hooks');
 assert(hotfix.includes('window.TurnikNavigation.install()'),'navigation dispatcher must become the sole go owner');
+assert(hotfix.includes("TurnikNavigation.registerAfter('ui-active-render',1000")&&
+ hotfix.includes("window.TurnikUI.renderActive({reason:'navigation'})"),
+ 'navigation composition must render exactly the active TurnikUI area after go()');
 const navSandbox={console,CustomEvent:function(){},dispatchEvent:()=>true};
 navSandbox.window=navSandbox;navSandbox.go=function(id){navSandbox.baseCalls=(navSandbox.baseCalls||0)+1;navSandbox.last=id;return 'base:'+id};
 vm.runInNewContext(navigation,navSandbox,{filename:'live/navigation.js'});
