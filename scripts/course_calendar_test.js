@@ -296,7 +296,7 @@ assert(course.includes('id="tcCycleStartDate"'),
 assert(hotfix.includes("const VERSION='5.16.59-course-ui-owner'"),
  'release hotfix version must be 5.16.59');
 assert(course.includes("const COURSE_MODULE_VERSION='1.0.48-presenter-adapter'"),
- 'course module version must be 1.0.47');
+ 'course module version must be 1.0.48');
 const directCourseWrites=(course.match(/localStorage\.setItem\(TC_COURSE_KEY/g)||[]).length;
 assert.equal(directCourseWrites,1,'course persistence must have exactly one physical localStorage write boundary');
 const saveCourseBody=extract('tcSaveCourse');
@@ -335,13 +335,13 @@ assert(hotfix.includes('async function tcEnsureRequiredModules()')&&
  hotfix.includes("localStorage.setItem(APPROVED_KEY,VERSION)"),
  'update approval must happen only after required modules are available and cached');
 const installUpdateBody=extractFrom(hotfix,'installUpdate');
-assert(installUpdateBody.includes('if(!tcDomainCacheReady()||!tcUiCacheReady()||!tcStoreCacheReady()||!tcActionsCacheReady()||!tcLifecycleCacheReady()||!tcNavigationCacheReady()||!tcWorkoutUiCacheReady()||!tcCourseDomainCacheReady()||!tcCourseCacheReady())')&&
+assert(installUpdateBody.includes('if(!tcDomainCacheReady()||!tcUiCacheReady()||!tcStoreCacheReady()||!tcActionsCacheReady()||!tcLifecycleCacheReady()||!tcNavigationCacheReady()||!tcWorkoutUiCacheReady()||!tcCourseDomainCacheReady()||!tcCourseCacheReady()||!tcCourseUiCacheReady())')&&
  !installUpdateBody.slice(0,installUpdateBody.indexOf("const previousVersion=")).includes('tcLoadCourseModule()')&&
  !installUpdateBody.slice(0,installUpdateBody.indexOf("const previousVersion=")).includes('tcLoadCourseDomainModule()')&&
  !installUpdateBody.slice(0,installUpdateBody.indexOf("const previousVersion=")).includes('tcLoadDomainModule()')&&
  !installUpdateBody.slice(0,installUpdateBody.indexOf("const previousVersion=")).includes('tcLoadUiModule()')&&
  !installUpdateBody.slice(0,installUpdateBody.indexOf("const previousVersion=")).includes('tcLoadStoreModule()'),
- 'install preflight must verify Domain/UI/Store/Actions/Lifecycle/Navigation/WorkoutUI/CourseDomain/Course caches without executing later modules ahead of the legacy patch order');
+ 'install preflight must verify Domain/UI/Store/Actions/Lifecycle/Navigation/WorkoutUI/CourseDomain/Course/CourseUI caches without executing later modules ahead of the legacy patch order');
 assert(hotfix.includes('function tcRegisterCoreSources()')&&
  hotfix.includes("core.registerSource('generic'")&&hotfix.includes("core.registerSource('course'"),
  'TurnikCore must expose both legacy generic and Morozov stores through one state facade');
@@ -352,8 +352,8 @@ assert(hotfix.includes("actionsModule:window.TurnikWorkoutActions&&window.Turnik
  hotfix.includes("navigationModule:window.TurnikNavigation&&window.TurnikNavigation.version||''")&&
  hotfix.includes("workoutUiModule:window.TurnikWorkoutUI&&window.TurnikWorkoutUI.version||''")&&
  hotfix.includes("courseDomainModule:window.TurnikCourseDomain&&window.TurnikCourseDomain.version||''")&&
- hotfix.includes("courseModule:TC_COURSE_MODULE_VERSION,modular:true}"),
- 'runtime diagnostics must expose Core + Domain + UI + Store + Actions + Lifecycle + Navigation + WorkoutUI + CourseDomain + Course modular foundation');
+ hotfix.includes("courseModule:TC_COURSE_MODULE_VERSION,courseUiModule:window.TurnikCourseUI&&window.TurnikCourseUI.version||'',modular:true}"),
+ 'runtime diagnostics must expose Core + Domain + UI + Store + Actions + Lifecycle + Navigation + WorkoutUI + CourseDomain + Course + CourseUI modular foundation');
 assert(hotfix.includes("window.TurnikWorkoutStore.summary({now:Date.now()})"),
  'Progress summary must consume unified workouts through TurnikWorkoutStore instead of manually joining stores');
 assert(store.includes('function transact(sourceName,mutator)')&&store.includes('function batch(steps)')&&store.includes('function append(sourceName,record,prepend=true)'),
