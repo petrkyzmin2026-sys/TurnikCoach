@@ -267,6 +267,12 @@ assert(course.includes("window.TurnikDomain.register('today','morozov',100")&&
  course.includes("window.TurnikDomain.register('plan','morozov',100")&&
  course.includes("window.TurnikDomain.register('progress','morozov',100"),
  'Morozov must register Today / Plan / Progress resolvers in TurnikDomain');
+assert(course.includes('window.tcRegisterCourseDomainResolvers=tcRegisterCourseDomainResolvers')&&
+ !course.includes('tcRegisterCourseDomainResolvers();\ntcSanitizeSelectedEquipment();'),
+ 'course.js must export resolver registration instead of relying on eval-time side effects');
+assert(hotfix.includes("typeof window.tcRegisterCourseDomainResolvers!=='function'||!window.tcRegisterCourseDomainResolvers()")&&
+ hotfix.includes("throw new Error('TurnikCoach course domain resolver ownership incomplete')"),
+ 'composition root must explicitly register and validate all Morozov domain resolvers');
 assert(courseUi.includes("window.TurnikUI.register('today','morozov',100")&&
  courseUi.includes("window.TurnikUI.register('plan','morozov',100")&&
  courseUi.includes("window.TurnikUI.register('progress','morozov',100"),
