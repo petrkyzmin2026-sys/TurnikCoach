@@ -272,9 +272,9 @@ assert(!hotfix.includes('const oldRender=window.render')&&!hotfix.includes('wind
 assert(info.includes("for(const area of ['today','plan','progress'])ui.register(area,'*',9000")&&
  hotfix.includes("TurnikUI.register('progress','*',10000"),
  'Today / Plan / Progress post-processing must flow through owner modules registered in TurnikUI');
-assert(hotfix.includes("setTimeout(()=>{renderSummary();tcQueueDecorate()},0)")&&
- hotfix.includes("setTimeout(tcQueueDecorate,0)"),
- 'post-render work must be deferred until the owning presenter has finished');
+assert(hotfix.includes("setTimeout(()=>{renderSummary();if(window.TurnikInfo)window.TurnikInfo.queue()},0)")&&
+ info.includes("function queue(){if(queued)return;queued=true;setTimeout(decorate,0)}"),
+ 'post-render work must be deferred through TurnikInfo after the owning presenter has finished');
 assert(course.includes('id="tcCycleStartDate"'),
  'settings must expose a cycle start date');
 assert(hotfix.includes("const VERSION='5.16.63-info-owner'"),
