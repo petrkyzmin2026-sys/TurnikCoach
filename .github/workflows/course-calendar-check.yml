@@ -136,6 +136,7 @@ jobs:
           rest_cache=json.dumps(Path('live/rest.js').read_text())
           active_workout_cache=json.dumps(Path('live/active_workout.js').read_text())
           correction_cache=json.dumps(Path('live/correction.js').read_text())
+          completion_cache=json.dumps(Path('live/completion.js').read_text())
           lifecycle_cache=json.dumps(Path('live/lifecycle.js').read_text())
           navigation_cache=json.dumps(Path('live/navigation.js').read_text())
           workout_ui_cache=json.dumps(Path('live/workout_ui.js').read_text())
@@ -156,6 +157,7 @@ jobs:
             localStorage.setItem('tc_module_rest_1.0.0-state-owner',__REST_CACHE__);
             localStorage.setItem('tc_module_active_workout_1.0.0-persistence-owner',__ACTIVE_WORKOUT_CACHE__);
             localStorage.setItem('tc_module_correction_1.0.0-owner',__CORRECTION_CACHE__);
+            localStorage.setItem('tc_module_completion_1.0.0-owner',__COMPLETION_CACHE__);
             localStorage.setItem('tc_module_lifecycle_1.0.0',__LIFECYCLE_CACHE__);
             localStorage.setItem('tc_module_navigation_1.0.0',__NAVIGATION_CACHE__);
             localStorage.setItem('tc_module_workout_ui_1.0.0',__WORKOUT_UI_CACHE__);
@@ -244,7 +246,7 @@ jobs:
             else tcInstallTestDriver();
           })();
           </script>'''
-          seed=seed.replace('__PREV_COURSE_CACHE__',prev_course_cache).replace('__DOMAIN_CACHE__',domain_cache).replace('__UI_CACHE__',ui_cache).replace('__PREV_STORE_CACHE__',prev_store_cache).replace('__NEXT_STORE_CACHE__',next_store_cache).replace('__ACTIONS_CACHE__',actions_cache).replace('__STANDARD_WORKOUT_CACHE__',standard_workout_cache).replace('__REST_CACHE__',rest_cache).replace('__ACTIVE_WORKOUT_CACHE__',active_workout_cache).replace('__CORRECTION_CACHE__',correction_cache).replace('__LIFECYCLE_CACHE__',lifecycle_cache).replace('__NAVIGATION_CACHE__',navigation_cache).replace('__WORKOUT_UI_CACHE__',workout_ui_cache).replace('__PREV_COURSE_DOMAIN_CACHE__',prev_course_domain_cache).replace('__NEXT_COURSE_DOMAIN_CACHE__',next_course_domain_cache).replace('__NEXT_COURSE_CACHE__',next_course_cache)
+          seed=seed.replace('__PREV_COURSE_CACHE__',prev_course_cache).replace('__DOMAIN_CACHE__',domain_cache).replace('__UI_CACHE__',ui_cache).replace('__PREV_STORE_CACHE__',prev_store_cache).replace('__NEXT_STORE_CACHE__',next_store_cache).replace('__ACTIONS_CACHE__',actions_cache).replace('__STANDARD_WORKOUT_CACHE__',standard_workout_cache).replace('__REST_CACHE__',rest_cache).replace('__ACTIVE_WORKOUT_CACHE__',active_workout_cache).replace('__CORRECTION_CACHE__',correction_cache).replace('__COMPLETION_CACHE__',completion_cache).replace('__LIFECYCLE_CACHE__',lifecycle_cache).replace('__NAVIGATION_CACHE__',navigation_cache).replace('__WORKOUT_UI_CACHE__',workout_ui_cache).replace('__PREV_COURSE_DOMAIN_CACHE__',prev_course_domain_cache).replace('__NEXT_COURSE_DOMAIN_CACHE__',next_course_domain_cache).replace('__NEXT_COURSE_CACHE__',next_course_cache)
           p.write_text(html.replace(marker,seed+marker))
           PY
       - name: Isolate test application from installed production data
@@ -366,10 +368,10 @@ jobs:
       - name: Build isolated DEBUG preview APK
         run: |
           gradle --no-daemon :app:assembleDebug
-          cp app/build/outputs/apk/debug/app-debug.apk TurnikCoach-Correction-Owner-Preview-v5.16.62.apk
+          cp app/build/outputs/apk/debug/app-debug.apk TurnikCoach-Completion-Owner-Preview-v5.16.63.apk
       - name: Enable KVM
         run: sudo chmod 666 /dev/kvm || true
-      - name: Verify 5.16.62 Correction Owner accessibility baseline in real Android WebView
+      - name: Verify 5.16.63 Completion Owner accessibility baseline in real Android WebView
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 35
@@ -378,16 +380,16 @@ jobs:
           disable-animations: true
           emulator-options: -no-snapshot-save -no-window -gpu swiftshader -noaudio -no-boot-anim
           script: |
-            adb install -r TurnikCoach-Correction-Owner-Preview-v5.16.62.apk
+            adb install -r TurnikCoach-Completion-Owner-Preview-v5.16.63.apk
             TC_TEST_PKG=ru.turnikcoach.v52tr.calendarpreview python3 scripts/course_undo_ui_smoke.py
       - name: Upload UX2 accessibility baseline screenshots
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: TurnikCoach-5.16.62-correction-accessibility-baseline-screenshots
+          name: TurnikCoach-5.16.63-completion-accessibility-baseline-screenshots
           path: undo-ui-test-output
           if-no-files-found: warn
-      - name: Verify 5.16.62 Correction Owner at 200% system font scale
+      - name: Verify 5.16.63 Completion Owner at 200% system font scale
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 35
@@ -398,17 +400,17 @@ jobs:
           script: |
             adb shell settings put system font_scale 2.0
             test "$(adb shell settings get system font_scale | tr -d '\r')" = "2.0"
-            adb install -r TurnikCoach-Correction-Owner-Preview-v5.16.62.apk
+            adb install -r TurnikCoach-Completion-Owner-Preview-v5.16.63.apk
             TC_TEST_PKG=ru.turnikcoach.v52tr.calendarpreview TC_OUT_DIR="$GITHUB_WORKSPACE/undo-ui-font200-output" TC_FONT_SCALE=2.0 python3 scripts/course_undo_ui_smoke.py
       - name: Upload UX2 200% font-scale screenshots
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: TurnikCoach-5.16.62-correction-font200-screenshots
+          name: TurnikCoach-5.16.63-completion-font200-screenshots
           path: undo-ui-font200-output
           if-no-files-found: warn
       - uses: actions/upload-artifact@v4
         with:
-          name: TurnikCoach-5.16.62-correction-accessibility-isolated-preview
-          path: TurnikCoach-Correction-Owner-Preview-v5.16.62.apk
+          name: TurnikCoach-5.16.63-completion-accessibility-isolated-preview
+          path: TurnikCoach-Completion-Owner-Preview-v5.16.63.apk
           if-no-files-found: error
