@@ -244,10 +244,10 @@ const legacyStart=new Function('TC_course','dateKey',extract('tcRunStartDate')+'
   {courseMode:'course',date:'2026-09-20',courseLevel:4,courseGoal:'quantity'}
  ],cycleStartDate:'2026-08-01',level:4,goal:'quantity'},()=> '2026-10-05');
 assert.equal(legacyStart(),'2026-09-20','legacy migration must start at the first compatible current-level/goal workout, not the whole-course anchor');
-assert(course.includes('Выполнение курса:')&&course.includes('Контрольные максимумы:'),
- 'Progress must render the compact Morozov course statistics card');
-assert(course.includes("view.kind==='PREVIEW'")&&course.includes('tcPreviewCourseCard(view.date)'),
- 'choosing another date must resolve PREVIEW state and show a read-only plan');
+assert(courseUi.includes('Выполнение курса:')&&courseUi.includes('Контрольные максимумы:'),
+ 'CourseUI must render the compact Morozov course statistics card');
+assert(courseUi.includes("view.kind==='PREVIEW'")&&courseUi.includes('a.previewCourseCard(view.date)'),
+ 'CourseUI must render PREVIEW state as a read-only plan');
 assert(course.includes('function tcCourseTodayState()')&&course.includes('function tcResolvedTodayState()'),
  'Today business state must be resolved before DOM rendering');
 const planOwner=extract('tcCoursePlanState'),todayOwner=extract('tcCourseTodayState'),
@@ -261,16 +261,16 @@ assert(statsOwner.includes('tcCourseDomain().progressStats(TC_course')&&progress
 assert(courseDomain.includes("function planState(state,ctx)")&&courseDomain.includes("function todayState(state,ctx)")&&
  courseDomain.includes("function progressStats(state,run)")&&courseDomain.includes("function progressState(state,ctx)"),
  'TurnikCourseDomain must own Plan / Today / Progress state builders');
-assert(course.includes("view.kind==='MAIN_WORKOUT'")&&course.includes("view.kind==='RECOVERY_SHIFT'")&&course.includes("view.kind==='TRANSFER'||view.kind==='TRANSFER_RECOVERY'"),
- 'Today renderer must render explicit domain states instead of recomputing the scenario');
+assert(courseUi.includes("view.kind==='MAIN_WORKOUT'")&&courseUi.includes("view.kind==='RECOVERY_SHIFT'")&&courseUi.includes("view.kind==='TRANSFER'||view.kind==='TRANSFER_RECOVERY'"),
+ 'CourseUI Today renderer must render explicit domain states instead of recomputing the scenario');
 assert(course.includes("window.TurnikDomain.register('today','morozov',100")&&
  course.includes("window.TurnikDomain.register('plan','morozov',100")&&
  course.includes("window.TurnikDomain.register('progress','morozov',100"),
  'Morozov must register Today / Plan / Progress resolvers in TurnikDomain');
-assert(course.includes("window.TurnikUI.register('today','morozov',100")&&
- course.includes("window.TurnikUI.register('plan','morozov',100")&&
- course.includes("window.TurnikUI.register('progress','morozov',100"),
- 'Morozov must register Today / Plan / Progress presenters in TurnikUI');
+assert(courseUi.includes("window.TurnikUI.register('today','morozov',100")&&
+ courseUi.includes("window.TurnikUI.register('plan','morozov',100")&&
+ courseUi.includes("window.TurnikUI.register('progress','morozov',100"),
+ 'CourseUI must register Today / Plan / Progress presenters in TurnikUI');
 assert(!course.includes('window.render=function()')&&!course.includes('window.renderHistory=function()')&&
  !course.includes('tcBeforeCourseRender=window.render')&&!course.includes('tcBeforeCourseRenderHistory=window.renderHistory'),
  'course module must not own global render lifecycle after the UI presenter split');
