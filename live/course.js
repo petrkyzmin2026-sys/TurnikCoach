@@ -1875,6 +1875,7 @@ window.TurnikDomain.register('plan','morozov',100,()=>tcCoursePlanState());
 window.TurnikDomain.register('progress','morozov',100,()=>tcCourseProgressState());
 return true;
 }
+window.tcRegisterCourseDomainResolvers=tcRegisterCourseDomainResolvers;
 window.tcGetCourseViewState=function(){
 return{
 today:TC_course.enabled?tcResolvedTodayState():null,
@@ -1882,7 +1883,6 @@ plan:tcResolvedPlanState(),
 progress:tcResolvedProgressState()
 };
 };
-tcRegisterCourseDomainResolvers();
 tcSanitizeSelectedEquipment();
 if(TC_course.enabled&&tcEnsureCourseRun())window.__TC_COURSE_BOOTSTRAP_DIRTY=true;
 tcInjectCourseUiStyles();
