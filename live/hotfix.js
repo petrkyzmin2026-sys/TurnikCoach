@@ -1433,6 +1433,7 @@ tcInstallWorkoutPersistence();
 if(!window.TurnikNavigation.install())throw new Error('TurnikCoach navigation dispatcher install failed');
 if(!window.TurnikWorkoutLifecycle.install())throw new Error('TurnikCoach workout lifecycle dispatcher install failed');
 if(!window.TurnikWorkoutActions.install())throw new Error('TurnikCoach workout action dispatcher install failed');
+if(!tcInstallCompletionOwner())throw new Error('TurnikCoach completion owner reclaim failed');
 if(previousVersion!==VERSION)showRuntimeNotice('TurnikCoach обновлён до '+LABEL);
 console.log('TurnikCoach hotfix active:',VERSION);
 }
