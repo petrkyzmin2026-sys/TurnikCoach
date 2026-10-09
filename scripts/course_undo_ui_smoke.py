@@ -394,6 +394,7 @@ assert core_probe["lifecycleCache"]>500, "workout lifecycle dispatcher must surv
 assert core_probe["navigation"] and core_probe["navigation"]["version"]=="1.0.0" and core_probe["navigation"]["singleOwner"] is True, "TurnikNavigation must be the sole real-WebView go owner"
 assert "navigation-foundation" in core_probe["navigation"]["beforeNames"] and "navigation-foundation" in core_probe["navigation"]["afterNames"], "navigation foundation must run through the dispatcher"
 assert "correction-controls" in core_probe["navigation"]["afterNames"] and "product-decorate" in core_probe["navigation"]["afterNames"], "correction/product post-processing must be navigation hooks"
+assert "ui-active-render" in core_probe["navigation"]["afterNames"], "navigation must render the active TurnikUI area after every go() dispatch"
 assert core_probe["navigationCache"]>500, "navigation dispatcher must survive in the versioned module cache"
 assert core_probe["courseDomain"] and core_probe["courseDomain"]["version"]=="1.2.0-presenter-data" and core_probe["courseDomain"]["owner"]=="course-viewstate" and core_probe["courseDomain"]["pure"] is True, "TurnikCourseDomain must be the sole real-WebView scheduler/recovery owner"
 assert core_probe["courseUI"] and core_probe["courseUI"]["version"]=="1.0.0" and core_probe["courseUI"]["owner"]=="course-presenter" and core_probe["courseUI"]["configured"] is True and core_probe["courseUI"]["registered"] is True, "TurnikCourseUI must be the sole Morozov Today/Plan/Progress presenter owner"
