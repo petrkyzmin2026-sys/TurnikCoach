@@ -44,6 +44,7 @@ on:
       - refactor/workout-ui-owner-5.16.55
       - refactor/course-persistence-owner-5.16.56
       - refactor/course-domain-owner-5.16.57
+      - refactor/course-viewstate-owner-5.16.58
   pull_request:
   workflow_dispatch:
 
@@ -74,12 +75,13 @@ jobs:
           done
           base64 --decode /tmp/v513.b64 | gzip -dc > app/src/main/assets/index.html
           grep -q 'v5.13 — modern Android package' app/src/main/assets/index.html
-      - name: Reproduce packaged 5.14 + cached 5.16.56 + tested 5.16.57
+      - name: Reproduce packaged 5.14 + cached 5.16.57 + tested 5.16.58
         run: |
-          PREV_COMMIT="2c5d22d6f8eb38298f3ff37d91c3ced21c64c444"
+          PREV_COMMIT="e473e519c1718dd254b0a1fbab036311c4f67991"
           grep -q 'TURNIKCOACH_HOTFIX 5.14.0-adaptive-rest' app/src/main/assets/hotfix.js
           curl -fsSL "https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/${PREV_COMMIT}/live/hotfix.js" > app/src/main/assets/hotfix-prev.js
           curl -fsSL "https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/${PREV_COMMIT}/live/course.js" > app/src/main/assets/course-prev.js
+          curl -fsSL "https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/${PREV_COMMIT}/live/course_domain.js" > app/src/main/assets/course-domain-prev.js
           curl -fsSL "https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/${PREV_COMMIT}/live/store.js" > app/src/main/assets/store-prev.js
           cp live/hotfix.js app/src/main/assets/hotfix-next.js
           python3 - <<'PY'
@@ -91,8 +93,8 @@ jobs:
           s=s.replace(needle,"function tcAudio(){\nif(window.__TC_DISABLE_AUDIO_FOR_SMOKE)return null;\ntry{",1)
           p.write_text(s)
           PY
-          grep -q 'TURNIKCOACH_HOTFIX 5.16.56-persistence-owner' app/src/main/assets/hotfix-prev.js
-          grep -q 'TURNIKCOACH_HOTFIX 5.16.57-course-domain-owner' app/src/main/assets/hotfix-next.js
+          grep -q 'TURNIKCOACH_HOTFIX 5.16.57-course-domain-owner' app/src/main/assets/hotfix-prev.js
+          grep -q 'TURNIKCOACH_HOTFIX 5.16.58-course-viewstate-owner' app/src/main/assets/hotfix-next.js
           grep -q 'TURNIKCOACH_CORE 1.0.0' app/src/main/assets/hotfix-next.js
           grep -q 'TURNIKCOACH_DOMAIN 1.0.0' live/domain.js
           grep -q 'TURNIKCOACH_UI 1.0.0' live/ui.js
@@ -102,11 +104,12 @@ jobs:
           grep -q 'TURNIKCOACH_WORKOUT_LIFECYCLE 1.0.0' live/lifecycle.js
           grep -q 'TURNIKCOACH_NAVIGATION 1.0.0' live/navigation.js
           grep -q 'TURNIKCOACH_WORKOUT_UI 1.0.0' live/workout_ui.js
-          grep -q 'TURNIKCOACH_COURSE_DOMAIN 1.0.0-scheduler-owner' live/course_domain.js
-          grep -q 'TURNIKCOACH_COURSE 1.0.46-domain-owner' live/course.js
-          grep -q 'TURNIKCOACH_COURSE 1.0.45-persistence-owner' app/src/main/assets/course-prev.js
+          grep -q 'TURNIKCOACH_COURSE_DOMAIN 1.1.0-viewstate-owner' live/course_domain.js
+          grep -q 'TURNIKCOACH_COURSE 1.0.47-viewstate-adapter' live/course.js
+          grep -q 'TURNIKCOACH_COURSE 1.0.46-domain-owner' app/src/main/assets/course-prev.js
+          grep -q 'TURNIKCOACH_COURSE_DOMAIN 1.0.0-scheduler-owner' app/src/main/assets/course-domain-prev.js
           ! grep -q 'COURSE_MODULE_BUNDLED=' app/src/main/assets/hotfix-next.js
-      - name: Seed installed 5.16.56 approval and next course-domain/course caches with completed main-course state
+      - name: Seed installed 5.16.57 approval and previous/next course-domain/course caches with completed main-course state
         run: |
           python3 - <<'PY'
           from pathlib import Path
@@ -122,14 +125,15 @@ jobs:
           lifecycle_cache=json.dumps(Path('live/lifecycle.js').read_text())
           navigation_cache=json.dumps(Path('live/navigation.js').read_text())
           workout_ui_cache=json.dumps(Path('live/workout_ui.js').read_text())
-          course_domain_cache=json.dumps(Path('live/course_domain.js').read_text())
+          prev_course_domain_cache=json.dumps(Path('app/src/main/assets/course-domain-prev.js').read_text())
+          next_course_domain_cache=json.dumps(Path('live/course_domain.js').read_text())
           next_course_cache=json.dumps(Path('live/course.js').read_text())
           marker='</head>'
           assert html.count(marker)==1
           seed=r'''<script>
           (function(){
             window.__TC_DISABLE_AUDIO_FOR_SMOKE=true;
-            localStorage.setItem('tc_module_course_1.0.45-persistence-owner',__PREV_COURSE_CACHE__);
+            localStorage.setItem('tc_module_course_1.0.46-domain-owner',__PREV_COURSE_CACHE__);
             localStorage.setItem('tc_module_domain_1.0.0',__DOMAIN_CACHE__);
             localStorage.setItem('tc_module_ui_1.0.0',__UI_CACHE__);
             localStorage.setItem('tc_module_store_1.2.0-undo-restore',__PREV_STORE_CACHE__);
@@ -138,11 +142,12 @@ jobs:
             localStorage.setItem('tc_module_lifecycle_1.0.0',__LIFECYCLE_CACHE__);
             localStorage.setItem('tc_module_navigation_1.0.0',__NAVIGATION_CACHE__);
             localStorage.setItem('tc_module_workout_ui_1.0.0',__WORKOUT_UI_CACHE__);
-            localStorage.setItem('tc_module_course_domain_1.0.0-scheduler-owner',__COURSE_DOMAIN_CACHE__);
-            localStorage.setItem('tc_module_course_1.0.46-domain-owner',__NEXT_COURSE_CACHE__);
+            localStorage.setItem('tc_module_course_domain_1.0.0-scheduler-owner',__PREV_COURSE_DOMAIN_CACHE__);
+            localStorage.setItem('tc_module_course_domain_1.1.0-viewstate-owner',__NEXT_COURSE_DOMAIN_CACHE__);
+            localStorage.setItem('tc_module_course_1.0.47-viewstate-adapter',__NEXT_COURSE_CACHE__);
             if(localStorage.getItem('__tcForcedHandoverSmokeSeeded')) return;
             var d=new Date(),k=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
-            localStorage.setItem('tc_hotfix_approved_version','5.16.56-persistence-owner');
+            localStorage.setItem('tc_hotfix_approved_version','5.16.57-course-domain-owner');
             localStorage.setItem('tc_morozov_course_v1',JSON.stringify({
               enabled:true,level:4,goal:'quantity',pullMax:20,courseSeq:1,extraSeq:0,
               lastCourseDate:k,lastCourseTs:Date.now(),weeklySessions:3,cycleStartDate:k,
@@ -221,7 +226,7 @@ jobs:
             else tcInstallTestDriver();
           })();
           </script>'''
-          seed=seed.replace('__PREV_COURSE_CACHE__',prev_course_cache).replace('__DOMAIN_CACHE__',domain_cache).replace('__UI_CACHE__',ui_cache).replace('__PREV_STORE_CACHE__',prev_store_cache).replace('__NEXT_STORE_CACHE__',next_store_cache).replace('__ACTIONS_CACHE__',actions_cache).replace('__LIFECYCLE_CACHE__',lifecycle_cache).replace('__NAVIGATION_CACHE__',navigation_cache).replace('__WORKOUT_UI_CACHE__',workout_ui_cache).replace('__COURSE_DOMAIN_CACHE__',course_domain_cache).replace('__NEXT_COURSE_CACHE__',next_course_cache)
+          seed=seed.replace('__PREV_COURSE_CACHE__',prev_course_cache).replace('__DOMAIN_CACHE__',domain_cache).replace('__UI_CACHE__',ui_cache).replace('__PREV_STORE_CACHE__',prev_store_cache).replace('__NEXT_STORE_CACHE__',next_store_cache).replace('__ACTIONS_CACHE__',actions_cache).replace('__LIFECYCLE_CACHE__',lifecycle_cache).replace('__NAVIGATION_CACHE__',navigation_cache).replace('__WORKOUT_UI_CACHE__',workout_ui_cache).replace('__PREV_COURSE_DOMAIN_CACHE__',prev_course_domain_cache).replace('__NEXT_COURSE_DOMAIN_CACHE__',next_course_domain_cache).replace('__NEXT_COURSE_CACHE__',next_course_cache)
           p.write_text(html.replace(marker,seed+marker))
           PY
       - name: Isolate test application from installed production data
@@ -343,10 +348,10 @@ jobs:
       - name: Build isolated DEBUG preview APK
         run: |
           gradle --no-daemon :app:assembleDebug
-          cp app/build/outputs/apk/debug/app-debug.apk TurnikCoach-Course-Domain-Preview-v5.16.57.apk
+          cp app/build/outputs/apk/debug/app-debug.apk TurnikCoach-Course-ViewState-Preview-v5.16.58.apk
       - name: Enable KVM
         run: sudo chmod 666 /dev/kvm || true
-      - name: Verify 5.16.57 Course Domain accessibility baseline in real Android WebView
+      - name: Verify 5.16.58 Course ViewState accessibility baseline in real Android WebView
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 35
@@ -355,16 +360,16 @@ jobs:
           disable-animations: true
           emulator-options: -no-snapshot-save -no-window -gpu swiftshader -noaudio -no-boot-anim
           script: |
-            adb install -r TurnikCoach-Course-Domain-Preview-v5.16.57.apk
+            adb install -r TurnikCoach-Course-ViewState-Preview-v5.16.58.apk
             TC_TEST_PKG=ru.turnikcoach.v52tr.calendarpreview python3 scripts/course_undo_ui_smoke.py
       - name: Upload UX2 accessibility baseline screenshots
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: TurnikCoach-5.16.57-course-domain-accessibility-baseline-screenshots
+          name: TurnikCoach-5.16.58-course-viewstate-accessibility-baseline-screenshots
           path: undo-ui-test-output
           if-no-files-found: warn
-      - name: Verify 5.16.57 Course Domain at 200% system font scale
+      - name: Verify 5.16.58 Course ViewState at 200% system font scale
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 35
@@ -375,17 +380,17 @@ jobs:
           script: |
             adb shell settings put system font_scale 2.0
             test "$(adb shell settings get system font_scale | tr -d '\r')" = "2.0"
-            adb install -r TurnikCoach-Course-Domain-Preview-v5.16.57.apk
+            adb install -r TurnikCoach-Course-ViewState-Preview-v5.16.58.apk
             TC_TEST_PKG=ru.turnikcoach.v52tr.calendarpreview TC_OUT_DIR="$GITHUB_WORKSPACE/undo-ui-font200-output" TC_FONT_SCALE=2.0 python3 scripts/course_undo_ui_smoke.py
       - name: Upload UX2 200% font-scale screenshots
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: TurnikCoach-5.16.57-course-domain-font200-screenshots
+          name: TurnikCoach-5.16.58-course-viewstate-font200-screenshots
           path: undo-ui-font200-output
           if-no-files-found: warn
       - uses: actions/upload-artifact@v4
         with:
-          name: TurnikCoach-5.16.57-course-domain-accessibility-isolated-preview
-          path: TurnikCoach-Course-Domain-Preview-v5.16.57.apk
+          name: TurnikCoach-5.16.58-course-viewstate-accessibility-isolated-preview
+          path: TurnikCoach-Course-ViewState-Preview-v5.16.58.apk
           if-no-files-found: error

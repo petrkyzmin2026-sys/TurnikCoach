@@ -1,8 +1,8 @@
-/* TURNIKCOACH_HOTFIX 5.16.57-course-domain-owner */
+/* TURNIKCOACH_HOTFIX 5.16.58-course-viewstate-owner */
 (function(){
 'use strict';
-const VERSION='5.16.57-course-domain-owner';
-const LABEL='5.16.57';
+const VERSION='5.16.58-course-viewstate-owner';
+const LABEL='5.16.58';
 const APPROVED_KEY='tc_hotfix_approved_version';
 const LEGACY_ASSET_VERSION='5.14.0-adaptive-rest';
 const stalePrompt=document.getElementById('tcUpdatePrompt');
@@ -68,7 +68,7 @@ title.style.cssText='font-size:22px;font-weight:800;margin-bottom:10px;flex:0 0 
 title.textContent='Доступно обновление TurnikCoach '+LABEL;
 const text=document.createElement('div');
 text.style.cssText='font-size:15px;line-height:1.45;color:#cfd8e3;margin-bottom:18px;min-height:0;flex:1 1 0;overflow-y:auto;overscroll-behavior:contain;padding-right:4px';
-text.innerHTML="Архитектурное обновление без изменения интерфейса. Правила расписания курса Морозова, восстановления, переносов и прогнозной последовательности вынесены из большого course.js в отдельный TurnikCourseDomain. Теперь эти решения имеют одного владельца, а UI только использует готовый результат. История и настройки сохраняются.<br><br>Установить обновление сейчас?";
+text.innerHTML="Архитектурное обновление без изменения интерфейса. TurnikCourseDomain теперь владеет не только расписанием, но и итоговыми состояниями экранов курса «Сегодня / План / Прогресс». course.js передаёт данные и отображает готовое состояние вместо повторного принятия тех же решений. История и настройки сохраняются.<br><br>Установить обновление сейчас?";
 const row=document.createElement('div');
 row.style.cssText='display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;flex:0 0 auto';
 const later=document.createElement('button');
@@ -135,12 +135,12 @@ const TC_WORKOUT_UI_MODULE_VERSION='1.0.0';
 const TC_WORKOUT_UI_MODULE_MARKER='TURNIKCOACH_WORKOUT_UI 1.0.0';
 const TC_WORKOUT_UI_MODULE_URL='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/workout_ui.js?v='+encodeURIComponent(TC_WORKOUT_UI_MODULE_VERSION);
 const TC_WORKOUT_UI_CACHE_KEY='tc_module_workout_ui_'+TC_WORKOUT_UI_MODULE_VERSION;
-const TC_COURSE_DOMAIN_MODULE_VERSION='1.0.0-scheduler-owner';
-const TC_COURSE_DOMAIN_MODULE_MARKER='TURNIKCOACH_COURSE_DOMAIN 1.0.0-scheduler-owner';
+const TC_COURSE_DOMAIN_MODULE_VERSION='1.1.0-viewstate-owner';
+const TC_COURSE_DOMAIN_MODULE_MARKER='TURNIKCOACH_COURSE_DOMAIN 1.1.0-viewstate-owner';
 const TC_COURSE_DOMAIN_MODULE_URL='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/course_domain.js?v='+encodeURIComponent(TC_COURSE_DOMAIN_MODULE_VERSION);
 const TC_COURSE_DOMAIN_CACHE_KEY='tc_module_course_domain_'+TC_COURSE_DOMAIN_MODULE_VERSION;
-const TC_COURSE_MODULE_VERSION='1.0.46-domain-owner';
-const TC_COURSE_MODULE_MARKER='TURNIKCOACH_COURSE 1.0.46-domain-owner';
+const TC_COURSE_MODULE_VERSION='1.0.47-viewstate-adapter';
+const TC_COURSE_MODULE_MARKER='TURNIKCOACH_COURSE 1.0.47-viewstate-adapter';
 const TC_COURSE_MODULE_URL='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/course.js?v='+encodeURIComponent(TC_COURSE_MODULE_VERSION);
 const TC_COURSE_CACHE_KEY='tc_module_course_'+TC_COURSE_MODULE_VERSION;
 let tcDomainPrimePromise=null,tcUiPrimePromise=null,tcStorePrimePromise=null,tcActionsPrimePromise=null,tcLifecyclePrimePromise=null,tcNavigationPrimePromise=null,tcWorkoutUiPrimePromise=null,tcCourseDomainPrimePromise=null,tcCoursePrimePromise=null;

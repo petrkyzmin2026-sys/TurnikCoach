@@ -1,7 +1,7 @@
-/* TURNIKCOACH_COURSE_DOMAIN 1.0.0-scheduler-owner */
+/* TURNIKCOACH_COURSE_DOMAIN 1.1.0-viewstate-owner */
 (function(){
 'use strict';
-const VERSION='1.0.0-scheduler-owner';
+const VERSION='1.1.0-viewstate-owner';
 if(window.TurnikCourseDomain&&window.TurnikCourseDomain.version===VERSION)return;
 function dateKey(d=new Date()){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
 function dateFromKey(k){return new Date(k+'T12:00:00')}
@@ -97,14 +97,66 @@ if(scheduledOn(state,k)&&k!==state.lastCourseDate&&!(state.history||[]).some(h=>
 }
 return seq;
 }
+
+function planState(state,ctx){
+const c=ctx||{},enabled=!!state.enabled;
+return{
+kind:enabled?'COURSE_ACTIVE':'COURSE_DISABLED',
+enabled,level:state.level,levelTitle:c.levelTitle||'',goal:state.goal,goalName:c.goalName||'',
+nextComplex:c.nextComplex==null?null:c.nextComplex,nextComplexName:c.nextComplexName||'—',
+pullMax:state.pullMax,weeklySessions:state.weeklySessions,frequency:c.frequency||'',
+cycleStartDate:state.cycleStartDate||'',extras:Array.isArray(c.extras)?c.extras:[]
+};
+}
+function todayState(state,ctx){
+const c=ctx||{},today=c.today||dateKey();
+if(c.selectedDate&&c.selectedDate!==today)return{kind:'PREVIEW',date:c.selectedDate};
+if(c.done)return{kind:'COURSE_DONE',record:c.done,extras:Array.isArray(c.extras)?c.extras:[]};
+const scheduleCtx={today,testDue:!!c.testDue,masteryDue:!!c.masteryDue};
+if(weeklyMode(state)&&c.testDue)return{kind:'COURSE_TEST'};
+if(c.masteryDue)return{kind:'MASTERY_TEST'};
+if(recoveryShiftToday(state,scheduleCtx))return{kind:'RECOVERY_SHIFT'};
+const transfer=transferCandidate(state,today,scheduleCtx);
+if(transfer)return{kind:transfer.ready?'TRANSFER':'TRANSFER_RECOVERY',transfer};
+const due=courseDue(state,scheduleCtx);
+if(due&&state.level===7&&!c.advancedSelected)return{kind:'ADVANCED_SETUP'};
+if(due&&c.runnableDefsCount===0)return{kind:'EQUIPMENT_SETUP',defs:Array.isArray(c.defs)?c.defs:[]};
+if(due&&Array.isArray(c.calibration)&&c.calibration.length)return{kind:'CALIBRATION',calibration:c.calibration};
+if(due&&c.needsWorkingWeight)return{kind:'WORKING_WEIGHT'};
+if(due){
+const m=c.main||{};
+return{kind:'MAIN_WORKOUT',levelTitle:m.levelTitle||'',complexName:m.complexName||'Основной комплекс',
+items:Array.isArray(m.items)?m.items:[],totalSets:Number(m.totalSets)||0,adapted:!!m.adapted,defs:Array.isArray(c.defs)?c.defs:[]};
+}
+const nextDate=weeklyMode(state)?nextCourseDay(state,scheduleCtx):(c.fallbackNextDate||'');
+return{kind:'RECOVERY',auxDue:!!c.auxDue,extras:Array.isArray(c.extras)?c.extras:[],nextDate};
+}
+function progressStats(state,run){
+if(!state||!run)return null;
+const h=(state.history||[]).filter(x=>x.runId===run.id),m=h.filter(x=>x.courseMode==='course'),e=(state.scheduleEvents||[]).filter(x=>x.runId===run.id);
+const on=m.filter(x=>!x.transferred).length,moved=m.length-on,missed=e.filter(x=>x.status==='missed').length,
+recovery=e.filter(x=>x.status==='recovery_shift').length+m.filter(x=>x.transferred&&x.scheduleOriginStatus==='recovery_shift').length,
+den=on+moved+missed;
+let sets=0,reps=0;
+h.forEach(x=>(x.details||[]).forEach(d=>(d.actual||[]).forEach(v=>{
+if(v!==null&&Number.isFinite(+v)){sets++;if(['reps','reps_side','weighted'].includes(d.metric))reps+=+v}
+})));
+const base=+run.baselinePullMax||state.pullMax,cur=state.pullMax,delta=cur-base,pct=base?Math.round(delta/base*100):0;
+const tests=(state.tests||[]).filter(x=>x.runId===run.id).sort((a,b)=>(a.ts||0)-(b.ts||0)).map(x=>x.value);
+return{r:run,on,moved,missed,recovery,completed:m.length,rate:den?Math.round((on+moved)/den*100):null,sets,reps,base,cur,delta,pct,tests};
+}
+function progressState(state,ctx){
+const c=ctx||{},run=c.run||null;
+return{kind:'COURSE_PROGRESS',stats:progressStats(state,run),level:state.level,mastery:c.mastery||''};
+}
 function debug(state){
-return{version:VERSION,weekly:weeklyMode(state||{}),weekdays:state?weekdays(state):[],pure:true,owner:'course-scheduler'};
+return{version:VERSION,weekly:weeklyMode(state||{}),weekdays:state?weekdays(state):[],pure:true,owner:'course-viewstate'};
 }
 window.TurnikCourseDomain={
 version:VERSION,dateKey,dateFromKey,dayDiff,weeklyMode,weekdays,scheduledOn,scheduleEventFor,
 pullLoadDates,lastPullLoadDateBefore,recoveryReadyOn,scheduledMainToday,courseDue,recoveryShiftToday,
 previousScheduledDay,nextScheduledAfter,transferCandidateRaw,transferCandidate,nextCourseDay,calendarMonday,
-projectedCourseSeq,debug
+projectedCourseSeq,planState,todayState,progressStats,progressState,debug
 };
 try{window.dispatchEvent(new CustomEvent('turnikcoursedomain:ready',{detail:{version:VERSION}}))}catch(e){}
 })();

@@ -32,7 +32,7 @@ const courseDomainSandbox={console,CustomEvent:function(type,init){this.type=typ
 courseDomainSandbox.window=courseDomainSandbox;
 vm.runInNewContext(courseDomain,courseDomainSandbox,{filename:'live/course_domain.js'});
 const schedule=courseDomainSandbox.TurnikCourseDomain;
-assert.equal(schedule.version,'1.0.0-scheduler-owner');
+assert.equal(schedule.version,'1.1.0-viewstate-owner');
 const coreBundled=hotfix.match(/const CORE_MODULE_BUNDLED=("(?:\\.|[^"\\])*");\nconst TC_DOMAIN_MODULE_VERSION/);
 assert(coreBundled,'small TurnikCore bootstrap must remain embedded in the OTA shell');
 assert.equal(JSON.parse(coreBundled[1]),core,'embedded TurnikCore bootstrap must match live/core.js');
@@ -41,7 +41,7 @@ assert(hotfix.includes("TC_COURSE_MODULE_URL='https://raw.githubusercontent.com/
  'course module must load as a separately versioned live module');
 assert(hotfix.includes("TC_COURSE_CACHE_KEY='tc_module_course_'+TC_COURSE_MODULE_VERSION"),
  'course module must have a versioned offline cache');
-assert(hotfix.includes("TC_COURSE_DOMAIN_MODULE_VERSION='1.0.0-scheduler-owner'")&&
+assert(hotfix.includes("TC_COURSE_DOMAIN_MODULE_VERSION='1.1.0-viewstate-owner'")&&
  hotfix.includes("TC_COURSE_DOMAIN_MODULE_URL='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/course_domain.js"),
  'OTA must version and cache the separate TurnikCourseDomain module');
 assert(hotfix.indexOf("if(!tcLoadCourseDomainModule())")<hotfix.lastIndexOf("if(!tcLoadCourseModule())"),
@@ -56,7 +56,7 @@ assert(hotfix.includes("TC_DOMAIN_MODULE_VERSION='1.0.0'")&&
  hotfix.includes("TC_LIFECYCLE_MODULE_VERSION='1.0.0'")&&
  hotfix.includes("TC_NAVIGATION_MODULE_VERSION='1.0.0'")&&
  hotfix.includes("TC_WORKOUT_UI_MODULE_VERSION='1.0.0'")&&
- hotfix.includes("TC_COURSE_MODULE_VERSION='1.0.46-domain-owner'"),
+ hotfix.includes("TC_COURSE_MODULE_VERSION='1.0.47-viewstate-adapter'"),
  'OTA shell must pin exact compatible Domain, UI, Store, Actions, Lifecycle, Navigation, WorkoutUI and Course module versions');
 assert(hotfix.includes("TC_UI_MODULE_URL='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/ui.js")&&
  hotfix.includes("TC_UI_CACHE_KEY='tc_module_ui_'+TC_UI_MODULE_VERSION"),
@@ -189,11 +189,7 @@ const statsState={
  ],
  tests:[{runId:'r1',ts:1,value:19},{runId:'r1',ts:2,value:21}]
 };
-const statsApi=new Function('TC_course',
- extract('tcCourseRunById')+'\n'+extract('tcCurrentCourseRun')+
- '\nfunction tcEnsureCourseRun(){return tcCurrentCourseRun()}\n'+extract('tcCourseRunStats')+
- '\nreturn tcCourseRunStats;')(statsState);
-const statsResult=statsApi();
+const statsResult=schedule.progressStats(statsState,statsState.courseRuns[0]);
 assert.equal(statsResult.completed,2,'stats count only completed main course sessions');
 assert.equal(statsResult.on,1);assert.equal(statsResult.moved,1);
 assert.equal(statsResult.missed,1);assert.equal(statsResult.recovery,2,'recovery count must retain a shifted slot even after it is completed by transfer');
@@ -217,6 +213,17 @@ assert(course.includes("view.kind==='PREVIEW'")&&course.includes('tcPreviewCours
  'choosing another date must resolve PREVIEW state and show a read-only plan');
 assert(course.includes('function tcCourseTodayState()')&&course.includes('function tcResolvedTodayState()'),
  'Today business state must be resolved before DOM rendering');
+const planOwner=extract('tcCoursePlanState'),todayOwner=extract('tcCourseTodayState'),
+ progressOwner=extract('tcCourseProgressState'),statsOwner=extract('tcCourseRunStats');
+assert(planOwner.includes('tcCourseDomain().planState(TC_course')&&!planOwner.includes("kind:TC_course.enabled"),
+ 'course.js Plan adapter must delegate final state construction to TurnikCourseDomain');
+assert(todayOwner.includes('tcCourseDomain().todayState(TC_course')&&!todayOwner.includes("return{kind:'COURSE_DONE'"),
+ 'course.js Today adapter must delegate state priority/selection to TurnikCourseDomain');
+assert(statsOwner.includes('tcCourseDomain().progressStats(TC_course')&&progressOwner.includes('tcCourseDomain().progressState(TC_course'),
+ 'course.js Progress adapter must delegate aggregation and final state to TurnikCourseDomain');
+assert(courseDomain.includes("function planState(state,ctx)")&&courseDomain.includes("function todayState(state,ctx)")&&
+ courseDomain.includes("function progressStats(state,run)")&&courseDomain.includes("function progressState(state,ctx)"),
+ 'TurnikCourseDomain must own Plan / Today / Progress state builders');
 assert(course.includes("view.kind==='MAIN_WORKOUT'")&&course.includes("view.kind==='RECOVERY_SHIFT'")&&course.includes("view.kind==='TRANSFER'||view.kind==='TRANSFER_RECOVERY'"),
  'Today renderer must render explicit domain states instead of recomputing the scenario');
 assert(course.includes("window.TurnikDomain.register('today','morozov',100")&&
@@ -249,10 +256,10 @@ assert(hotfix.includes("setTimeout(()=>{renderSummary();tcQueueDecorate()},0)")&
  'post-render work must be deferred until the owning presenter has finished');
 assert(course.includes('id="tcCycleStartDate"'),
  'settings must expose a cycle start date');
-assert(hotfix.includes("const VERSION='5.16.57-course-domain-owner'"),
- 'release hotfix version must be 5.16.57');
-assert(course.includes("const COURSE_MODULE_VERSION='1.0.46-domain-owner'"),
- 'course module version must be 1.0.46');
+assert(hotfix.includes("const VERSION='5.16.58-course-viewstate-owner'"),
+ 'release hotfix version must be 5.16.58');
+assert(course.includes("const COURSE_MODULE_VERSION='1.0.47-viewstate-adapter'"),
+ 'course module version must be 1.0.47');
 const directCourseWrites=(course.match(/localStorage\.setItem\(TC_COURSE_KEY/g)||[]).length;
 assert.equal(directCourseWrites,1,'course persistence must have exactly one physical localStorage write boundary');
 const saveCourseBody=extract('tcSaveCourse');
@@ -281,7 +288,7 @@ assert(!course.includes('TC_EXTRA_START'),
  'temporary extra-workout trace logging must not ship');
 assert(!course.includes('window.confirm('),'course module must not depend on unsupported WebView JS dialogs');
 assert(!hotfix.includes('window.confirm('),'hotfix navigation/discard must not depend on unsupported WebView JS dialogs');
-assert(!hotfix.includes('forceHandover'),'5.16.57 must use an explicit user-visible update prompt');
+assert(!hotfix.includes('forceHandover'),'5.16.58 must use an explicit user-visible update prompt');
 assert(hotfix.includes("showRuntimeNotice('TurnikCoach обновлён до '+LABEL)"),
  'successful activation must give visible feedback');
 assert(hotfix.includes("localStorage.setItem('tc_hotfix_active_version',VERSION)"),
@@ -1225,24 +1232,23 @@ assert.equal(domainSandbox.TurnikDomain.today().kind,'MAIN_WORKOUT','higher-prio
 assert.equal(domainSandbox.TurnikDomain.today().source,'morozov');
 assert.equal(Array.from(domainSandbox.TurnikDomain.debug().areas.today,x=>x.name).join(','),'morozov,generic');
 
-const todaySource=extract('tcCourseTodayState');
-function resolveCourseToday(overrides={}){
-  const deps=Object.assign({
-    tcSelectedDate:'',dateKey:()=> '2026-10-06',tcDateFromKey:k=>new Date(k+'T12:00:00'),
-    tcBuildExtraItems:()=>[],tcTodayCourseRecord:()=>null,tcWeeklyMode:()=>true,tcTestDue:()=>false,
-    tcMasteryDue:()=>false,tcRecoveryShiftToday:()=>false,tcTransferCandidate:()=>null,tcCourseDue:()=>false,
-    TC_course:{level:4,lastCourseDate:'2026-10-04'},tcAdvancedSelected:()=>true,tcOriginalCourseDefs:()=>[{}],
-    tcRunnableDefs:x=>x,tcCalibrationDefs:()=>[],tcNeedsWorkingWeight:()=>false,
-    tcCourseLevel:()=>({title:'Fourth'}),tcCourseComplex:()=>({no:3,def:{name:'Complex 3'}}),
-    tcBuildCourseItems:()=>[{plan:[1,2]}],tcUnavailableDefs:()=>[],tcAuxDue:()=>false,tcNextCourseDay:()=> '2026-10-08'
-  },overrides);
-  return new Function('deps','with(deps){return ('+todaySource+')();}')(deps);
-}
-assert.equal(resolveCourseToday({tcTodayCourseRecord:()=>({date:'2026-10-06'})}).kind,'COURSE_DONE');
-assert.equal(resolveCourseToday({tcTestDue:()=>true}).kind,'COURSE_TEST');
-const mainState=resolveCourseToday({tcCourseDue:()=>true});
+const viewStateBase={enabled:true,level:4,goal:'quantity',weeklySessions:3,cycleStartDate:'2026-10-06',
+ lastCourseDate:'2026-10-04',history:[],tests:[],masteryTests:[],scheduleEvents:[],transferRestDates:[]};
+const baseCtx={today:'2026-10-06',selectedDate:'',done:null,extras:[],testDue:false,masteryDue:false,
+ advancedSelected:true,runnableDefsCount:1,defs:[{}],calibration:[],needsWorkingWeight:false,
+ main:{levelTitle:'Fourth',complexName:'Complex 3',items:[{plan:[1,2]}],totalSets:2,adapted:false},
+ auxDue:false,fallbackNextDate:'2026-10-08'};
+assert.equal(schedule.todayState(viewStateBase,{...baseCtx,done:{date:'2026-10-06'}}).kind,'COURSE_DONE');
+assert.equal(schedule.todayState(viewStateBase,{...baseCtx,testDue:true}).kind,'COURSE_TEST');
+const dueState={...viewStateBase,lastCourseDate:'',cycleStartDate:'2026-10-06'};
+const mainState=schedule.todayState(dueState,baseCtx);
 assert.equal(mainState.kind,'MAIN_WORKOUT');assert.equal(mainState.totalSets,2);
-assert.equal(resolveCourseToday().kind,'RECOVERY');
+const recoveryState={...viewStateBase,cycleStartDate:'2026-10-07'};
+assert.equal(schedule.todayState(recoveryState,baseCtx).kind,'RECOVERY');
+const planState=schedule.planState(viewStateBase,{levelTitle:'Fourth',goalName:'Количество',nextComplex:3,nextComplexName:'Complex 3',frequency:'3×',extras:[{id:'push',name:'Отжимания'}]});
+assert.equal(planState.kind,'COURSE_ACTIVE');assert.equal(planState.nextComplex,3);assert.equal(planState.extras.length,1);
+const progressState=schedule.progressState(statsState,{run:statsState.courseRuns[0],mastery:'15–20'});
+assert.equal(progressState.kind,'COURSE_PROGRESS');assert.equal(progressState.stats.completed,2);
 
 const memory=new Map();
 const sandbox={
