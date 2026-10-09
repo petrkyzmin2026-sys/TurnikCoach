@@ -12,6 +12,7 @@ const standardWorkout=fs.readFileSync('live/standard_workout.js','utf8');
 const restModule=fs.readFileSync('live/rest.js','utf8');
 const activeWorkout=fs.readFileSync('live/active_workout.js','utf8');
 const correction=fs.readFileSync('live/correction.js','utf8');
+const completion=fs.readFileSync('live/completion.js','utf8');
 const lifecycle=fs.readFileSync('live/lifecycle.js','utf8');
 const navigation=fs.readFileSync('live/navigation.js','utf8');
 const workoutUi=fs.readFileSync('live/workout_ui.js','utf8');
@@ -31,6 +32,7 @@ new vm.Script(standardWorkout,{filename:'live/standard_workout.js'});
 new vm.Script(restModule,{filename:'live/rest.js'});
 new vm.Script(activeWorkout,{filename:'live/active_workout.js'});
 new vm.Script(correction,{filename:'live/correction.js'});
+new vm.Script(completion,{filename:'live/completion.js'});
 new vm.Script(lifecycle,{filename:'live/lifecycle.js'});
 new vm.Script(navigation,{filename:'live/navigation.js'});
 new vm.Script(workoutUi,{filename:'live/workout_ui.js'});
@@ -63,6 +65,7 @@ assert(hotfix.includes("TC_DOMAIN_MODULE_VERSION='1.0.0'")&&
  hotfix.includes("TC_ACTIONS_MODULE_VERSION='1.0.0'")&&
  hotfix.includes("TC_STANDARD_WORKOUT_MODULE_VERSION='1.0.0-action-owner'")&&
  hotfix.includes("TC_REST_MODULE_VERSION='1.0.0-state-owner'")&&
+ hotfix.includes("TC_COMPLETION_MODULE_VERSION='1.0.0-owner'")&&
  hotfix.includes("TC_LIFECYCLE_MODULE_VERSION='1.0.0'")&&
  hotfix.includes("TC_NAVIGATION_MODULE_VERSION='1.0.0'")&&
  hotfix.includes("TC_WORKOUT_UI_MODULE_VERSION='1.0.0'")&&
@@ -83,6 +86,9 @@ assert(hotfix.includes("TC_STANDARD_WORKOUT_MODULE_URL='https://raw.githubuserco
 assert(hotfix.includes("TC_REST_MODULE_URL='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/rest.js")&&
  hotfix.includes("TC_REST_CACHE_KEY='tc_module_rest_'+TC_REST_MODULE_VERSION"),
  'rest state owner must ship as a separately versioned/offline-cached module');
+assert(hotfix.includes("TC_COMPLETION_MODULE_URL='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/completion.js")&&
+ hotfix.includes("TC_COMPLETION_CACHE_KEY='tc_module_completion_'+TC_COMPLETION_MODULE_VERSION"),
+ 'completion owner must ship as a separately versioned/offline-cached module');
 assert(hotfix.includes("TC_LIFECYCLE_MODULE_URL='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/lifecycle.js")&&
  hotfix.includes("TC_LIFECYCLE_CACHE_KEY='tc_module_lifecycle_'+TC_LIFECYCLE_MODULE_VERSION"),
  'WorkoutLifecycle must ship as a separately versioned/offline-cached module');
@@ -272,8 +278,8 @@ assert(hotfix.includes("setTimeout(()=>{renderSummary();tcQueueDecorate()},0)")&
  'post-render work must be deferred until the owning presenter has finished');
 assert(course.includes('id="tcCycleStartDate"'),
  'settings must expose a cycle start date');
-assert(hotfix.includes("const VERSION='5.16.62-correction-owner'"),
- 'release hotfix version must be 5.16.62');
+assert(hotfix.includes("const VERSION='5.16.63-completion-owner'"),
+ 'release hotfix version must be 5.16.63');
 assert(course.includes("const COURSE_MODULE_VERSION='1.0.47-viewstate-adapter'"),
  'course module version must be 1.0.47');
 const directCourseWrites=(course.match(/localStorage\.setItem\(TC_COURSE_KEY/g)||[]).length;
@@ -304,7 +310,7 @@ assert(!course.includes('TC_EXTRA_START'),
  'temporary extra-workout trace logging must not ship');
 assert(!course.includes('window.confirm('),'course module must not depend on unsupported WebView JS dialogs');
 assert(!hotfix.includes('window.confirm('),'hotfix navigation/discard must not depend on unsupported WebView JS dialogs');
-assert(!hotfix.includes('forceHandover'),'5.16.62 must use an explicit user-visible update prompt');
+assert(!hotfix.includes('forceHandover'),'5.16.63 must use an explicit user-visible update prompt');
 assert(hotfix.includes("showRuntimeNotice('TurnikCoach обновлён до '+LABEL)"),
  'successful activation must give visible feedback');
 assert(hotfix.includes("localStorage.setItem('tc_hotfix_active_version',VERSION)"),
@@ -331,6 +337,7 @@ assert(hotfix.includes("actionsModule:window.TurnikWorkoutActions&&window.Turnik
  hotfix.includes("restModule:window.TurnikRest&&window.TurnikRest.version||''")&&
  hotfix.includes("activeWorkoutModule:window.TurnikActiveWorkout&&window.TurnikActiveWorkout.version||''")&&
  hotfix.includes("correctionModule:window.TurnikCorrection&&window.TurnikCorrection.version||''")&&
+ hotfix.includes("completionModule:window.TurnikCompletion&&window.TurnikCompletion.version||''")&&
  hotfix.includes("lifecycleModule:window.TurnikWorkoutLifecycle&&window.TurnikWorkoutLifecycle.version||''")&&
  hotfix.includes("navigationModule:window.TurnikNavigation&&window.TurnikNavigation.version||''")&&
  hotfix.includes("workoutUiModule:window.TurnikWorkoutUI&&window.TurnikWorkoutUI.version||''")&&
@@ -857,17 +864,20 @@ assert(hotfix.includes("#workout .tcWorkoutActions{display:grid!important;grid-t
  'runtime workout action container must stack Done and Skip vertically');
 assert(hotfix.includes("#workout .tcWorkoutDoneAction{min-height:60px!important"),
  'Done must remain the dominant repeated action');
-assert(hotfix.includes("const TC_COMPLETION_UNDO_KEY='tc_completion_undo_v1'"),
- 'completion flow must keep a bounded undo transaction');
-assert(hotfix.includes('function tcInstallCompletionFlow()'),
- 'completion summary must wrap the final save path');
-assert(hotfix.includes("store.restoreSnapshots({generic:tx.state,course:tx.course})")&&
- hotfix.includes("tcCompletionHistorySignature()")&&
+assert(completion.includes("const VERSION='1.0.0-owner',KEY='tc_completion_undo_v1',TTL=15*60*1000"),
+ 'TurnikCompletion must own the bounded undo key and TTL');
+assert(completion.includes("lifecycle.registerBefore('finishWorkout','completion-owner'")&&
+ completion.includes("lifecycle.registerAfter('finishWorkout','completion-owner'"),
+ 'TurnikCompletion must own completion lifecycle hooks');
+assert(completion.includes("store.restoreSnapshots({generic:tx.state,course:tx.course})")&&
  course.includes("window.tcGetCourseStateSnapshot=function()")&&
  course.includes("window.tcRestoreCourseStateSnapshot=function(snapshot)"),
  'completion undo must restore both generic state and the encapsulated course snapshot');
-assert(hotfix.includes('tcShowCompletionSummary(summary)'),
- 'successful save must open a completion summary');
+assert(completion.includes("setTimeout(()=>show(data.summary),0)"),
+ 'successful save must open the TurnikCompletion summary');
+assert(!hotfix.includes("const TC_COMPLETION_UNDO_KEY='tc_completion_undo_v1'")&&
+ !hotfix.includes('function tcInstallCompletionFlow()'),
+ 'hotfix must not retain completion transaction ownership');
 assert(hotfix.includes("if(tcActiveWorkoutForUpdate()){")&&hotfix.includes('tcScheduleDeferredUpdate(activate)'),
  'update prompt must defer while a workout or durable workout snapshot is active');
 
@@ -1050,8 +1060,8 @@ assert(course.includes("registerHandler('finishWorkout','morozov-course',100,tcC
  course.includes("registerHandler('finishRest','morozov-manual-rest',100,tcCourseFinishRestAction)"),
  'Morozov finish behavior must register lifecycle handlers');
 assert(restModule.includes("registerBefore('finishRest','rest-state-owner'")&&
- hotfix.includes("registerBefore('finishWorkout','completion-flow'")&&
- hotfix.includes("registerAfter('finishWorkout','completion-flow'")&&
+ completion.includes("registerBefore('finishWorkout','completion-owner'")&&
+ completion.includes("registerAfter('finishWorkout','completion-owner'")&&
  activeWorkout.includes("lifecycle.registerAfter('finishWorkout','active-workout-persistence'"),
  'timer cleanup, completion UI and active-workout persistence must be lifecycle hooks');
 assert(hotfix.includes('window.TurnikWorkoutLifecycle.install()'),
