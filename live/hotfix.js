@@ -1712,6 +1712,7 @@ if(!tcLoadUiModule())throw new Error('TurnikCoach UI module unavailable after pr
 if(!tcLoadStoreModule())throw new Error('TurnikCoach workout store unavailable after preflight');
 if(!tcLoadActionsModule())throw new Error('TurnikCoach workout action dispatcher unavailable after preflight');
 if(!tcLoadStandardWorkoutModule())throw new Error('TurnikCoach standard workout module unavailable after preflight');
+if(!tcLoadRestModule())throw new Error('TurnikCoach rest state owner unavailable after preflight');
 if(!tcLoadLifecycleModule())throw new Error('TurnikCoach workout lifecycle dispatcher unavailable after preflight');
 if(!tcLoadNavigationModule())throw new Error('TurnikCoach navigation dispatcher unavailable after preflight');
 if(!tcLoadWorkoutUiModule())throw new Error('TurnikCoach workout UI dispatcher unavailable after preflight');
@@ -1730,6 +1731,7 @@ tcInstallCompletionFlow();
 tcInstallHapticFeedback();
 tcInstallWorkoutCorrection();
 tcInstallProgressSummary();
+tcInstallRestStateOwner();
 tcInstallWorkoutPersistence();
 if(!window.TurnikNavigation.install())throw new Error('TurnikCoach navigation dispatcher install failed');
 if(!window.TurnikWorkoutLifecycle.install())throw new Error('TurnikCoach workout lifecycle dispatcher install failed');
