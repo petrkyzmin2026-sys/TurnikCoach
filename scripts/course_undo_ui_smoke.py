@@ -342,7 +342,7 @@ wait_text("Обновить",contains=False)
 screenshot("01-update-offered")
 
 tap_clickable_text("Обновить")
-wait_text("TurnikCoach обновлён до 5.16.56",timeout=25)
+wait_text("TurnikCoach обновлён до 5.16.57",timeout=25)
 assert_accessibility_target("План",48)
 assert_accessibility_target("Прогресс",48)
 screenshot("02-update-installed")
