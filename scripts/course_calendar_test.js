@@ -265,6 +265,16 @@ assert(saveCourseBody.includes("store.transact('course'")&&saveCourseBody.includ
 assert(!restoreCourseBody.includes('tcSaveCourse()'),'course restore adapter must not recurse through WorkoutStore');
 assert(course.includes("owner:store?'TurnikWorkoutStore':'bootstrap-adapter'")&&course.includes("adapter:'tcPersistCourseSnapshot'"),
  'course module must expose its persistence owner for diagnostics');
+assert(course.includes("if(TC_course.enabled&&tcEnsureCourseRun())window.__TC_COURSE_BOOTSTRAP_DIRTY=true;")&&
+ course.includes("window.tcFlushCourseBootstrapState=function()"),
+ 'course bootstrap migration must defer persistence until the source is registered');
+assert(!course.includes("if(TC_course.enabled&&tcEnsureCourseRun())tcSaveCourse();"),
+ 'course module must not transact through WorkoutStore before TurnikCore registers the course source');
+assert(hotfix.includes("if(!tcRegisterCoreSources())throw new Error('TurnikCoach core source registration failed')")&&
+ hotfix.includes("tcFlushCourseBootstrapState"),
+ 'hotfix must flush deferred course bootstrap state only after core source registration');
+assert(hotfix.indexOf("tcRegisterCoreSources())")<hotfix.indexOf("tcFlushCourseBootstrapState"),
+ 'course bootstrap flush must happen after source registration');
 assert(domain.includes("const VERSION='1.0.0'"),
  'domain module version must be 1.0.0');
 assert(!course.includes('TC_EXTRA_START'),
