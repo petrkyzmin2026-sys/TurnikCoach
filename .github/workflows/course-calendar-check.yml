@@ -45,6 +45,7 @@ on:
       - refactor/course-persistence-owner-5.16.56
       - refactor/course-domain-owner-5.16.57
       - refactor/course-viewstate-owner-5.16.58
+      - refactor/standard-workout-action-owner-5.16.59
   pull_request:
   workflow_dispatch:
 
@@ -75,9 +76,9 @@ jobs:
           done
           base64 --decode /tmp/v513.b64 | gzip -dc > app/src/main/assets/index.html
           grep -q 'v5.13 — modern Android package' app/src/main/assets/index.html
-      - name: Reproduce packaged 5.14 + cached 5.16.57 + tested 5.16.58
+      - name: Reproduce packaged 5.14 + cached 5.16.58 + tested 5.16.59
         run: |
-          PREV_COMMIT="e473e519c1718dd254b0a1fbab036311c4f67991"
+          PREV_COMMIT="176ff5e8a13e6a9b6b517808bfae7126cd4c0e9c"
           grep -q 'TURNIKCOACH_HOTFIX 5.14.0-adaptive-rest' app/src/main/assets/hotfix.js
           curl -fsSL "https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/${PREV_COMMIT}/live/hotfix.js" > app/src/main/assets/hotfix-prev.js
           curl -fsSL "https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/${PREV_COMMIT}/live/course.js" > app/src/main/assets/course-prev.js
@@ -93,23 +94,24 @@ jobs:
           s=s.replace(needle,"function tcAudio(){\nif(window.__TC_DISABLE_AUDIO_FOR_SMOKE)return null;\ntry{",1)
           p.write_text(s)
           PY
-          grep -q 'TURNIKCOACH_HOTFIX 5.16.57-course-domain-owner' app/src/main/assets/hotfix-prev.js
-          grep -q 'TURNIKCOACH_HOTFIX 5.16.58-course-viewstate-owner' app/src/main/assets/hotfix-next.js
+          grep -q 'TURNIKCOACH_HOTFIX 5.16.58-course-viewstate-owner' app/src/main/assets/hotfix-prev.js
+          grep -q 'TURNIKCOACH_HOTFIX 5.16.59-standard-action-owner' app/src/main/assets/hotfix-next.js
           grep -q 'TURNIKCOACH_CORE 1.0.0' app/src/main/assets/hotfix-next.js
           grep -q 'TURNIKCOACH_DOMAIN 1.0.0' live/domain.js
           grep -q 'TURNIKCOACH_UI 1.0.0' live/ui.js
           grep -q 'TURNIKCOACH_WORKOUT_STORE 1.2.0-undo-restore' live/store.js
           grep -q 'TURNIKCOACH_WORKOUT_STORE 1.2.0-undo-restore' app/src/main/assets/store-prev.js
           grep -q 'TURNIKCOACH_WORKOUT_ACTIONS 1.0.0' live/actions.js
+          grep -q 'TURNIKCOACH_STANDARD_WORKOUT 1.0.0-action-owner' live/standard_workout.js
           grep -q 'TURNIKCOACH_WORKOUT_LIFECYCLE 1.0.0' live/lifecycle.js
           grep -q 'TURNIKCOACH_NAVIGATION 1.0.0' live/navigation.js
           grep -q 'TURNIKCOACH_WORKOUT_UI 1.0.0' live/workout_ui.js
           grep -q 'TURNIKCOACH_COURSE_DOMAIN 1.1.0-viewstate-owner' live/course_domain.js
           grep -q 'TURNIKCOACH_COURSE 1.0.47-viewstate-adapter' live/course.js
-          grep -q 'TURNIKCOACH_COURSE 1.0.46-domain-owner' app/src/main/assets/course-prev.js
-          grep -q 'TURNIKCOACH_COURSE_DOMAIN 1.0.0-scheduler-owner' app/src/main/assets/course-domain-prev.js
+          grep -q 'TURNIKCOACH_COURSE 1.0.47-viewstate-adapter' app/src/main/assets/course-prev.js
+          grep -q 'TURNIKCOACH_COURSE_DOMAIN 1.1.0-viewstate-owner' app/src/main/assets/course-domain-prev.js
           ! grep -q 'COURSE_MODULE_BUNDLED=' app/src/main/assets/hotfix-next.js
-      - name: Seed installed 5.16.57 approval and previous/next course-domain/course caches with completed main-course state
+      - name: Seed installed 5.16.58 approval and standard-workout/course caches with completed main-course state
         run: |
           python3 - <<'PY'
           from pathlib import Path
