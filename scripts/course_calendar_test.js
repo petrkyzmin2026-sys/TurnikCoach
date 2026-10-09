@@ -1120,70 +1120,52 @@ assert.equal(wuSandbox.TurnikWorkoutUI.debug().singleOwner,true);
 assert(hotfix.includes('navigator.vibrate([70,45,70])'),
  'danger feedback needs a distinct reject pattern');
 
-assert(hotfix.includes('#app > .nav{z-index:90!important;pointer-events:auto!important}')&&
- hotfix.includes('#today .scroll{min-height:0!important;overscroll-behavior:contain;padding-bottom:144px!important}'),
- 'bottom navigation must have an unobstructed hit layer and safe Today scroll clearance at large text');
-// Actual correction implementation: undo skip, previous approach and previous exercise.
-assert(hotfix.includes('tcTrainingTopActions')&&
- hotfix.includes('justify-content:space-between')&&
- hotfix.includes("back.textContent='← Назад'")&&
- hotfix.includes("exit.textContent='Выйти'")&&
- hotfix.includes("exit.onclick=window.tcDiscardWorkout")&&
- hotfix.includes("back.disabled=!hasTrail;back.onclick=window.tcReturnToPreviousSet")&&
- hotfix.includes("prev.style.display='grid'")&&
- hotfix.includes("finish.textContent='Выйти'")&&
- hotfix.includes("finish.onclick=window.tcDiscardWorkout")&&
- hotfix.includes("workout.querySelectorAll('.tcCorrectionSetBtn').forEach(b=>b.remove())")&&
- !hotfix.includes('window.tcFinishActiveWorkout=function()')&&
- !hotfix.includes('window.tcOpenWorkoutFinishMenu=function()'),
- 'Workout and rest must show Back top-left and Exit top-right with one discard confirmation, no Finish menu or bottom Back');
-assert(hotfix.includes('#rest .rest .tcInfoBtn{left:50%!important;right:auto!important')&&
- hotfix.includes('max-width:calc((100% - 112px)/2)'),
- 'Rest Info must be centered and side controls must not overlap it even at 200% font scale');
-assert(hotfix.includes("prev.onclick=window.tcReturnToPreviousSet")&&
- hotfix.includes("back.onclick=window.tcReturnToPreviousSet"),
- 'Correction must be available in rest and workout, not a rest-only shortcut');
-assert(hotfix.includes('window.tcSaveActiveWorkoutSnapshot()')&&
- hotfix.includes('window.tcRefreshActiveTrainingSurface'),
- 'Corrected workout must be re-persisted and displayed');
-const correctionHarness=new Function(
-  extractFrom(hotfix,'tcCaptureCorrectionBefore')+'\n'+
-  extractFrom(hotfix,'tcCommitCorrection')+'\n'+
-  extractFrom(hotfix,'tcUndoCorrection')+'\n'+
-  `
-  const w={exerciseIndex:0,setIndex:0,actual:10,early:false,
-    items:[{plan:[10,9],actual:[]},{plan:[6],actual:[]}]};
-  const first=tcCaptureCorrectionBefore(w);
-  w.items[0].actual[0]=10;w.setIndex=1;w.actual=9;
-  if(!tcCommitCorrection(w,first))throw Error('first set not recorded');
-  const skipped=tcCaptureCorrectionBefore(w);
-  w.items[0].actual[1]=null;w.exerciseIndex=1;w.setIndex=0;w.actual=6;
-  if(!tcCommitCorrection(w,skipped))throw Error('skip not recorded');
-  const serialized=JSON.parse(JSON.stringify(w));
-  const rollbackSkip=tcUndoCorrection(serialized);
-  if(!rollbackSkip||serialized.exerciseIndex!==0||serialized.setIndex!==1||
-     serialized.items[0].actual[1]!==undefined||serialized.actual!==9)
-    throw Error('failed to restore a skipped approach and its input');
-  const reloaded=JSON.parse(JSON.stringify(serialized));
-  if(reloaded.items[0].actual[1]!==undefined)
-    throw Error('undo must survive snapshot serialization without a null skip');
-  const rollbackFirst=tcUndoCorrection(serialized);
-  if(!rollbackFirst||serialized.exerciseIndex!==0||serialized.setIndex!==0||
-     serialized.items[0].actual[0]!==undefined||serialized.actual!==10)
-    throw Error('failed to navigate to earlier exercise approach');
-  if(tcUndoCorrection(serialized)!==null)throw Error('underflow should be safe');
-  serialized.items[0].actual[0]=10;
-  serialized.actual=11;
-  const overwrite=tcCaptureCorrectionBefore(serialized);
-  serialized.items[0].actual[0]=11;
-  if(!tcCommitCorrection(serialized,overwrite))throw Error('correction to prior value not recorded');
-  tcUndoCorrection(serialized);
-  if(serialized.items[0].actual[0]!==10)throw Error('prior recorded value not restored');
-  return {savedTrail:w.__tcCorrectionTrail.length,restored:true};
-  `
-)();
-assert.deepEqual(correctionHarness,{savedTrail:2,restored:true},
- 'undo stack must restore saved, skipped and corrected values after JSON persistence');
+assert(correction.includes('#app > .nav{z-index:90!important;pointer-events:auto!important}')&&
+ correction.includes('#today .scroll{min-height:0!important;overscroll-behavior:contain;padding-bottom:144px!important}'),
+ 'TurnikCorrection must own the workout correction/control layout');
+assert(!hotfix.includes('function tcCaptureCorrectionBefore')&&!hotfix.includes('function tcCommitCorrection')&&!hotfix.includes('function tcUndoCorrection'),
+ 'OTA shell must not keep a second correction state implementation');
+assert(!hotfix.includes('__tcCorrectionUiObserver')&&correction.includes('observerFree:!window.__tcCorrectionUiObserver'),
+ 'correction controls must no longer depend on an app-wide MutationObserver');
+assert(correction.includes('tcTrainingTopActions')&&
+ correction.includes('justify-content:space-between')&&
+ correction.includes("back.textContent='← Назад'")&&
+ correction.includes("exit.textContent='Выйти'")&&
+ correction.includes("back.disabled=!trail;back.onclick=returnToPrevious")&&
+ correction.includes("prev.style.display='grid'")&&
+ correction.includes("workout.querySelectorAll('.tcCorrectionSetBtn').forEach(b=>b.remove())"),
+ 'Workout and rest must keep Back top-left and Exit top-right under the correction owner');
+assert(correction.includes('#rest .rest .tcInfoBtn{left:50%!important;right:auto!important')&&
+ correction.includes('max-width:calc((100% - 112px)/2)'),
+ 'Rest Info must remain centered with non-overlapping side controls at 200% font scale');
+assert(hotfix.includes('saveSnapshot:()=>typeof window.tcSaveActiveWorkoutSnapshot')&&
+ hotfix.includes("refreshSurface:surface=>typeof window.tcRefreshActiveTrainingSurface"),
+ 'TurnikCorrection adapter must re-persist and display corrected workouts');
+const correctionSandbox={console,setTimeout:fn=>{if(typeof fn==='function')fn()},CustomEvent:function(){},dispatchEvent:()=>true,
+ document:{getElementById:()=>null,querySelector:()=>null,head:{appendChild:()=>{}},createElement:()=>({style:{},appendChild:()=>{},setAttribute:()=>{}})}};
+correctionSandbox.window=correctionSandbox;
+vm.runInNewContext(correction,correctionSandbox,{filename:'live/correction.js'});
+const correctionOwner=correctionSandbox.TurnikCorrection;
+const w={exerciseIndex:0,setIndex:0,actual:10,early:false,
+ items:[{plan:[10,9],actual:[]},{plan:[6],actual:[]}]};
+const first=correctionOwner.capture(w);
+w.items[0].actual[0]=10;w.setIndex=1;w.actual=9;
+assert(correctionOwner.commit(w,first));
+const skipped=correctionOwner.capture(w);
+w.items[0].actual[1]=null;w.exerciseIndex=1;w.setIndex=0;w.actual=6;
+assert(correctionOwner.commit(w,skipped));
+const serialized=JSON.parse(JSON.stringify(w));
+const rollbackSkip=correctionOwner.undo(serialized);
+assert(rollbackSkip&&serialized.exerciseIndex===0&&serialized.setIndex===1&&serialized.items[0].actual[1]===undefined&&serialized.actual===9);
+assert.equal(JSON.parse(JSON.stringify(serialized)).items[0].actual[1],undefined,'undo must survive snapshot serialization without a null skip');
+const rollbackFirst=correctionOwner.undo(serialized);
+assert(rollbackFirst&&serialized.exerciseIndex===0&&serialized.setIndex===0&&serialized.items[0].actual[0]===undefined&&serialized.actual===10);
+assert.equal(correctionOwner.undo(serialized),null,'underflow should be safe');
+serialized.items[0].actual[0]=10;serialized.actual=11;
+const overwrite=correctionOwner.capture(serialized);serialized.items[0].actual[0]=11;
+assert(correctionOwner.commit(serialized,overwrite));correctionOwner.undo(serialized);
+assert.equal(serialized.items[0].actual[0],10,'prior recorded value must be restored');
+assert.equal(w.__tcCorrectionTrail.length,2);
 
 // Shipped progress metrics count actual workouts, not skipped sessions or tests.
 assert(hotfix.includes('function tcInstallProgressSummary()')&&
