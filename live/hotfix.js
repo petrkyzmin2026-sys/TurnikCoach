@@ -1201,33 +1201,6 @@ seconds,
 note:`Переход к «${nextE.name}»: ${seconds} с · учтены предыдущий подход и нагрузка следующего упражнения`
 };
 };
-let tcRestEnd=0;
-let tcRestActive=false;
-let tcSignalSeconds=new Set();
-function tcRenderRest(){
-if(!tcRestActive||!tcRestEnd)return;
-const left=Math.max(0,Math.ceil((tcRestEnd-Date.now())/1000));
-R=left;
-const el=document.getElementById('restNum');
-if(el)el.textContent=left;
-if(left>0&&left<=3&&!tcSignalSeconds.has(left)){
-tcSignalSeconds.add(left);
-tcBeep(1120,.16,.42);
-}
-if(left<=0){
-tcRestActive=false;
-tcRestEnd=0;
-if(rt){clearInterval(rt);rt=null}
-tcFinishSignal();
-window.finishRest();
-}
-}
-window.TurnikWorkoutLifecycle.registerBefore('finishRest','rest-timer-cleanup',10000,()=>{
-tcRestActive=false;
-tcRestEnd=0;
-tcSignalSeconds.clear();
-if(rt){clearInterval(rt);rt=null}
-});
 function tcNextWorkoutStepText(){
 try{
 if(typeof W==='undefined'||!W||!Array.isArray(W.items)||!W.items.length)return '';
@@ -1244,42 +1217,30 @@ const sub=document.querySelector('#rest .rest .sub');
 const text=tcNextWorkoutStepText();
 if(sub&&text)sub.textContent=text;
 }
-window.startRest=function(sec,note){
-sec=Math.max(0,Math.round(+sec||0));
+function tcInstallRestStateOwner(){
+const rest=window.TurnikRest;
+if(!rest||typeof rest.install!=='function'||typeof rest.snapshot!=='function'||typeof rest.restore!=='function')throw new Error('TurnikCoach rest state owner unavailable');
+const ok=rest.install({
+ring:()=>document.getElementById('restNum'),
+navigate:id=>window.go(id),
+finish:()=>window.finishRest(),
+primeAudio:()=>tcPrimeAudio(),
+beep:()=>tcBeep(1120,.16,.42),
+finishSignal:()=>tcFinishSignal(),
+nextStep:()=>tcUpdateRestNextStep(),
+setNote:value=>{
+window.__tcLastRestNote=String(value||'');
 const el=restReasonEl();
-window.__tcLastRestNote=note||'Отдых рассчитан по нагрузке и факту предыдущего подхода';if(el){el.textContent=window.__tcLastRestNote;el.style.display='none';}
-tcPrimeAudio();
-tcRestActive=true;
-tcRestEnd=Date.now()+sec*1000;
-tcSignalSeconds.clear();
-R=sec;
-const ring=document.getElementById('restNum');
-if(ring)ring.textContent=R;
-go('rest');
-tcUpdateRestNextStep();
-if(rt)clearInterval(rt);
-rt=setInterval(tcRenderRest,250);
-tcRenderRest();
-};
-window.addRest=function(){
-if(tcRestActive&&tcRestEnd){
-tcRestEnd+=30000;
-tcSignalSeconds.clear();
-tcRenderRest();
-}else{
-R=(+R||0)+30;
-const ring=document.getElementById('restNum');
-if(ring)ring.textContent=R;
-}
+if(el){el.textContent=window.__tcLastRestNote;el.style.display='none'}
+},
+markManualAdd:delta=>{
 const el=restReasonEl();
-if(el&&!/добавлено вручную/.test(el.textContent))el.textContent+=' · добавлено вручную +30 с';
-};
-function tcResumeClock(){
-if(tcRestActive)tcRenderRest();
+if(el&&!/добавлено вручную/.test(el.textContent))el.textContent+=' · добавлено вручную +'+delta+' с';
 }
-document.addEventListener('visibilitychange',tcResumeClock);
-window.addEventListener('focus',tcResumeClock);
-window.addEventListener('pageshow',tcResumeClock);
+});
+if(!ok)throw new Error('TurnikCoach rest state owner install failed');
+return true;
+}
 const TC_ACTIVE_WORKOUT_KEY='tc_active_workout_v2';
 let tcWorkoutPersistenceInstalled=false;
 function tcWorkoutScreen(){
