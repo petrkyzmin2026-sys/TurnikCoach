@@ -283,7 +283,7 @@ snapshot:()=>typeof window.tcGetCourseStateSnapshot==='function'?window.tcGetCou
 history:()=>{const x=typeof window.tcGetCourseStateSnapshot==='function'?window.tcGetCourseStateSnapshot():null;return x&&Array.isArray(x.history)?x.history:[]},
 restore:next=>typeof window.tcRestoreCourseStateSnapshot==='function'?window.tcRestoreCourseStateSnapshot(next):false
 });
-window.__TC_CORE_FOUNDATION={version:core.version,domainModule:window.TurnikDomain&&window.TurnikDomain.version||'',uiModule:window.TurnikUI&&window.TurnikUI.version||'',storeModule:window.TurnikWorkoutStore&&window.TurnikWorkoutStore.version||'',actionsModule:window.TurnikWorkoutActions&&window.TurnikWorkoutActions.version||'',lifecycleModule:window.TurnikWorkoutLifecycle&&window.TurnikWorkoutLifecycle.version||'',navigationModule:window.TurnikNavigation&&window.TurnikNavigation.version||'',workoutUiModule:window.TurnikWorkoutUI&&window.TurnikWorkoutUI.version||'',courseModule:TC_COURSE_MODULE_VERSION,modular:true};
+window.__TC_CORE_FOUNDATION={version:core.version,domainModule:window.TurnikDomain&&window.TurnikDomain.version||'',uiModule:window.TurnikUI&&window.TurnikUI.version||'',storeModule:window.TurnikWorkoutStore&&window.TurnikWorkoutStore.version||'',actionsModule:window.TurnikWorkoutActions&&window.TurnikWorkoutActions.version||'',lifecycleModule:window.TurnikWorkoutLifecycle&&window.TurnikWorkoutLifecycle.version||'',navigationModule:window.TurnikNavigation&&window.TurnikNavigation.version||'',workoutUiModule:window.TurnikWorkoutUI&&window.TurnikWorkoutUI.version||'',courseDomainModule:window.TurnikCourseDomain&&window.TurnikCourseDomain.version||'',courseModule:TC_COURSE_MODULE_VERSION,modular:true};
 return true;
 }
 tcLoadCoreModule();
@@ -292,6 +292,7 @@ tcPrimeUiModule();
 tcPrimeStoreModule();
 tcPrimeActionsModule();
 tcPrimeWorkoutUiModule();
+tcPrimeCourseDomainModule();
 tcPrimeCourseModule();
 function tcInstallUx2InformationArchitecture(){
 if(window.__TC_UX2_IA)return;
