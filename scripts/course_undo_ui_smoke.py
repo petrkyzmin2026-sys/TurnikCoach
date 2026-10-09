@@ -407,6 +407,17 @@ assert core_probe["active"]=="5.16.59-course-action-owner", "5.16.59 must be the
 assert core_probe["store"] and core_probe["store"]["writePath"] is True, "transactional WorkoutStore write path must remain active"
 assert core_probe["foundation"] and core_probe["foundation"].get("actionsModule")=="1.0.0" and core_probe["foundation"].get("courseDomainModule")=="1.1.0-viewstate-owner" and core_probe["foundation"].get("courseModule")=="1.0.48-action-adapter", "5.16.59 must load the single-owner actions module, course domain and matching course module"
 screenshot("02d-unified-workout-store")
+course_action_probe=test_eval_json("(function(){var a=window.TurnikCourseActions&&TurnikCourseActions.debug?TurnikCourseActions.debug():null;var f=window.__TC_CORE_FOUNDATION||null;var c=localStorage.getItem('tc_module_course_actions_1.0.0')||'';var d=typeof window.tcCourseActionOwnerDebug==='function'?window.tcCourseActionOwnerDebug():null;return {actions:a,foundation:f,cacheBytes:c.length,course:d,active:window.__TC_HOTFIX_ACTIVE_VERSION};})()","course-action-owner")
+print("TC_DIAG course-action-owner",course_action_probe,flush=True)
+assert course_action_probe["actions"] and course_action_probe["actions"]["version"]=="1.0.0" and course_action_probe["actions"]["singleOwner"] is True, "TurnikCourseActions must own final course command globals"
+for name in ["tcSaveCourseSettings","tcChooseTransferRest","tcStartCourseWorkout","tcConfirmCourseTest","tcSaveMasteryTest","tcAdvanceCourseLevel"]:
+    assert name in course_action_probe["actions"]["installed"], "CourseActions missing installed command "+name
+    assert course_action_probe["actions"]["commands"].get(name) and course_action_probe["actions"]["commands"][name][0]["owner"]=="morozov-course", "CourseActions handler owner mismatch for "+name
+assert course_action_probe["foundation"] and course_action_probe["foundation"].get("courseActionsModule")=="1.0.0", "runtime diagnostics must expose CourseActions module"
+assert course_action_probe["cacheBytes"]>500, "course action dispatcher must survive in the versioned offline cache"
+assert course_action_probe["course"] and len(course_action_probe["course"]["names"])>=20, "course adapter must register the complete user command surface"
+assert course_action_probe["active"]=="5.16.59-course-action-owner", "5.16.59 must remain active after command ownership install"
+screenshot("02e-course-action-owner")
 workout_ui_probe=test_eval_json("(function(){var w=window.TurnikWorkoutUI&&TurnikWorkoutUI.debug?TurnikWorkoutUI.debug():null;var f=window.__TC_CORE_FOUNDATION||null;var c=localStorage.getItem('tc_module_workout_ui_1.0.0')||'';return {workoutUI:w,foundation:f,cacheBytes:c.length,active:window.__TC_HOTFIX_ACTIVE_VERSION};})()","workout-ui-owner")
 print("TC_DIAG workout-ui-owner",workout_ui_probe,flush=True)
 assert workout_ui_probe["workoutUI"] and workout_ui_probe["workoutUI"]["version"]=="1.0.0" and workout_ui_probe["workoutUI"]["singleOwner"] is True, "TurnikWorkoutUI must be the sole real-WebView renderWork owner"
