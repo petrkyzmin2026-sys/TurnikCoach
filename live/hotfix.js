@@ -1514,7 +1514,7 @@ decorateCorrectionControls();
 function tcInstallWorkoutPersistence(){
 if(tcWorkoutPersistenceInstalled)return;
 tcWorkoutPersistenceInstalled=true;
-const names=['adj','startRest','addRest',
+const names=['adj',
 'tcStartAuxWorkout','tcStartCourseTest','tcStartCourseWorkout','tcStartExtraWorkout','tcStartSupplementWorkout'];
 names.forEach(name=>{
 const fn=window[name];
@@ -1530,6 +1530,9 @@ window[name]=wrapped;
 const actions=window.TurnikWorkoutActions;
 if(!actions||typeof actions.registerAfter!=='function')throw new Error('TurnikCoach workout action dispatcher unavailable for persistence');
 actions.registerAfter('workout-persistence',-100,()=>setTimeout(tcSaveActiveWorkoutSnapshot,0));
+const restOwner=window.TurnikRest;
+if(!restOwner||typeof restOwner.onChange!=='function')throw new Error('TurnikCoach rest state owner unavailable for persistence');
+restOwner.onChange(()=>{if(typeof W!=='undefined'&&W)setTimeout(tcSaveActiveWorkoutSnapshot,0)});
 const lifecycle=window.TurnikWorkoutLifecycle;
 if(!lifecycle||typeof lifecycle.registerAfter!=='function')throw new Error('TurnikCoach workout lifecycle dispatcher unavailable for persistence');
 lifecycle.registerAfter('finishRest','workout-persistence',-20000,()=>setTimeout(tcSaveActiveWorkoutSnapshot,0));
