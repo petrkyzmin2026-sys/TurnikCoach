@@ -786,8 +786,9 @@ assert(hotfix.includes("TurnikNative.showSurface")&&
 assert(hotfix.includes("TurnikNative.refreshSurface")&&
  mainActivity.includes("@JavascriptInterface public void refreshSurface()"),
  'legacy native surface refresh fallback must remain available');
-assert(hotfix.includes("window.tcClearActiveWorkoutSnapshot=tcClearActiveWorkoutSnapshot"),
- 'discard flow must be able to remove a durable workout snapshot');
+assert(activeWorkout.includes("window.tcClearActiveWorkoutSnapshot=clear")&&
+ hotfix.includes("window.tcClearActiveWorkoutSnapshot()"),
+ 'discard flow must remove durable workout state through the TurnikActiveWorkout compatibility API');
 assert(hotfix.includes("setNav('n1','◫','План')")&&hotfix.includes("setNav('n3','⌁','Прогресс')"),
  'top-level navigation must expose Today / Plan / Progress');
 assert(hotfix.includes("viewport.setAttribute('content','width=device-width,initial-scale=1')"),
