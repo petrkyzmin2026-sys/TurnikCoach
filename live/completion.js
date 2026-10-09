@@ -70,7 +70,7 @@ notice('Сохранение тренировки отменено.');return tru
 function install(nextAdapter){
 if(nextAdapter&&typeof nextAdapter==='object')adapter=nextAdapter;
 if(!adapter)throw new Error('TurnikCompletion adapter required');
-if(installed)return true;
+if(installed){window.tcUndoLastCompletion=undo;return true}
 const lifecycle=adapter.lifecycle,store=adapter.store;
 if(!lifecycle||typeof lifecycle.registerBefore!=='function'||typeof lifecycle.registerAfter!=='function')throw new Error('TurnikCompletion lifecycle unavailable');
 if(!store||typeof store.sourceSnapshot!=='function'||typeof store.restoreSnapshots!=='function')throw new Error('TurnikCompletion store unavailable');
