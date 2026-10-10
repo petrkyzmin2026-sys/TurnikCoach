@@ -80,11 +80,12 @@ assert(hotfix.includes("TC_DOMAIN_MODULE_VERSION='1.0.0'")&&
  hotfix.includes("TC_REST_MODULE_VERSION='1.0.0-state-owner'")&&
  hotfix.includes("TC_REST_POLICY_MODULE_VERSION='1.0.0-owner'")&&
  hotfix.includes("TC_PRODUCT_UI_MODULE_VERSION='1.0.0-owner'")&&
+ hotfix.includes("TC_ACTIVE_WORKOUT_MODULE_VERSION='1.1.0-command-hooks'")&&
  hotfix.includes("TC_COMPLETION_MODULE_VERSION='1.0.0-owner'")&&
  hotfix.includes("TC_LIFECYCLE_MODULE_VERSION='1.0.0'")&&
  hotfix.includes("TC_NAVIGATION_MODULE_VERSION='1.0.0'")&&
  hotfix.includes("TC_WORKOUT_UI_MODULE_VERSION='1.0.0'")&&
- hotfix.includes("TC_COURSE_ACTIONS_MODULE_VERSION='1.0.0-owner'")&&
+ hotfix.includes("TC_COURSE_ACTIONS_MODULE_VERSION='1.1.0-hooks'")&&
  hotfix.includes("TC_COURSE_MODULE_VERSION='1.0.48-product-info-provider'"),
  'OTA shell must pin exact compatible Domain, UI, Store, Actions, Lifecycle, Navigation, WorkoutUI and Course module versions');
 assert(hotfix.includes("TC_UI_MODULE_URL='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/ui.js")&&
@@ -925,6 +926,9 @@ assert(correction.includes("actions.registerBefore('workout-correction'")&&corre
  'TurnikCorrection must subscribe to the workout dispatcher from its owner module');
 assert(activeWorkout.includes("actions.registerAfter('active-workout-persistence'"),
  'active workout persistence must subscribe to the workout dispatcher from its owner module');
+assert(activeWorkout.includes("courseActions.registerAfter(name,'active-workout-persistence'")&&
+ !activeWorkout.includes('names.forEach(wrapStart);'),
+ 'active workout persistence must observe owned Morozov starts through CourseActions hooks instead of replacing public command globals');
 assert(course.includes("registerHandler('morozov-course',100,tcCourseSetDoneAction)"),
  'Morozov set completion must register a mode handler instead of wrapping setDone');
 assert(hotfix.includes('window.TurnikWorkoutActions.install()'),
@@ -1006,7 +1010,7 @@ const courseActionSandbox={console,CustomEvent:function(type,init){this.type=typ
 courseActionSandbox.window=courseActionSandbox;
 vm.runInNewContext(courseActions,courseActionSandbox,{filename:'live/course_actions.js'});
 const courseActionOwner=courseActionSandbox.TurnikCourseActions;
-assert.equal(courseActionOwner.version,'1.0.0-owner');
+assert.equal(courseActionOwner.version,'1.1.0-hooks');
 let commandCalls=[];
 courseActionSandbox.tcStartCourseWorkout=function(x){commandCalls.push(['legacy',x]);return x+1};
 assert(courseActionOwner.captureAndInstall(['tcStartCourseWorkout'],'morozov-course'));
@@ -1015,6 +1019,10 @@ assert.equal(courseActionSandbox.tcStartCourseWorkout(7),8);
 assert.deepEqual(commandCalls,[['legacy',7]]);
 courseActionOwner.register('tcStartCourseWorkout','replacement',x=>x*3);
 assert.equal(courseActionSandbox.tcStartCourseWorkout(4),12,'future action extraction must replace the handler without replacing the public global function');
+let courseAfter=0;
+assert(courseActionOwner.registerAfter('tcStartCourseWorkout','observer',0,ctx=>{courseAfter=ctx.result}));
+assert.equal(courseActionSandbox.tcStartCourseWorkout(5),15);
+assert.equal(courseAfter,15,'course action after-hooks must observe results without taking global ownership');
 assert.equal(courseActionOwner.debug().singleOwner,true);
 assert(productUi.includes('function registerInfoProvider(name,priority,fn)')&&
  productUi.includes('infoProviders.map(x=>x.name)'),
