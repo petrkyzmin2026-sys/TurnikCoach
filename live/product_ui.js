@@ -99,7 +99,6 @@ if(window.TurnikNavigation&&typeof window.TurnikNavigation.registerAfter==='func
 if(window.TurnikUI&&typeof window.TurnikUI.register==='function'){
 window.TurnikUI.register('today','*',10000,()=>{queueDecorate();return false});
 window.TurnikUI.register('plan','*',10000,()=>{queueDecorate();return false});
-window.TurnikUI.register('progress','*',10000,()=>{queueDecorate();return false});
 }
 if(window.TurnikWorkoutUI&&typeof window.TurnikWorkoutUI.registerAfter==='function')window.TurnikWorkoutUI.registerAfter('product-ui',50,queueDecorate);
 if(observer)try{observer.disconnect()}catch(e){}
