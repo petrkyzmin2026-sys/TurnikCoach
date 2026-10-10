@@ -1172,6 +1172,23 @@ if(el&&!/добавлено вручную/.test(el.textContent))el.textContent+
 if(!ok)throw new Error('TurnikCoach rest state owner install failed');
 return true;
 }
+function tcInstallCompletionOwner(){
+const owner=window.TurnikCompletion;
+if(!owner||typeof owner.install!=='function')throw new Error('TurnikCoach completion owner unavailable');
+const ok=owner.install({
+getWorkout:()=>typeof W!=='undefined'?W:null,
+notice:(message,tone)=>showRuntimeNotice(message,tone),
+store:window.TurnikWorkoutStore,
+lifecycle:window.TurnikWorkoutLifecycle,
+activeWorkout:window.TurnikActiveWorkout,
+clearActive:()=>typeof window.tcClearActiveWorkoutSnapshot==='function'?window.tcClearActiveWorkoutSnapshot():false,
+closeSheet:()=>typeof window.closeSheet==='function'?window.closeSheet():false,
+render:()=>typeof window.render==='function'?window.render():false,
+navigate:id=>typeof window.go==='function'?window.go(id):false
+});
+if(!ok)throw new Error('TurnikCoach completion owner install failed');
+return true;
+}
 function tcInstallHapticsOwner(){
 const owner=window.TurnikHaptics;
 if(!owner||typeof owner.install!=='function')throw new Error('TurnikCoach haptics owner unavailable');
