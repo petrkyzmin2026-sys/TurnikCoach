@@ -139,8 +139,8 @@ const TC_PRODUCT_UI_MODULE_VERSION='1.0.0-owner';
 const TC_PRODUCT_UI_MODULE_MARKER='TURNIKCOACH_PRODUCT_UI 1.0.0-owner';
 const TC_PRODUCT_UI_MODULE_URL='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/product_ui.js?v='+encodeURIComponent(TC_PRODUCT_UI_MODULE_VERSION);
 const TC_PRODUCT_UI_CACHE_KEY='tc_module_product_ui_'+TC_PRODUCT_UI_MODULE_VERSION;
-const TC_ACTIVE_WORKOUT_MODULE_VERSION='1.0.0-persistence-owner';
-const TC_ACTIVE_WORKOUT_MODULE_MARKER='TURNIKCOACH_ACTIVE_WORKOUT 1.0.0-persistence-owner';
+const TC_ACTIVE_WORKOUT_MODULE_VERSION='1.1.0-command-hooks';
+const TC_ACTIVE_WORKOUT_MODULE_MARKER='TURNIKCOACH_ACTIVE_WORKOUT 1.1.0-command-hooks';
 const TC_ACTIVE_WORKOUT_MODULE_URL='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/active_workout.js?v='+encodeURIComponent(TC_ACTIVE_WORKOUT_MODULE_VERSION);
 const TC_ACTIVE_WORKOUT_CACHE_KEY='tc_module_active_workout_'+TC_ACTIVE_WORKOUT_MODULE_VERSION;
 const TC_CORRECTION_MODULE_VERSION='1.0.0-owner';
@@ -167,8 +167,8 @@ const TC_COURSE_DOMAIN_MODULE_VERSION='1.1.0-viewstate-owner';
 const TC_COURSE_DOMAIN_MODULE_MARKER='TURNIKCOACH_COURSE_DOMAIN 1.1.0-viewstate-owner';
 const TC_COURSE_DOMAIN_MODULE_URL='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/course_domain.js?v='+encodeURIComponent(TC_COURSE_DOMAIN_MODULE_VERSION);
 const TC_COURSE_DOMAIN_CACHE_KEY='tc_module_course_domain_'+TC_COURSE_DOMAIN_MODULE_VERSION;
-const TC_COURSE_ACTIONS_MODULE_VERSION='1.0.0-owner';
-const TC_COURSE_ACTIONS_MODULE_MARKER='TURNIKCOACH_COURSE_ACTIONS 1.0.0-owner';
+const TC_COURSE_ACTIONS_MODULE_VERSION='1.1.0-hooks';
+const TC_COURSE_ACTIONS_MODULE_MARKER='TURNIKCOACH_COURSE_ACTIONS 1.1.0-hooks';
 const TC_COURSE_ACTIONS_MODULE_URL='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/course_actions.js?v='+encodeURIComponent(TC_COURSE_ACTIONS_MODULE_VERSION);
 const TC_COURSE_ACTIONS_CACHE_KEY='tc_module_course_actions_'+TC_COURSE_ACTIONS_MODULE_VERSION;
 const TC_COURSE_ACTION_NAMES=[
@@ -1284,7 +1284,7 @@ renderWorkout:()=>{if(typeof window.renderWork==='function')window.renderWork()}
 armSurface:surface=>{if(typeof window.tcArmRestoreSurfaceGuard==='function')window.tcArmRestoreSurfaceGuard(surface);else if(typeof window.tcRefreshActiveTrainingSurface==='function')window.tcRefreshActiveTrainingSurface(surface)},
 refreshSurface:surface=>{if(typeof window.tcRefreshActiveTrainingSurface==='function')window.tcRefreshActiveTrainingSurface(surface)},
 notice:message=>showRuntimeNotice(message),
-actions,lifecycle,rest,
+actions,lifecycle,rest,courseActions:window.TurnikCourseActions,
 startNames:['adj','tcStartAuxWorkout','tcStartCourseTest','tcStartCourseWorkout','tcStartExtraWorkout','tcStartSupplementWorkout']
 });
 if(!ok)throw new Error('TurnikCoach active workout owner install failed');
