@@ -1,7 +1,7 @@
-/* TURNIKCOACH_COURSE 1.0.47-viewstate-adapter */
+/* TURNIKCOACH_COURSE 1.0.48-course-view-adapter */
 (function(){
 'use strict';
-const COURSE_MODULE_VERSION='1.0.47-viewstate-adapter';
+const COURSE_MODULE_VERSION='1.0.48-course-view-adapter';
 if(window.__TC_COURSE_MODULE_VERSION===COURSE_MODULE_VERSION)return;
 window.__TC_COURSE_MODULE_VERSION=COURSE_MODULE_VERSION;
 function tcClamp(v,a,b){return Math.max(a,Math.min(b,v))}
@@ -1197,51 +1197,41 @@ function tcResolvedTodayState(){
 if(window.TurnikDomain){const x=window.TurnikDomain.today({date:dateKey()});if(x&&x.source==='morozov')return x}
 return tcCourseTodayState();
 }
+function tcCourseView(){
+const x=window.TurnikCourseView;
+if(!x||x.version!=='1.0.0-today-owner'||typeof x.renderToday!=='function')throw new Error('TurnikCourseView is required');
+return x;
+}
 function tcRenderToday(view){
 if(tcSyncScheduleEvents())tcSaveCourse();
-const now=new Date();view=view||tcResolvedTodayState();
-const week=()=>'<div class="tcWeekSection"><div class="tcWeekSectionTitle">ПЛАН НЕДЕЛИ</div>'+tcWeeklyCalendarHtml()+'</div>';
-q('todayTitle').textContent=fmtDate(now);
-if(view.kind==='PREVIEW'){
-q('todayTitle').textContent=fmtDate(tcDateFromKey(view.date));q('todaySub').textContent='Просмотр плана';q('todayList').innerHTML=tcPreviewCourseCard(view.date)+week();return;
-}
-if(view.kind==='COURSE_DONE'){
-q('todaySub').textContent='Основная тренировка выполнена';q('todayList').innerHTML=tcTodayCourseDoneHtml(view.extras)+week();tcBindTodayDoneActions();tcQueueDecorate();return;
-}
-if(view.kind==='COURSE_TEST'){q('todaySub').textContent='Сегодня · контроль прогресса';q('todayList').innerHTML=tcCourseTestCard()+week();return}
-if(view.kind==='MASTERY_TEST'){q('todaySub').textContent='Сегодня · контроль уровня';q('todayList').innerHTML=tcPendingLevelHtml()+tcMasteryCardHtml()+week();return}
-if(view.kind==='RECOVERY_SHIFT'){q('todaySub').textContent='Сегодня · восстановление';q('todayList').innerHTML=tcRecoveryShiftCardHtml()+week();tcQueueDecorate();return}
-if(view.kind==='TRANSFER'||view.kind==='TRANSFER_RECOVERY'){
-q('todaySub').textContent=view.kind==='TRANSFER'?'Сегодня · перенос основной тренировки':'Сегодня · восстановление';q('todayList').innerHTML=tcTransferCardHtml(view.transfer)+week();tcQueueDecorate();return;
-}
-if(view.kind==='ADVANCED_SETUP'){
-q('todaySub').textContent='Сегодня · подготовка тренировки';q('todayList').innerHTML='<div class="todayCard"><div class="dateBig">Выберите два вспомогательных упражнения</div><div class="meta">Это нужно один раз для комплекса 7-го уровня.</div><button class="btn yellow full" style="margin-top:12px" onclick="tcOpenAdvancedChoiceSheet()">Выбрать упражнения</button></div>'+week();return;
-}
-if(view.kind==='EQUIPMENT_SETUP'){q('todaySub').textContent='Сегодня · требуется настройка оборудования';q('todayList').innerHTML=tcNoEquipmentCard(view.defs)+week();return}
-if(view.kind==='CALIBRATION'){q('todaySub').textContent='Сегодня · требуется контрольный максимум';q('todayList').innerHTML=tcCalibrationCard('main')+week();return}
-if(view.kind==='WORKING_WEIGHT'){q('todaySub').textContent='Сегодня · требуется рабочий вес';q('todayList').innerHTML=tcWorkingWeightCard('main')+week();return}
-if(view.kind==='MAIN_WORKOUT'){
-q('todaySub').textContent='Сегодня · основная тренировка';
-q('todayList').innerHTML=tcPendingLevelHtml()+tcEquipmentMasteryNote()+
-'<div class="todayCard tcTodayPrimaryCard"><div class="row between"><div class="grow"><div class="dateBig">'+view.complexName+'</div><div class="tcTodayPrimaryMeta">'+view.items.length+
-' упражн. · '+view.totalSets+' подходов · '+view.levelTitle+'</div></div><span class="tag">КУРС</span></div>'+
-'<button class="btn yellow full" style="margin-top:14px;min-height:58px" onclick="tcStartCourseWorkout()">'+(view.adapted?'Начать адаптированную тренировку':'Начать тренировку')+
-'</button><details class="tcTodayPlanDetails"><summary>Посмотреть план</summary><div class="tcTodayPlanBody">'+tcCourseRowsHtml(view.items)+tcAdaptationNote(view.defs)+
-'<button class="btn ghost full" style="margin-top:8px" onclick="tcOpenCourseInfo()">ⓘ Почему такой план</button></div></details></div>'+tcMasteryCardHtml()+week();
-tcQueueDecorate();return;
-}
-q('todaySub').textContent=view.auxDue?'Сегодня · вспомогательная тренировка':'Сегодня · восстановление';
-let html='<div class="todayCard"><div class="row between"><div class="grow"><div class="dateBig">'+(view.auxDue?'Основной комплекс не назначен':'Сегодня восстановление')+
-'</div><div class="sessionNo">Следующая основная тренировка — '+fmtKeyDate(view.nextDate,false)+'</div></div><span class="tag stage4">ВОССТАНОВЛЕНИЕ</span></div>';
-if(view.extras.length){
-html+='<div class="tcTodayPrimaryMeta">Можно выполнить выбранные дополнительные упражнения без дополнительной тяговой нагрузки.</div>'+
-'<button class="btn yellow full" style="margin-top:14px;min-height:58px" onclick="tcStartExtraWorkout()">Начать дополнительную тренировку</button>'+
-'<details class="tcTodayPlanDetails"><summary>Посмотреть дополнительный план</summary><div class="tcTodayPlanBody">'+tcExtraRowsHtml(view.extras)+'</div></details>';
-}else{
-html+='<div class="empty" style="margin-top:12px">Дополнительные упражнения не выбраны. Можно оставить полный отдых.</div>'+
-'<button class="btn ghost full" style="margin-top:10px" onclick="go(\'exercise\')">Настроить дополнительный план</button>';
-}
-html+='</div>';q('todayList').innerHTML=tcAuxCardHtml()+html+tcSupplementHtml()+tcCourseControlStatusHtml()+week();tcQueueDecorate();
+view=view||tcResolvedTodayState();
+return tcCourseView().renderToday(view,{
+q,
+now:()=>new Date(),
+fmtDate,
+dateFromKey:tcDateFromKey,
+fmtKeyDate,
+weeklyCalendarHtml:tcWeeklyCalendarHtml,
+previewCourseCard:tcPreviewCourseCard,
+todayCourseDoneHtml:tcTodayCourseDoneHtml,
+bindTodayDoneActions:tcBindTodayDoneActions,
+queueDecorate:tcQueueDecorate,
+courseTestCard:tcCourseTestCard,
+pendingLevelHtml:tcPendingLevelHtml,
+masteryCardHtml:tcMasteryCardHtml,
+recoveryShiftCardHtml:tcRecoveryShiftCardHtml,
+transferCardHtml:tcTransferCardHtml,
+noEquipmentCard:tcNoEquipmentCard,
+calibrationCard:tcCalibrationCard,
+workingWeightCard:tcWorkingWeightCard,
+equipmentMasteryNote:tcEquipmentMasteryNote,
+courseRowsHtml:tcCourseRowsHtml,
+adaptationNote:tcAdaptationNote,
+extraRowsHtml:tcExtraRowsHtml,
+auxCardHtml:tcAuxCardHtml,
+supplementHtml:tcSupplementHtml,
+courseControlStatusHtml:tcCourseControlStatusHtml
+});
 }
 function tcAuthorLevelText(level){
 if(level===1)return 'Автор относит сюда тех, кто делает 0–1 обычное подтягивание или работает с резиной. Основная задача уровня — увеличить силу тянущих мышц комплексно. Для сохранения правильной техники предлагается использовать помощь ног и резину.';
