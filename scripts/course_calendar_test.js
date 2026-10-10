@@ -290,8 +290,8 @@ assert(hotfix.includes("setTimeout(()=>{renderSummary();tcQueueDecorate()},0)")&
  'post-render work must be deferred until the owning presenter has finished');
 assert(course.includes('id="tcCycleStartDate"'),
  'settings must expose a cycle start date');
-assert(hotfix.includes("const VERSION='5.16.64-rest-policy-owner'"),
- 'release hotfix version must be 5.16.64');
+assert(hotfix.includes("const VERSION='5.16.65-product-ui-owner'"),
+ 'release hotfix version must be 5.16.65');
 assert(course.includes("const COURSE_MODULE_VERSION='1.0.47-viewstate-adapter'"),
  'course module version must be 1.0.47');
 const directCourseWrites=(course.match(/localStorage\.setItem\(TC_COURSE_KEY/g)||[]).length;
