@@ -115,7 +115,7 @@ jobs:
           grep -q 'TURNIKCOACH_REST 1.0.0-state-owner' live/rest.js
           grep -q 'TURNIKCOACH_REST_POLICY 1.0.0-owner' live/rest_policy.js
           grep -q 'TURNIKCOACH_PRODUCT_UI 1.0.0-owner' live/product_ui.js
-          grep -q 'TURNIKCOACH_ACTIVE_WORKOUT 1.0.0-persistence-owner' app/src/main/assets/active-workout-prev.js
+          grep -q 'TURNIKCOACH_ACTIVE_WORKOUT 1.1.0-command-hooks' app/src/main/assets/active-workout-prev.js
           grep -q 'TURNIKCOACH_ACTIVE_WORKOUT 1.1.0-command-hooks' live/active_workout.js
           grep -q 'TURNIKCOACH_CORRECTION 1.0.0-owner' live/correction.js
           grep -q 'TURNIKCOACH_COMPLETION 1.0.0-owner' live/completion.js
