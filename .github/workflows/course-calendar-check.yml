@@ -400,10 +400,10 @@ jobs:
       - name: Build isolated DEBUG preview APK
         run: |
           gradle --no-daemon :app:assembleDebug
-          cp app/build/outputs/apk/debug/app-debug.apk TurnikCoach-Surface-Owner-Preview-v5.16.69.apk
+          cp app/build/outputs/apk/debug/app-debug.apk TurnikCoach-Navigation-Flow-Owner-Preview-v5.16.70.apk
       - name: Enable KVM
         run: sudo chmod 666 /dev/kvm || true
-      - name: Verify 5.16.69 Surface Owner accessibility baseline in real Android WebView
+      - name: Verify 5.16.70 Navigation Flow Owner accessibility baseline in real Android WebView
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 35
@@ -412,16 +412,16 @@ jobs:
           disable-animations: true
           emulator-options: -no-snapshot-save -no-window -gpu swiftshader -noaudio -no-boot-anim
           script: |
-            adb install -r TurnikCoach-Surface-Owner-Preview-v5.16.69.apk
+            adb install -r TurnikCoach-Navigation-Flow-Owner-Preview-v5.16.70.apk
             TC_TEST_PKG=ru.turnikcoach.v52tr.calendarpreview python3 scripts/course_undo_ui_smoke.py
       - name: Upload UX2 accessibility baseline screenshots
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: TurnikCoach-5.16.69-surface-owner-accessibility-baseline-screenshots
+          name: TurnikCoach-5.16.70-navigation-flow-owner-accessibility-baseline-screenshots
           path: undo-ui-test-output
           if-no-files-found: warn
-      - name: Verify 5.16.69 Surface Owner at 200% system font scale
+      - name: Verify 5.16.70 Navigation Flow Owner at 200% system font scale
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 35
@@ -432,17 +432,17 @@ jobs:
           script: |
             adb shell settings put system font_scale 2.0
             test "$(adb shell settings get system font_scale | tr -d '\r')" = "2.0"
-            adb install -r TurnikCoach-Surface-Owner-Preview-v5.16.69.apk
+            adb install -r TurnikCoach-Navigation-Flow-Owner-Preview-v5.16.70.apk
             TC_TEST_PKG=ru.turnikcoach.v52tr.calendarpreview TC_OUT_DIR="$GITHUB_WORKSPACE/undo-ui-font200-output" TC_FONT_SCALE=2.0 python3 scripts/course_undo_ui_smoke.py
       - name: Upload UX2 200% font-scale screenshots
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: TurnikCoach-5.16.69-surface-owner-font200-screenshots
+          name: TurnikCoach-5.16.70-navigation-flow-owner-font200-screenshots
           path: undo-ui-font200-output
           if-no-files-found: warn
       - uses: actions/upload-artifact@v4
         with:
-          name: TurnikCoach-5.16.69-surface-owner-accessibility-isolated-preview
-          path: TurnikCoach-Surface-Owner-Preview-v5.16.69.apk
+          name: TurnikCoach-5.16.70-navigation-flow-owner-accessibility-isolated-preview
+          path: TurnikCoach-Navigation-Flow-Owner-Preview-v5.16.70.apk
           if-no-files-found: error
