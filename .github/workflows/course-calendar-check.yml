@@ -118,11 +118,12 @@ jobs:
           grep -q 'TURNIKCOACH_NAVIGATION 1.0.0' live/navigation.js
           grep -q 'TURNIKCOACH_WORKOUT_UI 1.0.0' live/workout_ui.js
           grep -q 'TURNIKCOACH_COURSE_DOMAIN 1.1.0-viewstate-owner' live/course_domain.js
-          grep -q 'TURNIKCOACH_COURSE 1.0.47-viewstate-adapter' live/course.js
+          grep -q 'TURNIKCOACH_COURSE_VIEW 1.0.0-today-owner' live/course_view.js
+          grep -q 'TURNIKCOACH_COURSE 1.0.48-course-view-adapter' live/course.js
           grep -q 'TURNIKCOACH_COURSE 1.0.47-viewstate-adapter' app/src/main/assets/course-prev.js
           grep -q 'TURNIKCOACH_COURSE_DOMAIN 1.1.0-viewstate-owner' app/src/main/assets/course-domain-prev.js
           ! grep -q 'COURSE_MODULE_BUNDLED=' app/src/main/assets/hotfix-next.js
-      - name: Seed installed 5.16.63 approval and rest-policy/completion/correction/active-workout/rest/course caches with completed main-course state
+      - name: Seed installed 5.16.64 approval and course-view/course caches with completed main-course state
         run: |
           python3 - <<'PY'
           from pathlib import Path
@@ -146,6 +147,7 @@ jobs:
           workout_ui_cache=json.dumps(Path('live/workout_ui.js').read_text())
           prev_course_domain_cache=json.dumps(Path('app/src/main/assets/course-domain-prev.js').read_text())
           next_course_domain_cache=json.dumps(Path('live/course_domain.js').read_text())
+          course_view_cache=json.dumps(Path('live/course_view.js').read_text())
           next_course_cache=json.dumps(Path('live/course.js').read_text())
           marker='</head>'
           assert html.count(marker)==1
