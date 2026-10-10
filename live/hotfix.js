@@ -224,6 +224,7 @@ function tcValidCorrectionModule(js){return typeof js==='string'&&js.length>500&
 function tcValidCompletionModule(js){return typeof js==='string'&&js.length>500&&js.length<64000&&js.includes(TC_COMPLETION_MODULE_MARKER)}
 function tcValidLifecycleModule(js){return typeof js==='string'&&js.length>500&&js.length<64000&&js.includes(TC_LIFECYCLE_MODULE_MARKER)}
 function tcValidNavigationModule(js){return typeof js==='string'&&js.length>500&&js.length<64000&&js.includes(TC_NAVIGATION_MODULE_MARKER)}
+function tcValidNavigationFlowModule(js){return typeof js==='string'&&js.length>1000&&js.length<64000&&js.includes(TC_NAVIGATION_FLOW_MODULE_MARKER)}
 function tcValidWorkoutUiModule(js){return typeof js==='string'&&js.length>500&&js.length<64000&&js.includes(TC_WORKOUT_UI_MODULE_MARKER)}
 function tcValidCourseDomainModule(js){return typeof js==='string'&&js.length>1000&&js.length<64000&&js.includes(TC_COURSE_DOMAIN_MODULE_MARKER)}
 function tcValidCourseActionsModule(js){return typeof js==='string'&&js.length>1000&&js.length<64000&&js.includes(TC_COURSE_ACTIONS_MODULE_MARKER)}
@@ -244,6 +245,7 @@ function tcCorrectionCacheReady(){return tcValidCorrectionModule(tcReadModuleCac
 function tcCompletionCacheReady(){return tcValidCompletionModule(tcReadModuleCache(TC_COMPLETION_CACHE_KEY))}
 function tcLifecycleCacheReady(){return tcValidLifecycleModule(tcReadModuleCache(TC_LIFECYCLE_CACHE_KEY))}
 function tcNavigationCacheReady(){return tcValidNavigationModule(tcReadModuleCache(TC_NAVIGATION_CACHE_KEY))}
+function tcNavigationFlowCacheReady(){return tcValidNavigationFlowModule(tcReadModuleCache(TC_NAVIGATION_FLOW_CACHE_KEY))}
 function tcWorkoutUiCacheReady(){return tcValidWorkoutUiModule(tcReadModuleCache(TC_WORKOUT_UI_CACHE_KEY))}
 function tcCourseDomainCacheReady(){return tcValidCourseDomainModule(tcReadModuleCache(TC_COURSE_DOMAIN_CACHE_KEY))}
 function tcCourseActionsCacheReady(){return tcValidCourseActionsModule(tcReadModuleCache(TC_COURSE_ACTIONS_CACHE_KEY))}
@@ -315,6 +317,11 @@ function tcLoadNavigationModule(){
 if(window.TurnikNavigation&&window.TurnikNavigation.version===TC_NAVIGATION_MODULE_VERSION)return true;
 const cached=tcReadModuleCache(TC_NAVIGATION_CACHE_KEY);
 return tcValidNavigationModule(cached)&&tcEvalModule(cached,'navigation')&&!!window.TurnikNavigation;
+}
+function tcLoadNavigationFlowModule(){
+if(window.TurnikNavigationFlow&&window.TurnikNavigationFlow.version===TC_NAVIGATION_FLOW_MODULE_VERSION)return true;
+const cached=tcReadModuleCache(TC_NAVIGATION_FLOW_CACHE_KEY);
+return tcValidNavigationFlowModule(cached)&&tcEvalModule(cached,'navigation-flow')&&!!window.TurnikNavigationFlow;
 }
 function tcLoadWorkoutUiModule(){
 if(window.TurnikWorkoutUI&&window.TurnikWorkoutUI.version===TC_WORKOUT_UI_MODULE_VERSION)return true;
@@ -409,6 +416,10 @@ function tcPrimeNavigationModule(){
 if(!tcNavigationPrimePromise)tcNavigationPrimePromise=tcPrimeModule(TC_NAVIGATION_MODULE_URL,TC_NAVIGATION_CACHE_KEY,tcValidNavigationModule,'navigation');
 return tcNavigationPrimePromise;
 }
+function tcPrimeNavigationFlowModule(){
+if(!tcNavigationFlowPrimePromise)tcNavigationFlowPrimePromise=tcPrimeModule(TC_NAVIGATION_FLOW_MODULE_URL,TC_NAVIGATION_FLOW_CACHE_KEY,tcValidNavigationFlowModule,'navigation-flow');
+return tcNavigationFlowPrimePromise;
+}
 function tcPrimeWorkoutUiModule(){
 if(!tcWorkoutUiPrimePromise)tcWorkoutUiPrimePromise=tcPrimeModule(TC_WORKOUT_UI_MODULE_URL,TC_WORKOUT_UI_CACHE_KEY,tcValidWorkoutUiModule,'workout-ui');
 return tcWorkoutUiPrimePromise;
@@ -453,6 +464,7 @@ if(!tcCorrectionCacheReady())tasks.push(tcPrimeCorrectionModule());
 if(!tcCompletionCacheReady())tasks.push(tcPrimeCompletionModule());
 if(!tcLifecycleCacheReady())tasks.push(tcPrimeLifecycleModule());
 if(!tcNavigationCacheReady())tasks.push(tcPrimeNavigationModule());
+if(!tcNavigationFlowCacheReady())tasks.push(tcPrimeNavigationFlowModule());
 if(!tcWorkoutUiCacheReady())tasks.push(tcPrimeWorkoutUiModule());
 if(!tcCourseDomainCacheReady())tasks.push(tcPrimeCourseDomainModule());
 if(!tcCourseActionsCacheReady())tasks.push(tcPrimeCourseActionsModule());
@@ -461,7 +473,7 @@ if(!tcScreenShellCacheReady())tasks.push(tcPrimeScreenShellModule());
 if(!tcSurfaceCacheReady())tasks.push(tcPrimeSurfaceModule());
 if(!tcCourseCacheReady())tasks.push(tcPrimeCourseModule());
 if(tasks.length){const ready=await Promise.all(tasks);if(ready.some(x=>!x))return false}
-return tcDomainCacheReady()&&tcUiCacheReady()&&tcStoreCacheReady()&&tcActionsCacheReady()&&tcStandardWorkoutCacheReady()&&tcRestCacheReady()&&tcRestPolicyCacheReady()&&tcProductUiCacheReady()&&tcActiveWorkoutCacheReady()&&tcCorrectionCacheReady()&&tcCompletionCacheReady()&&tcLifecycleCacheReady()&&tcNavigationCacheReady()&&tcWorkoutUiCacheReady()&&tcCourseDomainCacheReady()&&tcCourseActionsCacheReady()&&tcProgressCacheReady()&&tcScreenShellCacheReady()&&tcSurfaceCacheReady()&&tcCourseCacheReady();
+return tcDomainCacheReady()&&tcUiCacheReady()&&tcStoreCacheReady()&&tcActionsCacheReady()&&tcStandardWorkoutCacheReady()&&tcRestCacheReady()&&tcRestPolicyCacheReady()&&tcProductUiCacheReady()&&tcActiveWorkoutCacheReady()&&tcCorrectionCacheReady()&&tcCompletionCacheReady()&&tcLifecycleCacheReady()&&tcNavigationCacheReady()&&tcNavigationFlowCacheReady()&&tcWorkoutUiCacheReady()&&tcCourseDomainCacheReady()&&tcCourseActionsCacheReady()&&tcProgressCacheReady()&&tcScreenShellCacheReady()&&tcSurfaceCacheReady()&&tcCourseCacheReady();
 }
 function tcRegisterCoreSources(){
 const core=window.TurnikCore;if(!core)return false;
