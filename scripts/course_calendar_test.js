@@ -281,13 +281,13 @@ assert(ui.includes('window.render=function()'),
 assert(!hotfix.includes('const oldRender=window.render')&&!hotfix.includes('window.render=function()')&&
  !hotfix.includes('const base=window.renderHistory')&&!hotfix.includes('window.renderHistory=function()'),
  'hotfix must not add independent top-level render or renderHistory wrappers');
-assert(hotfix.includes("TurnikUI.register('today','*',10000")&&
- hotfix.includes("TurnikUI.register('plan','*',10000")&&
+assert(productUi.includes("TurnikUI.register('today','*',10000")&&
+ productUi.includes("TurnikUI.register('plan','*',10000")&&
  hotfix.includes("TurnikUI.register('progress','*',10000"),
- 'Today / Plan / Progress post-processing must flow through TurnikUI presenter dispatch');
-assert(hotfix.includes("setTimeout(()=>{renderSummary();tcQueueDecorate()},0)")&&
- hotfix.includes("setTimeout(tcQueueDecorate,0)"),
- 'post-render work must be deferred until the owning presenter has finished');
+ 'Today / Plan / Progress post-processing must flow through their owning TurnikUI presenters');
+assert(hotfix.includes("window.TurnikProductUI.queueDecorate()")&&
+ productUi.includes('function queueDecorate()'),
+ 'Progress must delegate product decoration to TurnikProductUI after its own presenter finishes');
 assert(course.includes('id="tcCycleStartDate"'),
  'settings must expose a cycle start date');
 assert(hotfix.includes("const VERSION='5.16.65-product-ui-owner'"),
