@@ -244,7 +244,7 @@ const legacyStart=new Function('TC_course','dateKey',extract('tcRunStartDate')+'
 assert.equal(legacyStart(),'2026-09-20','legacy migration must start at the first compatible current-level/goal workout, not the whole-course anchor');
 assert(course.includes('Выполнение курса:')&&course.includes('Контрольные максимумы:'),
  'Progress must render the compact Morozov course statistics card');
-assert(courseView.includes("case 'PREVIEW'")&&courseView.includes("previewCourseCard")(view.date)),
+assert(courseView.includes("case 'PREVIEW'")&&courseView.includes("requireFn(ctx,'previewCourseCard')(view.date)"),
  'choosing another date must resolve PREVIEW state and show a read-only plan through TurnikCourseView');
 assert(course.includes('function tcCourseTodayState()')&&course.includes('function tcResolvedTodayState()'),
  'Today business state must be resolved before DOM rendering');
