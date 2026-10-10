@@ -342,7 +342,15 @@ wait_text("Обновить",contains=False)
 screenshot("01-update-offered")
 
 tap_clickable_text("Обновить")
-wait_text("TurnikCoach обновлён до 5.16.65",timeout=25)
+try:
+    wait_text("TurnikCoach обновлён до 5.16.65",timeout=25)
+except Exception:
+    handover=test_eval_json("(function(){var h=window.TurnikHaptics&&TurnikHaptics.debug?TurnikHaptics.debug():null,a=window.TurnikWorkoutActions&&TurnikWorkoutActions.debug?TurnikWorkoutActions.debug():null,f=window.__TC_CORE_FOUNDATION||null,p=document.getElementById('tcUpdatePrompt');return {active:window.__TC_HOTFIX_ACTIVE_VERSION||'',approved:localStorage.getItem('tc_hotfix_approved_version')||'',haptics:h,actions:a,foundation:f,prompt:!!p,promptText:p&&p.textContent||'',cache:(localStorage.getItem('tc_module_haptics_1.0.0-owner')||'').length};})()","update-handover-failure")
+    print("TC_DIAG update-handover-failure",handover,flush=True)
+    log=adb("logcat","-d","-t","800",check=False)
+    with open(OUT+"/01-update-handover-logcat.txt","w",encoding="utf-8") as fp:
+        fp.write((log.stdout or "")+"\n"+(log.stderr or ""))
+    raise
 assert_accessibility_target("План",48)
 assert_accessibility_target("Прогресс",48)
 screenshot("02-update-installed")
