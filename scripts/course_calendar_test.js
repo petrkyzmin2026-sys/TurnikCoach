@@ -487,10 +487,11 @@ assert(course.includes("if(typeof window.tcEnsureWorkoutControls==='function')wi
  'course/extra workout rendering must explicitly request visible workout controls');
 assert(!hotfix.includes("querySelector('.controls')"),
  'discard control must not be injected into the hidden legacy .controls container');
-assert(!hotfix.includes('window.W'),
- 'hotfix must not read the workout state through window.W: base app declares W with global let');
-assert(hotfix.includes("function tcHasWorkout(){return typeof W!=='undefined'&&!!W}"),
- 'navigation/discard must read the actual lexical workout state');
+assert(!hotfix.includes('window.W')&&!surface.includes('window.W'),
+ 'surface/navigation must not read workout state through window.W: base app declares W with global let');
+assert(surface.includes("function hasWorkout(){return typeof W!=='undefined'&&!!W}")&&
+ hotfix.includes("function tcHasWorkout(){return surface.hasWorkout()}"),
+ 'TurnikSurface must read the actual lexical workout state and navigation must delegate to it');
 assert(hotfix.includes('try{W=null}catch(e){}'),
  'discard must clear the actual lexical workout state');
 assert(hotfix.includes('tcConfirmDiscardWorkoutBtn'),
