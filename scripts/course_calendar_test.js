@@ -10,6 +10,7 @@ const store=fs.readFileSync('live/store.js','utf8');
 const actions=fs.readFileSync('live/actions.js','utf8');
 const standardWorkout=fs.readFileSync('live/standard_workout.js','utf8');
 const restModule=fs.readFileSync('live/rest.js','utf8');
+const restPolicy=fs.readFileSync('live/rest_policy.js','utf8');
 const activeWorkout=fs.readFileSync('live/active_workout.js','utf8');
 const correction=fs.readFileSync('live/correction.js','utf8');
 const completion=fs.readFileSync('live/completion.js','utf8');
@@ -30,6 +31,7 @@ new vm.Script(store,{filename:'live/store.js'});
 new vm.Script(actions,{filename:'live/actions.js'});
 new vm.Script(standardWorkout,{filename:'live/standard_workout.js'});
 new vm.Script(restModule,{filename:'live/rest.js'});
+new vm.Script(restPolicy,{filename:'live/rest_policy.js'});
 new vm.Script(activeWorkout,{filename:'live/active_workout.js'});
 new vm.Script(correction,{filename:'live/correction.js'});
 new vm.Script(completion,{filename:'live/completion.js'});
@@ -65,6 +67,7 @@ assert(hotfix.includes("TC_DOMAIN_MODULE_VERSION='1.0.0'")&&
  hotfix.includes("TC_ACTIONS_MODULE_VERSION='1.0.0'")&&
  hotfix.includes("TC_STANDARD_WORKOUT_MODULE_VERSION='1.0.0-action-owner'")&&
  hotfix.includes("TC_REST_MODULE_VERSION='1.0.0-state-owner'")&&
+ hotfix.includes("TC_REST_POLICY_MODULE_VERSION='1.0.0-owner'")&&
  hotfix.includes("TC_COMPLETION_MODULE_VERSION='1.0.0-owner'")&&
  hotfix.includes("TC_LIFECYCLE_MODULE_VERSION='1.0.0'")&&
  hotfix.includes("TC_NAVIGATION_MODULE_VERSION='1.0.0'")&&
@@ -86,6 +89,9 @@ assert(hotfix.includes("TC_STANDARD_WORKOUT_MODULE_URL='https://raw.githubuserco
 assert(hotfix.includes("TC_REST_MODULE_URL='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/rest.js")&&
  hotfix.includes("TC_REST_CACHE_KEY='tc_module_rest_'+TC_REST_MODULE_VERSION"),
  'rest state owner must ship as a separately versioned/offline-cached module');
+assert(hotfix.includes("TC_REST_POLICY_MODULE_URL='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/rest_policy.js")&&
+ hotfix.includes("TC_REST_POLICY_CACHE_KEY='tc_module_rest_policy_'+TC_REST_POLICY_MODULE_VERSION"),
+ 'adaptive rest policy must ship as a separately versioned/offline-cached module');
 assert(hotfix.includes("TC_COMPLETION_MODULE_URL='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/completion.js")&&
  hotfix.includes("TC_COMPLETION_CACHE_KEY='tc_module_completion_'+TC_COMPLETION_MODULE_VERSION"),
  'completion owner must ship as a separately versioned/offline-cached module');
@@ -278,8 +284,8 @@ assert(hotfix.includes("setTimeout(()=>{renderSummary();tcQueueDecorate()},0)")&
  'post-render work must be deferred until the owning presenter has finished');
 assert(course.includes('id="tcCycleStartDate"'),
  'settings must expose a cycle start date');
-assert(hotfix.includes("const VERSION='5.16.63-completion-owner'"),
- 'release hotfix version must be 5.16.63');
+assert(hotfix.includes("const VERSION='5.16.64-rest-policy-owner'"),
+ 'release hotfix version must be 5.16.64');
 assert(course.includes("const COURSE_MODULE_VERSION='1.0.47-viewstate-adapter'"),
  'course module version must be 1.0.47');
 const directCourseWrites=(course.match(/localStorage\.setItem\(TC_COURSE_KEY/g)||[]).length;
@@ -310,7 +316,7 @@ assert(!course.includes('TC_EXTRA_START'),
  'temporary extra-workout trace logging must not ship');
 assert(!course.includes('window.confirm('),'course module must not depend on unsupported WebView JS dialogs');
 assert(!hotfix.includes('window.confirm('),'hotfix navigation/discard must not depend on unsupported WebView JS dialogs');
-assert(!hotfix.includes('forceHandover'),'5.16.63 must use an explicit user-visible update prompt');
+assert(!hotfix.includes('forceHandover'),'5.16.64 must use an explicit user-visible update prompt');
 assert(hotfix.includes("showRuntimeNotice('TurnikCoach обновлён до '+LABEL)"),
  'successful activation must give visible feedback');
 assert(hotfix.includes("localStorage.setItem('tc_hotfix_active_version',VERSION)"),
@@ -320,7 +326,7 @@ assert(hotfix.includes('async function tcEnsureRequiredModules()')&&
  hotfix.includes("localStorage.setItem(APPROVED_KEY,VERSION)"),
  'update approval must happen only after required modules are available and cached');
 const installUpdateBody=extractFrom(hotfix,'installUpdate');
-assert(installUpdateBody.includes('if(!tcDomainCacheReady()||!tcUiCacheReady()||!tcStoreCacheReady()||!tcActionsCacheReady()||!tcStandardWorkoutCacheReady()||!tcRestCacheReady()||!tcActiveWorkoutCacheReady()||!tcCorrectionCacheReady()||!tcLifecycleCacheReady()||!tcNavigationCacheReady()||!tcWorkoutUiCacheReady()||!tcCourseDomainCacheReady()||!tcCourseCacheReady())')&&
+assert(installUpdateBody.includes('if(!tcDomainCacheReady()||!tcUiCacheReady()||!tcStoreCacheReady()||!tcActionsCacheReady()||!tcStandardWorkoutCacheReady()||!tcRestCacheReady()||!tcRestPolicyCacheReady()||!tcActiveWorkoutCacheReady()||!tcCorrectionCacheReady()||!tcCompletionCacheReady()||!tcLifecycleCacheReady()||!tcNavigationCacheReady()||!tcWorkoutUiCacheReady()||!tcCourseDomainCacheReady()||!tcCourseCacheReady())')&&
  !installUpdateBody.slice(0,installUpdateBody.indexOf("const previousVersion=")).includes('tcLoadCourseModule()')&&
  !installUpdateBody.slice(0,installUpdateBody.indexOf("const previousVersion=")).includes('tcLoadCourseDomainModule()')&&
  !installUpdateBody.slice(0,installUpdateBody.indexOf("const previousVersion=")).includes('tcLoadDomainModule()')&&
@@ -335,6 +341,7 @@ assert(hotfix.includes("localStorage.setItem('tc_v4',JSON.stringify(next))"),
 assert(hotfix.includes("actionsModule:window.TurnikWorkoutActions&&window.TurnikWorkoutActions.version||''")&&
  hotfix.includes("standardWorkoutModule:window.TurnikStandardWorkout&&window.TurnikStandardWorkout.version||''")&&
  hotfix.includes("restModule:window.TurnikRest&&window.TurnikRest.version||''")&&
+ hotfix.includes("restPolicyModule:window.TurnikRestPolicy&&window.TurnikRestPolicy.version||''")&&
  hotfix.includes("activeWorkoutModule:window.TurnikActiveWorkout&&window.TurnikActiveWorkout.version||''")&&
  hotfix.includes("correctionModule:window.TurnikCorrection&&window.TurnikCorrection.version||''")&&
  hotfix.includes("completionModule:window.TurnikCompletion&&window.TurnikCompletion.version||''")&&
@@ -776,7 +783,7 @@ assert(activeWorkout.includes("log(hadActive?'handover-restored':'restored'"),
  'TurnikActiveWorkout must preserve handover/restore diagnostics');
 assert(hotfix.includes('function tcInstallNavigationUpgrades()')&&
  hotfix.includes('window.__TC_NAV_UPGRADE_VERSION=VERSION')&&
- /tcInstallNavigationFoundation\(\);\s*tcInstallNavigationUpgrades\(\);\s*tcInstallCompletionOwner\(\);\s*tcInstallHapticFeedback\(\);\s*tcInstallWorkoutCorrection\(\);\s*tcInstallProgressSummary\(\);\s*tcInstallRestStateOwner\(\);\s*tcInstallWorkoutPersistence\(\);/.test(hotfix),
+ /tcInstallNavigationFoundation\(\);\s*tcInstallNavigationUpgrades\(\);\s*tcInstallCompletionOwner\(\);\s*tcInstallHapticFeedback\(\);\s*tcInstallRestPolicyOwner\(\);\s*tcInstallWorkoutCorrection\(\);\s*tcInstallProgressSummary\(\);\s*tcInstallRestStateOwner\(\);\s*tcInstallWorkoutPersistence\(\);/.test(hotfix),
  'hotfix upgrades must run after the one-time navigation core and before ActiveWorkout schedules persistence restore');
 assert(hotfix.includes('window.tcRefreshActiveTrainingSurface=function(id)')&&
  hotfix.includes('window.tcArmRestoreSurfaceGuard=function(surface)')&&
@@ -948,6 +955,26 @@ assert.equal(standardSandbox.feedback,1);
 assert.equal(standardSandbox.finishSignal,1);
 assert.equal(standardSandbox.baseCalls||0,0,'standard handler must own ordinary workouts without falling back to legacy setDone');
 assert(standardSandbox.TurnikWorkoutActions.debug().handlerNames.includes('standard-workout'));
+
+// Single-owner adaptive rest policy regression.
+assert.equal((hotfix.match(/window\.adaptiveRest\s*=\s*function/g)||[]).length,0,
+ 'OTA shell must not own adaptiveRest after TurnikRestPolicy split');
+assert.equal((hotfix.match(/window\.transitionRest\s*=\s*function/g)||[]).length,0,
+ 'OTA shell must not own transitionRest after TurnikRestPolicy split');
+assert(restPolicy.includes('window.adaptiveRest=adaptive;window.transitionRest=transition;'),
+ 'TurnikRestPolicy must be the sole compatibility owner of adaptiveRest/transitionRest');
+const policySandbox={console,CustomEvent:function(){},dispatchEvent:()=>true};
+policySandbox.window=policySandbox;
+vm.runInNewContext(restPolicy,policySandbox,{filename:'live/rest_policy.js'});
+assert(policySandbox.TurnikRestPolicy.install({baseSeconds:(e)=>e&&e.id==='next'?60:90}));
+assert.equal(policySandbox.TurnikRestPolicy.debug().singleOwner,true);
+assert.deepEqual(JSON.parse(JSON.stringify(policySandbox.adaptiveRest({id:'pull',name:'Подтягивания',max:10},0,8,8,false))),
+ {seconds:120,note:'Подтягивания: база 90 с · тяжёлый подход +30 с → 120 с'});
+assert.equal(policySandbox.adaptiveRest({id:'pull',name:'Подтягивания',max:10},0,8,5,false).seconds,165);
+assert.equal(policySandbox.adaptiveRest({id:'pull',name:'Подтягивания',max:10},0,4,4,false).seconds,75);
+assert.deepEqual(JSON.parse(JSON.stringify(policySandbox.transitionRest(
+ {id:'pull',name:'Подтягивания',max:10},{id:'next',name:'Отжимания',max:20},0,8,8,false))),
+ {seconds:135,note:'Переход к «Отжимания»: 135 с · учтены предыдущий подход и нагрузка следующего упражнения'});
 
 // Single-owner rest state regression.
 assert.equal((hotfix.match(/window\.startRest\s*=/g)||[]).length,0,
