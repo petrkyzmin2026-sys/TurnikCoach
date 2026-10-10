@@ -497,13 +497,13 @@ assert(course.includes("if(typeof window.tcEnsureWorkoutControls==='function')wi
  'course/extra workout rendering must explicitly request visible workout controls');
 assert(!hotfix.includes("querySelector('.controls')"),
  'discard control must not be injected into the hidden legacy .controls container');
-assert(!hotfix.includes('window.W')&&!surface.includes('window.W'),
+assert(!hotfix.includes('window.W')&&!surface.includes('window.W')&&!navigationFlow.includes('window.W'),
  'surface/navigation must not read workout state through window.W: base app declares W with global let');
 assert(surface.includes("function hasWorkout(){return typeof W!=='undefined'&&!!W}")&&
- hotfix.includes("function tcHasWorkout(){return surface.hasWorkout()}"),
- 'TurnikSurface must read the actual lexical workout state and navigation must delegate to it');
-assert(hotfix.includes('try{W=null}catch(e){}'),
- 'discard must clear the actual lexical workout state');
+ navigationFlow.includes("function hasWorkout(){return !!(deps.surface&&deps.surface.hasWorkout&&deps.surface.hasWorkout())}"),
+ 'TurnikSurface must read the actual lexical workout state and NavigationFlow must delegate to it');
+assert(navigationFlow.includes('try{W=null}catch(e){}'),
+ 'NavigationFlow discard must clear the actual lexical workout state');
 assert(navigationFlow.includes('tcConfirmDiscardWorkoutBtn'),
  'NavigationFlow discard must use an in-app confirmation sheet');
 assert(navigationFlow.includes('<div class="sheettitle">Завершить без сохранения?</div>')&&
