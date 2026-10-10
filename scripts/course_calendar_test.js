@@ -821,11 +821,11 @@ assert(hotfix.includes("setNav('n1','◫','План')")&&hotfix.includes("setNav
  'top-level navigation must expose Today / Plan / Progress');
 assert(hotfix.includes("viewport.setAttribute('content','width=device-width,initial-scale=1')"),
  'UX2 must remove the legacy zoom lock');
-assert(course.includes("const week=()=>'<div class=\"tcWeekSection\""),
+assert(courseView.includes("const week=()=>'<div class=\"tcWeekSection\""),
  'Today must treat the weekly calendar as a secondary section');
-assert(course.includes('<details class="tcTodayPlanDetails"><summary>Посмотреть план</summary>'),
+assert(courseView.includes('<details class="tcTodayPlanDetails"><summary>Посмотреть план</summary>'),
  'Today must progressively disclose the detailed set plan');
-assert(course.includes("style=\"margin-top:14px;min-height:58px\" onclick=\"tcStartCourseWorkout()"),
+assert(courseView.includes("style=\"margin-top:14px;min-height:58px\" onclick=\"tcStartCourseWorkout()"),
  'primary Start workout action must be larger than the 48dp minimum');
 assert(course.includes('function tcGroupCourseSettings(box)'),
  'course settings must be reorganized with progressive disclosure');
