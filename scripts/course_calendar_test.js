@@ -75,7 +75,7 @@ assert(hotfix.includes("TC_DOMAIN_MODULE_VERSION='1.0.0'")&&
  hotfix.includes("TC_LIFECYCLE_MODULE_VERSION='1.0.0'")&&
  hotfix.includes("TC_NAVIGATION_MODULE_VERSION='1.0.0'")&&
  hotfix.includes("TC_WORKOUT_UI_MODULE_VERSION='1.0.0'")&&
- hotfix.includes("TC_COURSE_MODULE_VERSION='1.0.47-viewstate-adapter'"),
+ hotfix.includes("TC_COURSE_MODULE_VERSION='1.0.48-product-info-provider'"),
  'OTA shell must pin exact compatible Domain, UI, Store, Actions, Lifecycle, Navigation, WorkoutUI and Course module versions');
 assert(hotfix.includes("TC_UI_MODULE_URL='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/ui.js")&&
  hotfix.includes("TC_UI_CACHE_KEY='tc_module_ui_'+TC_UI_MODULE_VERSION"),
@@ -292,7 +292,7 @@ assert(course.includes('id="tcCycleStartDate"'),
  'settings must expose a cycle start date');
 assert(hotfix.includes("const VERSION='5.16.65-product-ui-owner'"),
  'release hotfix version must be 5.16.65');
-assert(course.includes("const COURSE_MODULE_VERSION='1.0.47-viewstate-adapter'"),
+assert(course.includes("const COURSE_MODULE_VERSION='1.0.48-product-info-provider'"),
  'course module version must be 1.0.47');
 const directCourseWrites=(course.match(/localStorage\.setItem\(TC_COURSE_KEY/g)||[]).length;
 assert.equal(directCourseWrites,1,'course persistence must have exactly one physical localStorage write boundary');
@@ -990,6 +990,12 @@ assert.equal((hotfix.match(/window\.tcOpenTrainingInfo\s*=/g)||[]).length,0,
  'OTA shell must not own tcOpenTrainingInfo after TurnikProductUI split');
 assert(productUi.includes('window.tcOpenTrainingInfo=openTrainingInfo')&&productUi.includes('window.TurnikProductUI={version:VERSION'),
  'TurnikProductUI must own training info compatibility API and product decorators');
+assert(productUi.includes('function registerInfoProvider(name,priority,fn)')&&
+ productUi.includes('infoProviders.map(x=>x.name)'),
+ 'TurnikProductUI must expose a prioritized info-provider registry');
+assert(!course.includes('window.tcOpenTrainingInfo=function')&&
+ course.includes("registerInfoProvider('morozov-course',100"),
+ 'Morozov must register an info provider instead of wrapping the global training-info API');
 
 // Single-owner rest state regression.
 assert.equal((hotfix.match(/window\.startRest\s*=/g)||[]).length,0,
