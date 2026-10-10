@@ -56,6 +56,7 @@ on:
       - refactor/progress-owner-5.16.67
       - refactor/screen-shell-owner-5.16.68
       - refactor/surface-owner-5.16.69
+      - refactor/navigation-flow-owner-5.16.70
   pull_request:
   workflow_dispatch:
 
@@ -86,9 +87,9 @@ jobs:
           done
           base64 --decode /tmp/v513.b64 | gzip -dc > app/src/main/assets/index.html
           grep -q 'v5.13 — modern Android package' app/src/main/assets/index.html
-      - name: Reproduce packaged 5.14 + cached 5.16.68 + tested 5.16.69
+      - name: Reproduce packaged 5.14 + cached 5.16.69 + tested 5.16.70
         run: |
-          PREV_COMMIT="225fab4e2b48a12dbe4ff6f8a9bcd7a95746712f"
+          PREV_COMMIT="382ab35cc4ae60640de2e673168aec16b69ec66b"
           grep -q 'TURNIKCOACH_HOTFIX 5.14.0-adaptive-rest' app/src/main/assets/hotfix.js
           curl -fsSL "https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/${PREV_COMMIT}/live/hotfix.js" > app/src/main/assets/hotfix-prev.js
           curl -fsSL "https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/${PREV_COMMIT}/live/course.js" > app/src/main/assets/course-prev.js
@@ -105,8 +106,8 @@ jobs:
           s=s.replace(needle,"function tcAudio(){\nif(window.__TC_DISABLE_AUDIO_FOR_SMOKE)return null;\ntry{",1)
           p.write_text(s)
           PY
-          grep -q 'TURNIKCOACH_HOTFIX 5.16.68-screen-shell-owner' app/src/main/assets/hotfix-prev.js
-          grep -q 'TURNIKCOACH_HOTFIX 5.16.69-surface-owner' app/src/main/assets/hotfix-next.js
+          grep -q 'TURNIKCOACH_HOTFIX 5.16.69-surface-owner' app/src/main/assets/hotfix-prev.js
+          grep -q 'TURNIKCOACH_HOTFIX 5.16.70-navigation-flow-owner' app/src/main/assets/hotfix-next.js
           grep -q 'TURNIKCOACH_CORE 1.0.0' app/src/main/assets/hotfix-next.js
           grep -q 'TURNIKCOACH_DOMAIN 1.0.0' live/domain.js
           grep -q 'TURNIKCOACH_UI 1.0.0' live/ui.js
@@ -123,6 +124,7 @@ jobs:
           grep -q 'TURNIKCOACH_COMPLETION 1.0.0-owner' live/completion.js
           grep -q 'TURNIKCOACH_WORKOUT_LIFECYCLE 1.0.0' live/lifecycle.js
           grep -q 'TURNIKCOACH_NAVIGATION 1.0.0' live/navigation.js
+          grep -q 'TURNIKCOACH_NAVIGATION_FLOW 1.0.0-owner' live/navigation_flow.js
           grep -q 'TURNIKCOACH_WORKOUT_UI 1.0.0' live/workout_ui.js
           grep -q 'TURNIKCOACH_COURSE_DOMAIN 1.1.0-viewstate-owner' live/course_domain.js
           grep -q 'TURNIKCOACH_COURSE_ACTIONS 1.1.0-hooks' live/course_actions.js
