@@ -170,11 +170,12 @@ jobs:
             localStorage.setItem('tc_module_workout_ui_1.0.0',__WORKOUT_UI_CACHE__);
             localStorage.setItem('tc_module_course_domain_1.1.0-viewstate-owner',__PREV_COURSE_DOMAIN_CACHE__);
             localStorage.setItem('tc_module_course_domain_1.1.0-viewstate-owner',__NEXT_COURSE_DOMAIN_CACHE__);
+            localStorage.setItem('tc_module_course_view_1.0.0-today-owner',__COURSE_VIEW_CACHE__);
             localStorage.setItem('tc_module_course_1.0.47-viewstate-adapter',__PREV_COURSE_CACHE__);
-            localStorage.setItem('tc_module_course_1.0.47-viewstate-adapter',__NEXT_COURSE_CACHE__);
+            localStorage.setItem('tc_module_course_1.0.48-course-view-adapter',__NEXT_COURSE_CACHE__);
             if(localStorage.getItem('__tcForcedHandoverSmokeSeeded')) return;
             var d=new Date(),k=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
-            localStorage.setItem('tc_hotfix_approved_version','5.16.63-completion-owner');
+            localStorage.setItem('tc_hotfix_approved_version','5.16.64-rest-policy-owner');
             localStorage.setItem('tc_morozov_course_v1',JSON.stringify({
               enabled:true,level:4,goal:'quantity',pullMax:20,courseSeq:1,extraSeq:0,
               lastCourseDate:k,lastCourseTs:Date.now(),weeklySessions:3,cycleStartDate:k,
@@ -253,7 +254,7 @@ jobs:
             else tcInstallTestDriver();
           })();
           </script>'''
-          seed=seed.replace('__PREV_COURSE_CACHE__',prev_course_cache).replace('__DOMAIN_CACHE__',domain_cache).replace('__UI_CACHE__',ui_cache).replace('__PREV_STORE_CACHE__',prev_store_cache).replace('__NEXT_STORE_CACHE__',next_store_cache).replace('__ACTIONS_CACHE__',actions_cache).replace('__STANDARD_WORKOUT_CACHE__',standard_workout_cache).replace('__REST_CACHE__',rest_cache).replace('__REST_POLICY_CACHE__',rest_policy_cache).replace('__ACTIVE_WORKOUT_CACHE__',active_workout_cache).replace('__CORRECTION_CACHE__',correction_cache).replace('__COMPLETION_CACHE__',completion_cache).replace('__LIFECYCLE_CACHE__',lifecycle_cache).replace('__NAVIGATION_CACHE__',navigation_cache).replace('__WORKOUT_UI_CACHE__',workout_ui_cache).replace('__PREV_COURSE_DOMAIN_CACHE__',prev_course_domain_cache).replace('__NEXT_COURSE_DOMAIN_CACHE__',next_course_domain_cache).replace('__NEXT_COURSE_CACHE__',next_course_cache)
+          seed=seed.replace('__PREV_COURSE_CACHE__',prev_course_cache).replace('__DOMAIN_CACHE__',domain_cache).replace('__UI_CACHE__',ui_cache).replace('__PREV_STORE_CACHE__',prev_store_cache).replace('__NEXT_STORE_CACHE__',next_store_cache).replace('__ACTIONS_CACHE__',actions_cache).replace('__STANDARD_WORKOUT_CACHE__',standard_workout_cache).replace('__REST_CACHE__',rest_cache).replace('__REST_POLICY_CACHE__',rest_policy_cache).replace('__ACTIVE_WORKOUT_CACHE__',active_workout_cache).replace('__CORRECTION_CACHE__',correction_cache).replace('__COMPLETION_CACHE__',completion_cache).replace('__LIFECYCLE_CACHE__',lifecycle_cache).replace('__NAVIGATION_CACHE__',navigation_cache).replace('__WORKOUT_UI_CACHE__',workout_ui_cache).replace('__PREV_COURSE_DOMAIN_CACHE__',prev_course_domain_cache).replace('__NEXT_COURSE_DOMAIN_CACHE__',next_course_domain_cache).replace('__COURSE_VIEW_CACHE__',course_view_cache).replace('__NEXT_COURSE_CACHE__',next_course_cache)
           p.write_text(html.replace(marker,seed+marker))
           PY
       - name: Isolate test application from installed production data
