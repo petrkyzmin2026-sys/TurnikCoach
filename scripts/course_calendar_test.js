@@ -146,6 +146,12 @@ assert(hotfix.includes("TC_LIFECYCLE_MODULE_URL='https://raw.githubusercontent.c
 assert(hotfix.includes("TC_NAVIGATION_MODULE_URL='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/navigation.js")&&
  hotfix.includes("TC_NAVIGATION_CACHE_KEY='tc_module_navigation_'+TC_NAVIGATION_MODULE_VERSION"),
  'Navigation dispatcher must ship as a separately versioned/offline-cached module');
+assert(hotfix.includes("TC_NAVIGATION_FLOW_MODULE_URL='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/navigation_flow.js")&&
+ hotfix.includes("TC_NAVIGATION_FLOW_CACHE_KEY='tc_module_navigation_flow_'+TC_NAVIGATION_FLOW_MODULE_VERSION"),
+ 'NavigationFlow must ship as a separately versioned/offline-cached owner module');
+assert(navigationFlow.includes("const VERSION='1.0.0-owner'")&&
+ navigationFlow.includes("window.TurnikNavigationFlow={version:VERSION,install,currentScreen,replaceRoute,pushRoute,discardWorkout,navigateBack,debug}"),
+ 'TurnikNavigationFlow must own route history, Back, sheets and discard behavior');
 assert(hotfix.includes("TC_WORKOUT_UI_MODULE_URL='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/workout_ui.js")&&
  hotfix.includes("TC_WORKOUT_UI_CACHE_KEY='tc_module_workout_ui_'+TC_WORKOUT_UI_MODULE_VERSION"),
  'WorkoutUI dispatcher must ship as a separately versioned/offline-cached module');
