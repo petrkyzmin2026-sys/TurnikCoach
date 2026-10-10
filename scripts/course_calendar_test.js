@@ -22,6 +22,7 @@ const courseDomain=fs.readFileSync('live/course_domain.js','utf8');
 const courseActions=fs.readFileSync('live/course_actions.js','utf8');
 const progress=fs.readFileSync('live/progress.js','utf8');
 const screenShell=fs.readFileSync('live/screen_shell.js','utf8');
+const surface=fs.readFileSync('live/surface.js','utf8');
 const hotfix=fs.readFileSync('live/hotfix.js','utf8');
 assert(Buffer.byteLength(hotfix,'utf8')<=128*1024,
  'modular OTA shell must stay comfortably below the native 256 KiB ceiling');
@@ -47,6 +48,7 @@ new vm.Script(courseDomain,{filename:'live/course_domain.js'});
 new vm.Script(courseActions,{filename:'live/course_actions.js'});
 new vm.Script(progress,{filename:'live/progress.js'});
 new vm.Script(screenShell,{filename:'live/screen_shell.js'});
+new vm.Script(surface,{filename:'live/surface.js'});
 new vm.Script(hotfix,{filename:'live/hotfix.js'});
 const courseDomainSandbox={console,CustomEvent:function(type,init){this.type=type;this.detail=init&&init.detail},dispatchEvent:()=>true};
 courseDomainSandbox.window=courseDomainSandbox;
@@ -83,6 +85,12 @@ assert(hotfix.includes("TC_SCREEN_SHELL_MODULE_URL='https://raw.githubuserconten
  'top-level screen shell must ship as a separately versioned/offline-cached owner module');
 assert(screenShell.includes("const VERSION='1.0.0-owner'")&&screenShell.includes("window.TurnikScreenShell={version:VERSION,install,apply,debug}"),
  'TurnikScreenShell must own navigation labels, screen headers and viewport');
+assert(hotfix.includes("TC_SURFACE_MODULE_URL='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/surface.js")&&
+ hotfix.includes("TC_SURFACE_CACHE_KEY='tc_module_surface_'+TC_SURFACE_MODULE_VERSION"),
+ 'WebView surface owner must ship as a separately versioned/offline-cached module');
+assert(surface.includes("const VERSION='1.0.0-owner'")&&
+ surface.includes("window.TurnikSurface={version:VERSION,install,hasWorkout,syncScreenVisibility,forceRepaint,installAdaptiveGeometry,refreshActiveTrainingSurface,armRestoreSurfaceGuard,enforceRestoreGuard,debug}"),
+ 'TurnikSurface must own visibility, repaint, adaptive geometry and restore guard');
 assert(hotfix.includes("TC_DOMAIN_MODULE_URL='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/domain.js")&&
  hotfix.includes("TC_DOMAIN_CACHE_KEY='tc_module_domain_'+TC_DOMAIN_MODULE_VERSION"),
  'domain state must ship as a separately versioned/offline-cached module');
@@ -102,6 +110,7 @@ assert(hotfix.includes("TC_DOMAIN_MODULE_VERSION='1.0.0'")&&
  hotfix.includes("TC_COURSE_ACTIONS_MODULE_VERSION='1.1.0-hooks'")&&
  hotfix.includes("TC_PROGRESS_MODULE_VERSION='1.0.0-owner'")&&
  hotfix.includes("TC_SCREEN_SHELL_MODULE_VERSION='1.0.0-owner'")&&
+ hotfix.includes("TC_SURFACE_MODULE_VERSION='1.0.0-owner'")&&
  hotfix.includes("TC_COURSE_MODULE_VERSION='1.0.48-product-info-provider'"),
  'OTA shell must pin exact compatible Domain, UI, Store, Actions, Lifecycle, Navigation, WorkoutUI and Course module versions');
 assert(hotfix.includes("TC_UI_MODULE_URL='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/ui.js")&&
@@ -316,8 +325,8 @@ assert(progress.includes("api.productUI.queueDecorate()")&&productUi.includes('f
  'Progress owner must delegate product decoration to TurnikProductUI after its own presenter finishes');
 assert(course.includes('id="tcCycleStartDate"'),
  'settings must expose a cycle start date');
-assert(hotfix.includes("const VERSION='5.16.68-screen-shell-owner'"),
- 'release hotfix version must be 5.16.68');
+assert(hotfix.includes("const VERSION='5.16.69-surface-owner'"),
+ 'release hotfix version must be 5.16.69');
 assert(course.includes("const COURSE_MODULE_VERSION='1.0.48-product-info-provider'"),
  'course module version must be 1.0.47');
 const directCourseWrites=(course.match(/localStorage\.setItem\(TC_COURSE_KEY/g)||[]).length;
@@ -348,7 +357,7 @@ assert(!course.includes('TC_EXTRA_START'),
  'temporary extra-workout trace logging must not ship');
 assert(!course.includes('window.confirm('),'course module must not depend on unsupported WebView JS dialogs');
 assert(!hotfix.includes('window.confirm('),'hotfix navigation/discard must not depend on unsupported WebView JS dialogs');
-assert(!hotfix.includes('forceHandover'),'5.16.68 must use an explicit user-visible update prompt');
+assert(!hotfix.includes('forceHandover'),'5.16.69 must use an explicit user-visible update prompt');
 assert(hotfix.includes("showRuntimeNotice('TurnikCoach обновлён до '+LABEL)"),
  'successful activation must give visible feedback');
 assert(hotfix.includes("localStorage.setItem('tc_hotfix_active_version',VERSION)"),
@@ -824,24 +833,28 @@ assert(hotfix.includes('function tcInstallNavigationUpgrades()')&&
  hotfix.includes('window.__TC_NAV_UPGRADE_VERSION=VERSION')&&
  /tcInstallNavigationFoundation\(\);\s*tcInstallNavigationUpgrades\(\);\s*tcInstallCompletionOwner\(\);\s*tcInstallHapticFeedback\(\);\s*tcInstallRestPolicyOwner\(\);\s*tcInstallWorkoutCorrection\(\);[\s\S]*?TurnikProgress\.install\([\s\S]*?tcInstallRestStateOwner\(\);\s*tcInstallWorkoutPersistence\(\);/.test(hotfix),
  'hotfix upgrades must run after the one-time navigation core and before ActiveWorkout schedules persistence restore');
-assert(hotfix.includes('window.tcRefreshActiveTrainingSurface=function(id)')&&
- hotfix.includes('window.tcArmRestoreSurfaceGuard=function(surface)')&&
- hotfix.includes('until:Date.now()+5000')&&
- hotfix.includes("window.__tcRestoreGuardPageshowHandler=enforceRestoreGuard")&&
- hotfix.includes("document.visibilityState==='visible'"),
- 'cold restore must keep the active training surface asserted through the startup handover window');
+assert(surface.includes('window.tcRefreshActiveTrainingSurface=refreshActiveTrainingSurface')&&
+ surface.includes('window.tcArmRestoreSurfaceGuard=armRestoreSurfaceGuard')&&
+ surface.includes('until:Date.now()+5000')&&
+ surface.includes("pageshowHandler=enforceRestoreGuard")&&
+ surface.includes("document.visibilityState==='visible'"),
+ 'TurnikSurface must keep the active training surface asserted through the startup handover window');
 assert(hotfix.includes("if(window.__TC_NAV_FOUNDATION)return;")&&
- hotfix.includes("if(window.__tcRestoreGuardFocusHandler)window.removeEventListener('focus'"),
- 'navigation core must remain one-time while hotfix-specific listeners are replaceable');
-assert(hotfix.includes("TurnikNative.showSurface")&&
+ surface.includes("if(focusHandler)window.removeEventListener('focus',focusHandler)"),
+ 'navigation foundation must remain one-time while TurnikSurface replaces its own listeners deterministically');
+assert(surface.includes("TurnikNative.showSurface")&&
  mainActivity.includes("@JavascriptInterface public void showSurface(String requested)")&&
  mainActivity.includes("web.setLayerType(View.LAYER_TYPE_SOFTWARE, null)")&&
  mainActivity.includes("web.postInvalidateOnAnimation()")&&
  !mainActivity.includes("web.evaluateJavascript(js, value ->"),
  'cold restore must repaint the requested training surface natively without re-entering WebView JS');
-assert(hotfix.includes("TurnikNative.refreshSurface")&&
+assert(surface.includes("TurnikNative.refreshSurface")&&
  mainActivity.includes("@JavascriptInterface public void refreshSurface()"),
  'legacy native surface refresh fallback must remain available');
+assert(!hotfix.includes('function tcSyncScreenVisibility(id)')&&
+ !hotfix.includes('function tcForceWebViewRepaint()')&&
+ !hotfix.includes('window.tcRefreshActiveTrainingSurface=function(id)'),
+ 'OTA shell must not keep a second WebView surface implementation');
 assert(activeWorkout.includes("window.tcClearActiveWorkoutSnapshot=clear")&&
  hotfix.includes("window.tcClearActiveWorkoutSnapshot()"),
  'discard flow must remove durable workout state through the TurnikActiveWorkout compatibility API');
@@ -875,10 +888,10 @@ assert(hotfix.includes("#workout .controls{height:auto!important;min-height:246p
  'large-text mode must allow workout controls to grow instead of clipping content');
 assert(hotfix.includes("#workout .wmedia{bottom:var(--tc-workout-controls-bottom,260px)!important}"),
  'workout media must reserve the measured control height');
-assert(hotfix.includes("function tcInstallAdaptiveWorkoutGeometry()")&&
- hotfix.includes("new ResizeObserver(apply)")&&
- hotfix.includes("workout.style.setProperty('--tc-workout-controls-bottom'"),
- 'workout geometry must follow the actual rendered control height');
+assert(surface.includes("function installAdaptiveGeometry()")&&
+ surface.includes("new ResizeObserver(apply)")&&
+ surface.includes("workout.style.setProperty('--tc-workout-controls-bottom'"),
+ 'TurnikSurface must own adaptive workout geometry using the actual rendered control height');
 assert(hotfix.includes("#sheet .sheetbox{max-height:92vh!important;overflow-y:auto!important"),
  'sheets must remain scrollable when text scaling reduces available vertical space');
 assert(completion.includes("grid-template-columns:repeat(auto-fit,minmax(92px,1fr))"),
@@ -887,19 +900,19 @@ assert(completion.includes(".tcCompletionRow span,.tcCompletionRow b{min-width:0
  'completion rows must wrap long scaled text instead of clipping');
 assert(hotfix.includes("#workout .controls{height:auto!important;min-height:246px!important"),
  'active workout must preserve the 246px baseline while allowing large-text growth');
-assert(hotfix.includes('function tcSyncScreenVisibility(id)')&&
- hotfix.includes('tcSyncScreenVisibility(id);'),
- 'WebView navigation must explicitly synchronize screen visibility after go()');
-assert(hotfix.includes("tcSyncScreenVisibility(target||'today');")&&
+assert(surface.includes('function syncScreenVisibility(id)')&&
+ hotfix.includes('surface.syncScreenVisibility(id);'),
+ 'WebView navigation must synchronize screen visibility through TurnikSurface after go()');
+assert(hotfix.includes("surface.syncScreenVisibility(target||'today');")&&
  hotfix.includes("replaceRoute(target||'today',false);"),
- 'discard must unhide Today and synchronize the visible WebView surface');
+ 'discard must unhide Today through TurnikSurface and synchronize the route');
 assert(hotfix.includes("priorInstalledHotfix.startsWith('5.16.')")&&
  hotfix.includes("'5.16.35-touch-release';")&&
  hotfix.includes("window.__TC_UPDATE_PENDING_VERSION='';"),
  'new hotfix must suppress the actual cached 5.16.35 prompt before discard or Progress unlocks it');
-assert(hotfix.includes('function tcForceWebViewRepaint()')&&
- hotfix.includes('tcForceWebViewRepaint();'),
- 'WebView navigation must force a compositor repaint after the screen switch');
+assert(surface.includes('function forceRepaint()')&&
+ hotfix.includes('surface.forceRepaint();'),
+ 'WebView navigation must force compositor repaint through TurnikSurface after the screen switch');
 assert(hotfix.includes("#workout .stageHeader .row.between,#workout .wtop .row.between{gap:8px}"),
  'workout controls must support both stageHeader and legacy wtop DOMs');
 assert(hotfix.includes("#workout.screen.on .stageHeader .row.between, #workout.screen.on .wtop .row.between"),
