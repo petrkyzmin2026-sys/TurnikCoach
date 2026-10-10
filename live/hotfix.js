@@ -1,8 +1,8 @@
-/* TURNIKCOACH_HOTFIX 5.16.69-surface-owner */
+/* TURNIKCOACH_HOTFIX 5.16.70-navigation-flow-owner */
 (function(){
 'use strict';
-const VERSION='5.16.69-surface-owner';
-const LABEL='5.16.69';
+const VERSION='5.16.70-navigation-flow-owner';
+const LABEL='5.16.70';
 const APPROVED_KEY='tc_hotfix_approved_version';
 const LEGACY_ASSET_VERSION='5.14.0-adaptive-rest';
 const stalePrompt=document.getElementById('tcUpdatePrompt');
@@ -68,7 +68,7 @@ title.style.cssText='font-size:22px;font-weight:800;margin-bottom:10px;flex:0 0 
 title.textContent='Доступно обновление TurnikCoach '+LABEL;
 const text=document.createElement('div');
 text.style.cssText='font-size:15px;line-height:1.45;color:#cfd8e3;margin-bottom:18px;min-height:0;flex:1 1 0;overflow-y:auto;overscroll-behavior:contain;padding-right:4px';
-text.innerHTML="Архитектурное обновление без изменения привычного интерфейса: управление WebView-поверхностью тренировки вынесено из hotfix в TurnikSurface. Видимость экранов, принудительная перерисовка, восстановление workout/rest после возврата приложения и адаптивная геометрия теперь имеют одного владельца вместо двух дублирующихся реализаций. История и сценарии тренировок не меняются.<br><br>Установить обновление сейчас?";
+text.innerHTML="Архитектурное обновление без изменения привычного интерфейса: маршрутизация, системная кнопка «Назад», история экранов, закрытие sheet и выход из тренировки без сохранения вынесены из hotfix в TurnikNavigationFlow. Удалён старый обходной путь через baseGo; все переходы теперь идут через единый диспетчер навигации. История и сценарии тренировок не меняются.<br><br>Установить обновление сейчас?";
 const row=document.createElement('div');
 row.style.cssText='display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;flex:0 0 auto';
 const later=document.createElement('button');
@@ -159,6 +159,10 @@ const TC_NAVIGATION_MODULE_VERSION='1.0.0';
 const TC_NAVIGATION_MODULE_MARKER='TURNIKCOACH_NAVIGATION 1.0.0';
 const TC_NAVIGATION_MODULE_URL='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/navigation.js?v='+encodeURIComponent(TC_NAVIGATION_MODULE_VERSION);
 const TC_NAVIGATION_CACHE_KEY='tc_module_navigation_'+TC_NAVIGATION_MODULE_VERSION;
+const TC_NAVIGATION_FLOW_MODULE_VERSION='1.0.0-owner';
+const TC_NAVIGATION_FLOW_MODULE_MARKER='TURNIKCOACH_NAVIGATION_FLOW 1.0.0-owner';
+const TC_NAVIGATION_FLOW_MODULE_URL='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/navigation_flow.js?v='+encodeURIComponent(TC_NAVIGATION_FLOW_MODULE_VERSION);
+const TC_NAVIGATION_FLOW_CACHE_KEY='tc_module_navigation_flow_'+TC_NAVIGATION_FLOW_MODULE_VERSION;
 const TC_WORKOUT_UI_MODULE_VERSION='1.0.0';
 const TC_WORKOUT_UI_MODULE_MARKER='TURNIKCOACH_WORKOUT_UI 1.0.0';
 const TC_WORKOUT_UI_MODULE_URL='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/workout_ui.js?v='+encodeURIComponent(TC_WORKOUT_UI_MODULE_VERSION);
@@ -199,7 +203,7 @@ const TC_COURSE_MODULE_VERSION='1.0.48-product-info-provider';
 const TC_COURSE_MODULE_MARKER='TURNIKCOACH_COURSE 1.0.48-product-info-provider';
 const TC_COURSE_MODULE_URL='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/course.js?v='+encodeURIComponent(TC_COURSE_MODULE_VERSION);
 const TC_COURSE_CACHE_KEY='tc_module_course_'+TC_COURSE_MODULE_VERSION;
-let tcDomainPrimePromise=null,tcUiPrimePromise=null,tcStorePrimePromise=null,tcActionsPrimePromise=null,tcStandardWorkoutPrimePromise=null,tcRestPrimePromise=null,tcRestPolicyPrimePromise=null,tcProductUiPrimePromise=null,tcActiveWorkoutPrimePromise=null,tcCorrectionPrimePromise=null,tcCompletionPrimePromise=null,tcLifecyclePrimePromise=null,tcNavigationPrimePromise=null,tcWorkoutUiPrimePromise=null,tcCourseDomainPrimePromise=null,tcCourseActionsPrimePromise=null,tcProgressPrimePromise=null,tcScreenShellPrimePromise=null,tcSurfacePrimePromise=null,tcCoursePrimePromise=null;
+let tcDomainPrimePromise=null,tcUiPrimePromise=null,tcStorePrimePromise=null,tcActionsPrimePromise=null,tcStandardWorkoutPrimePromise=null,tcRestPrimePromise=null,tcRestPolicyPrimePromise=null,tcProductUiPrimePromise=null,tcActiveWorkoutPrimePromise=null,tcCorrectionPrimePromise=null,tcCompletionPrimePromise=null,tcLifecyclePrimePromise=null,tcNavigationPrimePromise=null,tcNavigationFlowPrimePromise=null,tcWorkoutUiPrimePromise=null,tcCourseDomainPrimePromise=null,tcCourseActionsPrimePromise=null,tcProgressPrimePromise=null,tcScreenShellPrimePromise=null,tcSurfacePrimePromise=null,tcCoursePrimePromise=null;
 function tcEvalModule(js,label){try{(0,eval)(js);return true}catch(e){console.error('TurnikCoach module '+label,e);return false}}
 function tcLoadCoreModule(){
 if(window.TurnikCore&&window.TurnikCore.version==='1.0.0')return true;
