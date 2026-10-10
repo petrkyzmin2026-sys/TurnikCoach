@@ -753,8 +753,8 @@ assert(course.includes('.tcCheckRow{min-height:48px'),
  'course settings checkbox rows must provide at least a 48px row target');
 assert(course.includes('.tcAdvancedSelect{width:24px!important;height:24px!important'),
  'advanced exercise checkboxes must be enlarged from the 21px base control');
-assert(hotfix.includes('.tcInfoBtn{width:48px;height:48px;min-width:48px'),
- 'training information control must be at least 48 by 48');
+assert(productUi.includes('.tcInfoBtn{width:48px;height:48px;min-width:48px'),
+ 'TurnikProductUI training information control must be at least 48 by 48');
 assert(hotfix.includes('#workout .stageHeader .endBtn{min-height:48px!important;min-width:76px!important'),
  'packaged workout Finish control must have a 48px minimum height');
 assert(hotfix.includes('#workout .stageControls .btn,#rest .btn,#sheet .sheetbox .btn{min-height:48px!important'),
