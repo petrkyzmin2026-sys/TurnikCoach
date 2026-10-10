@@ -18,6 +18,7 @@ const lifecycle=fs.readFileSync('live/lifecycle.js','utf8');
 const navigation=fs.readFileSync('live/navigation.js','utf8');
 const workoutUi=fs.readFileSync('live/workout_ui.js','utf8');
 const courseDomain=fs.readFileSync('live/course_domain.js','utf8');
+const courseView=fs.readFileSync('live/course_view.js','utf8');
 const hotfix=fs.readFileSync('live/hotfix.js','utf8');
 assert(Buffer.byteLength(hotfix,'utf8')<=128*1024,
  'modular OTA shell must stay comfortably below the native 256 KiB ceiling');
@@ -39,6 +40,7 @@ new vm.Script(lifecycle,{filename:'live/lifecycle.js'});
 new vm.Script(navigation,{filename:'live/navigation.js'});
 new vm.Script(workoutUi,{filename:'live/workout_ui.js'});
 new vm.Script(courseDomain,{filename:'live/course_domain.js'});
+new vm.Script(courseView,{filename:'live/course_view.js'});
 new vm.Script(hotfix,{filename:'live/hotfix.js'});
 const courseDomainSandbox={console,CustomEvent:function(type,init){this.type=type;this.detail=init&&init.detail},dispatchEvent:()=>true};
 courseDomainSandbox.window=courseDomainSandbox;
@@ -56,8 +58,12 @@ assert(hotfix.includes("TC_COURSE_CACHE_KEY='tc_module_course_'+TC_COURSE_MODULE
 assert(hotfix.includes("TC_COURSE_DOMAIN_MODULE_VERSION='1.1.0-viewstate-owner'")&&
  hotfix.includes("TC_COURSE_DOMAIN_MODULE_URL='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/course_domain.js"),
  'OTA must version and cache the separate TurnikCourseDomain module');
-assert(hotfix.indexOf("if(!tcLoadCourseDomainModule())")<hotfix.lastIndexOf("if(!tcLoadCourseModule())"),
- 'TurnikCourseDomain must be evaluated before course.js');
+assert(hotfix.includes("TC_COURSE_VIEW_MODULE_VERSION='1.0.0-today-owner'")&&
+ hotfix.includes("TC_COURSE_VIEW_MODULE_URL='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/course_view.js"),
+ 'OTA must version and cache the separate TurnikCourseView module');
+assert(hotfix.indexOf("if(!tcLoadCourseDomainModule())")<hotfix.indexOf("if(!tcLoadCourseViewModule())")&&
+ hotfix.indexOf("if(!tcLoadCourseViewModule())")<hotfix.lastIndexOf("if(!tcLoadCourseModule())"),
+ 'CourseDomain and CourseView must load before course.js');
 assert(hotfix.includes("TC_DOMAIN_MODULE_URL='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/domain.js")&&
  hotfix.includes("TC_DOMAIN_CACHE_KEY='tc_module_domain_'+TC_DOMAIN_MODULE_VERSION"),
  'domain state must ship as a separately versioned/offline-cached module');
@@ -72,7 +78,8 @@ assert(hotfix.includes("TC_DOMAIN_MODULE_VERSION='1.0.0'")&&
  hotfix.includes("TC_LIFECYCLE_MODULE_VERSION='1.0.0'")&&
  hotfix.includes("TC_NAVIGATION_MODULE_VERSION='1.0.0'")&&
  hotfix.includes("TC_WORKOUT_UI_MODULE_VERSION='1.0.0'")&&
- hotfix.includes("TC_COURSE_MODULE_VERSION='1.0.47-viewstate-adapter'"),
+ hotfix.includes("TC_COURSE_VIEW_MODULE_VERSION='1.0.0-today-owner'")&&
+ hotfix.includes("TC_COURSE_MODULE_VERSION='1.0.48-course-view-adapter'"),
  'OTA shell must pin exact compatible Domain, UI, Store, Actions, Lifecycle, Navigation, WorkoutUI and Course module versions');
 assert(hotfix.includes("TC_UI_MODULE_URL='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/ui.js")&&
  hotfix.includes("TC_UI_CACHE_KEY='tc_module_ui_'+TC_UI_MODULE_VERSION"),
@@ -252,8 +259,12 @@ assert(statsOwner.includes('tcCourseDomain().progressStats(TC_course')&&progress
 assert(courseDomain.includes("function planState(state,ctx)")&&courseDomain.includes("function todayState(state,ctx)")&&
  courseDomain.includes("function progressStats(state,run)")&&courseDomain.includes("function progressState(state,ctx)"),
  'TurnikCourseDomain must own Plan / Today / Progress state builders');
-assert(course.includes("view.kind==='MAIN_WORKOUT'")&&course.includes("view.kind==='RECOVERY_SHIFT'")&&course.includes("view.kind==='TRANSFER'||view.kind==='TRANSFER_RECOVERY'"),
- 'Today renderer must render explicit domain states instead of recomputing the scenario');
+assert(course.includes('function tcCourseView()')&&course.includes('return tcCourseView().renderToday(view,{'),
+ 'course.js must delegate Today rendering to TurnikCourseView');
+assert(!course.includes("if(view.kind==='PREVIEW')")&&!course.includes("if(view.kind==='MAIN_WORKOUT')"),
+ 'course.js must no longer own Today state-kind rendering branches');
+assert(courseView.includes('switch(view.kind)')&&courseView.includes("case 'MAIN_WORKOUT'")&&courseView.includes("case 'TRANSFER'"),
+ 'TurnikCourseView must own explicit Today rendering dispatch');
 assert(course.includes("window.TurnikDomain.register('today','morozov',100")&&
  course.includes("window.TurnikDomain.register('plan','morozov',100")&&
  course.includes("window.TurnikDomain.register('progress','morozov',100"),
@@ -284,10 +295,10 @@ assert(hotfix.includes("setTimeout(()=>{renderSummary();tcQueueDecorate()},0)")&
  'post-render work must be deferred until the owning presenter has finished');
 assert(course.includes('id="tcCycleStartDate"'),
  'settings must expose a cycle start date');
-assert(hotfix.includes("const VERSION='5.16.64-rest-policy-owner'"),
- 'release hotfix version must be 5.16.64');
-assert(course.includes("const COURSE_MODULE_VERSION='1.0.47-viewstate-adapter'"),
- 'course module version must be 1.0.47');
+assert(hotfix.includes("const VERSION='5.16.65-course-view-owner'"),
+ 'release hotfix version must be 5.16.65');
+assert(course.includes("const COURSE_MODULE_VERSION='1.0.48-course-view-adapter'"),
+ 'course module version must be 1.0.48');
 const directCourseWrites=(course.match(/localStorage\.setItem\(TC_COURSE_KEY/g)||[]).length;
 assert.equal(directCourseWrites,1,'course persistence must have exactly one physical localStorage write boundary');
 const saveCourseBody=extract('tcSaveCourse');
@@ -316,7 +327,7 @@ assert(!course.includes('TC_EXTRA_START'),
  'temporary extra-workout trace logging must not ship');
 assert(!course.includes('window.confirm('),'course module must not depend on unsupported WebView JS dialogs');
 assert(!hotfix.includes('window.confirm('),'hotfix navigation/discard must not depend on unsupported WebView JS dialogs');
-assert(!hotfix.includes('forceHandover'),'5.16.64 must use an explicit user-visible update prompt');
+assert(!hotfix.includes('forceHandover'),'5.16.65 must use an explicit user-visible update prompt');
 assert(hotfix.includes("showRuntimeNotice('TurnikCoach обновлён до '+LABEL)"),
  'successful activation must give visible feedback');
 assert(hotfix.includes("localStorage.setItem('tc_hotfix_active_version',VERSION)"),
@@ -1412,5 +1423,22 @@ assert(uiSandbox.TurnikUI.install(),'TurnikUI must install around the existing b
 assert.equal(uiSandbox.TurnikUI.renderArea('today').presenter,'morozov');
 assert.deepEqual(Array.from(presented),['TEST']);
 assert.equal(uiSandbox.TurnikUI.debug().version,'1.0.0');
+
+const cvSandbox={console};cvSandbox.window=cvSandbox;
+vm.runInNewContext(courseView,cvSandbox,{filename:'live/course_view.js'});
+assert.equal(cvSandbox.TurnikCourseView.version,'1.0.0-today-owner');
+const cvDom={todayTitle:{textContent:''},todaySub:{textContent:''},todayList:{innerHTML:''}};
+const cvCtx={
+ q:id=>cvDom[id],now:()=>new Date('2026-10-10T12:00:00Z'),fmtDate:()=> '10 октября',dateFromKey:k=>new Date(k+'T12:00:00Z'),fmtKeyDate:k=>k,
+ weeklyCalendarHtml:()=>'<week/>',previewCourseCard:()=>'<preview/>',todayCourseDoneHtml:()=>'<done/>',bindTodayDoneActions:()=>{},queueDecorate:()=>{},
+ courseTestCard:()=>'<test/>',pendingLevelHtml:()=>'',masteryCardHtml:()=>'',recoveryShiftCardHtml:()=>'<recovery/>',transferCardHtml:()=>'<transfer/>',
+ noEquipmentCard:()=>'',calibrationCard:()=>'',workingWeightCard:()=>'',equipmentMasteryNote:()=>'',courseRowsHtml:()=>'<rows/>',adaptationNote:()=>'',extraRowsHtml:()=>'',auxCardHtml:()=>'',supplementHtml:()=>'',courseControlStatusHtml:()=>''
+};
+cvSandbox.TurnikCourseView.renderToday({kind:'TRANSFER',transfer:{}},cvCtx);
+assert.equal(cvDom.todaySub.textContent,'Сегодня · перенос основной тренировки');
+assert(cvDom.todayList.innerHTML.includes('<transfer/>')&&cvDom.todayList.innerHTML.includes('<week/>'));
+cvSandbox.TurnikCourseView.renderToday({kind:'MAIN_WORKOUT',complexName:'Комплекс №3',items:[{}],totalSets:4,levelTitle:'Уровень 4',adapted:false,defs:[]},cvCtx);
+assert.equal(cvDom.todaySub.textContent,'Сегодня · основная тренировка');
+assert(cvDom.todayList.innerHTML.includes('Комплекс №3')&&cvDom.todayList.innerHTML.includes('Начать тренировку'));
 
 console.log('PASS: single rest/workout action owners, UI/domain/store architecture, syntax and Android regressions');
