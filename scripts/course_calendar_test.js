@@ -760,8 +760,8 @@ assert(hotfix.includes('#workout .stageHeader .endBtn{min-height:48px!important;
 assert(hotfix.includes('#workout .stageControls .btn,#rest .btn,#sheet .sheetbox .btn{min-height:48px!important'),
  'critical workout, rest and sheet buttons need 48px minimum height');
 
-assert(hotfix.includes('#rest .tcInfoBtn{position:absolute;right:92px;top:12px}'),
- 'rest info button must not overlap the rest Exit control');
+assert(productUi.includes('#rest .tcInfoBtn{position:absolute;right:92px;top:12px}'),
+ 'TurnikProductUI rest info button must not overlap the rest Exit control');
 assert(course.includes("function tcExpandExerciseTouchTargets(host)"),
  'exercise catalog needs a decorator for legacy controls rendered by packaged app');
 assert(course.includes(".tcExerciseCheckTarget{width:48px;height:48px;min-width:48px"),
