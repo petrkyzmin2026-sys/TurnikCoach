@@ -908,6 +908,8 @@ assert(standardWorkout.includes("registerHandler('standard-workout',10,handle)")
 assert(!hotfix.includes("registerBefore('haptic-feedback'")&&!hotfix.includes("registerAfter('haptic-feedback'")&&
  !hotfix.includes('function tcHapticConfirm()')&&!hotfix.includes('function tcInstallHapticFeedback()'),
  'OTA shell must not retain haptic hook ownership');
+assert.equal((hotfix.match(/function tcInstallCompletionOwner\(/g)||[]).length,1,
+ 'haptics extraction must preserve the adjacent Completion adapter exactly once');
 assert(haptics.includes("actions.registerBefore('haptic-feedback'")&&haptics.includes("actions.registerAfter('haptic-feedback'"),
  'TurnikHaptics must subscribe to the workout dispatcher from its owner module');
 assert(!hotfix.includes("registerBefore('workout-correction'")&&!hotfix.includes("registerAfter('workout-correction'"),
