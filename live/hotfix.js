@@ -540,8 +540,6 @@ window.__TC_NAV_UPGRADE_VERSION=VERSION;
 function tcInstallNavigationFoundation(){
 if(window.__TC_NAV_FOUNDATION)return;
 window.__TC_NAV_FOUNDATION=true;
-const surface=window.TurnikSurface;
-if(!surface||typeof surface.syncScreenVisibility!=='function')throw new Error('TurnikCoach surface owner unavailable for navigation');
 const style=document.createElement('style');
 style.id='tcNavFoundationStyle';
 style.textContent=
@@ -575,140 +573,7 @@ style.textContent=
 '#sheet .sheetbox{max-height:92vh!important;overflow-y:auto!important;overscroll-behavior:contain}'+
 '.sheettitle,.dateBig{overflow-wrap:anywhere;word-break:normal}';
 document.head.appendChild(style);
-let internal=false;
-let sheetWasOpen=false;
-const scrollByScreen={};
-function currentScreen(){
-const el=document.querySelector('.screen.on');
-return el&&el.id?el.id:'today';
-}
-function currentScroll(screen){
-const root=document.getElementById(screen);
-const sc=root&&root.querySelector('.scroll');
-return sc?sc.scrollTop:0;
-}
-function restoreScroll(screen){
-const root=document.getElementById(screen);
-const sc=root&&root.querySelector('.scroll');
-if(sc&&Number.isFinite(scrollByScreen[screen]))sc.scrollTop=scrollByScreen[screen];
-}
-function routeUrl(screen,sheet){
-return '#tc='+encodeURIComponent(screen)+(sheet?'&sheet=1':'');
-}
-function replaceRoute(screen,sheet){
-try{history.replaceState({tcNav:true,tcScreen:screen,tcSheet:!!sheet},'',routeUrl(screen,sheet))}catch(e){}
-}
-function pushRoute(screen,sheet){
-try{history.pushState({tcNav:true,tcScreen:screen,tcSheet:!!sheet},'',routeUrl(screen,sheet))}catch(e){}
-}
-function tcHasWorkout(){return surface.hasWorkout()}
-function tcClearWorkout(){try{if(window.TurnikRest&&typeof window.TurnikRest.stop==='function')window.TurnikRest.stop('discard')}catch(e){}try{if(typeof rt!=='undefined'&&rt){clearInterval(rt);rt=null}}catch(e){}try{W=null}catch(e){}try{if(typeof window.tcClearActiveWorkoutSnapshot==='function')window.tcClearActiveWorkoutSnapshot()}catch(e){}}
-const navigation=window.TurnikNavigation;
-if(!navigation||typeof navigation.registerBefore!=='function'||typeof navigation.registerAfter!=='function')throw new Error('TurnikCoach navigation dispatcher unavailable');
-navigation.registerBefore('navigation-foundation',10000,ctx=>{
-const from=currentScreen();ctx.meta.from=from;scrollByScreen[from]=currentScroll(from);
-});
-navigation.registerAfter('navigation-foundation',10000,ctx=>{
-const id=ctx.target,from=ctx.meta.from||currentScreen();
-surface.syncScreenVisibility(id);
-if(id==='workout')surface.installAdaptiveGeometry();
-surface.forceRepaint();
-if(id==='workout'&&tcHasWorkout()){
-const saveFn=window.tcSaveActiveWorkoutSnapshot;
-const saved=typeof saveFn==='function'?saveFn():false;
-console.log('TC_WORKOUT_STATE',JSON.stringify({phase:'boundary-save',available:typeof saveFn==='function',saved:!!saved,hasW:tcHasWorkout()}));
-}
-if(internal){restoreScroll(id);return}
-const trainingFlow=tcHasWorkout()&&(id==='workout'||id==='rest')&&(from==='workout'||from==='rest');
-const finishedTraining=!tcHasWorkout()&&(from==='workout'||from==='rest')&&['today','exercise','historyScreen'].includes(id);
-if(trainingFlow||finishedTraining)replaceRoute(id,false);
-else if(id!==from)pushRoute(id,false);
-else replaceRoute(id,false);
-restoreScroll(id);setTimeout(tcDecorateBackControls,0);
-});
 const sheet=document.getElementById('sheet');
-function closeSheetNow(){
-try{
-if(typeof window.closeSheet==='function')window.closeSheet();
-else if(sheet)sheet.classList.remove('open');
-}catch(e){if(sheet)sheet.classList.remove('open')}
-}
-function abandonWorkoutAndGo(target){
-tcClearWorkout();
-internal=true;
-try{window.go(target||'today')}finally{internal=false}
-surface.syncScreenVisibility(target||'today');
-replaceRoute(target||'today',false);
-surface.forceRepaint();
-setTimeout(tcDecorateBackControls,0);
-}
-function tcDiscardWorkoutNow(){
-if(!tcHasWorkout()){showRuntimeNotice('Активная тренировка уже отсутствует.','danger');return;}
-if(sheet)sheet.classList.remove('open');
-abandonWorkoutAndGo('today');
-showRuntimeNotice('Текущая тренировка закрыта без сохранения.');
-}
-window.tcDiscardWorkout=function(){
-if(!tcHasWorkout()){showRuntimeNotice('Нет активной тренировки для выхода без сохранения.','danger');return;}
-const box=document.getElementById('sheetbox');
-if(!box||!sheet){showRuntimeNotice('Не удалось открыть подтверждение выхода.','danger');return;}
-box.innerHTML='<div class="sheettitle">Завершить без сохранения?</div>'+
-'<div class="sub" style="margin-top:7px;line-height:1.45">Подходы этого запуска будут отброшены. Тренировка не попадёт в историю и останется доступной для повторного начала.</div>'+
-'<button id="tcConfirmDiscardWorkoutBtn" type="button" class="btn danger full" style="margin-top:16px">Завершить без сохранения</button>'+
-'<button id="tcCancelDiscardWorkoutBtn" type="button" class="btn ghost full" style="margin-top:8px">Продолжить тренировку</button>';
-sheet.classList.add('open');
-const yes=document.getElementById('tcConfirmDiscardWorkoutBtn');
-const no=document.getElementById('tcCancelDiscardWorkoutBtn');
-if(yes)yes.onclick=function(ev){if(ev){ev.preventDefault();ev.stopPropagation()}tcDiscardWorkoutNow();return false};
-if(no)no.onclick=function(ev){if(ev){ev.preventDefault();ev.stopPropagation()}closeSheetNow();return false};
-};
-window.tcNavigateBack=function(){
-const scr=currentScreen();
-if(sheet&&sheet.classList.contains('open')){
-if(history.state&&history.state.tcSheet){history.back();return}
-closeSheetNow();return;
-}
-if(scr==='rest'&&tcHasWorkout()){
-history.back();return;
-}
-if(scr==='workout'&&tcHasWorkout()){
-window.tcDiscardWorkout();return;
-}
-if(history.length>1){history.back();return}
-if(scr!=='today'){
-internal=true;try{baseGo('today')}finally{internal=false}
-replaceRoute('today',false);
-}
-};
-window.addEventListener('popstate',function(ev){
-const scr=currentScreen();
-if(sheet&&sheet.classList.contains('open')){
-internal=true;
-try{closeSheetNow()}finally{internal=false}
-sheetWasOpen=false;
-return;
-}
-if(scr==='rest'&&tcHasWorkout()){
-internal=true;
-try{
-if(typeof window.finishRest==='function')window.finishRest();
-else baseGo('workout');
-}finally{internal=false}
-pushRoute('workout',false);
-setTimeout(tcDecorateBackControls,0);
-return;
-}
-const target=ev.state&&ev.state.tcScreen?ev.state.tcScreen:'today';
-if(scr==='workout'&&tcHasWorkout()&&target!=='workout'){
-pushRoute('workout',false);
-window.tcDiscardWorkout();
-return;
-}
-internal=true;
-try{baseGo(target)}finally{internal=false}
-restoreScroll(target);
-setTimeout(tcDecorateBackControls,0);
-});
 function tcStabilizeWorkoutControls(){
 const root=document.querySelector('#workout.screen.on');
 if(!root)return;
@@ -759,30 +624,9 @@ box.insertBefore(b,box.firstChild);
 }
 }
 window.tcEnsureWorkoutControls=function(){setTimeout(tcDecorateBackControls,0)};
-if(sheet){
-const mo=new MutationObserver(function(){
-const open=sheet.classList.contains('open');
-if(open&&!sheetWasOpen){
-sheetWasOpen=true;
-if(!internal&&!(history.state&&history.state.tcSheet))pushRoute(currentScreen(),true);
-}else if(!open&&sheetWasOpen){
-sheetWasOpen=false;
-if(!internal&&history.state&&history.state.tcSheet)history.back();
-}
-tcDecorateBackControls();
-});
-mo.observe(sheet,{attributes:true,attributeFilter:['class'],childList:true,subtree:true});
-window.__tcSheetNavObserver=mo;
-}
-document.addEventListener('keydown',function(e){
-if(e.key==='Escape'){e.preventDefault();window.tcNavigateBack()}
-});
-const start=currentScreen();
-surface.syncScreenVisibility(start);
-replaceRoute(start,false);
 tcDecorateBackControls();
 const app=document.getElementById('app');
-if(app){
+if(app&&typeof MutationObserver==='function'){
 const mo=new MutationObserver(tcDecorateBackControls);
 mo.observe(app,{childList:true,subtree:true,attributes:true,attributeFilter:['class']});
 window.__tcBackControlObserver=mo;
@@ -1057,8 +901,15 @@ if(!window.TurnikCourseActions.captureAndInstall(TC_COURSE_ACTION_NAMES,'morozov
 if(!tcRegisterCoreSources())throw new Error('TurnikCoach core source registration failed');
 if(typeof window.tcFlushCourseBootstrapState==='function'&&!window.tcFlushCourseBootstrapState())throw new Error('TurnikCoach course bootstrap flush failed');
 if(!window.TurnikScreenShell.install())throw new Error('TurnikCoach screen shell owner install failed');
-tcInstallNavigationFoundation();
 tcInstallNavigationUpgrades();
+if(!window.TurnikNavigationFlow.install({
+navigation:window.TurnikNavigation,
+surface:window.TurnikSurface,
+rest:window.TurnikRest,
+notice:(message,tone)=>showRuntimeNotice(message,tone),
+clearActive:()=>typeof window.tcClearActiveWorkoutSnapshot==='function'?window.tcClearActiveWorkoutSnapshot():false
+}))throw new Error('TurnikCoach navigation flow owner install failed');
+tcInstallNavigationFoundation();
 tcInstallCompletionOwner();
 tcInstallHapticFeedback();
 tcInstallRestPolicyOwner();
