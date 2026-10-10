@@ -1,8 +1,8 @@
-/* TURNIKCOACH_HOTFIX 5.16.64-rest-policy-owner */
+/* TURNIKCOACH_HOTFIX 5.16.65-haptics-owner */
 (function(){
 'use strict';
-const VERSION='5.16.64-rest-policy-owner';
-const LABEL='5.16.64';
+const VERSION='5.16.65-haptics-owner';
+const LABEL='5.16.65';
 const APPROVED_KEY='tc_hotfix_approved_version';
 const LEGACY_ASSET_VERSION='5.14.0-adaptive-rest';
 const stalePrompt=document.getElementById('tcUpdatePrompt');
@@ -68,7 +68,7 @@ title.style.cssText='font-size:22px;font-weight:800;margin-bottom:10px;flex:0 0 
 title.textContent='Доступно обновление TurnikCoach '+LABEL;
 const text=document.createElement('div');
 text.style.cssText='font-size:15px;line-height:1.45;color:#cfd8e3;margin-bottom:18px;min-height:0;flex:1 1 0;overflow-y:auto;overscroll-behavior:contain;padding-right:4px';
-text.innerHTML="Архитектурное обновление: расчёт времени отдыха после подхода и при переходе между упражнениями вынесен в отдельный TurnikRestPolicy. Сам таймер по-прежнему ведёт TurnikRest. Поведение и формулы отдыха для пользователя не меняются — убирается ещё один слой бизнес-логики из общего hotfix.<br><br>Установить обновление сейчас?";
+text.innerHTML="Архитектурное обновление: виброотклик подтверждения подхода вынесен в отдельный TurnikHaptics и теперь подписывается на единый диспетчер действий тренировки. Поведение вибрации для пользователя не меняется — hotfix больше не хранит эту логику вместе с остальным интерфейсом.<br><br>Установить обновление сейчас?";
 const row=document.createElement('div');
 row.style.cssText='display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;flex:0 0 auto';
 const later=document.createElement('button');
@@ -123,6 +123,10 @@ const TC_ACTIONS_MODULE_VERSION='1.0.0';
 const TC_ACTIONS_MODULE_MARKER='TURNIKCOACH_WORKOUT_ACTIONS 1.0.0';
 const TC_ACTIONS_MODULE_URL='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/actions.js?v='+encodeURIComponent(TC_ACTIONS_MODULE_VERSION);
 const TC_ACTIONS_CACHE_KEY='tc_module_actions_'+TC_ACTIONS_MODULE_VERSION;
+const TC_HAPTICS_MODULE_VERSION='1.0.0-owner';
+const TC_HAPTICS_MODULE_MARKER='TURNIKCOACH_HAPTICS 1.0.0-owner';
+const TC_HAPTICS_MODULE_URL='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/haptics.js?v='+encodeURIComponent(TC_HAPTICS_MODULE_VERSION);
+const TC_HAPTICS_CACHE_KEY='tc_module_haptics_'+TC_HAPTICS_MODULE_VERSION;
 const TC_STANDARD_WORKOUT_MODULE_VERSION='1.0.0-action-owner';
 const TC_STANDARD_WORKOUT_MODULE_MARKER='TURNIKCOACH_STANDARD_WORKOUT 1.0.0-action-owner';
 const TC_STANDARD_WORKOUT_MODULE_URL='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/standard_workout.js?v='+encodeURIComponent(TC_STANDARD_WORKOUT_MODULE_VERSION);
@@ -167,7 +171,7 @@ const TC_COURSE_MODULE_VERSION='1.0.47-viewstate-adapter';
 const TC_COURSE_MODULE_MARKER='TURNIKCOACH_COURSE 1.0.47-viewstate-adapter';
 const TC_COURSE_MODULE_URL='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/course.js?v='+encodeURIComponent(TC_COURSE_MODULE_VERSION);
 const TC_COURSE_CACHE_KEY='tc_module_course_'+TC_COURSE_MODULE_VERSION;
-let tcDomainPrimePromise=null,tcUiPrimePromise=null,tcStorePrimePromise=null,tcActionsPrimePromise=null,tcStandardWorkoutPrimePromise=null,tcRestPrimePromise=null,tcRestPolicyPrimePromise=null,tcActiveWorkoutPrimePromise=null,tcCorrectionPrimePromise=null,tcCompletionPrimePromise=null,tcLifecyclePrimePromise=null,tcNavigationPrimePromise=null,tcWorkoutUiPrimePromise=null,tcCourseDomainPrimePromise=null,tcCoursePrimePromise=null;
+let tcDomainPrimePromise=null,tcUiPrimePromise=null,tcStorePrimePromise=null,tcActionsPrimePromise=null,tcHapticsPrimePromise=null,tcStandardWorkoutPrimePromise=null,tcRestPrimePromise=null,tcRestPolicyPrimePromise=null,tcActiveWorkoutPrimePromise=null,tcCorrectionPrimePromise=null,tcCompletionPrimePromise=null,tcLifecyclePrimePromise=null,tcNavigationPrimePromise=null,tcWorkoutUiPrimePromise=null,tcCourseDomainPrimePromise=null,tcCoursePrimePromise=null;
 function tcEvalModule(js,label){try{(0,eval)(js);return true}catch(e){console.error('TurnikCoach module '+label,e);return false}}
 function tcLoadCoreModule(){
 if(window.TurnikCore&&window.TurnikCore.version==='1.0.0')return true;
@@ -179,6 +183,7 @@ function tcValidDomainModule(js){return typeof js==='string'&&js.length>500&&js.
 function tcValidUiModule(js){return typeof js==='string'&&js.length>500&&js.length<64000&&js.includes(TC_UI_MODULE_MARKER)}
 function tcValidStoreModule(js){return typeof js==='string'&&js.length>500&&js.length<64000&&js.includes(TC_STORE_MODULE_MARKER)}
 function tcValidActionsModule(js){return typeof js==='string'&&js.length>500&&js.length<64000&&js.includes(TC_ACTIONS_MODULE_MARKER)}
+function tcValidHapticsModule(js){return typeof js==='string'&&js.length>500&&js.length<64000&&js.includes(TC_HAPTICS_MODULE_MARKER)}
 function tcValidStandardWorkoutModule(js){return typeof js==='string'&&js.length>500&&js.length<64000&&js.includes(TC_STANDARD_WORKOUT_MODULE_MARKER)}
 function tcValidRestModule(js){return typeof js==='string'&&js.length>500&&js.length<64000&&js.includes(TC_REST_MODULE_MARKER)}
 function tcValidRestPolicyModule(js){return typeof js==='string'&&js.length>500&&js.length<64000&&js.includes(TC_REST_POLICY_MODULE_MARKER)}
@@ -194,6 +199,7 @@ function tcDomainCacheReady(){return tcValidDomainModule(tcReadModuleCache(TC_DO
 function tcUiCacheReady(){return tcValidUiModule(tcReadModuleCache(TC_UI_CACHE_KEY))}
 function tcStoreCacheReady(){return tcValidStoreModule(tcReadModuleCache(TC_STORE_CACHE_KEY))}
 function tcActionsCacheReady(){return tcValidActionsModule(tcReadModuleCache(TC_ACTIONS_CACHE_KEY))}
+function tcHapticsCacheReady(){return tcValidHapticsModule(tcReadModuleCache(TC_HAPTICS_CACHE_KEY))}
 function tcStandardWorkoutCacheReady(){return tcValidStandardWorkoutModule(tcReadModuleCache(TC_STANDARD_WORKOUT_CACHE_KEY))}
 function tcRestCacheReady(){return tcValidRestModule(tcReadModuleCache(TC_REST_CACHE_KEY))}
 function tcRestPolicyCacheReady(){return tcValidRestPolicyModule(tcReadModuleCache(TC_REST_POLICY_CACHE_KEY))}
@@ -224,6 +230,11 @@ function tcLoadActionsModule(){
 if(window.TurnikWorkoutActions&&window.TurnikWorkoutActions.version===TC_ACTIONS_MODULE_VERSION)return true;
 const cached=tcReadModuleCache(TC_ACTIONS_CACHE_KEY);
 return tcValidActionsModule(cached)&&tcEvalModule(cached,'actions')&&!!window.TurnikWorkoutActions;
+}
+function tcLoadHapticsModule(){
+if(window.TurnikHaptics&&window.TurnikHaptics.version===TC_HAPTICS_MODULE_VERSION)return true;
+const cached=tcReadModuleCache(TC_HAPTICS_CACHE_KEY);
+return tcValidHapticsModule(cached)&&tcEvalModule(cached,'haptics')&&!!window.TurnikHaptics;
 }
 function tcLoadStandardWorkoutModule(){
 if(window.TurnikStandardWorkout&&window.TurnikStandardWorkout.version===TC_STANDARD_WORKOUT_MODULE_VERSION)return true;
@@ -302,6 +313,10 @@ function tcPrimeActionsModule(){
 if(!tcActionsPrimePromise)tcActionsPrimePromise=tcPrimeModule(TC_ACTIONS_MODULE_URL,TC_ACTIONS_CACHE_KEY,tcValidActionsModule,'actions');
 return tcActionsPrimePromise;
 }
+function tcPrimeHapticsModule(){
+if(!tcHapticsPrimePromise)tcHapticsPrimePromise=tcPrimeModule(TC_HAPTICS_MODULE_URL,TC_HAPTICS_CACHE_KEY,tcValidHapticsModule,'haptics');
+return tcHapticsPrimePromise;
+}
 function tcPrimeStandardWorkoutModule(){
 if(!tcStandardWorkoutPrimePromise)tcStandardWorkoutPrimePromise=tcPrimeModule(TC_STANDARD_WORKOUT_MODULE_URL,TC_STANDARD_WORKOUT_CACHE_KEY,tcValidStandardWorkoutModule,'standard-workout');
 return tcStandardWorkoutPrimePromise;
@@ -353,6 +368,7 @@ if(!tcDomainCacheReady())tasks.push(tcPrimeDomainModule());
 if(!tcUiCacheReady())tasks.push(tcPrimeUiModule());
 if(!tcStoreCacheReady())tasks.push(tcPrimeStoreModule());
 if(!tcActionsCacheReady())tasks.push(tcPrimeActionsModule());
+if(!tcHapticsCacheReady())tasks.push(tcPrimeHapticsModule());
 if(!tcStandardWorkoutCacheReady())tasks.push(tcPrimeStandardWorkoutModule());
 if(!tcRestCacheReady())tasks.push(tcPrimeRestModule());
 if(!tcRestPolicyCacheReady())tasks.push(tcPrimeRestPolicyModule());
@@ -365,7 +381,7 @@ if(!tcWorkoutUiCacheReady())tasks.push(tcPrimeWorkoutUiModule());
 if(!tcCourseDomainCacheReady())tasks.push(tcPrimeCourseDomainModule());
 if(!tcCourseCacheReady())tasks.push(tcPrimeCourseModule());
 if(tasks.length){const ready=await Promise.all(tasks);if(ready.some(x=>!x))return false}
-return tcDomainCacheReady()&&tcUiCacheReady()&&tcStoreCacheReady()&&tcActionsCacheReady()&&tcStandardWorkoutCacheReady()&&tcRestCacheReady()&&tcRestPolicyCacheReady()&&tcActiveWorkoutCacheReady()&&tcCorrectionCacheReady()&&tcCompletionCacheReady()&&tcLifecycleCacheReady()&&tcNavigationCacheReady()&&tcWorkoutUiCacheReady()&&tcCourseDomainCacheReady()&&tcCourseCacheReady();
+return tcDomainCacheReady()&&tcUiCacheReady()&&tcStoreCacheReady()&&tcActionsCacheReady()&&tcHapticsCacheReady()&&tcStandardWorkoutCacheReady()&&tcRestCacheReady()&&tcRestPolicyCacheReady()&&tcActiveWorkoutCacheReady()&&tcCorrectionCacheReady()&&tcCompletionCacheReady()&&tcLifecycleCacheReady()&&tcNavigationCacheReady()&&tcWorkoutUiCacheReady()&&tcCourseDomainCacheReady()&&tcCourseCacheReady();
 }
 function tcRegisterCoreSources(){
 const core=window.TurnikCore;if(!core)return false;
@@ -379,7 +395,7 @@ snapshot:()=>typeof window.tcGetCourseStateSnapshot==='function'?window.tcGetCou
 history:()=>{const x=typeof window.tcGetCourseStateSnapshot==='function'?window.tcGetCourseStateSnapshot():null;return x&&Array.isArray(x.history)?x.history:[]},
 restore:next=>typeof window.tcRestoreCourseStateSnapshot==='function'?window.tcRestoreCourseStateSnapshot(next):false
 });
-window.__TC_CORE_FOUNDATION={version:core.version,domainModule:window.TurnikDomain&&window.TurnikDomain.version||'',uiModule:window.TurnikUI&&window.TurnikUI.version||'',storeModule:window.TurnikWorkoutStore&&window.TurnikWorkoutStore.version||'',actionsModule:window.TurnikWorkoutActions&&window.TurnikWorkoutActions.version||'',standardWorkoutModule:window.TurnikStandardWorkout&&window.TurnikStandardWorkout.version||'',restModule:window.TurnikRest&&window.TurnikRest.version||'',restPolicyModule:window.TurnikRestPolicy&&window.TurnikRestPolicy.version||'',activeWorkoutModule:window.TurnikActiveWorkout&&window.TurnikActiveWorkout.version||'',correctionModule:window.TurnikCorrection&&window.TurnikCorrection.version||'',completionModule:window.TurnikCompletion&&window.TurnikCompletion.version||'',lifecycleModule:window.TurnikWorkoutLifecycle&&window.TurnikWorkoutLifecycle.version||'',navigationModule:window.TurnikNavigation&&window.TurnikNavigation.version||'',workoutUiModule:window.TurnikWorkoutUI&&window.TurnikWorkoutUI.version||'',courseDomainModule:window.TurnikCourseDomain&&window.TurnikCourseDomain.version||'',courseModule:TC_COURSE_MODULE_VERSION,modular:true};
+window.__TC_CORE_FOUNDATION={version:core.version,domainModule:window.TurnikDomain&&window.TurnikDomain.version||'',uiModule:window.TurnikUI&&window.TurnikUI.version||'',storeModule:window.TurnikWorkoutStore&&window.TurnikWorkoutStore.version||'',actionsModule:window.TurnikWorkoutActions&&window.TurnikWorkoutActions.version||'',hapticsModule:window.TurnikHaptics&&window.TurnikHaptics.version||'',standardWorkoutModule:window.TurnikStandardWorkout&&window.TurnikStandardWorkout.version||'',restModule:window.TurnikRest&&window.TurnikRest.version||'',restPolicyModule:window.TurnikRestPolicy&&window.TurnikRestPolicy.version||'',activeWorkoutModule:window.TurnikActiveWorkout&&window.TurnikActiveWorkout.version||'',correctionModule:window.TurnikCorrection&&window.TurnikCorrection.version||'',completionModule:window.TurnikCompletion&&window.TurnikCompletion.version||'',lifecycleModule:window.TurnikWorkoutLifecycle&&window.TurnikWorkoutLifecycle.version||'',navigationModule:window.TurnikNavigation&&window.TurnikNavigation.version||'',workoutUiModule:window.TurnikWorkoutUI&&window.TurnikWorkoutUI.version||'',courseDomainModule:window.TurnikCourseDomain&&window.TurnikCourseDomain.version||'',courseModule:TC_COURSE_MODULE_VERSION,modular:true};
 return true;
 }
 tcLoadCoreModule();
@@ -387,6 +403,7 @@ tcPrimeDomainModule();
 tcPrimeUiModule();
 tcPrimeStoreModule();
 tcPrimeActionsModule();
+tcPrimeHapticsModule();
 tcPrimeStandardWorkoutModule();
 tcPrimeRestModule();
 tcPrimeRestPolicyModule();
@@ -1013,7 +1030,7 @@ window.__tcBackControlObserver=mo;
 function installUpdate(){
 if(window.__TC_HOTFIX_ACTIVE_VERSION===VERSION)return;
 if(!tcLoadCoreModule()){showRuntimeNotice('Не удалось загрузить ядро TurnikCore. Текущая версия оставлена без изменений.','danger');return}
-if(!tcDomainCacheReady()||!tcUiCacheReady()||!tcStoreCacheReady()||!tcActionsCacheReady()||!tcStandardWorkoutCacheReady()||!tcRestCacheReady()||!tcRestPolicyCacheReady()||!tcActiveWorkoutCacheReady()||!tcCorrectionCacheReady()||!tcCompletionCacheReady()||!tcLifecycleCacheReady()||!tcNavigationCacheReady()||!tcWorkoutUiCacheReady()||!tcCourseDomainCacheReady()||!tcCourseCacheReady()){
+if(!tcDomainCacheReady()||!tcUiCacheReady()||!tcStoreCacheReady()||!tcActionsCacheReady()||!tcHapticsCacheReady()||!tcStandardWorkoutCacheReady()||!tcRestCacheReady()||!tcRestPolicyCacheReady()||!tcActiveWorkoutCacheReady()||!tcCorrectionCacheReady()||!tcCompletionCacheReady()||!tcLifecycleCacheReady()||!tcNavigationCacheReady()||!tcWorkoutUiCacheReady()||!tcCourseDomainCacheReady()||!tcCourseCacheReady()){
 tcEnsureRequiredModules().then(ok=>{if(ok)installUpdate();else showRuntimeNotice('Модули приложения недоступны. Повторите обновление при подключении к интернету.','danger')});
 return;
 }
@@ -1155,46 +1172,16 @@ if(el&&!/добавлено вручную/.test(el.textContent))el.textContent+
 if(!ok)throw new Error('TurnikCoach rest state owner install failed');
 return true;
 }
-function tcHapticConfirm(){
-try{if(navigator.vibrate)navigator.vibrate(45)}catch(e){}
-}
-function tcInstallCompletionOwner(){
-const owner=window.TurnikCompletion;
-if(!owner||typeof owner.install!=='function')throw new Error('TurnikCoach completion owner unavailable');
+function tcInstallHapticsOwner(){
+const owner=window.TurnikHaptics;
+if(!owner||typeof owner.install!=='function')throw new Error('TurnikCoach haptics owner unavailable');
 const ok=owner.install({
 getWorkout:()=>typeof W!=='undefined'?W:null,
-notice:(message,tone)=>showRuntimeNotice(message,tone),
-store:window.TurnikWorkoutStore,
-lifecycle:window.TurnikWorkoutLifecycle,
-activeWorkout:window.TurnikActiveWorkout,
-clearActive:()=>typeof window.tcClearActiveWorkoutSnapshot==='function'?window.tcClearActiveWorkoutSnapshot():false,
-closeSheet:()=>typeof window.closeSheet==='function'?window.closeSheet():false,
-render:()=>typeof window.render==='function'?window.render():false,
-navigate:id=>typeof window.go==='function'?window.go(id):false
+actions:window.TurnikWorkoutActions,
+vibrate:value=>{try{return navigator.vibrate?navigator.vibrate(value):false}catch(e){return false}}
 });
-if(!ok)throw new Error('TurnikCoach completion owner install failed');
+if(!ok)throw new Error('TurnikCoach haptics owner install failed');
 return true;
-}
-function tcInstallHapticFeedback(){
-if(window.__TC_HAPTIC_FEEDBACK_V2)return;
-window.__TC_HAPTIC_FEEDBACK_V2=true;
-const actions=window.TurnikWorkoutActions;
-if(!actions||typeof actions.registerBefore!=='function'||typeof actions.registerAfter!=='function')throw new Error('TurnikCoach workout action dispatcher unavailable for haptics');
-actions.registerBefore('haptic-feedback',50,ctx=>{
-let record=null,index=-1,previous;
-try{
-if(typeof W!=='undefined'&&W&&Array.isArray(W.items)){
-record=W.items[W.exerciseIndex];index=W.setIndex;previous=record&&record.actual&&record.actual[index];
-}
-}catch(e){record=null}
-ctx.meta.haptic={record,index,previous};
-});
-actions.registerAfter('haptic-feedback',50,ctx=>{
-try{
-const h=ctx.meta.haptic||{},record=h.record,current=record&&Array.isArray(record.actual)?record.actual[h.index]:undefined;
-if(!ctx.skip&&record&&h.previous===undefined&&current!==undefined&&current!==null)tcHapticConfirm();
-}catch(e){}
-});
 }
 function tcInstallWorkoutCorrection(){
 const owner=window.TurnikCorrection;
@@ -1396,6 +1383,7 @@ if(!tcLoadDomainModule())throw new Error('TurnikCoach domain module unavailable 
 if(!tcLoadUiModule())throw new Error('TurnikCoach UI module unavailable after preflight');
 if(!tcLoadStoreModule())throw new Error('TurnikCoach workout store unavailable after preflight');
 if(!tcLoadActionsModule())throw new Error('TurnikCoach workout action dispatcher unavailable after preflight');
+if(!tcLoadHapticsModule())throw new Error('TurnikCoach haptics owner unavailable after preflight');
 if(!tcLoadStandardWorkoutModule())throw new Error('TurnikCoach standard workout module unavailable after preflight');
 if(!tcLoadRestModule())throw new Error('TurnikCoach rest state owner unavailable after preflight');
 if(!tcLoadRestPolicyModule())throw new Error('TurnikCoach rest policy owner unavailable after preflight');
@@ -1417,7 +1405,7 @@ tcInstallUx2InformationArchitecture();
 tcInstallNavigationFoundation();
 tcInstallNavigationUpgrades();
 tcInstallCompletionOwner();
-tcInstallHapticFeedback();
+tcInstallHapticsOwner();
 tcInstallRestPolicyOwner();
 tcInstallWorkoutCorrection();
 tcInstallProgressSummary();
