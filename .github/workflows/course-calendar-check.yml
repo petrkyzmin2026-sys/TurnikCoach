@@ -51,6 +51,7 @@ on:
       - refactor/correction-owner-5.16.62
       - refactor/completion-owner-5.16.63
       - refactor/rest-policy-owner-5.16.64
+      - refactor/product-ui-owner-5.16.65
   pull_request:
   workflow_dispatch:
 
@@ -81,9 +82,9 @@ jobs:
           done
           base64 --decode /tmp/v513.b64 | gzip -dc > app/src/main/assets/index.html
           grep -q 'v5.13 — modern Android package' app/src/main/assets/index.html
-      - name: Reproduce packaged 5.14 + cached 5.16.63 + tested 5.16.64
+      - name: Reproduce packaged 5.14 + cached 5.16.64 + tested 5.16.65
         run: |
-          PREV_COMMIT="2a89987490a5b987e37d46f20976ce9cecc38b93"
+          PREV_COMMIT="92691e74e2a2393d14b7166c2ecc84fbffdc18b2"
           grep -q 'TURNIKCOACH_HOTFIX 5.14.0-adaptive-rest' app/src/main/assets/hotfix.js
           curl -fsSL "https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/${PREV_COMMIT}/live/hotfix.js" > app/src/main/assets/hotfix-prev.js
           curl -fsSL "https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/${PREV_COMMIT}/live/course.js" > app/src/main/assets/course-prev.js
@@ -99,8 +100,8 @@ jobs:
           s=s.replace(needle,"function tcAudio(){\nif(window.__TC_DISABLE_AUDIO_FOR_SMOKE)return null;\ntry{",1)
           p.write_text(s)
           PY
-          grep -q 'TURNIKCOACH_HOTFIX 5.16.63-completion-owner' app/src/main/assets/hotfix-prev.js
-          grep -q 'TURNIKCOACH_HOTFIX 5.16.64-rest-policy-owner' app/src/main/assets/hotfix-next.js
+          grep -q 'TURNIKCOACH_HOTFIX 5.16.64-rest-policy-owner' app/src/main/assets/hotfix-prev.js
+          grep -q 'TURNIKCOACH_HOTFIX 5.16.65-product-ui-owner' app/src/main/assets/hotfix-next.js
           grep -q 'TURNIKCOACH_CORE 1.0.0' app/src/main/assets/hotfix-next.js
           grep -q 'TURNIKCOACH_DOMAIN 1.0.0' live/domain.js
           grep -q 'TURNIKCOACH_UI 1.0.0' live/ui.js
@@ -110,6 +111,7 @@ jobs:
           grep -q 'TURNIKCOACH_STANDARD_WORKOUT 1.0.0-action-owner' live/standard_workout.js
           grep -q 'TURNIKCOACH_REST 1.0.0-state-owner' live/rest.js
           grep -q 'TURNIKCOACH_REST_POLICY 1.0.0-owner' live/rest_policy.js
+          grep -q 'TURNIKCOACH_PRODUCT_UI 1.0.0-owner' live/product_ui.js
           grep -q 'TURNIKCOACH_ACTIVE_WORKOUT 1.0.0-persistence-owner' live/active_workout.js
           grep -q 'TURNIKCOACH_CORRECTION 1.0.0-owner' live/correction.js
           grep -q 'TURNIKCOACH_COMPLETION 1.0.0-owner' live/completion.js
@@ -117,11 +119,11 @@ jobs:
           grep -q 'TURNIKCOACH_NAVIGATION 1.0.0' live/navigation.js
           grep -q 'TURNIKCOACH_WORKOUT_UI 1.0.0' live/workout_ui.js
           grep -q 'TURNIKCOACH_COURSE_DOMAIN 1.1.0-viewstate-owner' live/course_domain.js
-          grep -q 'TURNIKCOACH_COURSE 1.0.47-viewstate-adapter' live/course.js
+          grep -q 'TURNIKCOACH_COURSE 1.0.48-product-info-provider' live/course.js
           grep -q 'TURNIKCOACH_COURSE 1.0.47-viewstate-adapter' app/src/main/assets/course-prev.js
           grep -q 'TURNIKCOACH_COURSE_DOMAIN 1.1.0-viewstate-owner' app/src/main/assets/course-domain-prev.js
           ! grep -q 'COURSE_MODULE_BUNDLED=' app/src/main/assets/hotfix-next.js
-      - name: Seed installed 5.16.63 approval and rest-policy/completion/correction/active-workout/rest/course caches with completed main-course state
+      - name: Seed installed 5.16.64 approval and product-ui/rest-policy/completion/correction/active-workout/rest/course caches with completed main-course state
         run: |
           python3 - <<'PY'
           from pathlib import Path
@@ -137,6 +139,7 @@ jobs:
           standard_workout_cache=json.dumps(Path('live/standard_workout.js').read_text())
           rest_cache=json.dumps(Path('live/rest.js').read_text())
           rest_policy_cache=json.dumps(Path('live/rest_policy.js').read_text())
+          product_ui_cache=json.dumps(Path('live/product_ui.js').read_text())
           active_workout_cache=json.dumps(Path('live/active_workout.js').read_text())
           correction_cache=json.dumps(Path('live/correction.js').read_text())
           completion_cache=json.dumps(Path('live/completion.js').read_text())
@@ -159,6 +162,7 @@ jobs:
             localStorage.setItem('tc_module_standard_workout_1.0.0-action-owner',__STANDARD_WORKOUT_CACHE__);
             localStorage.setItem('tc_module_rest_1.0.0-state-owner',__REST_CACHE__);
             localStorage.setItem('tc_module_rest_policy_1.0.0-owner',__REST_POLICY_CACHE__);
+            localStorage.setItem('tc_module_product_ui_1.0.0-owner',__PRODUCT_UI_CACHE__);
             localStorage.setItem('tc_module_active_workout_1.0.0-persistence-owner',__ACTIVE_WORKOUT_CACHE__);
             localStorage.setItem('tc_module_correction_1.0.0-owner',__CORRECTION_CACHE__);
             localStorage.setItem('tc_module_completion_1.0.0-owner',__COMPLETION_CACHE__);
@@ -168,10 +172,10 @@ jobs:
             localStorage.setItem('tc_module_course_domain_1.1.0-viewstate-owner',__PREV_COURSE_DOMAIN_CACHE__);
             localStorage.setItem('tc_module_course_domain_1.1.0-viewstate-owner',__NEXT_COURSE_DOMAIN_CACHE__);
             localStorage.setItem('tc_module_course_1.0.47-viewstate-adapter',__PREV_COURSE_CACHE__);
-            localStorage.setItem('tc_module_course_1.0.47-viewstate-adapter',__NEXT_COURSE_CACHE__);
+            localStorage.setItem('tc_module_course_1.0.48-product-info-provider',__NEXT_COURSE_CACHE__);
             if(localStorage.getItem('__tcForcedHandoverSmokeSeeded')) return;
             var d=new Date(),k=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
-            localStorage.setItem('tc_hotfix_approved_version','5.16.63-completion-owner');
+            localStorage.setItem('tc_hotfix_approved_version','5.16.64-rest-policy-owner');
             localStorage.setItem('tc_morozov_course_v1',JSON.stringify({
               enabled:true,level:4,goal:'quantity',pullMax:20,courseSeq:1,extraSeq:0,
               lastCourseDate:k,lastCourseTs:Date.now(),weeklySessions:3,cycleStartDate:k,
@@ -250,7 +254,7 @@ jobs:
             else tcInstallTestDriver();
           })();
           </script>'''
-          seed=seed.replace('__PREV_COURSE_CACHE__',prev_course_cache).replace('__DOMAIN_CACHE__',domain_cache).replace('__UI_CACHE__',ui_cache).replace('__PREV_STORE_CACHE__',prev_store_cache).replace('__NEXT_STORE_CACHE__',next_store_cache).replace('__ACTIONS_CACHE__',actions_cache).replace('__STANDARD_WORKOUT_CACHE__',standard_workout_cache).replace('__REST_CACHE__',rest_cache).replace('__REST_POLICY_CACHE__',rest_policy_cache).replace('__ACTIVE_WORKOUT_CACHE__',active_workout_cache).replace('__CORRECTION_CACHE__',correction_cache).replace('__COMPLETION_CACHE__',completion_cache).replace('__LIFECYCLE_CACHE__',lifecycle_cache).replace('__NAVIGATION_CACHE__',navigation_cache).replace('__WORKOUT_UI_CACHE__',workout_ui_cache).replace('__PREV_COURSE_DOMAIN_CACHE__',prev_course_domain_cache).replace('__NEXT_COURSE_DOMAIN_CACHE__',next_course_domain_cache).replace('__NEXT_COURSE_CACHE__',next_course_cache)
+          seed=seed.replace('__PREV_COURSE_CACHE__',prev_course_cache).replace('__DOMAIN_CACHE__',domain_cache).replace('__UI_CACHE__',ui_cache).replace('__PREV_STORE_CACHE__',prev_store_cache).replace('__NEXT_STORE_CACHE__',next_store_cache).replace('__ACTIONS_CACHE__',actions_cache).replace('__STANDARD_WORKOUT_CACHE__',standard_workout_cache).replace('__REST_CACHE__',rest_cache).replace('__REST_POLICY_CACHE__',rest_policy_cache).replace('__PRODUCT_UI_CACHE__',product_ui_cache).replace('__ACTIVE_WORKOUT_CACHE__',active_workout_cache).replace('__CORRECTION_CACHE__',correction_cache).replace('__COMPLETION_CACHE__',completion_cache).replace('__LIFECYCLE_CACHE__',lifecycle_cache).replace('__NAVIGATION_CACHE__',navigation_cache).replace('__WORKOUT_UI_CACHE__',workout_ui_cache).replace('__PREV_COURSE_DOMAIN_CACHE__',prev_course_domain_cache).replace('__NEXT_COURSE_DOMAIN_CACHE__',next_course_domain_cache).replace('__NEXT_COURSE_CACHE__',next_course_cache)
           p.write_text(html.replace(marker,seed+marker))
           PY
       - name: Isolate test application from installed production data
@@ -372,10 +376,10 @@ jobs:
       - name: Build isolated DEBUG preview APK
         run: |
           gradle --no-daemon :app:assembleDebug
-          cp app/build/outputs/apk/debug/app-debug.apk TurnikCoach-Rest-Policy-Owner-Preview-v5.16.64.apk
+          cp app/build/outputs/apk/debug/app-debug.apk TurnikCoach-Product-UI-Owner-Preview-v5.16.65.apk
       - name: Enable KVM
         run: sudo chmod 666 /dev/kvm || true
-      - name: Verify 5.16.64 Rest Policy Owner accessibility baseline in real Android WebView
+      - name: Verify 5.16.65 Product UI Owner accessibility baseline in real Android WebView
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 35
@@ -384,16 +388,16 @@ jobs:
           disable-animations: true
           emulator-options: -no-snapshot-save -no-window -gpu swiftshader -noaudio -no-boot-anim
           script: |
-            adb install -r TurnikCoach-Rest-Policy-Owner-Preview-v5.16.64.apk
+            adb install -r TurnikCoach-Product-UI-Owner-Preview-v5.16.65.apk
             TC_TEST_PKG=ru.turnikcoach.v52tr.calendarpreview python3 scripts/course_undo_ui_smoke.py
       - name: Upload UX2 accessibility baseline screenshots
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: TurnikCoach-5.16.64-rest-policy-accessibility-baseline-screenshots
+          name: TurnikCoach-5.16.65-product-ui-accessibility-baseline-screenshots
           path: undo-ui-test-output
           if-no-files-found: warn
-      - name: Verify 5.16.64 Rest Policy Owner at 200% system font scale
+      - name: Verify 5.16.65 Product UI Owner at 200% system font scale
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 35
@@ -404,17 +408,17 @@ jobs:
           script: |
             adb shell settings put system font_scale 2.0
             test "$(adb shell settings get system font_scale | tr -d '\r')" = "2.0"
-            adb install -r TurnikCoach-Rest-Policy-Owner-Preview-v5.16.64.apk
+            adb install -r TurnikCoach-Product-UI-Owner-Preview-v5.16.65.apk
             TC_TEST_PKG=ru.turnikcoach.v52tr.calendarpreview TC_OUT_DIR="$GITHUB_WORKSPACE/undo-ui-font200-output" TC_FONT_SCALE=2.0 python3 scripts/course_undo_ui_smoke.py
       - name: Upload UX2 200% font-scale screenshots
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: TurnikCoach-5.16.64-rest-policy-font200-screenshots
+          name: TurnikCoach-5.16.65-product-ui-font200-screenshots
           path: undo-ui-font200-output
           if-no-files-found: warn
       - uses: actions/upload-artifact@v4
         with:
-          name: TurnikCoach-5.16.64-rest-policy-accessibility-isolated-preview
-          path: TurnikCoach-Rest-Policy-Owner-Preview-v5.16.64.apk
+          name: TurnikCoach-5.16.65-product-ui-accessibility-isolated-preview
+          path: TurnikCoach-Product-UI-Owner-Preview-v5.16.65.apk
           if-no-files-found: error

@@ -1,7 +1,7 @@
-/* TURNIKCOACH_COURSE 1.0.47-viewstate-adapter */
+/* TURNIKCOACH_COURSE 1.0.48-product-info-provider */
 (function(){
 'use strict';
-const COURSE_MODULE_VERSION='1.0.47-viewstate-adapter';
+const COURSE_MODULE_VERSION='1.0.48-product-info-provider';
 if(window.__TC_COURSE_MODULE_VERSION===COURSE_MODULE_VERSION)return;
 window.__TC_COURSE_MODULE_VERSION=COURSE_MODULE_VERSION;
 function tcClamp(v,a,b){return Math.max(a,Math.min(b,v))}
@@ -1903,8 +1903,11 @@ q('sheet').classList.remove('open');W=null;go('today');return{handled:true,resul
 if(!window.TurnikWorkoutLifecycle||typeof window.TurnikWorkoutLifecycle.registerHandler!=='function')throw new Error('TurnikCoach workout lifecycle dispatcher unavailable');
 window.TurnikWorkoutLifecycle.registerHandler('finishRest','morozov-manual-rest',100,tcCourseFinishRestAction);
 window.TurnikWorkoutLifecycle.registerHandler('finishWorkout','morozov-course',100,tcCourseFinishWorkoutAction);
-const tcBeforeCourseInfo=window.tcOpenTrainingInfo;
-window.tcOpenTrainingInfo=function(){if(TC_course.enabled&&(W&&['course','supplement','auxCourse','courseTest'].includes(W.mode)||q('today').classList.contains('on')))return tcOpenCourseInfo();return tcBeforeCourseInfo()};
+if(!window.TurnikProductUI||typeof window.TurnikProductUI.registerInfoProvider!=='function')throw new Error('TurnikCoach product UI info-provider registry unavailable');
+window.TurnikProductUI.registerInfoProvider('morozov-course',100,()=>{
+if(TC_course.enabled&&(W&&['course','supplement','auxCourse','courseTest'].includes(W.mode)||q('today').classList.contains('on'))){tcOpenCourseInfo();return true}
+return false;
+});
 function tcCourseTestsHtml(){
 const maxTests=TC_course.tests.map(t=>({
 date:t.date,ts:t.ts,

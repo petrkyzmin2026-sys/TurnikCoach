@@ -11,6 +11,7 @@ const actions=fs.readFileSync('live/actions.js','utf8');
 const standardWorkout=fs.readFileSync('live/standard_workout.js','utf8');
 const restModule=fs.readFileSync('live/rest.js','utf8');
 const restPolicy=fs.readFileSync('live/rest_policy.js','utf8');
+const productUi=fs.readFileSync('live/product_ui.js','utf8');
 const activeWorkout=fs.readFileSync('live/active_workout.js','utf8');
 const correction=fs.readFileSync('live/correction.js','utf8');
 const completion=fs.readFileSync('live/completion.js','utf8');
@@ -32,6 +33,7 @@ new vm.Script(actions,{filename:'live/actions.js'});
 new vm.Script(standardWorkout,{filename:'live/standard_workout.js'});
 new vm.Script(restModule,{filename:'live/rest.js'});
 new vm.Script(restPolicy,{filename:'live/rest_policy.js'});
+new vm.Script(productUi,{filename:'live/product_ui.js'});
 new vm.Script(activeWorkout,{filename:'live/active_workout.js'});
 new vm.Script(correction,{filename:'live/correction.js'});
 new vm.Script(completion,{filename:'live/completion.js'});
@@ -68,11 +70,12 @@ assert(hotfix.includes("TC_DOMAIN_MODULE_VERSION='1.0.0'")&&
  hotfix.includes("TC_STANDARD_WORKOUT_MODULE_VERSION='1.0.0-action-owner'")&&
  hotfix.includes("TC_REST_MODULE_VERSION='1.0.0-state-owner'")&&
  hotfix.includes("TC_REST_POLICY_MODULE_VERSION='1.0.0-owner'")&&
+ hotfix.includes("TC_PRODUCT_UI_MODULE_VERSION='1.0.0-owner'")&&
  hotfix.includes("TC_COMPLETION_MODULE_VERSION='1.0.0-owner'")&&
  hotfix.includes("TC_LIFECYCLE_MODULE_VERSION='1.0.0'")&&
  hotfix.includes("TC_NAVIGATION_MODULE_VERSION='1.0.0'")&&
  hotfix.includes("TC_WORKOUT_UI_MODULE_VERSION='1.0.0'")&&
- hotfix.includes("TC_COURSE_MODULE_VERSION='1.0.47-viewstate-adapter'"),
+ hotfix.includes("TC_COURSE_MODULE_VERSION='1.0.48-product-info-provider'"),
  'OTA shell must pin exact compatible Domain, UI, Store, Actions, Lifecycle, Navigation, WorkoutUI and Course module versions');
 assert(hotfix.includes("TC_UI_MODULE_URL='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/ui.js")&&
  hotfix.includes("TC_UI_CACHE_KEY='tc_module_ui_'+TC_UI_MODULE_VERSION"),
@@ -92,6 +95,9 @@ assert(hotfix.includes("TC_REST_MODULE_URL='https://raw.githubusercontent.com/pe
 assert(hotfix.includes("TC_REST_POLICY_MODULE_URL='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/rest_policy.js")&&
  hotfix.includes("TC_REST_POLICY_CACHE_KEY='tc_module_rest_policy_'+TC_REST_POLICY_MODULE_VERSION"),
  'adaptive rest policy must ship as a separately versioned/offline-cached module');
+assert(hotfix.includes("TC_PRODUCT_UI_MODULE_URL='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/product_ui.js")&&
+ hotfix.includes("TC_PRODUCT_UI_CACHE_KEY='tc_module_product_ui_'+TC_PRODUCT_UI_MODULE_VERSION"),
+ 'product UI must ship as a separately versioned/offline-cached module');
 assert(hotfix.includes("TC_COMPLETION_MODULE_URL='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/completion.js")&&
  hotfix.includes("TC_COMPLETION_CACHE_KEY='tc_module_completion_'+TC_COMPLETION_MODULE_VERSION"),
  'completion owner must ship as a separately versioned/offline-cached module');
@@ -275,18 +281,18 @@ assert(ui.includes('window.render=function()'),
 assert(!hotfix.includes('const oldRender=window.render')&&!hotfix.includes('window.render=function()')&&
  !hotfix.includes('const base=window.renderHistory')&&!hotfix.includes('window.renderHistory=function()'),
  'hotfix must not add independent top-level render or renderHistory wrappers');
-assert(hotfix.includes("TurnikUI.register('today','*',10000")&&
- hotfix.includes("TurnikUI.register('plan','*',10000")&&
+assert(productUi.includes("TurnikUI.register('today','*',10000")&&
+ productUi.includes("TurnikUI.register('plan','*',10000")&&
  hotfix.includes("TurnikUI.register('progress','*',10000"),
- 'Today / Plan / Progress post-processing must flow through TurnikUI presenter dispatch');
-assert(hotfix.includes("setTimeout(()=>{renderSummary();tcQueueDecorate()},0)")&&
- hotfix.includes("setTimeout(tcQueueDecorate,0)"),
- 'post-render work must be deferred until the owning presenter has finished');
+ 'Today / Plan / Progress post-processing must flow through their owning TurnikUI presenters');
+assert(hotfix.includes("window.TurnikProductUI.queueDecorate()")&&
+ productUi.includes('function queueDecorate()'),
+ 'Progress must delegate product decoration to TurnikProductUI after its own presenter finishes');
 assert(course.includes('id="tcCycleStartDate"'),
  'settings must expose a cycle start date');
-assert(hotfix.includes("const VERSION='5.16.64-rest-policy-owner'"),
- 'release hotfix version must be 5.16.64');
-assert(course.includes("const COURSE_MODULE_VERSION='1.0.47-viewstate-adapter'"),
+assert(hotfix.includes("const VERSION='5.16.65-product-ui-owner'"),
+ 'release hotfix version must be 5.16.65');
+assert(course.includes("const COURSE_MODULE_VERSION='1.0.48-product-info-provider'"),
  'course module version must be 1.0.47');
 const directCourseWrites=(course.match(/localStorage\.setItem\(TC_COURSE_KEY/g)||[]).length;
 assert.equal(directCourseWrites,1,'course persistence must have exactly one physical localStorage write boundary');
@@ -316,7 +322,7 @@ assert(!course.includes('TC_EXTRA_START'),
  'temporary extra-workout trace logging must not ship');
 assert(!course.includes('window.confirm('),'course module must not depend on unsupported WebView JS dialogs');
 assert(!hotfix.includes('window.confirm('),'hotfix navigation/discard must not depend on unsupported WebView JS dialogs');
-assert(!hotfix.includes('forceHandover'),'5.16.64 must use an explicit user-visible update prompt');
+assert(!hotfix.includes('forceHandover'),'5.16.65 must use an explicit user-visible update prompt');
 assert(hotfix.includes("showRuntimeNotice('TurnikCoach обновлён до '+LABEL)"),
  'successful activation must give visible feedback');
 assert(hotfix.includes("localStorage.setItem('tc_hotfix_active_version',VERSION)"),
@@ -326,7 +332,7 @@ assert(hotfix.includes('async function tcEnsureRequiredModules()')&&
  hotfix.includes("localStorage.setItem(APPROVED_KEY,VERSION)"),
  'update approval must happen only after required modules are available and cached');
 const installUpdateBody=extractFrom(hotfix,'installUpdate');
-assert(installUpdateBody.includes('if(!tcDomainCacheReady()||!tcUiCacheReady()||!tcStoreCacheReady()||!tcActionsCacheReady()||!tcStandardWorkoutCacheReady()||!tcRestCacheReady()||!tcRestPolicyCacheReady()||!tcActiveWorkoutCacheReady()||!tcCorrectionCacheReady()||!tcCompletionCacheReady()||!tcLifecycleCacheReady()||!tcNavigationCacheReady()||!tcWorkoutUiCacheReady()||!tcCourseDomainCacheReady()||!tcCourseCacheReady())')&&
+assert(installUpdateBody.includes('if(!tcDomainCacheReady()||!tcUiCacheReady()||!tcStoreCacheReady()||!tcActionsCacheReady()||!tcStandardWorkoutCacheReady()||!tcRestCacheReady()||!tcRestPolicyCacheReady()||!tcProductUiCacheReady()||!tcActiveWorkoutCacheReady()||!tcCorrectionCacheReady()||!tcCompletionCacheReady()||!tcLifecycleCacheReady()||!tcNavigationCacheReady()||!tcWorkoutUiCacheReady()||!tcCourseDomainCacheReady()||!tcCourseCacheReady())')&&
  !installUpdateBody.slice(0,installUpdateBody.indexOf("const previousVersion=")).includes('tcLoadCourseModule()')&&
  !installUpdateBody.slice(0,installUpdateBody.indexOf("const previousVersion=")).includes('tcLoadCourseDomainModule()')&&
  !installUpdateBody.slice(0,installUpdateBody.indexOf("const previousVersion=")).includes('tcLoadDomainModule()')&&
@@ -342,6 +348,7 @@ assert(hotfix.includes("actionsModule:window.TurnikWorkoutActions&&window.Turnik
  hotfix.includes("standardWorkoutModule:window.TurnikStandardWorkout&&window.TurnikStandardWorkout.version||''")&&
  hotfix.includes("restModule:window.TurnikRest&&window.TurnikRest.version||''")&&
  hotfix.includes("restPolicyModule:window.TurnikRestPolicy&&window.TurnikRestPolicy.version||''")&&
+ hotfix.includes("productUiModule:window.TurnikProductUI&&window.TurnikProductUI.version||''")&&
  hotfix.includes("activeWorkoutModule:window.TurnikActiveWorkout&&window.TurnikActiveWorkout.version||''")&&
  hotfix.includes("correctionModule:window.TurnikCorrection&&window.TurnikCorrection.version||''")&&
  hotfix.includes("completionModule:window.TurnikCompletion&&window.TurnikCompletion.version||''")&&
@@ -746,15 +753,15 @@ assert(course.includes('.tcCheckRow{min-height:48px'),
  'course settings checkbox rows must provide at least a 48px row target');
 assert(course.includes('.tcAdvancedSelect{width:24px!important;height:24px!important'),
  'advanced exercise checkboxes must be enlarged from the 21px base control');
-assert(hotfix.includes('.tcInfoBtn{width:48px;height:48px;min-width:48px'),
- 'training information control must be at least 48 by 48');
+assert(productUi.includes('.tcInfoBtn{width:48px;height:48px;min-width:48px'),
+ 'TurnikProductUI training information control must be at least 48 by 48');
 assert(hotfix.includes('#workout .stageHeader .endBtn{min-height:48px!important;min-width:76px!important'),
  'packaged workout Finish control must have a 48px minimum height');
 assert(hotfix.includes('#workout .stageControls .btn,#rest .btn,#sheet .sheetbox .btn{min-height:48px!important'),
  'critical workout, rest and sheet buttons need 48px minimum height');
 
-assert(hotfix.includes('#rest .tcInfoBtn{position:absolute;right:92px;top:12px}'),
- 'rest info button must not overlap the rest Exit control');
+assert(productUi.includes('#rest .tcInfoBtn{position:absolute;right:92px;top:12px}'),
+ 'TurnikProductUI rest info button must not overlap the rest Exit control');
 assert(course.includes("function tcExpandExerciseTouchTargets(host)"),
  'exercise catalog needs a decorator for legacy controls rendered by packaged app');
 assert(course.includes(".tcExerciseCheckTarget{width:48px;height:48px;min-width:48px"),
@@ -976,6 +983,20 @@ assert.deepEqual(JSON.parse(JSON.stringify(policySandbox.transitionRest(
  {id:'pull',name:'Подтягивания',max:10},{id:'next',name:'Отжимания',max:20},0,8,8,false))),
  {seconds:135,note:'Переход к «Отжимания»: 135 с · учтены предыдущий подход и нагрузка следующего упражнения'});
 
+// Single-owner product UI regression.
+assert(!hotfix.includes('function tcInjectProductStyles()')&&!hotfix.includes('function tcConceptHtml(')&&!hotfix.includes('function tcAddInfoButtons('),
+ 'OTA shell must not keep product UI implementation after TurnikProductUI split');
+assert.equal((hotfix.match(/window\.tcOpenTrainingInfo\s*=/g)||[]).length,0,
+ 'OTA shell must not own tcOpenTrainingInfo after TurnikProductUI split');
+assert(productUi.includes('window.tcOpenTrainingInfo=openTrainingInfo')&&productUi.includes('window.TurnikProductUI={version:VERSION'),
+ 'TurnikProductUI must own training info compatibility API and product decorators');
+assert(productUi.includes('function registerInfoProvider(name,priority,fn)')&&
+ productUi.includes('infoProviders.map(x=>x.name)'),
+ 'TurnikProductUI must expose a prioritized info-provider registry');
+assert(!course.includes('window.tcOpenTrainingInfo=function')&&
+ course.includes("registerInfoProvider('morozov-course',100"),
+ 'Morozov must register an info provider instead of wrapping the global training-info API');
+
 // Single-owner rest state regression.
 assert.equal((hotfix.match(/window\.startRest\s*=/g)||[]).length,0,
  'OTA shell must not own startRest after TurnikRest split');
@@ -1117,8 +1138,8 @@ assert.equal((hotfix.match(/window\.go\s*=(?!=)/g)||[]).length,0,'OTA shell must
 assert(hotfix.includes("registerBefore('navigation-foundation',10000")&&
  hotfix.includes("registerAfter('navigation-foundation',10000")&&
  correction.includes("nav.registerAfter('correction-controls',100")&&
- hotfix.includes("registerAfter('product-decorate',50"),
- 'navigation history and product decoration remain shell hooks while correction controls belong to TurnikCorrection');
+ productUi.includes("registerAfter('product-ui',50"),
+ 'navigation history remains a shell hook while correction and product decoration belong to their owner modules');
 assert(hotfix.includes('window.TurnikNavigation.install()'),'navigation dispatcher must become the sole go owner');
 const navSandbox={console,CustomEvent:function(){},dispatchEvent:()=>true};
 navSandbox.window=navSandbox;navSandbox.go=function(id){navSandbox.baseCalls=(navSandbox.baseCalls||0)+1;navSandbox.last=id;return 'base:'+id};
