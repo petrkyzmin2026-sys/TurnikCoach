@@ -4,6 +4,7 @@
 const VERSION='1.0.0-owner';
 if(window.TurnikProductUI&&window.TurnikProductUI.version===VERSION)return;
 let adapter={},installed=false,observer=null,queued=false;
+const infoProviders=[];
 function call(name,args,def){
 try{
 const fn=adapter&&adapter[name];
@@ -59,7 +60,9 @@ return '<div class="sheettitle">О тренировке</div><div class="sub" st
 '<button class="btn yellow full" style="margin-top:14px" onclick="closeSheet()">Понятно</button>';
 }
 function openTrainingInfo(){
-let e=null,s=((appState()||{}).seq||0)%3,plan=[],w=workout();
+const w=workout(),ctx={workout:w,state:appState(),screen:(document.querySelector('.screen.on')||{}).id||''};
+for(const p of infoProviders)try{if(p.fn(ctx)===true)return true}catch(e){console.error('TurnikProductUI info provider '+p.name,e)}
+let e=null,s=((ctx.state||{}).seq||0)%3,plan=[];
 if(w&&w.items&&w.items.length){
 s=w.sessionIndex;const item=w.items[w.exerciseIndex];if(item){e=item.e;plan=item.plan||[]}
 }else{
@@ -87,6 +90,15 @@ const rest=document.querySelector('#rest.screen.on .rest');addInfoButton(rest,nu
 }
 function decorate(){removeTechnicalCopy();addInfoButtons();queued=false}
 function queueDecorate(){if(queued)return;queued=true;setTimeout(decorate,0)}
+function registerInfoProvider(name,priority,fn){
+if(!name||typeof fn!=='function')return false;
+const key=String(name),next={name:key,priority:Number(priority)||0,fn},i=infoProviders.findIndex(x=>x.name===key);
+if(i>=0)infoProviders.splice(i,1,next);else infoProviders.push(next);
+infoProviders.sort((a,b)=>b.priority-a.priority||a.name.localeCompare(b.name));return true;
+}
+function unregisterInfoProvider(name){
+const i=infoProviders.findIndex(x=>x.name===String(name));if(i<0)return false;infoProviders.splice(i,1);return true;
+}
 function install(nextAdapter){
 if(nextAdapter&&typeof nextAdapter==='object')adapter=nextAdapter;
 if(installed&&window.tcOpenTrainingInfo===openTrainingInfo)return true;
@@ -106,7 +118,7 @@ const app=document.getElementById('app');
 if(app&&typeof MutationObserver==='function'){observer=new MutationObserver(queueDecorate);observer.observe(app,{childList:true,subtree:true});window.__tcProductObserver=observer}
 queueDecorate();installed=true;return true;
 }
-function debug(){return{version:VERSION,installed,singleOwner:installed&&window.tcOpenTrainingInfo===openTrainingInfo,observer:!!observer}}
-window.TurnikProductUI={version:VERSION,install,openTrainingInfo,decorate,queueDecorate,debug};
+function debug(){return{version:VERSION,installed,singleOwner:installed&&window.tcOpenTrainingInfo===openTrainingInfo,observer:!!observer,infoProviders:infoProviders.map(x=>x.name)}}
+window.TurnikProductUI={version:VERSION,install,openTrainingInfo,registerInfoProvider,unregisterInfoProvider,decorate,queueDecorate,debug};
 try{window.dispatchEvent(new CustomEvent('turnikproductui:ready',{detail:{version:VERSION}}))}catch(e){}
 })();
