@@ -505,7 +505,7 @@ cell.setAttribute('aria-label',entry[0]+': '+entry[1]);
 window.tcRenderProgressSummary=renderSummary;
 if(window.TurnikUI&&typeof window.TurnikUI.register==='function'){
 window.TurnikUI.register('progress','*',10000,()=>{
-setTimeout(()=>{renderSummary();tcQueueDecorate()},0);
+setTimeout(()=>{renderSummary();if(window.TurnikProductUI)window.TurnikProductUI.queueDecorate()},0);
 return false;
 });
 }
