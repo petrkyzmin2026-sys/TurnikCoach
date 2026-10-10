@@ -367,7 +367,7 @@ assert(hotfix.includes('async function tcEnsureRequiredModules()')&&
  hotfix.includes("localStorage.setItem(APPROVED_KEY,VERSION)"),
  'update approval must happen only after required modules are available and cached');
 const installUpdateBody=extractFrom(hotfix,'installUpdate');
-assert(installUpdateBody.includes('if(!tcDomainCacheReady()||!tcUiCacheReady()||!tcStoreCacheReady()||!tcActionsCacheReady()||!tcStandardWorkoutCacheReady()||!tcRestCacheReady()||!tcRestPolicyCacheReady()||!tcProductUiCacheReady()||!tcActiveWorkoutCacheReady()||!tcCorrectionCacheReady()||!tcCompletionCacheReady()||!tcLifecycleCacheReady()||!tcNavigationCacheReady()||!tcWorkoutUiCacheReady()||!tcCourseDomainCacheReady()||!tcCourseActionsCacheReady()||!tcProgressCacheReady()||!tcScreenShellCacheReady()||!tcCourseCacheReady())')&&
+assert(installUpdateBody.includes('if(!tcDomainCacheReady()||!tcUiCacheReady()||!tcStoreCacheReady()||!tcActionsCacheReady()||!tcStandardWorkoutCacheReady()||!tcRestCacheReady()||!tcRestPolicyCacheReady()||!tcProductUiCacheReady()||!tcActiveWorkoutCacheReady()||!tcCorrectionCacheReady()||!tcCompletionCacheReady()||!tcLifecycleCacheReady()||!tcNavigationCacheReady()||!tcWorkoutUiCacheReady()||!tcCourseDomainCacheReady()||!tcCourseActionsCacheReady()||!tcProgressCacheReady()||!tcScreenShellCacheReady()||!tcSurfaceCacheReady()||!tcCourseCacheReady())')&&
  !installUpdateBody.slice(0,installUpdateBody.indexOf("const previousVersion=")).includes('tcLoadCourseModule()')&&
  !installUpdateBody.slice(0,installUpdateBody.indexOf("const previousVersion=")).includes('tcLoadCourseDomainModule()')&&
  !installUpdateBody.slice(0,installUpdateBody.indexOf("const previousVersion=")).includes('tcLoadCourseActionsModule()')&&
@@ -395,8 +395,9 @@ assert(hotfix.includes("actionsModule:window.TurnikWorkoutActions&&window.Turnik
  hotfix.includes("courseActionsModule:window.TurnikCourseActions&&window.TurnikCourseActions.version||''")&&
  hotfix.includes("progressModule:window.TurnikProgress&&window.TurnikProgress.version||''")&&
  hotfix.includes("screenShellModule:window.TurnikScreenShell&&window.TurnikScreenShell.version||''")&&
+ hotfix.includes("surfaceModule:window.TurnikSurface&&window.TurnikSurface.version||''")&&
  hotfix.includes("courseModule:TC_COURSE_MODULE_VERSION,modular:true}"),
- 'runtime diagnostics must expose Core + Domain + UI + Store + Actions + Lifecycle + Navigation + WorkoutUI + CourseDomain + Course modular foundation');
+ 'runtime diagnostics must expose Core + Domain + UI + Store + Actions + Lifecycle + Navigation + WorkoutUI + ScreenShell + Surface + CourseDomain + Course modular foundation');
 assert(progress.includes("store.summary({now:Number(now)||Date.now()})"),
  'TurnikProgress must consume unified workouts through TurnikWorkoutStore instead of manually joining stores');
 assert(!hotfix.includes('function tcInstallProgressSummary()')&&!hotfix.includes('function tcProgressMetrics('),
