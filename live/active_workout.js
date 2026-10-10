@@ -1,7 +1,7 @@
-/* TURNIKCOACH_ACTIVE_WORKOUT 1.0.0-persistence-owner */
+/* TURNIKCOACH_ACTIVE_WORKOUT 1.1.0-command-hooks */
 (function(){
 'use strict';
-const VERSION='1.0.0-persistence-owner';
+const VERSION='1.1.0-command-hooks';
 const KEY='tc_active_workout_v2',SCHEMA=2,TTL=24*60*60*1000;
 if(window.TurnikActiveWorkout&&window.TurnikActiveWorkout.version===VERSION)return;
 let adapter=null,installed=false,restoreScheduled=false;
@@ -90,7 +90,12 @@ if(nextAdapter&&typeof nextAdapter==='object')adapter=nextAdapter;
 if(!adapter)throw new Error('TurnikActiveWorkout adapter required');
 if(installed)return true;
 const names=Array.isArray(adapter.startNames)?adapter.startNames:['adj','tcStartAuxWorkout','tcStartCourseTest','tcStartCourseWorkout','tcStartExtraWorkout','tcStartSupplementWorkout'];
-names.forEach(wrapStart);
+const courseActions=adapter.courseActions;
+names.forEach(name=>{
+if(courseActions&&typeof courseActions.owns==='function'&&courseActions.owns(name)&&typeof courseActions.registerAfter==='function'){
+courseActions.registerAfter(name,'active-workout-persistence',-100,()=>setTimeout(save,0));
+}else wrapStart(name);
+});
 const actions=adapter.actions,lifecycle=adapter.lifecycle,rest=adapter.rest;
 if(!actions||typeof actions.registerAfter!=='function')throw new Error('TurnikActiveWorkout actions unavailable');
 if(!rest||typeof rest.onChange!=='function')throw new Error('TurnikActiveWorkout rest owner unavailable');
@@ -107,7 +112,7 @@ window.tcSaveActiveWorkoutSnapshot=save;
 window.tcClearActiveWorkoutSnapshot=clear;
 installed=true;scheduleRestore();return true;
 }
-function debug(){const p=read();return{version:VERSION,installed,key:KEY,schema:SCHEMA,hasSnapshot:!!p,validSnapshot:!!(p&&p.schema===SCHEMA&&validWorkout(p.workout)),singleOwner:installed&&window.tcSaveActiveWorkoutSnapshot===save&&window.tcClearActiveWorkoutSnapshot===clear}}
+function debug(){const p=read(),courseActions=adapter&&adapter.courseActions,hooked=courseActions&&typeof courseActions.debug==='function'?Object.values(courseActions.debug().afterHooks||{}).filter(x=>x.includes('active-workout-persistence')).length:0;return{version:VERSION,installed,key:KEY,schema:SCHEMA,hasSnapshot:!!p,validSnapshot:!!(p&&p.schema===SCHEMA&&validWorkout(p.workout)),courseActionHooks:hooked,singleOwner:installed&&window.tcSaveActiveWorkoutSnapshot===save&&window.tcClearActiveWorkoutSnapshot===clear}}
 window.TurnikActiveWorkout={version:VERSION,install,save,restore,clear,read,validWorkout,debug};
 try{window.dispatchEvent(new CustomEvent('turnikactiveworkout:ready',{detail:{version:VERSION}}))}catch(e){}
 })();
