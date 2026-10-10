@@ -1132,8 +1132,8 @@ assert.equal((hotfix.match(/window\.go\s*=(?!=)/g)||[]).length,0,'OTA shell must
 assert(hotfix.includes("registerBefore('navigation-foundation',10000")&&
  hotfix.includes("registerAfter('navigation-foundation',10000")&&
  correction.includes("nav.registerAfter('correction-controls',100")&&
- hotfix.includes("registerAfter('product-decorate',50"),
- 'navigation history and product decoration remain shell hooks while correction controls belong to TurnikCorrection');
+ productUi.includes("registerAfter('product-ui',50"),
+ 'navigation history remains a shell hook while correction and product decoration belong to their owner modules');
 assert(hotfix.includes('window.TurnikNavigation.install()'),'navigation dispatcher must become the sole go owner');
 const navSandbox={console,CustomEvent:function(){},dispatchEvent:()=>true};
 navSandbox.window=navSandbox;navSandbox.go=function(id){navSandbox.baseCalls=(navSandbox.baseCalls||0)+1;navSandbox.last=id;return 'base:'+id};
