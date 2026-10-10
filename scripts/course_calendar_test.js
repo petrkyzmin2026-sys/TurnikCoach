@@ -21,6 +21,7 @@ const workoutUi=fs.readFileSync('live/workout_ui.js','utf8');
 const courseDomain=fs.readFileSync('live/course_domain.js','utf8');
 const courseActions=fs.readFileSync('live/course_actions.js','utf8');
 const progress=fs.readFileSync('live/progress.js','utf8');
+const screenShell=fs.readFileSync('live/screen_shell.js','utf8');
 const hotfix=fs.readFileSync('live/hotfix.js','utf8');
 assert(Buffer.byteLength(hotfix,'utf8')<=128*1024,
  'modular OTA shell must stay comfortably below the native 256 KiB ceiling');
@@ -45,6 +46,7 @@ new vm.Script(workoutUi,{filename:'live/workout_ui.js'});
 new vm.Script(courseDomain,{filename:'live/course_domain.js'});
 new vm.Script(courseActions,{filename:'live/course_actions.js'});
 new vm.Script(progress,{filename:'live/progress.js'});
+new vm.Script(screenShell,{filename:'live/screen_shell.js'});
 new vm.Script(hotfix,{filename:'live/hotfix.js'});
 const courseDomainSandbox={console,CustomEvent:function(type,init){this.type=type;this.detail=init&&init.detail},dispatchEvent:()=>true};
 courseDomainSandbox.window=courseDomainSandbox;
@@ -76,6 +78,11 @@ assert(hotfix.includes("TC_PROGRESS_MODULE_URL='https://raw.githubusercontent.co
  'global Progress summary must ship as a separately versioned/offline-cached owner module');
 assert(progress.includes("const VERSION='1.0.0-owner'")&&progress.includes("api.ui.register('progress','*',10000"),
  'TurnikProgress must own the global Progress presenter registration');
+assert(hotfix.includes("TC_SCREEN_SHELL_MODULE_URL='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/screen_shell.js")&&
+ hotfix.includes("TC_SCREEN_SHELL_CACHE_KEY='tc_module_screen_shell_'+TC_SCREEN_SHELL_MODULE_VERSION"),
+ 'top-level screen shell must ship as a separately versioned/offline-cached owner module');
+assert(screenShell.includes("const VERSION='1.0.0-owner'")&&screenShell.includes("window.TurnikScreenShell={version:VERSION,install,apply,debug}"),
+ 'TurnikScreenShell must own navigation labels, screen headers and viewport');
 assert(hotfix.includes("TC_DOMAIN_MODULE_URL='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/domain.js")&&
  hotfix.includes("TC_DOMAIN_CACHE_KEY='tc_module_domain_'+TC_DOMAIN_MODULE_VERSION"),
  'domain state must ship as a separately versioned/offline-cached module');
@@ -94,6 +101,7 @@ assert(hotfix.includes("TC_DOMAIN_MODULE_VERSION='1.0.0'")&&
  hotfix.includes("TC_WORKOUT_UI_MODULE_VERSION='1.0.0'")&&
  hotfix.includes("TC_COURSE_ACTIONS_MODULE_VERSION='1.1.0-hooks'")&&
  hotfix.includes("TC_PROGRESS_MODULE_VERSION='1.0.0-owner'")&&
+ hotfix.includes("TC_SCREEN_SHELL_MODULE_VERSION='1.0.0-owner'")&&
  hotfix.includes("TC_COURSE_MODULE_VERSION='1.0.48-product-info-provider'"),
  'OTA shell must pin exact compatible Domain, UI, Store, Actions, Lifecycle, Navigation, WorkoutUI and Course module versions');
 assert(hotfix.includes("TC_UI_MODULE_URL='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/ui.js")&&
@@ -308,8 +316,8 @@ assert(progress.includes("api.productUI.queueDecorate()")&&productUi.includes('f
  'Progress owner must delegate product decoration to TurnikProductUI after its own presenter finishes');
 assert(course.includes('id="tcCycleStartDate"'),
  'settings must expose a cycle start date');
-assert(hotfix.includes("const VERSION='5.16.67-progress-owner'"),
- 'release hotfix version must be 5.16.67');
+assert(hotfix.includes("const VERSION='5.16.68-screen-shell-owner'"),
+ 'release hotfix version must be 5.16.68');
 assert(course.includes("const COURSE_MODULE_VERSION='1.0.48-product-info-provider'"),
  'course module version must be 1.0.47');
 const directCourseWrites=(course.match(/localStorage\.setItem\(TC_COURSE_KEY/g)||[]).length;
@@ -340,7 +348,7 @@ assert(!course.includes('TC_EXTRA_START'),
  'temporary extra-workout trace logging must not ship');
 assert(!course.includes('window.confirm('),'course module must not depend on unsupported WebView JS dialogs');
 assert(!hotfix.includes('window.confirm('),'hotfix navigation/discard must not depend on unsupported WebView JS dialogs');
-assert(!hotfix.includes('forceHandover'),'5.16.67 must use an explicit user-visible update prompt');
+assert(!hotfix.includes('forceHandover'),'5.16.68 must use an explicit user-visible update prompt');
 assert(hotfix.includes("showRuntimeNotice('TurnikCoach обновлён до '+LABEL)"),
  'successful activation must give visible feedback');
 assert(hotfix.includes("localStorage.setItem('tc_hotfix_active_version',VERSION)"),
@@ -350,7 +358,7 @@ assert(hotfix.includes('async function tcEnsureRequiredModules()')&&
  hotfix.includes("localStorage.setItem(APPROVED_KEY,VERSION)"),
  'update approval must happen only after required modules are available and cached');
 const installUpdateBody=extractFrom(hotfix,'installUpdate');
-assert(installUpdateBody.includes('if(!tcDomainCacheReady()||!tcUiCacheReady()||!tcStoreCacheReady()||!tcActionsCacheReady()||!tcStandardWorkoutCacheReady()||!tcRestCacheReady()||!tcRestPolicyCacheReady()||!tcProductUiCacheReady()||!tcActiveWorkoutCacheReady()||!tcCorrectionCacheReady()||!tcCompletionCacheReady()||!tcLifecycleCacheReady()||!tcNavigationCacheReady()||!tcWorkoutUiCacheReady()||!tcCourseDomainCacheReady()||!tcCourseActionsCacheReady()||!tcProgressCacheReady()||!tcCourseCacheReady())')&&
+assert(installUpdateBody.includes('if(!tcDomainCacheReady()||!tcUiCacheReady()||!tcStoreCacheReady()||!tcActionsCacheReady()||!tcStandardWorkoutCacheReady()||!tcRestCacheReady()||!tcRestPolicyCacheReady()||!tcProductUiCacheReady()||!tcActiveWorkoutCacheReady()||!tcCorrectionCacheReady()||!tcCompletionCacheReady()||!tcLifecycleCacheReady()||!tcNavigationCacheReady()||!tcWorkoutUiCacheReady()||!tcCourseDomainCacheReady()||!tcCourseActionsCacheReady()||!tcProgressCacheReady()||!tcScreenShellCacheReady()||!tcCourseCacheReady())')&&
  !installUpdateBody.slice(0,installUpdateBody.indexOf("const previousVersion=")).includes('tcLoadCourseModule()')&&
  !installUpdateBody.slice(0,installUpdateBody.indexOf("const previousVersion=")).includes('tcLoadCourseDomainModule()')&&
  !installUpdateBody.slice(0,installUpdateBody.indexOf("const previousVersion=")).includes('tcLoadCourseActionsModule()')&&
@@ -377,6 +385,7 @@ assert(hotfix.includes("actionsModule:window.TurnikWorkoutActions&&window.Turnik
  hotfix.includes("courseDomainModule:window.TurnikCourseDomain&&window.TurnikCourseDomain.version||''")&&
  hotfix.includes("courseActionsModule:window.TurnikCourseActions&&window.TurnikCourseActions.version||''")&&
  hotfix.includes("progressModule:window.TurnikProgress&&window.TurnikProgress.version||''")&&
+ hotfix.includes("screenShellModule:window.TurnikScreenShell&&window.TurnikScreenShell.version||''")&&
  hotfix.includes("courseModule:TC_COURSE_MODULE_VERSION,modular:true}"),
  'runtime diagnostics must expose Core + Domain + UI + Store + Actions + Lifecycle + Navigation + WorkoutUI + CourseDomain + Course modular foundation');
 assert(progress.includes("store.summary({now:Number(now)||Date.now()})"),
@@ -836,10 +845,12 @@ assert(hotfix.includes("TurnikNative.refreshSurface")&&
 assert(activeWorkout.includes("window.tcClearActiveWorkoutSnapshot=clear")&&
  hotfix.includes("window.tcClearActiveWorkoutSnapshot()"),
  'discard flow must remove durable workout state through the TurnikActiveWorkout compatibility API');
-assert(hotfix.includes("setNav('n1','◫','План')")&&hotfix.includes("setNav('n3','⌁','Прогресс')"),
- 'top-level navigation must expose Today / Plan / Progress');
-assert(hotfix.includes("viewport.setAttribute('content','width=device-width,initial-scale=1')"),
- 'UX2 must remove the legacy zoom lock');
+assert(screenShell.includes("n1:{icon:'◫',label:'План'}")&&screenShell.includes("n2:{icon:'●',label:'Сегодня'}")&&screenShell.includes("n3:{icon:'⌁',label:'Прогресс'}"),
+ 'TurnikScreenShell must expose Today / Plan / Progress top-level navigation');
+assert(screenShell.includes("viewport.setAttribute('content','width=device-width,initial-scale=1')"),
+ 'TurnikScreenShell must remove the legacy zoom lock');
+assert(!hotfix.includes('function tcInstallUx2InformationArchitecture()'),
+ 'OTA shell must not keep a second top-level screen-shell implementation');
 assert(course.includes("const week=()=>'<div class=\"tcWeekSection\""),
  'Today must treat the weekly calendar as a secondary section');
 assert(course.includes('<details class="tcTodayPlanDetails"><summary>Посмотреть план</summary>'),
