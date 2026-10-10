@@ -91,6 +91,7 @@ jobs:
           curl -fsSL "https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/${PREV_COMMIT}/live/course.js" > app/src/main/assets/course-prev.js
           curl -fsSL "https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/${PREV_COMMIT}/live/course_domain.js" > app/src/main/assets/course-domain-prev.js
           curl -fsSL "https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/${PREV_COMMIT}/live/store.js" > app/src/main/assets/store-prev.js
+          curl -fsSL "https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/${PREV_COMMIT}/live/active_workout.js" > app/src/main/assets/active-workout-prev.js
           cp live/hotfix.js app/src/main/assets/hotfix-next.js
           python3 - <<'PY'
           from pathlib import Path
@@ -113,14 +114,15 @@ jobs:
           grep -q 'TURNIKCOACH_REST 1.0.0-state-owner' live/rest.js
           grep -q 'TURNIKCOACH_REST_POLICY 1.0.0-owner' live/rest_policy.js
           grep -q 'TURNIKCOACH_PRODUCT_UI 1.0.0-owner' live/product_ui.js
-          grep -q 'TURNIKCOACH_ACTIVE_WORKOUT 1.0.0-persistence-owner' live/active_workout.js
+          grep -q 'TURNIKCOACH_ACTIVE_WORKOUT 1.0.0-persistence-owner' app/src/main/assets/active-workout-prev.js
+          grep -q 'TURNIKCOACH_ACTIVE_WORKOUT 1.1.0-command-hooks' live/active_workout.js
           grep -q 'TURNIKCOACH_CORRECTION 1.0.0-owner' live/correction.js
           grep -q 'TURNIKCOACH_COMPLETION 1.0.0-owner' live/completion.js
           grep -q 'TURNIKCOACH_WORKOUT_LIFECYCLE 1.0.0' live/lifecycle.js
           grep -q 'TURNIKCOACH_NAVIGATION 1.0.0' live/navigation.js
           grep -q 'TURNIKCOACH_WORKOUT_UI 1.0.0' live/workout_ui.js
           grep -q 'TURNIKCOACH_COURSE_DOMAIN 1.1.0-viewstate-owner' live/course_domain.js
-          grep -q 'TURNIKCOACH_COURSE_ACTIONS 1.0.0-owner' live/course_actions.js
+          grep -q 'TURNIKCOACH_COURSE_ACTIONS 1.1.0-hooks' live/course_actions.js
           grep -q 'TURNIKCOACH_COURSE 1.0.48-product-info-provider' live/course.js
           grep -q 'TURNIKCOACH_COURSE 1.0.48-product-info-provider' app/src/main/assets/course-prev.js
           grep -q 'TURNIKCOACH_COURSE_DOMAIN 1.1.0-viewstate-owner' app/src/main/assets/course-domain-prev.js
@@ -142,6 +144,7 @@ jobs:
           rest_cache=json.dumps(Path('live/rest.js').read_text())
           rest_policy_cache=json.dumps(Path('live/rest_policy.js').read_text())
           product_ui_cache=json.dumps(Path('live/product_ui.js').read_text())
+          prev_active_workout_cache=json.dumps(Path('app/src/main/assets/active-workout-prev.js').read_text())
           active_workout_cache=json.dumps(Path('live/active_workout.js').read_text())
           correction_cache=json.dumps(Path('live/correction.js').read_text())
           completion_cache=json.dumps(Path('live/completion.js').read_text())
@@ -166,7 +169,8 @@ jobs:
             localStorage.setItem('tc_module_rest_1.0.0-state-owner',__REST_CACHE__);
             localStorage.setItem('tc_module_rest_policy_1.0.0-owner',__REST_POLICY_CACHE__);
             localStorage.setItem('tc_module_product_ui_1.0.0-owner',__PRODUCT_UI_CACHE__);
-            localStorage.setItem('tc_module_active_workout_1.0.0-persistence-owner',__ACTIVE_WORKOUT_CACHE__);
+            localStorage.setItem('tc_module_active_workout_1.0.0-persistence-owner',__PREV_ACTIVE_WORKOUT_CACHE__);
+            localStorage.setItem('tc_module_active_workout_1.1.0-command-hooks',__ACTIVE_WORKOUT_CACHE__);
             localStorage.setItem('tc_module_correction_1.0.0-owner',__CORRECTION_CACHE__);
             localStorage.setItem('tc_module_completion_1.0.0-owner',__COMPLETION_CACHE__);
             localStorage.setItem('tc_module_lifecycle_1.0.0',__LIFECYCLE_CACHE__);
@@ -174,7 +178,7 @@ jobs:
             localStorage.setItem('tc_module_workout_ui_1.0.0',__WORKOUT_UI_CACHE__);
             localStorage.setItem('tc_module_course_domain_1.1.0-viewstate-owner',__PREV_COURSE_DOMAIN_CACHE__);
             localStorage.setItem('tc_module_course_domain_1.1.0-viewstate-owner',__NEXT_COURSE_DOMAIN_CACHE__);
-            localStorage.setItem('tc_module_course_actions_1.0.0-owner',__COURSE_ACTIONS_CACHE__);
+            localStorage.setItem('tc_module_course_actions_1.1.0-hooks',__COURSE_ACTIONS_CACHE__);
             localStorage.setItem('tc_module_course_1.0.48-product-info-provider',__PREV_COURSE_CACHE__);
             localStorage.setItem('tc_module_course_1.0.48-product-info-provider',__NEXT_COURSE_CACHE__);
             if(localStorage.getItem('__tcForcedHandoverSmokeSeeded')) return;
@@ -258,7 +262,7 @@ jobs:
             else tcInstallTestDriver();
           })();
           </script>'''
-          seed=seed.replace('__PREV_COURSE_CACHE__',prev_course_cache).replace('__DOMAIN_CACHE__',domain_cache).replace('__UI_CACHE__',ui_cache).replace('__PREV_STORE_CACHE__',prev_store_cache).replace('__NEXT_STORE_CACHE__',next_store_cache).replace('__ACTIONS_CACHE__',actions_cache).replace('__STANDARD_WORKOUT_CACHE__',standard_workout_cache).replace('__REST_CACHE__',rest_cache).replace('__REST_POLICY_CACHE__',rest_policy_cache).replace('__PRODUCT_UI_CACHE__',product_ui_cache).replace('__ACTIVE_WORKOUT_CACHE__',active_workout_cache).replace('__CORRECTION_CACHE__',correction_cache).replace('__COMPLETION_CACHE__',completion_cache).replace('__LIFECYCLE_CACHE__',lifecycle_cache).replace('__NAVIGATION_CACHE__',navigation_cache).replace('__WORKOUT_UI_CACHE__',workout_ui_cache).replace('__PREV_COURSE_DOMAIN_CACHE__',prev_course_domain_cache).replace('__NEXT_COURSE_DOMAIN_CACHE__',next_course_domain_cache).replace('__COURSE_ACTIONS_CACHE__',course_actions_cache).replace('__NEXT_COURSE_CACHE__',next_course_cache)
+          seed=seed.replace('__PREV_COURSE_CACHE__',prev_course_cache).replace('__DOMAIN_CACHE__',domain_cache).replace('__UI_CACHE__',ui_cache).replace('__PREV_STORE_CACHE__',prev_store_cache).replace('__NEXT_STORE_CACHE__',next_store_cache).replace('__ACTIONS_CACHE__',actions_cache).replace('__STANDARD_WORKOUT_CACHE__',standard_workout_cache).replace('__REST_CACHE__',rest_cache).replace('__REST_POLICY_CACHE__',rest_policy_cache).replace('__PRODUCT_UI_CACHE__',product_ui_cache).replace('__PREV_ACTIVE_WORKOUT_CACHE__',prev_active_workout_cache).replace('__ACTIVE_WORKOUT_CACHE__',active_workout_cache).replace('__CORRECTION_CACHE__',correction_cache).replace('__COMPLETION_CACHE__',completion_cache).replace('__LIFECYCLE_CACHE__',lifecycle_cache).replace('__NAVIGATION_CACHE__',navigation_cache).replace('__WORKOUT_UI_CACHE__',workout_ui_cache).replace('__PREV_COURSE_DOMAIN_CACHE__',prev_course_domain_cache).replace('__NEXT_COURSE_DOMAIN_CACHE__',next_course_domain_cache).replace('__COURSE_ACTIONS_CACHE__',course_actions_cache).replace('__NEXT_COURSE_CACHE__',next_course_cache)
           p.write_text(html.replace(marker,seed+marker))
           PY
       - name: Isolate test application from installed production data
