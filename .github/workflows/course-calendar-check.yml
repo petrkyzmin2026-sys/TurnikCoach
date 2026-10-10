@@ -119,7 +119,7 @@ jobs:
           grep -q 'TURNIKCOACH_NAVIGATION 1.0.0' live/navigation.js
           grep -q 'TURNIKCOACH_WORKOUT_UI 1.0.0' live/workout_ui.js
           grep -q 'TURNIKCOACH_COURSE_DOMAIN 1.1.0-viewstate-owner' live/course_domain.js
-          grep -q 'TURNIKCOACH_COURSE 1.0.47-viewstate-adapter' live/course.js
+          grep -q 'TURNIKCOACH_COURSE 1.0.48-product-info-provider' live/course.js
           grep -q 'TURNIKCOACH_COURSE 1.0.47-viewstate-adapter' app/src/main/assets/course-prev.js
           grep -q 'TURNIKCOACH_COURSE_DOMAIN 1.1.0-viewstate-owner' app/src/main/assets/course-domain-prev.js
           ! grep -q 'COURSE_MODULE_BUNDLED=' app/src/main/assets/hotfix-next.js
@@ -172,7 +172,7 @@ jobs:
             localStorage.setItem('tc_module_course_domain_1.1.0-viewstate-owner',__PREV_COURSE_DOMAIN_CACHE__);
             localStorage.setItem('tc_module_course_domain_1.1.0-viewstate-owner',__NEXT_COURSE_DOMAIN_CACHE__);
             localStorage.setItem('tc_module_course_1.0.47-viewstate-adapter',__PREV_COURSE_CACHE__);
-            localStorage.setItem('tc_module_course_1.0.47-viewstate-adapter',__NEXT_COURSE_CACHE__);
+            localStorage.setItem('tc_module_course_1.0.48-product-info-provider',__NEXT_COURSE_CACHE__);
             if(localStorage.getItem('__tcForcedHandoverSmokeSeeded')) return;
             var d=new Date(),k=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
             localStorage.setItem('tc_hotfix_approved_version','5.16.64-rest-policy-owner');
