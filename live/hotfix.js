@@ -1,8 +1,8 @@
-/* TURNIKCOACH_HOTFIX 5.16.69-surface-owner */
+/* TURNIKCOACH_HOTFIX 5.16.70-navigation-owner */
 (function(){
 'use strict';
-const VERSION='5.16.69-surface-owner';
-const LABEL='5.16.69';
+const VERSION='5.16.70-navigation-owner';
+const LABEL='5.16.70';
 const APPROVED_KEY='tc_hotfix_approved_version';
 const LEGACY_ASSET_VERSION='5.14.0-adaptive-rest';
 const stalePrompt=document.getElementById('tcUpdatePrompt');
@@ -68,7 +68,7 @@ title.style.cssText='font-size:22px;font-weight:800;margin-bottom:10px;flex:0 0 
 title.textContent='Доступно обновление TurnikCoach '+LABEL;
 const text=document.createElement('div');
 text.style.cssText='font-size:15px;line-height:1.45;color:#cfd8e3;margin-bottom:18px;min-height:0;flex:1 1 0;overflow-y:auto;overscroll-behavior:contain;padding-right:4px';
-text.innerHTML="Архитектурное обновление без изменения привычного интерфейса: управление WebView-поверхностью тренировки вынесено из hotfix в TurnikSurface. Видимость экранов, принудительная перерисовка, восстановление workout/rest после возврата приложения и адаптивная геометрия теперь имеют одного владельца вместо двух дублирующихся реализаций. История и сценарии тренировок не меняются.<br><br>Установить обновление сейчас?";
+text.innerHTML="Продолжена архитектурная переработка без изменения привычной логики тренировок. TurnikNavigation теперь единолично управляет переходами экранов, Back/Exit, системной кнопкой назад, sheet-окнами и восстановлением позиции. Из hotfix удалён старый параллельный слой навигации. Это уменьшает число переопределений и делает дальнейшую переработку «Сегодня / План / Прогресс» безопаснее.<br><br>Установить обновление сейчас?";
 const row=document.createElement('div');
 row.style.cssText='display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;flex:0 0 auto';
 const later=document.createElement('button');
@@ -155,8 +155,8 @@ const TC_LIFECYCLE_MODULE_VERSION='1.0.0';
 const TC_LIFECYCLE_MODULE_MARKER='TURNIKCOACH_WORKOUT_LIFECYCLE 1.0.0';
 const TC_LIFECYCLE_MODULE_URL='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/lifecycle.js?v='+encodeURIComponent(TC_LIFECYCLE_MODULE_VERSION);
 const TC_LIFECYCLE_CACHE_KEY='tc_module_lifecycle_'+TC_LIFECYCLE_MODULE_VERSION;
-const TC_NAVIGATION_MODULE_VERSION='1.0.0';
-const TC_NAVIGATION_MODULE_MARKER='TURNIKCOACH_NAVIGATION 1.0.0';
+const TC_NAVIGATION_MODULE_VERSION='1.1.0-owner';
+const TC_NAVIGATION_MODULE_MARKER='TURNIKCOACH_NAVIGATION 1.1.0-owner';
 const TC_NAVIGATION_MODULE_URL='https://raw.githubusercontent.com/petrkyzmin2026-sys/TurnikCoach/main/live/navigation.js?v='+encodeURIComponent(TC_NAVIGATION_MODULE_VERSION);
 const TC_NAVIGATION_CACHE_KEY='tc_module_navigation_'+TC_NAVIGATION_MODULE_VERSION;
 const TC_WORKOUT_UI_MODULE_VERSION='1.0.0';
@@ -491,286 +491,6 @@ tcPrimeProgressModule();
 tcPrimeScreenShellModule();
 tcPrimeSurfaceModule();
 tcPrimeCourseModule();
-function tcInstallNavigationUpgrades(){
-console.log('TC_NAV_UPGRADE',JSON.stringify({phase:'install',version:VERSION}));
-if(window.__tcBackControlObserver){
-try{window.__tcBackControlObserver.disconnect()}catch(e){}
-window.__tcBackControlObserver=null;
-console.log('TC_NAV_UPGRADE',JSON.stringify({phase:'disconnect-back-observer',version:VERSION}));
-}
-const oldStyle=document.getElementById('tcNavUpgradeStyle');
-if(oldStyle)oldStyle.remove();
-const style=document.createElement('style');
-style.id='tcNavUpgradeStyle';
-style.textContent=
-'#workout .controls{height:auto!important;min-height:246px!important;max-height:45vh!important;overflow-y:auto!important;box-sizing:border-box!important}'+
-'#workout .wmedia{bottom:var(--tc-workout-controls-bottom,260px)!important}'+
-'#workout .controls .chips{height:auto!important;min-height:30px!important;flex:0 0 auto!important;flex-wrap:wrap!important}'+
-'#workout .controls .counter{grid-template-columns:minmax(56px,64px) minmax(0,1fr) minmax(56px,64px)!important;height:auto!important;min-height:72px!important;flex:0 0 auto!important}'+
-'#workout .tcStableWorkoutControls{height:auto!important;min-height:246px!important;max-height:45vh!important;overflow-y:auto!important;box-sizing:border-box!important}'+
-'.nav button{white-space:normal!important;line-height:1.15!important;padding:4px 2px!important;overflow-wrap:anywhere}'+
-'#sheet .sheetbox{max-height:92vh!important;overflow-y:auto!important;overscroll-behavior:contain}'+
-'.sheettitle,.dateBig{overflow-wrap:anywhere;word-break:normal}'+
-'.tcCompletionStats{grid-template-columns:repeat(auto-fit,minmax(92px,1fr))!important}'+
-'.tcCompletionRow{flex-wrap:wrap!important;align-items:flex-start!important}'+
-'.tcCompletionRow span,.tcCompletionRow b{min-width:0!important;flex:1 1 140px!important;overflow-wrap:anywhere!important}';
-document.head.appendChild(style);
-const surface=window.TurnikSurface;
-if(!surface||typeof surface.install!=='function')throw new Error('TurnikCoach surface owner unavailable');
-if(!surface.install({hotfixVersion:VERSION}))throw new Error('TurnikCoach surface owner install failed');
-window.__TC_NAV_UPGRADE_VERSION=VERSION;
-}
-function tcInstallNavigationFoundation(){
-if(window.__TC_NAV_FOUNDATION)return;
-window.__TC_NAV_FOUNDATION=true;
-const surface=window.TurnikSurface;
-if(!surface||typeof surface.syncScreenVisibility!=='function')throw new Error('TurnikCoach surface owner unavailable for navigation');
-const style=document.createElement('style');
-style.id='tcNavFoundationStyle';
-style.textContent=
-'.tcWorkoutExitBtn{height:48px;min-width:68px;border-radius:12px;border:1px solid #70424a;background:rgba(42,24,27,.94);color:#ffb8bd;font-size:12px;font-weight:900;padding:0 10px;display:grid;place-items:center;z-index:30;touch-action:manipulation}'+
-'.tcWorkoutExitBtn:active,.tcBackBtn:active,.tcRestExitBtn:active{transform:scale(.96)}'+
-'.tcBackBtn{width:48px;height:48px;min-width:48px;border-radius:50%;border:1px solid rgba(255,255,255,.22);background:rgba(13,20,27,.88);color:#fff;font-size:25px;font-weight:900;display:grid;place-items:center;padding:0;z-index:30;touch-action:manipulation}'+
-'.tcRestBack{position:absolute;left:12px;top:12px}'+
-'.tcRestExitBtn{position:absolute;right:12px;top:12px;height:48px;min-width:68px;border-radius:12px;border:1px solid #70424a;background:#2a181b;color:#ffb8bd;font-size:12px;font-weight:900;padding:0 10px;z-index:30;touch-action:manipulation}'+
-'.tcSheetClose{position:sticky;float:right;top:0;margin:-4px -3px 6px 10px;width:48px;height:48px;min-width:48px;border-radius:50%;border:1px solid #3a4653;background:#202a32;color:#fff;font-size:24px;font-weight:900;z-index:5;touch-action:manipulation}'+
-'#workout .stageHeader .row.between,#workout .wtop .row.between{gap:8px}'+
-'#workout .wtop .row.between{position:relative;padding-left:78px;min-height:48px}'+
-'#workout .wtop .tcWorkoutExitBtn{position:absolute;left:0;top:0}'+
-'#workout .stageHeader .endBtn{min-height:48px!important;min-width:76px!important;padding:0 12px!important;touch-action:manipulation}'+
-'#workout .stageControls .btn,#rest .btn,#sheet .sheetbox .btn{min-height:48px!important;touch-action:manipulation}'+
-'#workout .stageControls .btn.green,#rest .btn.green{min-height:58px!important;font-size:16px!important}'+
-'#workout .controls{height:auto!important;min-height:246px!important;max-height:45vh!important;overflow-y:auto!important;padding:12px!important;display:flex!important;flex-direction:column!important;gap:6px!important;box-sizing:border-box!important}'+
-'#workout .wmedia{bottom:var(--tc-workout-controls-bottom,260px)!important}'+
-'#workout .controls .chips{height:auto!important;min-height:30px!important;flex:0 0 auto!important;flex-wrap:wrap!important}'+
-'#workout .controls .counter{grid-template-columns:minmax(56px,64px) minmax(0,1fr) minmax(56px,64px)!important;height:auto!important;min-height:72px!important;gap:10px!important;flex:0 0 auto!important}'+
-'#workout .controls .pm{height:60px!important;min-height:60px!important;min-width:60px!important;font-size:30px!important;touch-action:manipulation}'+
-'#workout .controls .fact b{font-size:42px!important}'+
-'#workout .controls .actions{display:grid!important;grid-template-columns:1fr!important;gap:6px!important;margin-top:auto!important}'+
-'#workout .controls .actions .btn.green{min-height:60px!important;font-size:17px!important;font-weight:900!important;order:1}'+
-'#workout .controls .actions .btn.ghost{min-height:48px!important;order:2}'+
-'#workout .tcStableWorkoutControls{height:auto!important;min-height:246px!important;max-height:45vh!important;overflow-y:auto!important;padding:12px!important;box-sizing:border-box!important}'+
-'#workout .tcWorkoutActions{display:grid!important;grid-template-columns:1fr!important;gap:6px!important}'+
-'#workout .tcWorkoutDoneAction{min-height:60px!important;font-size:17px!important;font-weight:900!important;width:100%!important}'+
-'#workout .tcWorkoutSkipAction{min-height:48px!important;width:100%!important}'+
-'#workout .tcWorkoutMinus,#workout .tcWorkoutPlus{min-width:60px!important;min-height:60px!important;touch-action:manipulation}'+
-'.nav button{min-height:48px!important;touch-action:manipulation;white-space:normal!important;line-height:1.15!important;padding:4px 2px!important;overflow-wrap:anywhere}'+
-'#sheet .sheetbox{max-height:92vh!important;overflow-y:auto!important;overscroll-behavior:contain}'+
-'.sheettitle,.dateBig{overflow-wrap:anywhere;word-break:normal}';
-document.head.appendChild(style);
-let internal=false;
-let sheetWasOpen=false;
-const scrollByScreen={};
-function currentScreen(){
-const el=document.querySelector('.screen.on');
-return el&&el.id?el.id:'today';
-}
-function currentScroll(screen){
-const root=document.getElementById(screen);
-const sc=root&&root.querySelector('.scroll');
-return sc?sc.scrollTop:0;
-}
-function restoreScroll(screen){
-const root=document.getElementById(screen);
-const sc=root&&root.querySelector('.scroll');
-if(sc&&Number.isFinite(scrollByScreen[screen]))sc.scrollTop=scrollByScreen[screen];
-}
-function routeUrl(screen,sheet){
-return '#tc='+encodeURIComponent(screen)+(sheet?'&sheet=1':'');
-}
-function replaceRoute(screen,sheet){
-try{history.replaceState({tcNav:true,tcScreen:screen,tcSheet:!!sheet},'',routeUrl(screen,sheet))}catch(e){}
-}
-function pushRoute(screen,sheet){
-try{history.pushState({tcNav:true,tcScreen:screen,tcSheet:!!sheet},'',routeUrl(screen,sheet))}catch(e){}
-}
-function tcHasWorkout(){return surface.hasWorkout()}
-function tcClearWorkout(){try{if(window.TurnikRest&&typeof window.TurnikRest.stop==='function')window.TurnikRest.stop('discard')}catch(e){}try{if(typeof rt!=='undefined'&&rt){clearInterval(rt);rt=null}}catch(e){}try{W=null}catch(e){}try{if(typeof window.tcClearActiveWorkoutSnapshot==='function')window.tcClearActiveWorkoutSnapshot()}catch(e){}}
-const navigation=window.TurnikNavigation;
-if(!navigation||typeof navigation.registerBefore!=='function'||typeof navigation.registerAfter!=='function')throw new Error('TurnikCoach navigation dispatcher unavailable');
-navigation.registerBefore('navigation-foundation',10000,ctx=>{
-const from=currentScreen();ctx.meta.from=from;scrollByScreen[from]=currentScroll(from);
-});
-navigation.registerAfter('navigation-foundation',10000,ctx=>{
-const id=ctx.target,from=ctx.meta.from||currentScreen();
-surface.syncScreenVisibility(id);
-if(id==='workout')surface.installAdaptiveGeometry();
-surface.forceRepaint();
-if(id==='workout'&&tcHasWorkout()){
-const saveFn=window.tcSaveActiveWorkoutSnapshot;
-const saved=typeof saveFn==='function'?saveFn():false;
-console.log('TC_WORKOUT_STATE',JSON.stringify({phase:'boundary-save',available:typeof saveFn==='function',saved:!!saved,hasW:tcHasWorkout()}));
-}
-if(internal){restoreScroll(id);return}
-const trainingFlow=tcHasWorkout()&&(id==='workout'||id==='rest')&&(from==='workout'||from==='rest');
-const finishedTraining=!tcHasWorkout()&&(from==='workout'||from==='rest')&&['today','exercise','historyScreen'].includes(id);
-if(trainingFlow||finishedTraining)replaceRoute(id,false);
-else if(id!==from)pushRoute(id,false);
-else replaceRoute(id,false);
-restoreScroll(id);setTimeout(tcDecorateBackControls,0);
-});
-const sheet=document.getElementById('sheet');
-function closeSheetNow(){
-try{
-if(typeof window.closeSheet==='function')window.closeSheet();
-else if(sheet)sheet.classList.remove('open');
-}catch(e){if(sheet)sheet.classList.remove('open')}
-}
-function abandonWorkoutAndGo(target){
-tcClearWorkout();
-internal=true;
-try{window.go(target||'today')}finally{internal=false}
-surface.syncScreenVisibility(target||'today');
-replaceRoute(target||'today',false);
-surface.forceRepaint();
-setTimeout(tcDecorateBackControls,0);
-}
-function tcDiscardWorkoutNow(){
-if(!tcHasWorkout()){showRuntimeNotice('Активная тренировка уже отсутствует.','danger');return;}
-if(sheet)sheet.classList.remove('open');
-abandonWorkoutAndGo('today');
-showRuntimeNotice('Текущая тренировка закрыта без сохранения.');
-}
-window.tcDiscardWorkout=function(){
-if(!tcHasWorkout()){showRuntimeNotice('Нет активной тренировки для выхода без сохранения.','danger');return;}
-const box=document.getElementById('sheetbox');
-if(!box||!sheet){showRuntimeNotice('Не удалось открыть подтверждение выхода.','danger');return;}
-box.innerHTML='<div class="sheettitle">Завершить без сохранения?</div>'+
-'<div class="sub" style="margin-top:7px;line-height:1.45">Подходы этого запуска будут отброшены. Тренировка не попадёт в историю и останется доступной для повторного начала.</div>'+
-'<button id="tcConfirmDiscardWorkoutBtn" type="button" class="btn danger full" style="margin-top:16px">Завершить без сохранения</button>'+
-'<button id="tcCancelDiscardWorkoutBtn" type="button" class="btn ghost full" style="margin-top:8px">Продолжить тренировку</button>';
-sheet.classList.add('open');
-const yes=document.getElementById('tcConfirmDiscardWorkoutBtn');
-const no=document.getElementById('tcCancelDiscardWorkoutBtn');
-if(yes)yes.onclick=function(ev){if(ev){ev.preventDefault();ev.stopPropagation()}tcDiscardWorkoutNow();return false};
-if(no)no.onclick=function(ev){if(ev){ev.preventDefault();ev.stopPropagation()}closeSheetNow();return false};
-};
-window.tcNavigateBack=function(){
-const scr=currentScreen();
-if(sheet&&sheet.classList.contains('open')){
-if(history.state&&history.state.tcSheet){history.back();return}
-closeSheetNow();return;
-}
-if(scr==='rest'&&tcHasWorkout()){
-history.back();return;
-}
-if(scr==='workout'&&tcHasWorkout()){
-window.tcDiscardWorkout();return;
-}
-if(history.length>1){history.back();return}
-if(scr!=='today'){
-internal=true;try{baseGo('today')}finally{internal=false}
-replaceRoute('today',false);
-}
-};
-window.addEventListener('popstate',function(ev){
-const scr=currentScreen();
-if(sheet&&sheet.classList.contains('open')){
-internal=true;
-try{closeSheetNow()}finally{internal=false}
-sheetWasOpen=false;
-return;
-}
-if(scr==='rest'&&tcHasWorkout()){
-internal=true;
-try{
-if(typeof window.finishRest==='function')window.finishRest();
-else baseGo('workout');
-}finally{internal=false}
-pushRoute('workout',false);
-setTimeout(tcDecorateBackControls,0);
-return;
-}
-const target=ev.state&&ev.state.tcScreen?ev.state.tcScreen:'today';
-if(scr==='workout'&&tcHasWorkout()&&target!=='workout'){
-pushRoute('workout',false);
-window.tcDiscardWorkout();
-return;
-}
-internal=true;
-try{baseGo(target)}finally{internal=false}
-restoreScroll(target);
-setTimeout(tcDecorateBackControls,0);
-});
-function tcStabilizeWorkoutControls(){
-const root=document.querySelector('#workout.screen.on');
-if(!root)return;
-const buttons=[...root.querySelectorAll('button')];
-const byText=(test)=>buttons.find(b=>test((b.textContent||'').trim()));
-const done=byText(t=>t==='Сделано');
-const skip=byText(t=>/^Пропустить/.test(t));
-const minus=byText(t=>t==='−'||t==='-');
-const plus=byText(t=>t==='+');
-if(done)done.classList.add('tcWorkoutDoneAction');
-if(skip)skip.classList.add('tcWorkoutSkipAction');
-if(minus)minus.classList.add('tcWorkoutMinus');
-if(plus)plus.classList.add('tcWorkoutPlus');
-if(done&&skip&&done.parentElement===skip.parentElement)done.parentElement.classList.add('tcWorkoutActions');
-const panel=(done&&done.closest('.stageControls,.controls'))||(skip&&skip.closest('.stageControls,.controls'));
-if(panel)panel.classList.add('tcStableWorkoutControls');
-}
-function tcDecorateBackControls(){
-tcStabilizeWorkoutControls();
-const wh=document.querySelector('#workout.screen.on .stageHeader .row.between, #workout.screen.on .wtop .row.between');
-if(wh&&!wh.querySelector('.tcWorkoutExitBtn')){
-const b=document.createElement('button');
-b.type='button';b.className='tcWorkoutExitBtn';b.textContent='Выйти';b.title='Выйти без сохранения';
-b.onclick=window.tcDiscardWorkout;
-wh.insertBefore(b,wh.firstChild);
-}
-const rest=document.querySelector('#rest.screen.on .rest');
-if(rest&&!rest.querySelector('.tcRestBack')){
-const b=document.createElement('button');
-b.type='button';b.className='tcBackBtn tcRestBack';b.textContent='‹';b.title='Назад к упражнению';
-b.onclick=window.tcNavigateBack;
-rest.appendChild(b);
-}
-if(rest&&!rest.querySelector('.tcRestExitBtn')){
-const b=document.createElement('button');
-b.type='button';b.className='tcRestExitBtn';b.textContent='Выйти';b.title='Выйти без сохранения';
-b.onclick=window.tcDiscardWorkout;
-rest.appendChild(b);
-}
-if(sheet&&sheet.classList.contains('open')){
-const box=document.getElementById('sheetbox');
-if(box&&!box.querySelector('.tcSheetClose')){
-const b=document.createElement('button');
-b.type='button';b.className='tcSheetClose';b.textContent='×';b.title='Закрыть';
-b.onclick=window.tcNavigateBack;
-box.insertBefore(b,box.firstChild);
-}
-}
-}
-window.tcEnsureWorkoutControls=function(){setTimeout(tcDecorateBackControls,0)};
-if(sheet){
-const mo=new MutationObserver(function(){
-const open=sheet.classList.contains('open');
-if(open&&!sheetWasOpen){
-sheetWasOpen=true;
-if(!internal&&!(history.state&&history.state.tcSheet))pushRoute(currentScreen(),true);
-}else if(!open&&sheetWasOpen){
-sheetWasOpen=false;
-if(!internal&&history.state&&history.state.tcSheet)history.back();
-}
-tcDecorateBackControls();
-});
-mo.observe(sheet,{attributes:true,attributeFilter:['class'],childList:true,subtree:true});
-window.__tcSheetNavObserver=mo;
-}
-document.addEventListener('keydown',function(e){
-if(e.key==='Escape'){e.preventDefault();window.tcNavigateBack()}
-});
-const start=currentScreen();
-surface.syncScreenVisibility(start);
-replaceRoute(start,false);
-tcDecorateBackControls();
-const app=document.getElementById('app');
-if(app){
-const mo=new MutationObserver(tcDecorateBackControls);
-mo.observe(app,{childList:true,subtree:true,attributes:true,attributeFilter:['class']});
-window.__tcBackControlObserver=mo;
-}
-}
 function installUpdate(){
 if(window.__TC_HOTFIX_ACTIVE_VERSION===VERSION)return;
 if(!tcLoadCoreModule()){showRuntimeNotice('Не удалось загрузить ядро TurnikCore. Текущая версия оставлена без изменений.','danger');return}
@@ -1038,8 +758,10 @@ if(!window.TurnikCourseActions.captureAndInstall(TC_COURSE_ACTION_NAMES,'morozov
 if(!tcRegisterCoreSources())throw new Error('TurnikCoach core source registration failed');
 if(typeof window.tcFlushCourseBootstrapState==='function'&&!window.tcFlushCourseBootstrapState())throw new Error('TurnikCoach course bootstrap flush failed');
 if(!window.TurnikScreenShell.install())throw new Error('TurnikCoach screen shell owner install failed');
-tcInstallNavigationFoundation();
-tcInstallNavigationUpgrades();
+if(!window.TurnikNavigation.installOwner({
+surface:window.TurnikSurface,rest:window.TurnikRest,showNotice:showRuntimeNotice,
+clearSnapshot:window.tcClearActiveWorkoutSnapshot,hotfixVersion:VERSION
+}))throw new Error('TurnikCoach navigation owner install failed');
 tcInstallCompletionOwner();
 tcInstallHapticFeedback();
 tcInstallRestPolicyOwner();
@@ -1052,7 +774,7 @@ getCourseState:()=>typeof window.tcGetCourseStateSnapshot==='function'?window.tc
 window.tcRenderProgressSummary=()=>window.TurnikProgress.render();
 tcInstallRestStateOwner();
 tcInstallWorkoutPersistence();
-if(!window.TurnikNavigation.install())throw new Error('TurnikCoach navigation dispatcher install failed');
+if(!window.TurnikNavigation.install())throw new Error('TurnikCoach navigation owner reclaim failed');
 if(!window.TurnikWorkoutLifecycle.install())throw new Error('TurnikCoach workout lifecycle dispatcher install failed');
 if(!window.TurnikWorkoutActions.install())throw new Error('TurnikCoach workout action dispatcher install failed');
 if(!tcInstallCompletionOwner())throw new Error('TurnikCoach completion owner reclaim failed');
