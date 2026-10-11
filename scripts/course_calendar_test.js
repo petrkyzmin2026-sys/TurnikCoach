@@ -798,10 +798,10 @@ assert(course.includes('.tcAdvancedSelect{width:24px!important;height:24px!impor
  'advanced exercise checkboxes must be enlarged from the 21px base control');
 assert(productUi.includes('.tcInfoBtn{width:48px;height:48px;min-width:48px'),
  'TurnikProductUI training information control must be at least 48 by 48');
-assert(hotfix.includes('#workout .stageHeader .endBtn{min-height:48px!important;min-width:76px!important'),
- 'packaged workout Finish control must have a 48px minimum height');
-assert(hotfix.includes('#workout .stageControls .btn,#rest .btn,#sheet .sheetbox .btn{min-height:48px!important'),
- 'critical workout, rest and sheet buttons need 48px minimum height');
+assert(navigation.includes('#workout .stageHeader .endBtn{min-height:48px!important;min-width:76px!important'),
+ 'Navigation owner must preserve the 48px workout Finish touch target');
+assert(navigation.includes('#workout .stageControls .btn,#rest .btn,#sheet .sheetbox .btn{min-height:48px!important'),
+ 'Navigation owner must preserve 48px workout, rest and sheet touch targets');
 
 assert(productUi.includes('#rest .tcInfoBtn{position:absolute;right:92px;top:12px}'),
  'TurnikProductUI rest info button must not overlap the rest Exit control');
