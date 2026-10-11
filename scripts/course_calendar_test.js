@@ -822,9 +822,9 @@ assert(course.includes('f.check?\'<label class="tcCheckRow"'),
 
 assert(activeWorkout.includes("const KEY='tc_active_workout_v2',SCHEMA=2,TTL=24*60*60*1000"),
  'TurnikActiveWorkout must own the durable active-workout key, schema and 24-hour TTL');
-assert(hotfix.includes("const saveFn=window.tcSaveActiveWorkoutSnapshot")&&
- hotfix.includes("const saved=typeof saveFn==='function'?saveFn():false"),
- 'entering workout with active W must synchronously persist through the exported persistence API');
+assert(navigation.includes("const saveFn=window.tcSaveActiveWorkoutSnapshot")&&
+ navigation.includes("saved=typeof saveFn==='function'?saveFn():false"),
+ 'Navigation owner must synchronously persist an active workout at the workout navigation boundary');
 assert(!hotfix.includes('function tcSaveActiveWorkoutSnapshot()')&&!hotfix.includes('function tcRestoreActiveWorkoutSnapshot()'),
  'OTA shell must not keep a second active-workout persistence implementation');
 assert(activeWorkout.includes('function save()')&&activeWorkout.includes('function restore()')&&activeWorkout.includes('function validWorkout(w)'),
