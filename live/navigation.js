@@ -5,7 +5,7 @@ const VERSION='1.1.0-owner';
 if(window.TurnikNavigation&&window.TurnikNavigation.version===VERSION)return;
 const before=[],after=[],scrollByScreen={};
 let installed=false,ownerInstalled=false,baseGo=null,dispatcher=null,dispatching=false,internal=false,sheetWasOpen=false;
-let sheetObserver=null,backObserver=null,keyHandler=null,popHandler=null;
+let sheetObserver=null,keyHandler=null,popHandler=null;
 let surface=null,rest=null,showNotice=null,clearSnapshot=null,hotfixVersion='';
 function put(list,name,priority,fn){
 if(!name||typeof fn!=='function')return false;
@@ -187,15 +187,13 @@ sheetObserver.observe(sheet,{attributes:true,attributeFilter:['class'],childList
 if(keyHandler)document.removeEventListener('keydown',keyHandler);keyHandler=e=>{if(e.key==='Escape'){e.preventDefault();navigateBack()}};document.addEventListener('keydown',keyHandler);
 if(popHandler)window.removeEventListener('popstate',popHandler);popHandler=onPopState;window.addEventListener('popstate',popHandler);
 const start=currentScreen();surface.syncScreenVisibility(start);replaceRoute(start,false);decorateBackControls();
-if(backObserver)try{backObserver.disconnect()}catch(e){}
-const app=document.getElementById('app');
-if(app&&typeof MutationObserver==='function'){backObserver=new MutationObserver(decorateBackControls);backObserver.observe(app,{childList:true,subtree:true,attributes:true,attributeFilter:['class']});window.__tcBackControlObserver=backObserver}
+if(window.__tcBackControlObserver){try{window.__tcBackControlObserver.disconnect()}catch(e){}window.__tcBackControlObserver=null}
 window.__TC_NAV_FOUNDATION=true;window.__TC_NAV_UPGRADE_VERSION=hotfixVersion;ownerInstalled=true;
 console.log('TC_NAV_UPGRADE',JSON.stringify({phase:'install-owner',version:hotfixVersion,navigation:VERSION}));
 return true;
 }
 function debug(){
-return{version:VERSION,installed,ownerInstalled,singleOwner:installed&&window.go===dispatcher,beforeNames:before.map(x=>x.name),afterNames:after.map(x=>x.name),hasBaseGo:typeof baseGo==='function',sheetObserver:!!sheetObserver,backObserver:!!backObserver,hotfixVersion};
+return{version:VERSION,installed,ownerInstalled,singleOwner:installed&&window.go===dispatcher,beforeNames:before.map(x=>x.name),afterNames:after.map(x=>x.name),hasBaseGo:typeof baseGo==='function',sheetObserver:!!sheetObserver,observerFree:true,hotfixVersion};
 }
 window.TurnikNavigation={version:VERSION,install,installOwner,registerBefore,registerAfter,unregister:remove,discardWorkout,navigateBack,decorateBackControls,currentScreen,debug};
 try{window.dispatchEvent(new CustomEvent('turniknavigation:ready',{detail:{version:VERSION}}))}catch(e){}
