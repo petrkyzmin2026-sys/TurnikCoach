@@ -889,12 +889,12 @@ assert(hotfix.includes('function tcNextWorkoutStepText()'),
  'rest screen must derive the upcoming exercise and planned value from active workout state');
 assert(hotfix.includes("return 'Следующий подход · '+e.name"),
  'rest screen must expose the next task instead of a generic message');
-assert(hotfix.includes("#workout .stageControls .btn.green,#rest .btn.green{min-height:58px!important"),
- 'primary repeated workout actions must be larger than the generic 48px minimum');
+assert(navigation.includes("#workout .stageControls .btn.green,#rest .btn.green{min-height:58px!important"),
+ 'Navigation owner must preserve larger primary repeated workout actions');
 assert(navigation.includes("#workout .controls,#workout .tcStableWorkoutControls{height:auto!important;min-height:246px!important;max-height:45vh!important"),
  'large-text mode must allow workout controls to grow instead of clipping content');
-assert(hotfix.includes("#workout .wmedia{bottom:var(--tc-workout-controls-bottom,260px)!important}"),
- 'workout media must reserve the measured control height');
+assert(navigation.includes("#workout .wmedia{bottom:var(--tc-workout-controls-bottom,260px)!important}"),
+ 'Navigation owner must reserve the measured workout control height for media');
 assert(surface.includes("function installAdaptiveGeometry()")&&
  surface.includes("new ResizeObserver(apply)")&&
  surface.includes("workout.style.setProperty('--tc-workout-controls-bottom'"),
@@ -908,24 +908,24 @@ assert(completion.includes(".tcCompletionRow span,.tcCompletionRow b{min-width:0
 assert(navigation.includes("#workout .controls,#workout .tcStableWorkoutControls{height:auto!important;min-height:246px!important"),
  'active workout must preserve the 246px baseline while allowing large-text growth');
 assert(surface.includes('function syncScreenVisibility(id)')&&
- hotfix.includes('surface.syncScreenVisibility(id);'),
- 'WebView navigation must synchronize screen visibility through TurnikSurface after go()');
-assert(hotfix.includes("surface.syncScreenVisibility(target||'today');")&&
- hotfix.includes("replaceRoute(target||'today',false);"),
- 'discard must unhide Today through TurnikSurface and synchronize the route');
+ navigation.includes('surface.syncScreenVisibility(id);'),
+ 'TurnikNavigation must synchronize screen visibility through TurnikSurface after go()');
+assert(navigation.includes("surface.syncScreenVisibility(target||'today')")&&
+ navigation.includes("replaceRoute(target||'today',false)"),
+ 'Navigation owner discard must unhide Today and synchronize the route');
 assert(hotfix.includes("priorInstalledHotfix.startsWith('5.16.')")&&
  hotfix.includes("'5.16.35-touch-release';")&&
  hotfix.includes("window.__TC_UPDATE_PENDING_VERSION='';"),
  'new hotfix must suppress the actual cached 5.16.35 prompt before discard or Progress unlocks it');
 assert(surface.includes('function forceRepaint()')&&
- hotfix.includes('surface.forceRepaint();'),
- 'WebView navigation must force compositor repaint through TurnikSurface after the screen switch');
+ navigation.includes('surface.forceRepaint()'),
+ 'TurnikNavigation must force compositor repaint through TurnikSurface after a screen switch');
 assert(navigation.includes("#workout .stageHeader .row.between,#workout .wtop .row.between{gap:8px}"),
  'workout controls must support both stageHeader and legacy wtop DOMs');
 assert(navigation.includes("#workout.screen.on .stageHeader .row.between, #workout.screen.on .wtop .row.between"),
  'exit/info decorators must target both workout header variants');
-assert(hotfix.includes('function tcStabilizeWorkoutControls()'),
- 'packaged and current workout DOM must be normalized at runtime');
+assert(navigation.includes('function stabilizeWorkoutControls()'),
+ 'Navigation owner must normalize packaged and current workout controls at runtime');
 assert(navigation.includes("done.parentElement.classList.add('tcWorkoutActions')"),
  'Done and Skip must share a stable vertical motor container');
 assert(navigation.includes("#workout .controls .actions,#workout .tcWorkoutActions{display:grid!important;grid-template-columns:1fr!important"),
