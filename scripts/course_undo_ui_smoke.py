@@ -412,6 +412,7 @@ assert "navigation-owner" in core_probe["navigation"]["beforeNames"] and "naviga
 assert "correction-controls" in core_probe["navigation"]["afterNames"] and "product-ui" in core_probe["navigation"]["afterNames"], "correction/product post-processing must be navigation hooks"
 assert core_probe["navigationCache"]>500, "navigation dispatcher must survive in the versioned module cache"
 assert core_probe["navigation"].get("ownerInstalled") is True and core_probe["navigation"].get("hasBaseGo") is True, "TurnikNavigation must own Back/Exit/history and retain the captured base go function"
+assert core_probe["navigation"].get("observerFree") is True, "TurnikNavigation must remain free of the app-wide back-control MutationObserver during touch flows"
 assert core_probe["surface"] and core_probe["surface"]["version"]=="1.0.0-owner" and core_probe["surface"]["installed"] is True, "TurnikSurface must be the active real-WebView owner of screen visibility/repaint/restore"
 assert core_probe["surfaceCache"]>1000, "TurnikSurface must survive in the versioned offline cache"
 assert core_probe["foundation"] and core_probe["foundation"].get("surfaceModule")=="1.0.0-owner", "runtime diagnostics must expose the Surface owner"
