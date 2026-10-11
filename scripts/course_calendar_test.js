@@ -105,7 +105,7 @@ assert(hotfix.includes("TC_DOMAIN_MODULE_VERSION='1.0.0'")&&
  hotfix.includes("TC_ACTIVE_WORKOUT_MODULE_VERSION='1.1.0-command-hooks'")&&
  hotfix.includes("TC_COMPLETION_MODULE_VERSION='1.0.0-owner'")&&
  hotfix.includes("TC_LIFECYCLE_MODULE_VERSION='1.0.0'")&&
- hotfix.includes("TC_NAVIGATION_MODULE_VERSION='1.0.0'")&&
+ hotfix.includes("TC_NAVIGATION_MODULE_VERSION='1.1.0-owner'")&&
  hotfix.includes("TC_WORKOUT_UI_MODULE_VERSION='1.0.0'")&&
  hotfix.includes("TC_COURSE_ACTIONS_MODULE_VERSION='1.1.0-hooks'")&&
  hotfix.includes("TC_PROGRESS_MODULE_VERSION='1.0.0-owner'")&&
@@ -325,8 +325,8 @@ assert(progress.includes("api.productUI.queueDecorate()")&&productUi.includes('f
  'Progress owner must delegate product decoration to TurnikProductUI after its own presenter finishes');
 assert(course.includes('id="tcCycleStartDate"'),
  'settings must expose a cycle start date');
-assert(hotfix.includes("const VERSION='5.16.69-surface-owner'"),
- 'release hotfix version must be 5.16.69');
+assert(hotfix.includes("const VERSION='5.16.70-navigation-owner'"),
+ 'release hotfix version must be 5.16.70');
 assert(course.includes("const COURSE_MODULE_VERSION='1.0.48-product-info-provider'"),
  'course module version must be 1.0.47');
 const directCourseWrites=(course.match(/localStorage\.setItem\(TC_COURSE_KEY/g)||[]).length;
@@ -357,7 +357,7 @@ assert(!course.includes('TC_EXTRA_START'),
  'temporary extra-workout trace logging must not ship');
 assert(!course.includes('window.confirm('),'course module must not depend on unsupported WebView JS dialogs');
 assert(!hotfix.includes('window.confirm('),'hotfix navigation/discard must not depend on unsupported WebView JS dialogs');
-assert(!hotfix.includes('forceHandover'),'5.16.69 must use an explicit user-visible update prompt');
+assert(!hotfix.includes('forceHandover'),'5.16.70 must use an explicit user-visible update prompt');
 assert(hotfix.includes("showRuntimeNotice('TurnikCoach обновлён до '+LABEL)"),
  'successful activation must give visible feedback');
 assert(hotfix.includes("localStorage.setItem('tc_hotfix_active_version',VERSION)"),
@@ -831,19 +831,24 @@ assert(activeWorkout.includes('function save()')&&activeWorkout.includes('functi
  'TurnikActiveWorkout must own snapshot save, restore and validation');
 assert(activeWorkout.includes("log(hadActive?'handover-restored':'restored'"),
  'TurnikActiveWorkout must preserve handover/restore diagnostics');
-assert(hotfix.includes('function tcInstallNavigationUpgrades()')&&
- hotfix.includes('window.__TC_NAV_UPGRADE_VERSION=VERSION')&&
- /tcInstallNavigationFoundation\(\);\s*tcInstallNavigationUpgrades\(\);\s*tcInstallCompletionOwner\(\);\s*tcInstallHapticFeedback\(\);\s*tcInstallRestPolicyOwner\(\);\s*tcInstallWorkoutCorrection\(\);[\s\S]*?TurnikProgress\.install\([\s\S]*?tcInstallRestStateOwner\(\);\s*tcInstallWorkoutPersistence\(\);/.test(hotfix),
- 'hotfix upgrades must run after the one-time navigation core and before ActiveWorkout schedules persistence restore');
+assert(!hotfix.includes('function tcInstallNavigationUpgrades()')&&!hotfix.includes('function tcInstallNavigationFoundation()'),
+ 'OTA shell must not keep a second navigation foundation or upgrade implementation');
+assert(navigation.includes("const VERSION='1.1.0-owner'")&&navigation.includes('function installOwner(opts)')&&
+ navigation.includes('window.tcDiscardWorkout=discardWorkout')&&navigation.includes('window.tcNavigateBack=navigateBack')&&
+ navigation.includes("registerBefore('navigation-owner',10000")&&navigation.includes("registerAfter('navigation-owner',10000"),
+ 'TurnikNavigation must own routing, Back/Exit, sheet history and the navigation boundary hooks');
+assert(/TurnikNavigation\.installOwner\([\s\S]*?tcInstallCompletionOwner\(\);\s*tcInstallHapticFeedback\(\);\s*tcInstallRestPolicyOwner\(\);\s*tcInstallWorkoutCorrection\(\);[\s\S]*?TurnikProgress\.install\([\s\S]*?tcInstallRestStateOwner\(\);\s*tcInstallWorkoutPersistence\(\);/.test(hotfix),
+ 'navigation owner must install before completion/correction/persistence owners reclaim their APIs');
 assert(surface.includes('window.tcRefreshActiveTrainingSurface=refreshActiveTrainingSurface')&&
  surface.includes('window.tcArmRestoreSurfaceGuard=armRestoreSurfaceGuard')&&
  surface.includes('until:Date.now()+5000')&&
  surface.includes("pageshowHandler=enforceRestoreGuard")&&
  surface.includes("document.visibilityState==='visible'"),
  'TurnikSurface must keep the active training surface asserted through the startup handover window');
-assert(hotfix.includes("if(window.__TC_NAV_FOUNDATION)return;")&&
+assert(navigation.includes("if(keyHandler)document.removeEventListener('keydown',keyHandler)")&&
+ navigation.includes("if(popHandler)window.removeEventListener('popstate',popHandler)")&&
  surface.includes("if(focusHandler)window.removeEventListener('focus',focusHandler)"),
- 'navigation foundation must remain one-time while TurnikSurface replaces its own listeners deterministically');
+ 'Navigation and Surface owners must replace their listeners deterministically instead of stacking hotfix listeners');
 assert(surface.includes("TurnikNative.showSurface")&&
  mainActivity.includes("@JavascriptInterface public void showSurface(String requested)")&&
  mainActivity.includes("web.setLayerType(View.LAYER_TYPE_SOFTWARE, null)")&&
@@ -1205,12 +1210,13 @@ assert.deepEqual(lifeOrder,['before:generic','after:base','before:course','after
 
 // Single-owner navigation regression.
 assert.equal((hotfix.match(/window\.go\s*=(?!=)/g)||[]).length,0,'OTA shell must not wrap global go');
-assert(hotfix.includes("registerBefore('navigation-foundation',10000")&&
- hotfix.includes("registerAfter('navigation-foundation',10000")&&
+assert(navigation.includes("registerBefore('navigation-owner',10000")&&
+ navigation.includes("registerAfter('navigation-owner',10000")&&
  correction.includes("nav.registerAfter('correction-controls',100")&&
  productUi.includes("registerAfter('product-ui',50"),
- 'navigation history remains a shell hook while correction and product decoration belong to their owner modules');
-assert(hotfix.includes('window.TurnikNavigation.install()'),'navigation dispatcher must become the sole go owner');
+ 'navigation history must belong to TurnikNavigation while correction and product decoration remain separate owner hooks');
+assert(hotfix.includes('window.TurnikNavigation.installOwner({')&&hotfix.includes('window.TurnikNavigation.install()'),
+ 'hotfix must only wire and reclaim the TurnikNavigation owner, not implement navigation itself');
 const navSandbox={console,CustomEvent:function(){},dispatchEvent:()=>true};
 navSandbox.window=navSandbox;navSandbox.go=function(id){navSandbox.baseCalls=(navSandbox.baseCalls||0)+1;navSandbox.last=id;return 'base:'+id};
 vm.runInNewContext(navigation,navSandbox,{filename:'live/navigation.js'});
