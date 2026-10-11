@@ -837,6 +837,9 @@ assert(navigation.includes("const VERSION='1.1.0-owner'")&&navigation.includes('
  navigation.includes('window.tcDiscardWorkout=discardWorkout')&&navigation.includes('window.tcNavigateBack=navigateBack')&&
  navigation.includes("registerBefore('navigation-owner',10000")&&navigation.includes("registerAfter('navigation-owner',10000"),
  'TurnikNavigation must own routing, Back/Exit, sheet history and the navigation boundary hooks');
+assert(!navigation.includes('new MutationObserver(decorateBackControls)')&&navigation.includes('observerFree:true')&&
+ navigation.includes("window.__tcBackControlObserver.disconnect()"),
+ 'Navigation owner must keep the app-wide back-control MutationObserver disabled so touch navigation cannot be interrupted');
 assert(/TurnikNavigation\.installOwner\([\s\S]*?tcInstallCompletionOwner\(\);\s*tcInstallHapticFeedback\(\);\s*tcInstallRestPolicyOwner\(\);\s*tcInstallWorkoutCorrection\(\);[\s\S]*?TurnikProgress\.install\([\s\S]*?tcInstallRestStateOwner\(\);\s*tcInstallWorkoutPersistence\(\);/.test(hotfix),
  'navigation owner must install before completion/correction/persistence owners reclaim their APIs');
 assert(surface.includes('window.tcRefreshActiveTrainingSurface=refreshActiveTrainingSurface')&&
